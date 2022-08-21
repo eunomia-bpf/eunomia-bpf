@@ -3,15 +3,15 @@
 OUTPUT := .output
 CLANG ?= clang
 LLVM_STRIP ?= llvm-strip
-BPFTOOL ?= $(abspath ../../tools/bpftool)
-LIBBPF_SRC := $(abspath ../../libbpf/src)
+BPFTOOL ?= $(abspath ../../third_party/tools/bpftool)
+LIBBPF_SRC := $(abspath ../../third_party/libbpf/src)
 LIBBPF_OBJ := $(abspath $(OUTPUT)/libbpf.a)
 ARCH := $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
-VMLINUX := ../../vmlinux/$(ARCH)/vmlinux.h
+VMLINUX := ../../third_party/vmlinux/$(ARCH)/vmlinux.h
 # Use our own libbpf API headers and Linux UAPI headers distributed with
 # libbpf to avoid dependency on system-wide headers, which could be missing or
 # outdated
-INCLUDES := -I$(OUTPUT) -I../../libbpf/include/uapi -I$(dir $(VMLINUX))
+INCLUDES := -I$(OUTPUT) -I../../third_party/libbpf/include/uapi -I$(dir $(VMLINUX))
 CFLAGS := -g -Wall -Wno-unused-function
 
 APPS = client
@@ -45,7 +45,7 @@ all: $(APPS)
 .PHONY: clean
 clean:
 	$(call msg,CLEAN)
-	$(Q)rm -rf $(OUTPUT) $(APPS) client *.json
+	$(Q)rm -rf $(OUTPUT) $(APPS) client *.o
 
 $(OUTPUT) $(OUTPUT)/libbpf:
 	$(call msg,MKDIR,$@)
@@ -70,17 +70,19 @@ $(OUTPUT)/%.skel.h: $(OUTPUT)/%.bpf.o | $(OUTPUT)
 	$(call msg,GEN-SKEL,$@)
 	$(Q)$(BPFTOOL) gen skeleton $< > $@
 
+cJSON.o: cJSON.c
+
 # Build user-space code
 $(patsubst %,$(OUTPUT)/%.o,$(APPS)): %.o: %.skel.h
 
-$(OUTPUT)/%.o: %.cpp $(wildcard %.h) | $(OUTPUT)
+$(OUTPUT)/%.o: %.c $(wildcard %.h) | $(OUTPUT)
 	$(call msg,CC,$@)
-	$(Q)$(CXX) $(CFLAGS) $(INCLUDES) -c $(filter %.cpp,$^) -o $@
+	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
 
 # Build application binary
-$(APPS): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) | $(OUTPUT)
+$(APPS): %: $(OUTPUT)/%.o cJSON.o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
-	$(Q)$(CXX) $(CFLAGS) $^ -lelf -lz -o $@
+	$(Q)$(CC) $(CFLAGS) $^ -lelf -lz -o $@
 
 # delete failed targets
 .DELETE_ON_ERROR:

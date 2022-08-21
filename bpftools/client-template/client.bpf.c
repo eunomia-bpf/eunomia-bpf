@@ -5,7 +5,7 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 #include <bpf/bpf_core_read.h>
-#include "client.h"
+#include "event.h"
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
 
@@ -26,7 +26,7 @@ int handle_exec(struct trace_event_raw_sys_enter* ctx)
 	if (!e)
 		return 0;
 	e->pid = pid;
-	bpf_probe_read_str(&e->filename, sizeof(e->filename), (void *)ctx->args[0]);
+	bpf_probe_read_str(&e->char_buffer127, sizeof(e->char_buffer127), (void *)ctx->args[0]);
 	/* successfully submit it to user-space for post-processing */
 	bpf_ringbuf_submit(e, 0);
 	return 0;

@@ -1,5 +1,2 @@
-/.output
-/opensnoop
-update
+.output
 client
-*.json
