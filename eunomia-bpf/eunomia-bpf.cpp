@@ -200,7 +200,7 @@ static int handle_print_event(void *ctx, void *data, size_t data_sz)
 	tm = localtime(&t);
 	strftime(ts, sizeof(ts), "%H:%M:%S", tm);
 	printf("%-8s %-7d %-7d %s %s %d %u %u %lld %lld\n",
-		   ts, e->pid, e->ppid, e->char_buffer16, e->char_buffer16, e->bool_value1,
+		   ts, e->pid, e->ppid, e->char_buffer16, e->char_buffer127, e->bool_value1,
 		   e->u32_value1, e->u32_value2, e->u64_value1, e->u64_value2);
 	return 0;
 }

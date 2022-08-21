@@ -14,6 +14,7 @@ VMLINUX := ../../third_party/vmlinux/$(ARCH)/vmlinux.h
 INCLUDES := -I$(OUTPUT) -I../../third_party/libbpf/include/uapi -I$(dir $(VMLINUX))
 CFLAGS := -g -Wall -Wno-unused-function
 
+PACKAGE_NAME := client
 APPS = client
 
 # Get Clang's default includes on this system. We'll explicitly add these dirs
@@ -39,8 +40,8 @@ else
 	MAKEFLAGS += --no-print-directory
 endif
 
-.PHONY: all client
-all: $(APPS)
+.PHONY: all
+all: $(OUTPUT)/package.json
 
 .PHONY: clean
 clean:
@@ -83,6 +84,9 @@ $(OUTPUT)/%.o: %.c $(wildcard %.h) | $(OUTPUT)
 $(APPS): %: $(OUTPUT)/%.o cJSON.o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ -lelf -lz -o $@
+
+$(OUTPUT)/package.json: $(APPS)
+	$(Q)./client $(PACKAGE_NAME) > $(OUTPUT)/package.json
 
 # delete failed targets
 .DELETE_ON_ERROR:

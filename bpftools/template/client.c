@@ -11,24 +11,42 @@
 #include "cJSON.h"
 #include "base64_encode.h"
 
+const char* config_file_name = "config.json";
+
+cJSON * parse_json_file(void)
+{
+  FILE *f;
+  long len;
+  char *data;
+
+  f = fopen(config_file_name, "rb");
+  if (!f) {
+    fprintf(stderr, "Failed to open config file %s\n", config_file_name);
+    exit(1);
+  }
+  fseek(f, 0, SEEK_END);
+  len = ftell(f);
+  fseek(f, 0, SEEK_SET);
+  data = (char *)malloc(len + 1);
+  fread(data, 1, len, f);
+  fclose(f);
+  cJSON *result = cJSON_Parse(data);
+  free(data);
+  return result;
+}
+
 int main(int argc, char **argv)
 {
   struct client_bpf obj;
   char *string;
   // TODO: this is unnecessary, use bpftools instead
 
-  if (argc < 2)
-  {
-    fprintf(stderr, "Usage: %s <name>\n", argv[0]);
-    return 1;
-  }
   if (client_bpf__create_skeleton(&obj))
   {
     return 1;
   }
-  cJSON *result = cJSON_CreateObject();
+  cJSON *result = parse_json_file();
   size_t out_len;
-  cJSON *name = NULL;
   cJSON *map = NULL;
   cJSON *maps = NULL;
   cJSON *prog = NULL;
@@ -36,13 +54,6 @@ int main(int argc, char **argv)
   cJSON *data = NULL;
   cJSON *data_sz = NULL;
   unsigned char *base64_buffer = NULL;
-
-  name = cJSON_CreateString(argv[1]);
-  if (name == NULL)
-  {
-    goto end;
-  }
-  cJSON_AddItemToObject(result, "name", name);
 
   data_sz = cJSON_CreateNumber(obj.skeleton->data_sz);
   if (data_sz == NULL)
@@ -52,7 +63,7 @@ int main(int argc, char **argv)
   cJSON_AddItemToObject(result, "data_sz", data_sz);
 
   base64_buffer = base64_encode(obj.skeleton->data, obj.skeleton->data_sz, &out_len);
-  data = cJSON_CreateString(base64_buffer);
+  data = cJSON_CreateString((const char*)base64_buffer);
   if (data == NULL)
   {
     goto end;
