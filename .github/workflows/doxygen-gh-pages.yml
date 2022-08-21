@@ -1,0 +1,59 @@
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy static content to Pages
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: ["master"]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+# In that case do the job 'make_and_deploy_doxygen'
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install doxygen and latex components
+        run: sudo apt-get update; sudo apt-get install -y doxygen graphviz texlive-full
+      # 3. Create the doxygen pages.
+
+      - name: get submodule
+        run:  git submodule update --init --recursive
+
+      - name: install deps
+        run: |
+            make install-deps
+            sudo apt install gcc-10 g++-10
+      - name: generate bpf headers
+        run:  make generate-tools
+
+      - name: generate doxygen
+        run:  make docs
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v1
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          # Upload entire repository
+          path: 'docs/html/'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@main

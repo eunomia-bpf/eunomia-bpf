@@ -1,0 +1,42 @@
+run_selected = "server"
+tracing_selected = "all"
+tracing_target_id = ""
+prometheus_listening_address = "127.0.0.1:8528"
+
+[[enabled_trackers]]
+name = "process"
+export_handlers = [ ]
+args = [ ]
+
+[[enabled_trackers]]
+name = "tcpconnect"
+export_handlers = [ ]
+args = [ ]
+
+[[enabled_trackers]]
+name = "files"
+args = [ "arg1", "arg2" ]
+
+  [[enabled_trackers.export_handlers]]
+  name = "stdout"
+  args = [ "arg1", "arg2" ]
+
+[[security_rules]]
+rule_name = "bpf..."
+type = "syscall"
+trigger = "bpf"
+err_msg = "err_msg bpf"
+
+[[security_rules]]
+rule_name = "file..."
+type = "file"
+trigger = "open"
+err_msg = "err_msg file"
+
+[[seccomp_data]]
+container_id = "d3ed78f03c67"
+allow_syscall = [ "read", "write", "open" ]
+
+[[seccomp_data]]
+container_id = "c8fe57314834"
+allow_syscall = [ "read", "write", "open", "connect" ]
