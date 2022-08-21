@@ -128,7 +128,7 @@ int run_ebpf_program(struct eunomia_ebpf_program &ebpf_program)
 	return 0;
 }
 
-void stop_ebpf_program(const struct eunomia_ebpf_program &ebpf_program)
+void stop_ebpf_program(struct eunomia_ebpf_program &ebpf_program)
 {
 	if (ebpf_program.skeleton)
 		bpf_object__destroy_skeleton(ebpf_program.skeleton);
