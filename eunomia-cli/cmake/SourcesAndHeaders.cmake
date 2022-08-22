@@ -1,12 +1,8 @@
 set(sources
-    src/libbpf_print.cpp
     src/eunomia_core.cpp
     src/config.cpp
-    src/tracker_alone.cpp
     src/http_server.cpp
-    src/btf_helpers.c
-    src/trace_helpers.c
-    src/uprobe_helpers.c
+    ../eunomia-bpf/eunomia-bpf.cpp
 )
 
 set(exe_sources
@@ -15,10 +11,12 @@ set(exe_sources
 )
 
 set(headers
-    include/eunomia/
 )
 
 set(skel_includes
+    include/eunomia/
+    ../eunomia-bpf/
+    ../third_party/includes/
 )
 
 set(test_sources

@@ -9,29 +9,35 @@
 
 #include <mutex>
 #include <thread>
+
 #include "event_handler.h"
 
+#if __cplusplus >= 202002L
 /// the config env for a tracker
 template<typename ENV>
-concept env_concept = requires {
-    /// is the tracker exiting?
+concept env_concept = requires
+{
+  /// is the tracker exiting?
 
-    /// If this is true, the tracker should exit.
-    typename ENV::exiting;
+  /// If this is true, the tracker should exit.
+  typename ENV::exiting;
 };
+#else
+#define env_concept typename
+#endif
 
 /// config data for tracker
 
 /// pass this to create a tracker
-template <typename ENV, typename EVENT>
-struct tracker_config
+template<typename ENV, typename EVENT>
+struct tracker_exporter
 {
-    /// tracker env in C code
-    ENV env;
-    /// tracker name
-    std::string name;
-    /// event handler interface
-    std::shared_ptr<event_handler<EVENT>> handler = nullptr;
+  /// tracker env in C code
+  ENV env;
+  /// tracker name
+  std::string name;
+  /// event handler interface
+  std::shared_ptr<event_handler<EVENT>> handler = nullptr;
 };
 
 #endif

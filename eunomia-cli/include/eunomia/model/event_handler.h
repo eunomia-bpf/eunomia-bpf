@@ -12,10 +12,9 @@
 #include <string>
 #include <thread>
 #include <memory>
-#include "container_info.h"
 
 /// concept for a eunomia event
-
+#if __cplusplus >= 202002L
 /// which will be reported by a tracker
 template<typename EVENT>
 concept event_concept =  requires
@@ -23,6 +22,9 @@ concept event_concept =  requires
   /// pid of the associated process
   typename EVENT::pid;
 };
+#else
+#define event_concept typename
+#endif
 
 /// the basic event type
 
@@ -31,7 +33,6 @@ template <typename T>
 struct tracker_event
 {
     T data;
-    container_info ct_info;
     // TODO: add more data options here?
 };
 

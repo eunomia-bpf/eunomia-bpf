@@ -79,60 +79,18 @@ struct eunomia_config_data
     { "files", {}, {} },
     { "tcpconnect", {}, {} },
   };
-  /// use the config data from enabled_trackers,
-
-  /// disable others.
-  bool disable_other_configs = false;
-
-  /// tracing config
-  std::string tracing_selected = "all";
-  /// tracing targets
-  std::string tracing_target_id = "";
-
   /// auto exit mode
   int exit_after = 0;
-
-  /// export config
-
-  /// may be we should have config similar to tracker_config
-  std::set<std::string> enabled_export_types = { "prometheus", "stdout" };
-
-  /// export format
-
-  /// this should be set as well
-  std::string fmt = "plain_text";
-
-  /// enable container tracing
-
-  /// we can get container id and container name
-  /// using pid from the map of it
-  bool enable_container_manager = true;
-
-  // TODO: this should be add to export config
-  std::string prometheus_listening_address = "127.0.0.1:8528";
-
-  /// enable sec rule analyzer and detect
-  bool enable_sec_rule_detect = false;
-  /// security rule config
-
-  /// TODO: add more security rule config
-  std::vector<rule_config_data> security_rules;
-
-  /// seccomp enabled syscalls
-  std::vector<seccomp_config_data> seccomp_data;
-  /// run container under seccomp
-  bool enable_seccomp_module = false;
 
   /// parse config from toml files
   static eunomia_config_data from_toml_file(const std::string &file_path);
   /// parse config from json files
   static eunomia_config_data from_json_file(const std::string &file_path);
 
-  /// load config options to enable_trackers
-  void load_config_options_to_trackers();
-
   /// eunomia_http_server_port
   int server_port = 8527;
+  /// eunomia_http_server_host
+  std::string server_host = "localhost";
 };
 
 #endif

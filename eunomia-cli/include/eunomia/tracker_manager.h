@@ -30,7 +30,6 @@ class tracker_manager
 
  public:
   ~tracker_manager() {
-    spdlog::debug("tracker_manager::~tracker_manager()");
   }
   // remove a tracker with id
   void remove_tracker(int id)
@@ -55,7 +54,7 @@ class tracker_manager
       std::cout << "tracker_ptr is null in start_tracker\n";
       return 0;
     }
-    tracker_ptr->thread = std::jthread(&tracker_base::start_tracker, tracker_ptr.get());
+    tracker_ptr->thread = std::thread(&tracker_base::start_tracker, tracker_ptr.get());
     trackers.emplace(id_count++, tracker_base_data{name, std::move(tracker_ptr)});
     return trackers.size() - 1;
   }
