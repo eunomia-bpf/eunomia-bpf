@@ -4,7 +4,7 @@
 
 - Run `CO-RE` eBPF code without provisioning or managing infrastructure
 - simply requests with a json and run `every` pre-compiled ebpf code
-- very small and simple! Only a binary bout `4MB`
+- very small and simple! Only a binary about `4MB`
 - as fast as `100ms` to start a ebpf program
 - `Distributed` and `decentralized`, No compile helper server
 
@@ -41,7 +41,12 @@ An simple and small pre-compiled binary, use eunomia-bpf library.
 
 ## Road-map
 
-TODO
+- [ ] refactor the code from project `Eunomia` and provide quick examples
+- [ ] use lua for ebpf package load config
+- [ ] add more possibilities from `libbpf`
+- [ ] provide python, go and others sdk
+- [ ] add support of `etcd` and enhance server
+- [ ] fix ci and docs, multi proto supports
 
 ## License
 
