@@ -32,7 +32,6 @@ class tracker_base
   /// constructor
   virtual ~tracker_base()
   {
-    stop_tracker();
   }
   /// start the tracker thread
   virtual void start_tracker(void) = 0;

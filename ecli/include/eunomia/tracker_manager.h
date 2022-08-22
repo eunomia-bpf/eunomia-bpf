@@ -54,9 +54,10 @@ class tracker_manager
       std::cout << "tracker_ptr is null in start_tracker\n";
       return 0;
     }
+    int id = id_count++;
     tracker_ptr->thread = std::thread(&tracker_base::start_tracker, tracker_ptr.get());
-    trackers.emplace(id_count++, tracker_base_data{name, std::move(tracker_ptr)});
-    return trackers.size() - 1;
+    trackers.emplace(id, tracker_base_data{name, std::move(tracker_ptr)});
+    return id;
   }
   // stop all tracker
   void remove_all_trackers()

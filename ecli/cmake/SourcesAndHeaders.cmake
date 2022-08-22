@@ -3,6 +3,7 @@ set(sources
     src/config.cpp
     src/http_server.cpp
     src/eunomia_runner.cpp
+    src/url_resolver.cpp
     ../eunomia-bpf/eunomia-bpf.cpp
 )
 

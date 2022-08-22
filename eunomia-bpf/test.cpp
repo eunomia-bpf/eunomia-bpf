@@ -2,7 +2,8 @@
 #include <iostream>
 #include <fstream>
 
-int main() {
+int main()
+{
     std::ifstream json_file("package.json");
     std::string json_str((std::istreambuf_iterator<char>(json_file)),
                          std::istreambuf_iterator<char>());
@@ -11,6 +12,6 @@ int main() {
     eunomia_ebpf_program ebpf_program{json_str};
     ebpf_program.run();
     ebpf_program.wait_and_print_rb();
-    ebpf_program.stop();
+    ebpf_program.stop_and_clean();
     return 0;
 }

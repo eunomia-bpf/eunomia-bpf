@@ -7,8 +7,10 @@
 #ifndef PROCESS_CMD_H
 #define PROCESS_CMD_H
 
+#include <memory>
 #include <string>
 
+#include "eunomia-bpf.h"
 #include "model/tracker.h"
 
 struct eunomia_env
@@ -30,20 +32,34 @@ class eunomia_runner : public tracker_with_exporter<eunomia_env, eunomia_event>
 {
  public:
   /// create a tracker with deafult config
-  static std::unique_ptr<eunomia_runner> create_tracker_with_args(
-      tracker_event_handler handler,
-      const std::vector<std::string> &args)
+  static std::unique_ptr<eunomia_runner>
+  create_tracker_with_args(tracker_event_handler handler, const std::string &json_data, const std::vector<std::string> &args)
   {
-    return nullptr;
+    return std::make_unique<eunomia_runner>(json_data, args, handler);
+  }
+  eunomia_runner(const std::string &json_data, const std::vector<std::string> &args, tracker_event_handler handler)
+      : program{ json_data },
+        tracker_with_exporter{ export_data{
+            eunomia_env{},
+            program.get_program_name(),
+            handler
+        } }
+  {
   }
 
   /// start process tracker
   void start_tracker();
+  const std::string get_name(void) const {
+    return program.get_program_name();
+  }
 
   struct plain_text_event_printer : public event_handler<eunomia_event>
   {
     void handle(tracker_event<eunomia_event> &e);
   };
+
+ private:
+  eunomia_ebpf_program program;
 };
 
 #endif

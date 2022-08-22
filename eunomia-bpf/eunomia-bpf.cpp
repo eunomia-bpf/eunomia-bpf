@@ -97,16 +97,22 @@ int eunomia_ebpf_program::get_ring_buffer_id(void)
   return -1;
 }
 
+const std::string &eunomia_ebpf_program::get_program_name(void) const
+{
+  return meta_data.ebpf_name;
+}
+
 int eunomia_ebpf_program::wait_and_print_rb()
 {
   int err;
+  std::lock_guard<std::mutex> guard(exit_mutex);
   /* Set up ring buffer polling */
   auto id = get_ring_buffer_id();
   rb = ring_buffer__new(bpf_map__fd(maps[id]), handle_print_event, NULL, NULL);
   if (!rb)
   {
     fprintf(stderr, "Failed to create ring buffer\n");
-    return 0;
+    return -1;
   }
 
   /* Process events */
@@ -122,14 +128,17 @@ int eunomia_ebpf_program::wait_and_print_rb()
     if (err < 0)
     {
       printf("Error polling perf buffer: %d\n", err);
-      break;
+      return -1;
     }
   }
   return 0;
 }
 
-void eunomia_ebpf_program::stop()
+void eunomia_ebpf_program::stop_and_clean()
 {
+  exiting = true;
+  /// wait until poll has exit
+  std::lock_guard<std::mutex> guard(exit_mutex);
   if (skeleton)
   {
     bpf_object__destroy_skeleton(skeleton);
@@ -188,8 +197,7 @@ int eunomia_ebpf_program::create_prog_skeleton(void)
   }
 
   s->data_sz = meta_data.data_sz;
-  base64_decode_buffer = base64_decode(
-      (const unsigned char *)meta_data.ebpf_data.c_str(), meta_data.ebpf_data.size());
+  base64_decode_buffer = base64_decode((const unsigned char *)meta_data.ebpf_data.c_str(), meta_data.ebpf_data.size());
   s->data = (void *)base64_decode_buffer.data();
 
   s->obj = &obj;

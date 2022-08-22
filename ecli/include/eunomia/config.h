@@ -37,7 +37,8 @@ struct handler_config_data
 /// tracker config data
 struct tracker_config_data
 {
-  std::string name;
+  std::string url;
+  std::string json_data;
   std::vector<handler_config_data> export_handlers;
   std::vector<std::string> args;
 

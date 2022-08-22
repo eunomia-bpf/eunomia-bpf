@@ -9,13 +9,16 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <mutex>
 
-struct ebpf_maps_meta_data {
+struct ebpf_maps_meta_data
+{
   std::string name;
   std::string type;
 };
 
-struct ebpf_progs_meta_data {
+struct ebpf_progs_meta_data
+{
   std::string name;
   std::string type;
 };
@@ -48,7 +51,8 @@ private:
 
 private:
   /// is the polling ring buffer loop exiting?
-  bool exiting;
+  std::mutex exit_mutex;
+  volatile bool exiting;
   /// meta data storage
   eunomia_ebpf_meta_data meta_data;
 
@@ -68,14 +72,18 @@ public:
   eunomia_ebpf_program(eunomia_ebpf_program &&) = delete;
   ~eunomia_ebpf_program()
   {
-    stop();
+    stop_and_clean();
   }
   /// load and attach the ebpf program to the kernel
   int run(void);
   /// wait and print the messages from te ring buffer
   int wait_and_print_rb(void);
-  /// stop and detach
-  void stop(void);
+  /// stop, detach, and clean up memory
+  /// This is thread safe with ring buffer.
+  void stop_and_clean(void);
+
+
+  const std::string& get_program_name(void) const;
 };
 
 int open_ebpf_program_from_json(struct eunomia_ebpf_program &ebpf_program, const std::string &json_str);

@@ -16,6 +16,8 @@ using json = nlohmann::json;
 
 void eunomia_runner::start_tracker()
 {
+  program.run();
+  program.wait_and_print_rb();
 }
 
 void eunomia_runner::plain_text_event_printer::handle(tracker_event<eunomia_event> &e)

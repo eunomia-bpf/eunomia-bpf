@@ -24,7 +24,7 @@ static void from_json(const nlohmann::json &j, handler_config_data &data)
 
 static void from_json(const nlohmann::json &j, tracker_config_data &data)
 {
-  get_from_json_at(name);
+  get_from_json_at(url);
   get_from_json_at(args);
   get_from_json_at(export_handlers);
 }

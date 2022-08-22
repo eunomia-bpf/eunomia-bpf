@@ -9,11 +9,15 @@
 #include <signal.h>
 #include <unistd.h>
 
+#include <json.hpp>
 #include <optional>
 
+#include "eunomia/eunomia_runner.h"
 #include "eunomia/tracker_manager.h"
-#include "eunomia_runner.h"
+#include "eunomia/url_resolver.h"
 #include "spdlog/spdlog.h"
+
+using json = nlohmann::json;
 
 eunomia_core::eunomia_core(eunomia_config_data& config) : core_config(config)
 {
@@ -80,7 +84,12 @@ std::unique_ptr<TRACKER> eunomia_core::create_tracker_with_handler(
     additional_handler->add_handler(handler);
     handler = additional_handler;
   }
-  return TRACKER::create_tracker_with_args(handler, base.args);
+  auto json_data = resolve_json_data(base);
+  if (!json_data)
+  {
+    return nullptr;
+  }
+  return TRACKER::create_tracker_with_args(handler, *json_data, base.args);
 }
 
 template<typename TRACKER>
@@ -101,8 +110,16 @@ void eunomia_core::stop_tracker(std::size_t tracker_id)
 
 int eunomia_core::start_tracker(const tracker_config_data& config)
 {
-  spdlog::info("{} tracker is starting...", config.name);
-  return core_tracker_manager.start_tracker(create_default_tracker<eunomia_runner>(config), config.name);
+  spdlog::info("{} tracker is starting...", config.url);
+  return core_tracker_manager.start_tracker(create_default_tracker<eunomia_runner>(config), config.url);
+}
+
+int eunomia_core::start_tracker(const std::string& json_data)
+{
+  spdlog::info("network tracker is starting...");
+  auto tracker = create_default_tracker<eunomia_runner>(tracker_config_data{ "", json_data, {}, {} });
+  spdlog::info("tracker name: {}", tracker->get_name());
+  return core_tracker_manager.start_tracker(std::move(tracker), tracker->get_name());
 }
 
 void eunomia_core::start_trackers(void)

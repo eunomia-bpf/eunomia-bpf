@@ -1,6 +1,6 @@
 # eunomia-bpf: eBPF as a service
 
-## Our target: Run CO-RE eBPF function as a service!
+## Our target: Run <abbr title="Compile Once - Run Everywhere">CO-RE</abbr> eBPF function as a service!
 
 - Run `CO-RE` eBPF code without provisioning or managing infrastructure
 - simply requests with a json and run `every` pre-compiled ebpf code
