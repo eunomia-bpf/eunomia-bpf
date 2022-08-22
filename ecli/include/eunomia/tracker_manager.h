@@ -25,7 +25,7 @@ class tracker_manager
     std::string name;
     std::unique_ptr<tracker_base> tracker;
   };
-  int id_count = 1;
+  std::size_t id_count = 1;
   std::map<int,  tracker_base_data> trackers;
 
  public:
@@ -54,7 +54,7 @@ class tracker_manager
       std::cout << "tracker_ptr is null in start_tracker\n";
       return 0;
     }
-    int id = id_count++;
+    std::size_t id = id_count++;
     tracker_ptr->thread = std::thread(&tracker_base::start_tracker, tracker_ptr.get());
     trackers.emplace(id, tracker_base_data{name, std::move(tracker_ptr)});
     return id;

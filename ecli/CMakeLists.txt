@@ -211,6 +211,7 @@ verbose_message("Successfully added all dependencies and linked against them.")
 #
 
 include_directories(INTERFACE ${skel_includes} ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/include/uapi)
+include_directories(SYSTEM INTERFACE ${third_party_headers})
 include_directories(SYSTEM INTERFACE ${LIBBPF_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/bpftools)
 
 # Allow usage of header files in the `src` directory, but only for utilities

@@ -76,8 +76,7 @@ std::unique_ptr<TRACKER> eunomia_core::create_tracker_with_handler(
   auto handler = create_tracker_event_handlers<TRACKER>(base.export_handlers);
   if (!handler && !additional_handler)
   {
-    spdlog::error("no handler was created for tracker");
-    return nullptr;
+    spdlog::info("no handler was created for tracker");
   }
   if (additional_handler)
   {
@@ -110,13 +109,13 @@ void eunomia_core::stop_tracker(std::size_t tracker_id)
 
 int eunomia_core::start_tracker(const tracker_config_data& config)
 {
-  spdlog::info("{} tracker is starting...", config.url);
+  spdlog::info("tracker is starting from {}...", config.url);
   return core_tracker_manager.start_tracker(create_default_tracker<eunomia_runner>(config), config.url);
 }
 
 int eunomia_core::start_tracker(const std::string& json_data)
 {
-  spdlog::info("network tracker is starting...");
+  spdlog::info("tracker is starting...");
   auto tracker = create_default_tracker<eunomia_runner>(tracker_config_data{ "", json_data, {}, {} });
   spdlog::info("tracker name: {}", tracker->get_name());
   return core_tracker_manager.start_tracker(std::move(tracker), tracker->get_name());

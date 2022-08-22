@@ -15,11 +15,14 @@ set(exe_sources
 set(headers
 )
 
+set(third_party_headers
+    ../third_party/includes/
+    ../third_party/libbpf/
+)
+
 set(skel_includes
     include/eunomia/
     ../eunomia-bpf/
-    ../third_party/includes/
-    ../third_party/libbpf/
 )
 
 set(test_sources
