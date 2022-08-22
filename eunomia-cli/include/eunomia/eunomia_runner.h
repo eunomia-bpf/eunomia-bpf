@@ -13,7 +13,8 @@
 
 struct eunomia_env
 {
-  std::vector<std::string> process_args;
+  std::vector<std::string> args;
+  std::vector<char> buffer;
 };
 
 struct eunomia_event
@@ -21,27 +22,25 @@ struct eunomia_event
   /// pid for the event
   int pid;
   /// the message for the event
-
   /// note this may be multi-line
   std::string messages;
 };
 
-class eunomia_tracker : public tracker_with_exporter<eunomia_env, eunomia_event>
+class eunomia_runner : public tracker_with_exporter<eunomia_env, eunomia_event>
 {
-
+ public:
   /// create a tracker with deafult config
-  static std::unique_ptr<eunomia_tracker> create_tracker_with_default_env(tracker_event_handler handler);
-  static std::unique_ptr<eunomia_tracker> create_tracker_with_args(
+  static std::unique_ptr<eunomia_runner> create_tracker_with_args(
       tracker_event_handler handler,
       const std::vector<std::string> &args)
   {
-    return create_tracker_with_default_env(handler);
+    return nullptr;
   }
 
   /// start process tracker
   void start_tracker();
 
-  struct plain_text_event_printer : public event_handler<eunomia_env>
+  struct plain_text_event_printer : public event_handler<eunomia_event>
   {
     void handle(tracker_event<eunomia_event> &e);
   };

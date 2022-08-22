@@ -6,10 +6,9 @@
 
 #include "eunomia/config.h"
 
-#include "spdlog/spdlog.h"
-
 #include <json.hpp>
 
+#include "spdlog/spdlog.h"
 #include "toml.hpp"
 
 #define get_from_json_at(name)                   \
@@ -53,6 +52,7 @@ static void from_json(const nlohmann::json& j, eunomia_config_data& data)
 {
   get_from_json_at(run_selected);
   get_from_json_at(enabled_trackers);
+  get_from_json_at(server_host);
   get_from_json_at(server_port);
   get_from_json_at(exit_after);
 }

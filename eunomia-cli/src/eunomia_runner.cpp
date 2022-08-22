@@ -8,14 +8,15 @@
 
 #include <json.hpp>
 
-#include "eunomia/process.h"
+#include "eunomia-bpf.h"
+#include "eunomia_runner.h"
 
 using json = nlohmann::json;
 
-void eunomia_tracker::start_tracker()
+void eunomia_runner::start_tracker()
 {
 }
 
-void eunomia_tracker::plain_text_event_printer::handle(tracker_event<process_event> &e)
+void eunomia_runner::plain_text_event_printer::handle(tracker_event<eunomia_event> &e)
 {
 }

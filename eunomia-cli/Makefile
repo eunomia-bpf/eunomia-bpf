@@ -70,4 +70,3 @@ format: ## format the project sources
 clean: ## clean the project build files
 	rm -rf build/
 	rm -rf docs/
-	make -C bpftools clean

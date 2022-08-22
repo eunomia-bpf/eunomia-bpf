@@ -4,8 +4,8 @@
  * All rights reserved.
  */
 
-#ifndef EUNOMIA_TRACKER_FACTORY_H
-#define EUNOMIA_TRACKER_FACTORY_H
+#ifndef eunomia_runner_FACTORY_H
+#define eunomia_runner_FACTORY_H
 
 #include <optional>
 

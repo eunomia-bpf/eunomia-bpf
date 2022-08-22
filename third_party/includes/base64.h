@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 #include <cstdlib>
+#include <cstring>
 
 static const unsigned char base64_table[65] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

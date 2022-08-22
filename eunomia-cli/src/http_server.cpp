@@ -51,7 +51,7 @@ void eunomia_server::serve()
       }
       else
       {
-        req_str = nlohmann::json{ "status", "ok", "id", *id }.dump();
+        req_str = nlohmann::json{ "status", "ok", "id", id }.dump();
       }
     }
     catch (...)

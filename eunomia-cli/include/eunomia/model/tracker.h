@@ -60,13 +60,6 @@ class tracker_with_exporter : public tracker_base
   /// type alias for event handler
   using tracker_event_handler = std::shared_ptr<event_handler<EVENT>>;
 
-  /// print to plain text
-  struct plain_text_event_printer final : public event_handler<EVENT>
-  {
-    void handle(tracker_event<EVENT> &e)
-    {
-    }
-  };
   /// config data
   tracker_exporter<ENV, EVENT> current_config;
   tracker_with_exporter(tracker_exporter<ENV, EVENT> config) : current_config(config)
@@ -103,7 +96,7 @@ concept tracker_concept = requires
 
 /// used when running a tracker
 /// Example:
-/// start_eunomia_tracker(handle_tracker_event<eunomia_tracker, process_event>, libbpf_print_fn, current_config.env, skel,
+/// start_eunomia_runner(handle_tracker_event<eunomia_runner, process_event>, libbpf_print_fn, current_config.env, skel,
 /// (void *)this);
 template<typename TRACKER, typename EVENT>
 static int handle_tracker_event(void *ctx, void *data, size_t data_sz)

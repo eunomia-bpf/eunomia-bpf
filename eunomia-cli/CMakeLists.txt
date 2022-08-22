@@ -171,8 +171,8 @@ ExternalProject_Add(libbpf
   CONFIGURE_COMMAND ""
   BUILD_COMMAND make
     BUILD_STATIC_ONLY=1
-    OBJDIR=${THIRD_PARTY_DIR}/libbpf/libbpf
-    DESTDIR=${THIRD_PARTY_DIR}/libbpf
+    OBJDIR=${CMAKE_CURRENT_BINARY_DIR}/libbpf/libbpf
+    DESTDIR=${CMAKE_CURRENT_BINARY_DIR}/libbpf/
     INCLUDEDIR=
     LIBDIR=
     UAPIDIR=

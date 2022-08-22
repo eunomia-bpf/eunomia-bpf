@@ -8,8 +8,11 @@
 
 #include <signal.h>
 #include <unistd.h>
+
 #include <optional>
+
 #include "eunomia/tracker_manager.h"
+#include "eunomia_runner.h"
 #include "spdlog/spdlog.h"
 
 eunomia_core::eunomia_core(eunomia_config_data& config) : core_config(config)
@@ -99,15 +102,7 @@ void eunomia_core::stop_tracker(std::size_t tracker_id)
 int eunomia_core::start_tracker(const tracker_config_data& config)
 {
   spdlog::info("{} tracker is starting...", config.name);
-  if (config.name == "process")
-  {
-    return core_tracker_manager.start_tracker(create_default_tracker(config), config.name);
-  }
-  else
-  {
-    spdlog::error("unknown tracker name: {}", config.name);
-    return -1;
-  }
+  return core_tracker_manager.start_tracker(create_default_tracker<eunomia_runner>(config), config.name);
 }
 
 void eunomia_core::start_trackers(void)
