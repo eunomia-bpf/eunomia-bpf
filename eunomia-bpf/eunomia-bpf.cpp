@@ -19,100 +19,88 @@ extern "C"
 }
 
 using json = nlohmann::json;
-static int create_prog_skeleton_from_json(struct eunomia_ebpf_program &ebpf_program);
 
-std::string bpf_skeleton_encode_json(const struct bpf_object_skeleton *skeleton)
+static void from_json(const nlohmann::json &j, ebpf_progs_meta_data &data)
 {
-  struct eunomia_ebpf_meta_data data;
-
-  data.ebpf_name == skeleton->name;
-  data.data_sz = skeleton->data_sz;
-  data.ebpf_data = base64_encode((const unsigned char *)skeleton->data, data.data_sz);
-  for (int i = 0; i < skeleton->map_cnt; i++)
-  {
-    data.maps_names.push_back(skeleton->maps[i].name);
-  }
-  for (int i = 0; i < skeleton->prog_cnt; i++)
-  {
-    data.progs_names.push_back(skeleton->progs[i].name);
-  }
-  return data.to_json_str();
+  j.at("name").get_to(data.name);
+  j.at("type").get_to(data.type);
 }
 
-std::string eunomia_ebpf_meta_data::to_json_str()
+static void from_json(const nlohmann::json &j, ebpf_maps_meta_data &data)
 {
-  json j;
-  j["name"] = ebpf_name;
-  j["maps"] = maps_names;
-  j["progs"] = progs_names;
-  j["data_sz"] = data_sz;
-  j["data"] = ebpf_data;
-  return j.dump();
+  j.at("name").get_to(data.name);
+  j.at("type").get_to(data.type);
 }
 
 void eunomia_ebpf_meta_data::from_json_str(const std::string &j_str)
 {
   json jj = json::parse(j_str);
   ebpf_name = jj["name"];
-  maps_names = jj["maps"];
-  progs_names = jj["progs"];
+  maps = jj["maps"];
+  progs = jj["progs"];
   data_sz = jj["data_sz"];
   ebpf_data = jj["data"];
 }
 
 static int handle_print_event(void *ctx, void *data, size_t data_sz);
 
-int open_ebpf_program_from_json(struct eunomia_ebpf_program &ebpf_prog, const std::string &json_str)
+/// create a ebpf program from json str
+eunomia_ebpf_program::eunomia_ebpf_program(const std::string &json_str)
 {
-  ebpf_prog.meta_data.from_json_str(json_str);
-  return 0;
+  meta_data.from_json_str(json_str);
 }
-
-int run_ebpf_program(struct eunomia_ebpf_program &ebpf_program)
+/// load and attach the ebpf program to the kernel
+int eunomia_ebpf_program::run(void)
 {
-  int err;
+  int err = 0;
 
   libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 
-  if (create_prog_skeleton_from_json(ebpf_program))
+  if (create_prog_skeleton())
   {
     std::cerr << "Failed to create skeleton from json" << std::endl;
-    return 1;
+    return -1;
   }
-  if (bpf_object__open_skeleton(ebpf_program.skeleton, NULL))
+  if (bpf_object__open_skeleton(skeleton, NULL))
   {
     std::cerr << "Failed to open skeleton" << std::endl;
-    return 1;
+    return -1;
   }
 
   /* Load & verify BPF programs */
-  err = bpf_object__load_skeleton(ebpf_program.skeleton);
+  err = bpf_object__load_skeleton(skeleton);
   if (err)
   {
     std::cerr << "Failed to load skeleton" << std::endl;
-    return 1;
+    return -1;
   }
 
   /* Attach tracepoints */
-  err = bpf_object__attach_skeleton(ebpf_program.skeleton);
+  err = bpf_object__attach_skeleton(skeleton);
   if (err)
   {
     std::cerr << "Failed to attach skeleton" << std::endl;
-    return 1;
+    return -1;
   }
+  return 0;
+}
+
+int eunomia_ebpf_program::wait_and_print_rb()
+{
+  int err;
   /* Set up ring buffer polling */
   // FIXME: rb must be 0 for now
-  ebpf_program.rb = ring_buffer__new(bpf_map__fd(ebpf_program.maps[0]), handle_print_event, NULL, NULL);
-  if (!ebpf_program.rb)
+  rb = ring_buffer__new(bpf_map__fd(maps[0]), handle_print_event, NULL, NULL);
+  if (!rb)
   {
     fprintf(stderr, "Failed to create ring buffer\n");
     return 0;
   }
 
   /* Process events */
-  while (!ebpf_program.exiting)
+  while (!exiting)
   {
-    err = ring_buffer__poll(ebpf_program.rb, 100 /* timeout, ms */);
+    err = ring_buffer__poll(rb, 100 /* timeout, ms */);
     /* Ctrl-C will cause -EINTR */
     if (err == -EINTR)
     {
@@ -128,15 +116,19 @@ int run_ebpf_program(struct eunomia_ebpf_program &ebpf_program)
   return 0;
 }
 
-void stop_ebpf_program(struct eunomia_ebpf_program &ebpf_program)
+void eunomia_ebpf_program::stop()
 {
-  if (ebpf_program.skeleton)
-    bpf_object__destroy_skeleton(ebpf_program.skeleton);
-  if (ebpf_program.rb)
-    ring_buffer__free(ebpf_program.rb);
+  if (skeleton)
+  {
+    bpf_object__destroy_skeleton(skeleton);
+  }
+  if (rb)
+  {
+    ring_buffer__free(rb);
+  }
 }
 
-static int create_prog_skeleton_from_json(struct eunomia_ebpf_program &ebpf_program)
+int eunomia_ebpf_program::create_prog_skeleton(void)
 {
   struct bpf_object_skeleton *s;
 
@@ -145,44 +137,44 @@ static int create_prog_skeleton_from_json(struct eunomia_ebpf_program &ebpf_prog
     return -1;
 
   s->sz = sizeof(*s);
-  s->name = ebpf_program.meta_data.ebpf_name.c_str();
+  s->name = meta_data.ebpf_name.c_str();
 
   /* maps */
-  s->map_cnt = ebpf_program.meta_data.maps_names.size();
+  s->map_cnt = meta_data.maps.size();
   s->map_skel_sz = sizeof(*s->maps);
   s->maps = (struct bpf_map_skeleton *)calloc(s->map_cnt, s->map_skel_sz);
   if (!s->maps)
     goto err;
 
-  ebpf_program.maps.resize(s->map_cnt);
+  maps.resize(s->map_cnt);
   for (int i = 0; i < s->map_cnt; i++)
   {
-    s->maps[i].name = ebpf_program.meta_data.maps_names[i].c_str();
-    s->maps[i].map = &ebpf_program.maps[i];
+    s->maps[i].name = meta_data.maps[i].name.c_str();
+    s->maps[i].map = &maps[i];
   }
 
   /* programs */
-  s->prog_cnt = ebpf_program.meta_data.progs_names.size();
+  s->prog_cnt = meta_data.progs.size();
   s->prog_skel_sz = sizeof(*s->progs);
   s->progs = (struct bpf_prog_skeleton *)calloc(s->prog_cnt, s->prog_skel_sz);
   if (!s->progs)
     goto err;
-  ebpf_program.progs.resize(s->prog_cnt);
-  ebpf_program.links.resize(s->prog_cnt);
+  progs.resize(s->prog_cnt);
+  links.resize(s->prog_cnt);
   for (int i = 0; i < s->prog_cnt; i++)
   {
-    s->progs[i].name = ebpf_program.meta_data.progs_names[i].c_str();
-    s->progs[i].prog = &ebpf_program.progs[i];
-    s->progs[i].link = &ebpf_program.links[i];
+    s->progs[i].name = meta_data.progs[i].name.c_str();
+    s->progs[i].prog = &progs[i];
+    s->progs[i].link = &links[i];
   }
 
-  s->data_sz = ebpf_program.meta_data.data_sz;
-  ebpf_program.base64_decode_buffer = base64_decode(
-      (const unsigned char *)ebpf_program.meta_data.ebpf_data.c_str(), ebpf_program.meta_data.ebpf_data.size());
-  s->data = (void *)ebpf_program.base64_decode_buffer.data();
+  s->data_sz = meta_data.data_sz;
+  base64_decode_buffer = base64_decode(
+      (const unsigned char *)meta_data.ebpf_data.c_str(), meta_data.ebpf_data.size());
+  s->data = (void *)base64_decode_buffer.data();
 
-  s->obj = &ebpf_program.obj;
-  ebpf_program.skeleton = s;
+  s->obj = &obj;
+  skeleton = s;
   return 0;
 err:
   bpf_object__destroy_skeleton(s);
