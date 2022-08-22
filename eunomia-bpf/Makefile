@@ -78,7 +78,7 @@ eunomia-bpf.o: eunomia-bpf.cpp $(LIBBPF_OBJ)
 	$(Q)$(CXX) $(CFLAGS) $(INCLUDES) -c $(filter %.cpp,$^) -o $@
 
 # Build application binary
-$(APPS): %: test.o trace_helpers.o uprobe_helpers.o btf_helpers.o eunomia-bpf.o $(LIBBPF_OBJ) | $(OUTPUT)
+$(APPS): %: test.o eunomia-bpf.o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CXX) $(CFLAGS) $^ -lelf -lz -o $@
 

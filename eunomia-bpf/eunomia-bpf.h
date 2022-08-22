@@ -43,8 +43,6 @@ struct eunomia_ebpf_program {
   struct ring_buffer *rb = NULL;
 };
 
-std::string bpf_skeleton_encode_json(const struct bpf_object_skeleton *skeleton);
-
 int open_ebpf_program_from_json(struct eunomia_ebpf_program &ebpf_program,const std::string &json_str);
 int run_ebpf_program(struct eunomia_ebpf_program &ebpf_program);
 void stop_ebpf_program(struct eunomia_ebpf_program &ebpf_program);
