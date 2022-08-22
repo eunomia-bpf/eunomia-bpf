@@ -85,12 +85,24 @@ int eunomia_ebpf_program::run(void)
   return 0;
 }
 
+int eunomia_ebpf_program::get_ring_buffer_id(void)
+{
+  for (std::size_t id = 0; id < maps.size(); id++)
+  {
+    if (meta_data.maps[id].type == "BPF_MAP_TYPE_RINGBUF")
+    {
+      return id;
+    }
+  }
+  return -1;
+}
+
 int eunomia_ebpf_program::wait_and_print_rb()
 {
   int err;
   /* Set up ring buffer polling */
-  // FIXME: rb must be 0 for now
-  rb = ring_buffer__new(bpf_map__fd(maps[0]), handle_print_event, NULL, NULL);
+  auto id = get_ring_buffer_id();
+  rb = ring_buffer__new(bpf_map__fd(maps[id]), handle_print_event, NULL, NULL);
   if (!rb)
   {
     fprintf(stderr, "Failed to create ring buffer\n");
@@ -140,32 +152,39 @@ int eunomia_ebpf_program::create_prog_skeleton(void)
   s->name = meta_data.ebpf_name.c_str();
 
   /* maps */
-  s->map_cnt = meta_data.maps.size();
+  s->map_cnt = 0;
   s->map_skel_sz = sizeof(*s->maps);
-  s->maps = (struct bpf_map_skeleton *)calloc(s->map_cnt, s->map_skel_sz);
+  s->maps = (struct bpf_map_skeleton *)calloc(meta_data.maps.size(), s->map_skel_sz);
   if (!s->maps)
     goto err;
 
-  maps.resize(s->map_cnt);
-  for (int i = 0; i < s->map_cnt; i++)
+  maps.resize(meta_data.maps.size());
+  for (std::size_t i = 0; i < meta_data.maps.size(); i++)
   {
-    s->maps[i].name = meta_data.maps[i].name.c_str();
-    s->maps[i].map = &maps[i];
+    // FIXME: skip rodata
+    if (meta_data.maps[i].type == "RODATA")
+    {
+      continue;
+    }
+    s->maps[s->map_cnt].name = meta_data.maps[i].name.c_str();
+    s->maps[s->map_cnt].map = &maps[i];
+    s->map_cnt++;
   }
 
   /* programs */
-  s->prog_cnt = meta_data.progs.size();
   s->prog_skel_sz = sizeof(*s->progs);
-  s->progs = (struct bpf_prog_skeleton *)calloc(s->prog_cnt, s->prog_skel_sz);
+  s->progs = (struct bpf_prog_skeleton *)calloc(meta_data.progs.size(), s->prog_skel_sz);
   if (!s->progs)
     goto err;
-  progs.resize(s->prog_cnt);
-  links.resize(s->prog_cnt);
-  for (int i = 0; i < s->prog_cnt; i++)
+  progs.resize(meta_data.progs.size());
+  links.resize(meta_data.progs.size());
+  s->prog_cnt = 0;
+  for (std::size_t i = 0; i < meta_data.progs.size(); i++)
   {
-    s->progs[i].name = meta_data.progs[i].name.c_str();
-    s->progs[i].prog = &progs[i];
-    s->progs[i].link = &links[i];
+    s->progs[s->prog_cnt].name = meta_data.progs[i].name.c_str();
+    s->progs[s->prog_cnt].prog = &progs[i];
+    s->progs[s->prog_cnt].link = &links[i];
+    s->prog_cnt++;
   }
 
   s->data_sz = meta_data.data_sz;

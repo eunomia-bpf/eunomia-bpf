@@ -12,7 +12,7 @@ VMLINUX := ../third_party/vmlinux/$(ARCH)/vmlinux.h
 # libbpf to avoid dependency on system-wide headers, which could be missing or
 # outdated
 INCLUDES := -I$(OUTPUT) -I../third_party/libbpf/include/uapi -I../third_party/includes -I$(dir $(VMLINUX))
-CFLAGS := -g -Wall -fsanitize=address
+CFLAGS := -g -Wall -fsanitize=address -Wno-unused-function
 
 APPS = test
 

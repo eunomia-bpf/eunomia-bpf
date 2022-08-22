@@ -3,7 +3,7 @@
 #include <fstream>
 
 int main() {
-    std::ifstream json_file("test.json");
+    std::ifstream json_file("package.json");
     std::string json_str((std::istreambuf_iterator<char>(json_file)),
                          std::istreambuf_iterator<char>());
     std::cout << json_str << std::endl;

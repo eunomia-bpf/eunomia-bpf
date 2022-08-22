@@ -44,6 +44,7 @@ class eunomia_ebpf_program
 private:
   /// create an ebpf skeleton
   int create_prog_skeleton(void);
+  int get_ring_buffer_id(void);
 
 private:
   /// is the polling ring buffer loop exiting?
