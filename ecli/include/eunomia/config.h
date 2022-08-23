@@ -76,9 +76,6 @@ struct eunomia_config_data
 
   /// config for all enabled tracker
   std::vector<tracker_config_data> enabled_trackers = {
-    { "process", {}, {} },
-    { "files", {}, {} },
-    { "tcpconnect", {}, {} },
   };
   /// auto exit mode
   int exit_after = 0;

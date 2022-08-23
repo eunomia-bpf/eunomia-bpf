@@ -32,24 +32,24 @@ class eunomia_runner : public tracker_with_exporter<eunomia_env, eunomia_event>
 {
  public:
   /// create a tracker with deafult config
-  static std::unique_ptr<eunomia_runner>
-  create_tracker_with_args(tracker_event_handler handler, const std::string &json_data, const std::vector<std::string> &args)
+  static std::unique_ptr<eunomia_runner> create_tracker_with_args(
+      tracker_event_handler handler,
+      const std::string &name,
+      const std::string &json_data,
+      const std::vector<std::string> &args)
   {
-    return std::make_unique<eunomia_runner>(json_data, args, handler);
+    return std::make_unique<eunomia_runner>(handler, name, json_data, args);
   }
-  eunomia_runner(const std::string &json_data, const std::vector<std::string> &args, tracker_event_handler handler)
-      : program{ json_data },
-        tracker_with_exporter{ export_data{
-            eunomia_env{},
-            program.get_program_name(),
-            handler
-        } }
-  {
-  }
+  eunomia_runner(
+      tracker_event_handler handler,
+      const std::string &name,
+      const std::string &json_data,
+      const std::vector<std::string> &args);
 
   /// start process tracker
   void start_tracker();
-  const std::string get_name(void) const {
+  const std::string get_name(void) const
+  {
     return program.get_program_name();
   }
 

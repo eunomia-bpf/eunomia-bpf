@@ -88,7 +88,7 @@ std::unique_ptr<TRACKER> eunomia_core::create_tracker_with_handler(
   {
     return nullptr;
   }
-  return TRACKER::create_tracker_with_args(handler, *json_data, base.args);
+  return TRACKER::create_tracker_with_args(handler, base.url, *json_data, base.args);
 }
 
 template<typename TRACKER>
@@ -107,13 +107,13 @@ void eunomia_core::stop_tracker(std::size_t tracker_id)
   core_tracker_manager.remove_tracker(tracker_id);
 }
 
-int eunomia_core::start_tracker(const tracker_config_data& config)
+std::size_t eunomia_core::start_tracker(const tracker_config_data& config)
 {
   spdlog::info("tracker is starting from {}...", config.url);
   return core_tracker_manager.start_tracker(create_default_tracker<eunomia_runner>(config), config.url);
 }
 
-int eunomia_core::start_tracker(const std::string& json_data)
+std::size_t eunomia_core::start_tracker(const std::string& json_data)
 {
   spdlog::info("tracker is starting...");
   auto tracker = create_default_tracker<eunomia_runner>(tracker_config_data{ "", json_data, {}, {} });

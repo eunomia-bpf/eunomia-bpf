@@ -163,7 +163,7 @@ int eunomia_ebpf_program::create_prog_skeleton(void)
   /* maps */
   s->map_cnt = 0;
   s->map_skel_sz = sizeof(*s->maps);
-  s->maps = (struct bpf_map_skeleton *)calloc(meta_data.maps.size(), s->map_skel_sz);
+  s->maps = (struct bpf_map_skeleton *)calloc(meta_data.maps.size(), (size_t)s->map_skel_sz);
   if (!s->maps)
     goto err;
 
@@ -182,7 +182,7 @@ int eunomia_ebpf_program::create_prog_skeleton(void)
 
   /* programs */
   s->prog_skel_sz = sizeof(*s->progs);
-  s->progs = (struct bpf_prog_skeleton *)calloc(meta_data.progs.size(), s->prog_skel_sz);
+  s->progs = (struct bpf_prog_skeleton *)calloc(meta_data.progs.size(), (size_t)s->prog_skel_sz);
   if (!s->progs)
     goto err;
   progs.resize(meta_data.progs.size());
@@ -208,6 +208,13 @@ err:
   return -1;
 }
 
+#define print_not_zero(format, value) \
+  do                                  \
+  {                                   \
+    if (value)                        \
+      printf(format, value);          \
+  } while (false)
+
 static int handle_print_event(void *ctx, void *data, size_t data_sz)
 {
   const struct event *e = (const struct event *)data;
@@ -219,16 +226,16 @@ static int handle_print_event(void *ctx, void *data, size_t data_sz)
   tm = localtime(&t);
   strftime(ts, sizeof(ts), "%H:%M:%S", tm);
   printf(
-      "%-8s %-7d %-7d %s %s %d %u %u %lld %lld\n",
-      ts,
-      e->pid,
-      e->ppid,
-      e->char_buffer16,
-      e->char_buffer127,
-      e->bool_value1,
-      e->u32_value1,
-      e->u32_value2,
-      e->u64_value1,
-      e->u64_value2);
+      "%-8s",
+      ts);
+  print_not_zero("%-7d ", e->pid);
+  print_not_zero("%-7d ", e->ppid);
+  print_not_zero("%s ", e->char_buffer16);
+  print_not_zero("%s ", e->char_buffer127);
+  print_not_zero("%d ", e->bool_value1);
+  print_not_zero("%u ", e->u32_value1);
+  print_not_zero("%u ", e->u32_value2);
+  print_not_zero("%llu ", e->u64_value1);
+  print_not_zero("%llu ", e->u64_value2);
   return 0;
 }

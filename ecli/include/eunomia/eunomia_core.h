@@ -57,8 +57,8 @@ struct eunomia_core
   /// start the core
   int start_eunomia(void);
   /// start a single tracker base on config
-  int start_tracker(const tracker_config_data& config);
-  int start_tracker(const std::string& json_data);
+  std::size_t  start_tracker(const tracker_config_data& config);
+  std::size_t  start_tracker(const std::string& json_data);
   /// list all trackers
   std::vector<std::tuple<int, std::string>> list_all_trackers(void);
   /// stop a tracker by id

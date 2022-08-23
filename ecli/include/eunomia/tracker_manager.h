@@ -26,15 +26,18 @@ class tracker_manager
     std::unique_ptr<tracker_base> tracker;
   };
   std::size_t id_count = 1;
-  std::map<int,  tracker_base_data> trackers;
+  std::map<std::size_t,  tracker_base_data> trackers;
 
  public:
   ~tracker_manager() {
   }
   // remove a tracker with id
-  void remove_tracker(int id)
+  int remove_tracker(std::size_t id)
   {
-    trackers.erase(id);
+    if (trackers.erase(id) == 0) {
+      return -1;
+    }
+    return 0;
   }
   // get tracker lists
   // return a list of tracker id and name

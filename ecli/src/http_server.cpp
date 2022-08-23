@@ -42,9 +42,8 @@ void eunomia_server::serve()
     tracker_config_data data;
     try
     {
-      nlohmann::json j = nlohmann::json::parse(req.body);
-      data = j.get<tracker_config_data>();
-      auto id = core.start_tracker(data);
+      /// try to start tracker directly
+      auto id = core.start_tracker(req.body);
       if (!id)
       {
         req_str = nlohmann::json{ "status", "error" }.dump();

@@ -27,4 +27,5 @@ set(skel_includes
 
 set(test_sources
     src/oom_test.cpp
+    src/get_file_test.cpp
 )

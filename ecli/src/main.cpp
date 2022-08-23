@@ -52,6 +52,10 @@ void client_list_operation(const std::string& endpoint)
 {
   httplib::Client cli(endpoint);
   auto req = cli.Get("/list");
+  if (!req) {
+    spdlog::error("cannot connect to the server!");
+    return;
+  }
   std::cout << req->status << " :" << req->body << std::endl;
 }
 
@@ -69,6 +73,10 @@ void client_start_operation(
   }
   httplib::Client cli(endpoint);
   auto req = cli.Post("/start", *json_data, "text/plain");
+  if (!req) {
+    spdlog::error("cannot connect to the server!");
+    return;
+  }
   std::cout << req->status << " :" << req->body << std::endl;
 }
 
@@ -78,13 +86,16 @@ void client_stop_operation(const std::string& endpoint, int stop_id)
   json http_data;
   http_data["id"] = stop_id;
   auto req = cli.Post("/stop", http_data.dump(), "text/plain");
-  std::cout << req->status << " :" << req->body << std::endl;
+  if (!req) {
+    spdlog::error("cannot connect to the server!");
+    return;
+  }
   std::cout << req->status << " :" << req->body << std::endl;
 }
 
 void server_mode_operation(eunomia_config_data& core_config)
 {
-  std::cout << "start server mode...\n";
+  spdlog::info("start server mode...");
   core_config.run_selected = "server";
   eunomia_server server(core_config, 8527);
   server.serve();
@@ -97,18 +108,22 @@ int main(int argc, char* argv[])
   std::string config_file = "";
   eunomia_cmd_mode cmd_selected = eunomia_cmd_mode::help;
   std::string ebpf_program_name = default_json_data_file_name;
+  std::string log_level = "default";
   std::vector<std::string> run_with_extra_args;
 
   eunomia_client_mode client_selected = eunomia_client_mode::list;
   std::string server_endpoint = default_endpoint;
   int stop_id;
 
-  auto run_url_value = clipp::value("url", ebpf_program_name);
-  auto run_opt_cmd_args = clipp::opt_values("extra args", run_with_extra_args);
+  auto run_url_value = clipp::value("url", ebpf_program_name) % "The url to get the ebpf program, can be file path or url";
+  auto run_opt_cmd_args =
+      clipp::opt_values("extra args", run_with_extra_args) % "Some extra args provided to the ebpf program";
+  auto log_level_opt = (clipp::option("--log-level") & clipp::value("log level", log_level)) %
+                       "The log level for the eunomia cli, can be debug, info, warn, error";
 
   auto client_endpoint_opt = (clipp::option("--endpoint") & clipp::value("server endpoint", server_endpoint)) %
                              "The endpoint of server to connect to";
-  auto client_stop_id_cmd = clipp::value("stop id", stop_id);
+  auto client_stop_id_cmd = clipp::value("stop id", stop_id) % "The id of the ebpf program to stop in sercer";
   auto config_file_opt =
       (clipp::option("--config") & clipp::value("config file", config_file)) % "The json file stores the config data";
 
@@ -122,16 +137,33 @@ int main(int argc, char* argv[])
       (clipp::command("stop").set(client_selected, eunomia_client_mode::stop) % "stop an ebpf programs on endpoint",
        client_stop_id_cmd);
   auto client_cli = ((client_list_cmd | client_start_cmd | client_stop_cmd));
-  auto client_cmd = (clipp::command("client").set(cmd_selected, eunomia_cmd_mode::client), client_cli, client_endpoint_opt);
+  auto client_cmd = (clipp::command("client").set(cmd_selected, eunomia_cmd_mode::client), client_cli, client_endpoint_opt) %
+                    "use client to control the ebpf programs in remote server";
 
-  auto server_cmd = (clipp::command("server").set(cmd_selected, eunomia_cmd_mode::server), config_file_opt);
-  auto run_cmd = (clipp::command("run").set(cmd_selected, eunomia_cmd_mode::run), run_url_value, run_opt_cmd_args);
-  auto cli = ((client_cmd | run_cmd | server_cmd | clipp::command("help").set(cmd_selected, eunomia_cmd_mode::help)));
+  auto server_cmd = (clipp::command("server").set(cmd_selected, eunomia_cmd_mode::server), config_file_opt) %
+                    "start a server to control the ebpf programs";
+  auto run_cmd = (clipp::command("run").set(cmd_selected, eunomia_cmd_mode::run), run_url_value, run_opt_cmd_args) %
+                 "run a ebpf program";
+  auto cli =
+      (log_level_opt,
+       (client_cmd | run_cmd | server_cmd | clipp::command("help").set(cmd_selected, eunomia_cmd_mode::help)));
 
   if (!clipp::parse(argc, argv, cli))
   {
     std::cout << clipp::make_man_page(cli, argv[0]);
     return 1;
+  }
+  if (log_level != "default")
+  {
+    spdlog::set_level(spdlog::level::from_str(log_level));
+  }
+  else
+  {
+    switch (cmd_selected)
+    {
+      case eunomia_cmd_mode::run: spdlog::set_level(spdlog::level::warn); break;
+      default: spdlog::set_level(spdlog::level::info); break;
+    }
   }
 
   if (config_file != "")
