@@ -22,9 +22,9 @@ A wrapper of main functions of libbpf, some helper functions for user developmen
 
 see [eunomia-bpf](eunomia-bpf) folder for details.
 
-### A cli tool
+### A command line tool
 
-An simple and small pre-compiled binary, use eunomia-bpf library.
+An simple and small pre-compiled binary, use eunomia-bpf library: see (our release)[https://github.com/eunomia-bpf/eunomia-bpf/releases/]
 
 - simply pre-compiled ebpf data with a url or path:
 
@@ -45,9 +45,9 @@ An simple and small pre-compiled binary, use eunomia-bpf library.
 
 The toolchain can be used as a docker to generate pre-compiled ebpf data in one command:
 
-see https://github.com/eunomia-bpf/ebpm-bootstrap for details.
+see the toolchains [ebpm-bootstrap](https://github.com/eunomia-bpf/ebpm-bootstrap) for details.
 
-you can also simply use it as a template in github, just push to it and github action can help you compile ebpf!
+you can also simply use the [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) repo as a template in github, just push to it and github action can help you compile CO-RE ebpf code!
 
 ### An ebpf package manager: ebpm
 
