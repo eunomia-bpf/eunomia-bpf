@@ -1,0 +1,9 @@
+{
+	"name": "template",
+	"version": "0.1.0",
+	"load_ebpf_script": "",
+	"license": "GPL",
+	"author": "John Doe",
+	"url": "http://example.com/package.json",
+	"description": "This is a template for a ebpm BPF program."
+}

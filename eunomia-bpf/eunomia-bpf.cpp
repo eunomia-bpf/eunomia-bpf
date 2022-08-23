@@ -6,6 +6,7 @@
 #include "eunomia-bpf.h"
 
 #include <iostream>
+#include <thread>
 
 #include "base64.h"
 #include "event.h"
@@ -110,6 +111,12 @@ int eunomia_ebpf_program::wait_and_print_rb()
   std::lock_guard<std::mutex> guard(exit_mutex);
   /* Set up ring buffer polling */
   auto id = get_ring_buffer_id();
+  if (id < 0) {
+    while (!exiting) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    return -1;
+  }
   rb = ring_buffer__new(bpf_map__fd(maps[id]), handle_print_event, NULL, NULL);
   if (!rb)
   {
