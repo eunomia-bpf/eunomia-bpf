@@ -8,6 +8,10 @@
 - as fast as `100ms` to load and run a ebpf program
 - `Distributed` and `decentralized`, No compile helper server
 
+In general, we develop an approach to compile, transmit, and run most libbpf CO-RE objects with some user space config meta data to help us load and operator the eBPF byte code.
+
+So, the only thing you need to do is focus on writing a single eBPF program in the kernel.
+
 ## Our function
 
 we have these parts:
@@ -20,30 +24,20 @@ A wrapper of main functions of libbpf, some helper functions for user developmen
 - Use some additional data to help load and config the eBPF bytecode.
 - multiple language bindings
 
-see [eunomia-bpf](eunomia-bpf) folder for details.
+see [eunomia-bpf](eunomia-bpf) folder for details. With the library, we have provide a simple cli(see our release)[https://github.com/eunomia-bpf/eunomia-bpf/releases/]), you can simply run pre-compiled ebpf data with a url or path, on most eBPF supported kernel versions:
 
-### A command line tool
+```console
+$ sudo ./ecli run https://github.com/eunomia-bpf/eunomia-bpf/raw/master/bpftools/examples/package.json
+$ sudo ./ecli run bpftools/examples/package.json
 
-An simple and small pre-compiled binary, use eunomia-bpf library: see (our release)[https://github.com/eunomia-bpf/eunomia-bpf/releases/]
+$ sudo ./ecli server # run as a simple server
+```
 
-- simply pre-compiled ebpf data with a url or path:
+The cli tool can also run as a simple server to receive requests, or as a client to send requests to another server. see [doc/ecli-usage.md](doc/ecli-usage.md) for more usages.
 
-    ```console
-    $ sudo ./ecli run https://gitee.com/yunwei37/eunomia-bpf/raw/master/bpftools/examples/package.json
-    $ sudo ./ecli run https://github.com/eunomia-bpf/eunomia-bpf/raw/master/bpftools/examples/package.json
-    $ sudo ./ecli run bpftools/examples/package.json
-    ```
+### A compile toolchain for you to generate pre compiled eBPF data
 
-- The cli tool can also run as a simple server to recive requests:
-
-    ```console
-    sudo ./ecli server
-    ```
-    we also provide a simple client for you to try. see [doc/ecli-usage.md](doc/ecli-usage.md) for more usages.
-
-### A compile toolchain for you to generate pre compiled ebpf data
-
-The toolchain can be used as a docker to generate pre-compiled ebpf data in one command:
+The toolchain can be used as a docker to generate pre-compiled eBPF data in one command:
 
 see the toolchains [ebpm-bootstrap](https://github.com/eunomia-bpf/ebpm-bootstrap) for details.
 
