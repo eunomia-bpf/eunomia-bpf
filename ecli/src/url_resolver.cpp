@@ -16,7 +16,7 @@ static std::optional<std::string> try_download_with_wget(const std::string& url)
   auto cmd = std::string("mkdir -p /tmp/ebpm/ && wget --no-verbose --output-document=") + path + " " + url;
   spdlog::info("{}", cmd);
   int res = std::system(cmd.c_str());
-  if (!res && !fs::exists(path))
+  if (res >= 0 && fs::exists(path))
   {
     std::ifstream json_file(path);
     spdlog::info("wget download success.");

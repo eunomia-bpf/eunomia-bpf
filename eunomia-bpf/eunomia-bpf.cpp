@@ -105,6 +105,8 @@ const std::string &eunomia_ebpf_program::get_program_name(void) const
 int eunomia_ebpf_program::wait_and_print_rb()
 {
   int err;
+  exiting = false;
+  // help the wait_and_print_rb work with stop correctly in multi-thread
   std::lock_guard<std::mutex> guard(exit_mutex);
   /* Set up ring buffer polling */
   auto id = get_ring_buffer_id();
@@ -225,9 +227,7 @@ static int handle_print_event(void *ctx, void *data, size_t data_sz)
   time(&t);
   tm = localtime(&t);
   strftime(ts, sizeof(ts), "%H:%M:%S", tm);
-  printf(
-      "%-8s",
-      ts);
+  printf("%-8s", ts);
   print_not_zero("%-7d ", e->pid);
   print_not_zero("%-7d ", e->ppid);
   print_not_zero("%s ", e->char_buffer16);
@@ -236,6 +236,8 @@ static int handle_print_event(void *ctx, void *data, size_t data_sz)
   print_not_zero("%u ", e->u32_value1);
   print_not_zero("%u ", e->u32_value2);
   print_not_zero("%llu ", e->u64_value1);
-  print_not_zero("%llu ", e->u64_value2);
+  print_not_zero("%llu", e->u64_value2);
+  putchar('\n');
+  fflush(stdout);
   return 0;
 }

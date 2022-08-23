@@ -23,13 +23,12 @@ eunomia_core::eunomia_core(eunomia_config_data& config) : core_config(config)
 {
 }
 
-template<typename TRACKER>
-typename TRACKER::tracker_event_handler eunomia_core::create_tracker_event_handler(const handler_config_data& config)
+eunomia_runner::tracker_event_handler eunomia_core::create_tracker_event_handler(const handler_config_data& config)
 {
   // spdlog::info("create event handler for {}", config.name);
   if (config.name == "plain_text")
   {
-    return std::make_shared<typename TRACKER::plain_text_event_printer>();
+    return std::make_shared<typename eunomia_runner::plain_text_event_printer>();
   }
   else if (config.name == "none")
   {
@@ -42,14 +41,13 @@ typename TRACKER::tracker_event_handler eunomia_core::create_tracker_event_handl
   }
 }
 
-template<typename TRACKER>
-typename TRACKER::tracker_event_handler eunomia_core::create_tracker_event_handlers(
+eunomia_runner::tracker_event_handler eunomia_core::create_tracker_event_handlers(
     const std::vector<handler_config_data>& handler_configs)
 {
-  typename TRACKER::tracker_event_handler handler = nullptr, base_handler = nullptr;
+  eunomia_runner::tracker_event_handler handler = nullptr, base_handler = nullptr;
   for (auto& config : handler_configs)
   {
-    auto new_handler = create_tracker_event_handler<TRACKER>(config);
+    auto new_handler = create_tracker_event_handler(config);
     if (new_handler)
     {
       if (handler)
@@ -68,12 +66,11 @@ typename TRACKER::tracker_event_handler eunomia_core::create_tracker_event_handl
 }
 
 // create a default tracker with other handlers
-template<typename TRACKER>
-std::unique_ptr<TRACKER> eunomia_core::create_tracker_with_handler(
+std::unique_ptr<eunomia_runner> eunomia_core::create_tracker_with_handler(
     const tracker_config_data& base,
-    typename TRACKER::tracker_event_handler additional_handler)
+    eunomia_runner::tracker_event_handler additional_handler)
 {
-  auto handler = create_tracker_event_handlers<TRACKER>(base.export_handlers);
+  auto handler = create_tracker_event_handlers(base.export_handlers);
   if (!handler && !additional_handler)
   {
     spdlog::info("no handler was created for tracker");
@@ -88,13 +85,12 @@ std::unique_ptr<TRACKER> eunomia_core::create_tracker_with_handler(
   {
     return nullptr;
   }
-  return TRACKER::create_tracker_with_args(handler, base.url, *json_data, base.args);
+  return eunomia_runner::create_tracker_with_args(handler, base.url, *json_data, base.args);
 }
 
-template<typename TRACKER>
-std::unique_ptr<TRACKER> eunomia_core::create_default_tracker(const tracker_config_data& base)
+std::unique_ptr<eunomia_runner> eunomia_core::create_default_tracker(const tracker_config_data& base)
 {
-  return create_tracker_with_handler<TRACKER>(base, nullptr);
+  return create_tracker_with_handler(base, nullptr);
 }
 
 std::vector<std::tuple<int, std::string>> eunomia_core::list_all_trackers(void)
@@ -110,27 +106,38 @@ void eunomia_core::stop_tracker(std::size_t tracker_id)
 std::size_t eunomia_core::start_tracker(const tracker_config_data& config)
 {
   spdlog::info("tracker is starting from {}...", config.url);
-  return core_tracker_manager.start_tracker(create_default_tracker<eunomia_runner>(config), config.url);
+  auto tracker = create_default_tracker(config);
+  if (!tracker)
+  {
+    return 0;
+  }
+  return core_tracker_manager.start_tracker(std::move(tracker), config.url);
 }
 
 std::size_t eunomia_core::start_tracker(const std::string& json_data)
 {
   spdlog::info("tracker is starting...");
-  auto tracker = create_default_tracker<eunomia_runner>(tracker_config_data{ "", json_data, {}, {} });
+  auto tracker = create_default_tracker(tracker_config_data{ "", json_data, {}, {} });
+  if (!tracker)
+  {
+    return 0;
+  }
   spdlog::info("tracker name: {}", tracker->get_name());
   return core_tracker_manager.start_tracker(std::move(tracker), tracker->get_name());
 }
 
-void eunomia_core::start_trackers(void)
+std::size_t eunomia_core::start_trackers(void)
 {
+  std::size_t tracker_count = 0;
   for (auto& t : core_config.enabled_trackers)
   {
     spdlog::info("start ebpf tracker...");
-    (void)start_tracker(t);
+    tracker_count += static_cast<std::size_t>(start_tracker(t) > 0 ? 1 : 0);
   }
+  return tracker_count;
 }
 
-void eunomia_core::check_auto_exit(void)
+void eunomia_core::check_auto_exit(std::size_t checker_count)
 {
   if (core_config.exit_after > 0)
   {
@@ -140,7 +147,7 @@ void eunomia_core::check_auto_exit(void)
   }
   else
   {
-    if (core_config.run_selected != "server")
+    if (core_config.run_selected != "server" && checker_count > 0)
     {
       spdlog::info("press 'Ctrl C' key to exit...");
       static bool is_exiting = false;
@@ -162,8 +169,8 @@ int eunomia_core::start_eunomia(void)
   spdlog::info("start eunomia...");
   try
   {
-    start_trackers();
-    check_auto_exit();
+    std::size_t checker_count = start_trackers();
+    check_auto_exit(checker_count);
   }
   catch (const std::exception& e)
   {

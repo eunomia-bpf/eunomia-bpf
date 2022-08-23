@@ -27,8 +27,8 @@ jobs:
           make install-deps
           sudo apt install gcc-10 g++-10
 
-    - name: generate bpf headers
-      run:  make generate-tools
+    - name: make eunomia-bpf
+      run:  make eunomia-bpf
 
     - name: cache dependencies
       uses: actions/cache@v2
@@ -47,30 +47,6 @@ jobs:
         cmake --build build --config Release
         cmake --build build --target install --config Release
 
-    - name: configure
-      run: cmake -Bbuild -Deunomia_ENABLE_UNIT_TESTING=0 -Deunomia_USE_GTEST=0
-      env:
-        CC:   gcc-10
-        CXX:  g++-10
-      
-    # - name: build
-    #   run: cmake --build build --config $BUILD_TYPE -j4
-
-    # - name: run tests
-    #   run: |
-    #     cd build
-    #     sudo ctest -C $BUILD_TYPE -VV
-
-    # - name: Code coverage using Codecov 
-    #   run: bash <(curl -s https://codecov.io/bash) 
-
-    - name: build project
+    - name: build ecli
       run: |
-          mkdir -p build/libbpf/ && cp bpftools/process/.output/libbpf/libbpf.a build/libbpf/libbpf.a
-          cmake --build build --config Release 
-      
-      # shell: bash
-      # env:
-      #   CC:   gcc-10
-      #   CXX:  g++-10
-      
+          make ecli

@@ -52,7 +52,8 @@ void client_list_operation(const std::string& endpoint)
 {
   httplib::Client cli(endpoint);
   auto req = cli.Get("/list");
-  if (!req) {
+  if (!req)
+  {
     spdlog::error("cannot connect to the server!");
     return;
   }
@@ -73,7 +74,8 @@ void client_start_operation(
   }
   httplib::Client cli(endpoint);
   auto req = cli.Post("/start", *json_data, "text/plain");
-  if (!req) {
+  if (!req)
+  {
     spdlog::error("cannot connect to the server!");
     return;
   }
@@ -86,7 +88,8 @@ void client_stop_operation(const std::string& endpoint, int stop_id)
   json http_data;
   http_data["id"] = stop_id;
   auto req = cli.Post("/stop", http_data.dump(), "text/plain");
-  if (!req) {
+  if (!req)
+  {
     spdlog::error("cannot connect to the server!");
     return;
   }

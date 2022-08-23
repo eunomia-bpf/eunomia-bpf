@@ -12,6 +12,7 @@
 #include "config.h"
 #include "eunomia/config.h"
 #include "eunomia/tracker_manager.h"
+#include "eunomia/eunomia_runner.h"
 
 /// core for building tracker
 
@@ -27,30 +28,22 @@ struct eunomia_core
   tracker_manager core_tracker_manager;
 
   /// if the config is invalid, it will return a nullptr.
-  template<tracker_concept TRACKER>
-  typename TRACKER::tracker_event_handler create_tracker_event_handler(const handler_config_data& config);
+  eunomia_runner::tracker_event_handler create_tracker_event_handler(const handler_config_data& config);
   /// create all event handlers for a tracker
-  template<tracker_concept TRACKER>
-  typename TRACKER::tracker_event_handler create_tracker_event_handlers(
+  eunomia_runner::tracker_event_handler create_tracker_event_handlers(
       const std::vector<handler_config_data>& handler_configs);
 
-  /// create event handler for print to console
-  template<tracker_concept TRACKER>
-  typename TRACKER::tracker_event_handler create_print_event_handler(const TRACKER* tracker_ptr);
-
-  template<tracker_concept TRACKER>
-  std::unique_ptr<TRACKER> create_default_tracker(const tracker_config_data& base);
+  std::unique_ptr<eunomia_runner> create_default_tracker(const tracker_config_data& base);
 
   /// create a default tracker with other handlers
-  template<tracker_concept TRACKER>
-  std::unique_ptr<TRACKER> create_tracker_with_handler(
+  std::unique_ptr<eunomia_runner> create_tracker_with_handler(
       const tracker_config_data& base,
-      typename TRACKER::tracker_event_handler);
+      eunomia_runner::tracker_event_handler);
 
   /// start all trackers
-  void start_trackers(void);
+  std::size_t start_trackers(void);
   /// check and stop all trackers if needed
-  void check_auto_exit(void);
+  void check_auto_exit(std::size_t checker_count);
 
  public:
   eunomia_core(eunomia_config_data& config);

@@ -37,6 +37,5 @@ install-deps: ## install deps
 ecli: ## build the command line tool for eunomia-bpf
 	make -C ecli install
 
-
 eunomia-bpf: ## build the core library for eunomia-bpf
 	make -C eunomia-bpf
