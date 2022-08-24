@@ -29,7 +29,7 @@ yourself started.
 
 Here's an example output in minimum process duration mode:
 
-```shell
+```console
 $ sudo ./bootstrap -d 50
 TIME     EVENT COMM             PID     PPID    FILENAME/EXIT CODE
 19:18:32 EXIT  timeout          3817109 402466  [0] (126ms)

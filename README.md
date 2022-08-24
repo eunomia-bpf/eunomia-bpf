@@ -28,14 +28,13 @@ A wrapper of main functions of libbpf, some helper functions for user developmen
 
 To install, just download and use the `binary`:
 
-```console
-wget https://aka.pw/bpf-ecli -O ecli
-chmod +x ecli
+```bash
+wget https://aka.pw/bpf-ecli -O ecli && chmod +x ecli
 ```
 
 see [eunomia-bpf](eunomia-bpf) folder for details. With the library, we have provide a simple cli(see our release)[https://github.com/eunomia-bpf/eunomia-bpf/releases/]), you can simply run pre-compiled ebpf data with a url or path, on most eBPF supported kernel versions:
 
-```console
+```bash
 $ sudo ./ecli run https://github.com/eunomia-bpf/eunomia-bpf/raw/master/bpftools/examples/package.json
 $ sudo ./ecli run bpftools/examples/package.json
 
@@ -59,6 +58,7 @@ see https://github.com/eunomia-bpf/ebpm for details.
 ## Road-map
 
 - [X] refactor the code from project `Eunomia` and provide quick examples
+- [ ] make the compile easier to use, and more flexible. Don't need any code modified to compile.
 - [ ] use lua for ebpf package load config
 - [ ] add more possibilities from `libbpf`
 - [ ] provide python, go and others sdk

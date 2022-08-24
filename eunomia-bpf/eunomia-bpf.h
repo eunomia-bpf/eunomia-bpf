@@ -11,10 +11,28 @@
 #include <vector>
 #include <mutex>
 
+struct ebpf_rb_export_field_meta_data
+{
+  std::string name;
+  std::string type;
+  std::string llvm_type;
+  uint32_t field_offset;
+};
+
+struct ebpf_rb_export_meta_data
+{
+  std::vector<ebpf_rb_export_field_meta_data> fields;
+  std::string struct_name;
+  uint32_t size;
+  uint32_t data_size;
+  uint32_t alignment;
+};
+
 struct ebpf_maps_meta_data
 {
   std::string name;
   std::string type;
+  ebpf_rb_export_meta_data ring_buffer_export;
 };
 
 struct ebpf_progs_meta_data
@@ -47,7 +65,7 @@ class eunomia_ebpf_program
 private:
   /// create an ebpf skeleton
   int create_prog_skeleton(void);
-  int get_ring_buffer_id(void);
+  int check_for_meta_types_and_create_print_format(void);
 
 private:
   /// is the polling ring buffer loop exiting?
@@ -63,6 +81,8 @@ private:
   std::vector<struct bpf_program *> progs;
   std::vector<struct bpf_link *> links;
   struct bpf_object_skeleton *skeleton;
+
+  std::size_t rb_map_id = -1;
   struct ring_buffer *rb = NULL;
 
 public:
@@ -82,8 +102,19 @@ public:
   /// This is thread safe with ring buffer.
   void stop_and_clean(void);
 
+  /// get the name id of the ebpf program
+  const std::string &get_program_name(void) const;
 
-  const std::string& get_program_name(void) const;
+  // format data
+  struct format_info
+  {
+    const char *print_fmt;
+    std::size_t field_offset;
+    std::size_t width;
+  };
+  std::vector<format_info> print_rb_default_format;
+  /// print event with meta data;
+  void print_rb_event(const char *event) const;
 };
 
 int open_ebpf_program_from_json(struct eunomia_ebpf_program &ebpf_program, const std::string &json_str);

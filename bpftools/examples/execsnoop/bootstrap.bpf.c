@@ -4,7 +4,7 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 #include <bpf/bpf_core_read.h>
-#include "event.h"
+#include "bootstrap.bpf.h"
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
 
@@ -48,13 +48,13 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 	/* fill out the sample with data */
 	task = (struct task_struct *)bpf_get_current_task();
 
-	e->bool_value1 = false;
+	e->exit_event = false;
 	e->pid = pid;
 	e->ppid = BPF_CORE_READ(task, real_parent, tgid);
-	bpf_get_current_comm(&e->char_buffer16, sizeof(e->char_buffer16));
+	bpf_get_current_comm(&e->comm, sizeof(e->comm));
 
 	fname_off = ctx->__data_loc_filename & 0xFFFF;
-	bpf_probe_read_str(&e->char_buffer127, sizeof(e->char_buffer127), (void *)ctx + fname_off);
+	bpf_probe_read_str(&e->filename, sizeof(e->filename), (void *)ctx + fname_off);
 
 	/* successfully submit it to user-space for post-processing */
 	bpf_ringbuf_submit(e, 0);
@@ -98,12 +98,12 @@ int handle_exit(struct trace_event_raw_sched_process_template* ctx)
 	/* fill out the sample with data */
 	task = (struct task_struct *)bpf_get_current_task();
 
-	e->bool_value1 = true;
-	e->u64_value1 = duration_ns;
+	e->exit_event = true;
+	e->duration_ns = duration_ns;
 	e->pid = pid;
 	e->ppid = BPF_CORE_READ(task, real_parent, tgid);
-	e->u32_value2 = (BPF_CORE_READ(task, exit_code) >> 8) & 0xff;
-	bpf_get_current_comm(&e->char_buffer16, sizeof(e->char_buffer16));
+	e->exit_code = (BPF_CORE_READ(task, exit_code) >> 8) & 0xff;
+	bpf_get_current_comm(&e->comm, sizeof(e->comm));
 
 	/* send data to user-space for post-processing */
 	bpf_ringbuf_submit(e, 0);

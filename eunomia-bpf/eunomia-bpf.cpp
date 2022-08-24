@@ -9,7 +9,6 @@
 #include <thread>
 
 #include "base64.h"
-#include "event.h"
 #include "json.hpp"
 
 extern "C"
@@ -21,16 +20,58 @@ extern "C"
 
 using json = nlohmann::json;
 
+/// use as a optional field
+/// if the field exists, we get it.
+#define get_opt_from_json_at(name) \
+  do                               \
+  {                                \
+    json res;                      \
+    try                            \
+    {                              \
+      res = j.at(#name);           \
+    }                              \
+    catch (...)                    \
+    {                              \
+      break;                       \
+    }                              \
+    res.get_to(data.name);         \
+  } while (0);
+
+/// get from json
+/// throw an error if get failed.
+#define get_from_json_at(name)     \
+  {                                \
+    j.at(#name).get_to(data.name); \
+  }
+
+static void from_json(const nlohmann::json &j, ebpf_rb_export_field_meta_data &data)
+{
+  j.at("Name").get_to(data.name);
+  j.at("Type").get_to(data.type);
+  j.at("FieldOffset").get_to(data.field_offset);
+  j.at("LLVMType").get_to(data.llvm_type);
+}
+
+static void from_json(const nlohmann::json &j, ebpf_rb_export_meta_data &data)
+{
+  j.at("Alignment").get_to(data.alignment);
+  j.at("DataSize").get_to(data.data_size);
+  j.at("Size").get_to(data.size);
+  j.at("Struct Name").get_to(data.struct_name);
+  j.at("Fields").get_to(data.fields);
+}
+
 static void from_json(const nlohmann::json &j, ebpf_progs_meta_data &data)
 {
-  j.at("name").get_to(data.name);
-  j.at("type").get_to(data.type);
+  get_from_json_at(name);
+  get_opt_from_json_at(type);
 }
 
 static void from_json(const nlohmann::json &j, ebpf_maps_meta_data &data)
 {
-  j.at("name").get_to(data.name);
-  j.at("type").get_to(data.type);
+  get_from_json_at(name);
+  get_from_json_at(type);
+  get_opt_from_json_at(ring_buffer_export);
 }
 
 void eunomia_ebpf_meta_data::from_json_str(const std::string &j_str)
@@ -86,18 +127,6 @@ int eunomia_ebpf_program::run(void)
   return 0;
 }
 
-int eunomia_ebpf_program::get_ring_buffer_id(void)
-{
-  for (std::size_t id = 0; id < maps.size(); id++)
-  {
-    if (meta_data.maps[id].type == "BPF_MAP_TYPE_RINGBUF")
-    {
-      return id;
-    }
-  }
-  return -1;
-}
-
 const std::string &eunomia_ebpf_program::get_program_name(void) const
 {
   return meta_data.ebpf_name;
@@ -107,19 +136,26 @@ int eunomia_ebpf_program::wait_and_print_rb()
 {
   int err;
   exiting = false;
+  if (check_for_meta_types_and_create_print_format() < 0)
+  {
+    std::cerr << "Failed to create print format" << std::endl;
+    return -1;
+  }
   // help the wait_and_print_rb work with stop correctly in multi-thread
   std::lock_guard<std::mutex> guard(exit_mutex);
   /* Set up ring buffer polling */
-  auto id = get_ring_buffer_id();
-  if (id < 0) {
+  auto id = rb_map_id;
+  if (id < 0)
+  {
     std::cout << "running and waiting for the ebpf program..." << std::endl;
     // if we don't have a ring buffer, just wait for the program to exit
-    while (!exiting) {
+    while (!exiting)
+    {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     return 0;
   }
-  rb = ring_buffer__new(bpf_map__fd(maps[id]), handle_print_event, NULL, NULL);
+  rb = ring_buffer__new(bpf_map__fd(maps[id]), handle_print_event, this, NULL);
   if (!rb)
   {
     fprintf(stderr, "Failed to create ring buffer\n");
@@ -182,10 +218,14 @@ int eunomia_ebpf_program::create_prog_skeleton(void)
   maps.resize(meta_data.maps.size());
   for (std::size_t i = 0; i < meta_data.maps.size(); i++)
   {
-    // FIXME: skip rodata
-    if (meta_data.maps[i].type == "RODATA")
+    if (meta_data.maps[i].type == "BPF_MAP_TYPE_UNSPEC")
     {
+      // skip unrecognized maps
       continue;
+    }
+    if (meta_data.maps[i].type == "BPF_MAP_TYPE_RINGBUF")
+    {
+      rb_map_id = i;
     }
     s->maps[s->map_cnt].name = meta_data.maps[i].name.c_str();
     s->maps[s->map_cnt].map = &maps[i];
@@ -227,9 +267,86 @@ err:
       printf(format, value);          \
   } while (false)
 
-static int handle_print_event(void *ctx, void *data, size_t data_sz)
+struct print_type_format_map
 {
-  const struct event *e = (const struct event *)data;
+  const char *format;
+  const char *type_str;
+  const char *llvm_type_str;
+};
+
+static print_type_format_map base_type_look_up_table[] = {
+    {"%d", "int", "i32"},
+    {"%lld", "long long", "i64"},
+    {"%u", "unsigned int", "i32"},
+    {"%llu", "unsigned long long", "i64"},
+    {"%d", "unsigned char", "i8"},
+    {"%c", "char", "i8"},
+    {"%c", "_Bool", "i8"},
+    // Support more types?
+};
+
+int eunomia_ebpf_program::check_for_meta_types_and_create_print_format(void)
+{
+  auto fields = meta_data.maps[rb_map_id].ring_buffer_export.fields;
+  for (std::size_t i = 0; i < fields.size(); ++i)
+  {
+    auto &field = fields[i];
+    std::size_t width = 0;
+    // calculate width of a field
+    if (i < fields.size() - 1)
+    {
+      width = fields[i + 1].field_offset - field.field_offset;
+    }
+    else
+    {
+      width = meta_data.maps[rb_map_id].ring_buffer_export.data_size - field.field_offset;
+    }
+    // use the byte number instead of the width
+    width /= 8;
+    // use the lookup table to determine format
+    for (auto &type : base_type_look_up_table)
+    {
+      if (field.type == type.type_str || field.llvm_type == type.llvm_type_str)
+      {
+        print_rb_default_format.push_back({type.format, field.field_offset, width});
+        break;
+      }
+      else if (field.llvm_type.size() > 0)
+      {
+        if (field.llvm_type.front() == '[' && field.type.size() > 4 && std::strncmp(field.type.c_str(), "char", 4) == 0)
+        {
+          // maybe a char array: fix this
+          print_rb_default_format.push_back({"%s", field.field_offset, width});
+          break;
+        }
+      }
+    }
+  }
+  if (print_rb_default_format.size() == 0)
+  {
+    std::cout << "No available format type!" << std::endl;
+    return -1;
+  }
+  return 0;
+}
+
+template <typename T>
+static void print_rb_field(const char *data, const eunomia_ebpf_program::format_info &f)
+{
+  printf(f.print_fmt, *(T *)(data + f.field_offset / 8));
+  printf(" ");
+}
+
+static const std::map<std::size_t, std::function<void(const char *data, const eunomia_ebpf_program::format_info &f)>>
+    print_func_lookup_map = {
+        {1, print_rb_field<uint8_t>},
+        {2, print_rb_field<uint16_t>},
+        {4, print_rb_field<uint32_t>},
+        {8, print_rb_field<uint64_t>},
+};
+
+void eunomia_ebpf_program::print_rb_event(const char *event) const
+{
   struct tm *tm;
   char ts[32];
   time_t t;
@@ -237,17 +354,28 @@ static int handle_print_event(void *ctx, void *data, size_t data_sz)
   time(&t);
   tm = localtime(&t);
   strftime(ts, sizeof(ts), "%H:%M:%S", tm);
-  printf("%-8s", ts);
-  print_not_zero("%-7d ", e->pid);
-  print_not_zero("%-7d ", e->ppid);
-  print_not_zero("%s ", e->char_buffer16);
-  print_not_zero("%s ", e->char_buffer127);
-  print_not_zero("%d ", e->bool_value1);
-  print_not_zero("%u ", e->u32_value1);
-  print_not_zero("%u ", e->u32_value2);
-  print_not_zero("%llu ", e->u64_value1);
-  print_not_zero("%llu", e->u64_value2);
-  putchar('\n');
-  fflush(stdout);
+  printf("%-8s ", ts);
+  for (const auto &f : print_rb_default_format)
+  {
+    if (auto func = print_func_lookup_map.find(f.width); func != print_func_lookup_map.end())
+    {
+      func->second((const char *)event, f);
+    }
+    else
+    {
+      // should be an array
+      printf("%s ", (char *)(event + f.field_offset / 8));
+    }
+  }
+  printf("\n");
+}
+
+static int handle_print_event(void *ctx, void *data, size_t data_sz)
+{
+  const char *e = (const char *)(const void *)data;
+  const eunomia_ebpf_program *p = (const eunomia_ebpf_program *)ctx;
+  if (!p && !e)
+    return -1;
+  p->print_rb_event(e);
   return 0;
 }
