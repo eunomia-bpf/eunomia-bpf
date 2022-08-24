@@ -112,18 +112,21 @@ int eunomia_ebpf_program::wait_and_print_rb()
   /* Set up ring buffer polling */
   auto id = get_ring_buffer_id();
   if (id < 0) {
+    std::cout << "running and waiting for the ebpf program..." << std::endl;
+    // if we don't have a ring buffer, just wait for the program to exit
     while (!exiting) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    return -1;
+    return 0;
   }
   rb = ring_buffer__new(bpf_map__fd(maps[id]), handle_print_event, NULL, NULL);
   if (!rb)
   {
     fprintf(stderr, "Failed to create ring buffer\n");
-    return -1;
+    return 0;
   }
 
+  std::cout << "running and waiting for the ebpf events..." << std::endl;
   /* Process events */
   while (!exiting)
   {
