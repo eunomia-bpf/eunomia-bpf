@@ -1,4 +1,4 @@
-.PHONY: ecli eunomia-bpf help
+.PHONY: ecli eunomia-bpf help install-deps clean
 .DEFAULT_GOAL := help
 
 define BROWSER_PYSCRIPT
@@ -39,3 +39,7 @@ ecli: ## build the command line tool for eunomia-bpf
 
 eunomia-bpf: ## build the core library for eunomia-bpf
 	make -C eunomia-bpf
+
+clean: ## clean all build projects
+	make -C eunomia-bpf clean
+	make -C ecli clean

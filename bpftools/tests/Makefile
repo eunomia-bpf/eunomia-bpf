@@ -1,0 +1,28 @@
+TEST_EXAMPLE_DIR ?= ../examples/execsnoop/
+TEST_TIME ?= 4
+ECLI_DIR ?= ../../ecli/
+
+# TODO: maybe use the compile docker to test?
+
+.PHONY:test test_project clone_and_install_deps clean
+all: test
+
+test_project:
+	SOURCE_DIR=../$(TEST_EXAMPLE_DIR) make -C eunomia-cc build
+	sudo timeout --preserve-status -s 2 $(TEST_TIME) ./ecli run $(TEST_EXAMPLE_DIR)package.json
+
+clone_and_install_deps:
+	git clone https://github.com/eunomia-bpf/eunomia-cc --recursive 	# checkout the newest toolchain
+	make -C eunomia-cc install_deps
+	make -C eunomia-cc
+	make -C $(ECLI_DIR) install
+	cp $(ECLI_DIR)build/bin/Release/eunomia ./ecli
+
+test:
+	make test_project TEST_EXAMPLE_DIR=../examples/execsnoop/
+	make test_project TEST_EXAMPLE_DIR=../examples/minimal/
+	make test_project TEST_EXAMPLE_DIR=../examples/kprobe-link/
+	make test_project TEST_EXAMPLE_DIR=../examples/fentry-link/
+
+clean:
+	@make -C client clean

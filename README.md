@@ -10,7 +10,7 @@
 
 In general, we develop an approach to compile, transmit, and run most libbpf CO-RE objects with some user space config meta data to help us load and operator the eBPF byte code.
 
-So, the only thing you need to do is focus on writing a single eBPF program in the kernel.
+So, the only thing you need to do is focus on writing a single eBPF program in the kernel. We have a compiler here: [eunomia-cc](https://github.com/eunomia-bpf/eunomia-cc)
 
 ## Our function
 
@@ -35,7 +35,7 @@ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ecli
 see [eunomia-bpf](eunomia-bpf) folder for details. With the library, we have provide [a simple cli](https://github.com/eunomia-bpf/eunomia-bpf/releases/), you can simply run pre-compiled ebpf data with a url or path, on most eBPF supported kernel versions:
 
 ```bash
-$ sudo ./ecli run https://github.com/eunomia-bpf/eunomia-bpf/raw/master/bpftools/examples/package.json
+$ sudo ./ecli run https://gitee.com/yunwei37/eunomia-bpf/raw/master/bpftools/examples/package.json
 $ sudo ./ecli run bpftools/examples/package.json
 
 $ sudo ./ecli server # run as a simple server
@@ -47,7 +47,7 @@ The cli tool can also run as a simple server to receive requests, or as a client
 
 The toolchain can be used as a docker to generate pre-compiled eBPF data in one command:
 
-see the toolchains [ebpm-bootstrap](https://github.com/eunomia-bpf/ebpm-bootstrap) for details.
+see the compile toolchains [eunomia-cc](https://github.com/eunomia-bpf/eunomia-cc) for details.
 
 you can also simply use the [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) repo as a template in github, just push to it and github action can help you compile CO-RE ebpf code!
 
@@ -58,8 +58,10 @@ see https://github.com/eunomia-bpf/ebpm for details.
 ## Road-map
 
 - [X] refactor the code from project `Eunomia` and provide quick examples
-- [ ] make the compile easier to use, and more flexible. Don't need any code modified to compile.
-- [ ] use lua for ebpf package load config
+- [X] support `tracepoints`, `fentry`, `kprobe`, and ring buffer output in userspace.
+- [X] make the compile easier to use, and more flexible. Don't need any code modified to compile.
+- [ ] use lua for ebpf package load config and add more ebpf support
+- [ ] support more ebpf program types:
 - [ ] add more possibilities from `libbpf`
 - [ ] provide python, go and others sdk
 - [ ] add support of `etcd` and enhance server
@@ -67,7 +69,4 @@ see https://github.com/eunomia-bpf/ebpm for details.
 
 ## License
 
-This work is dual-licensed under BSD 2-clause license and GNU LGPL v2.1 license.
-You can choose between one of them if you use this work.
-
-`SPDX-License-Identifier: BSD-2-Clause OR LGPL-2.1`
+MIT LICENSE
