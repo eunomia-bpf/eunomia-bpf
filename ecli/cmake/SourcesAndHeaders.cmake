@@ -21,12 +21,13 @@ set(third_party_headers
     ../third_party/includes/
     ../third_party/libbpf/include/uapi
     ../third_party/libbpf/
-    ../build/libbpf
 )
 
 set(skel_includes
     include/eunomia/
     ../eunomia-bpf/
+    ../eunomia-bpf/
+    ../eunomia-bpf/.output/
 )
 
 set(test_sources

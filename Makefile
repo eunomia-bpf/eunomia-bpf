@@ -35,6 +35,7 @@ install-deps: ## install deps
 	sudo apt-get install libcurl4-openssl-dev libelf-dev clang llvm ## libgtest-dev
 
 ecli: ## build the command line tool for eunomia-bpf
+	make -C eunomia-bpf
 	make -C ecli install
 
 eunomia-bpf: ## build the core library for eunomia-bpf
