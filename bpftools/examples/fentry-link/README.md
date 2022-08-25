@@ -25,7 +25,7 @@ Successfully started!
 The `fentry` output in `/sys/kernel/debug/tracing/trace_pipe` should look
 something like this:
 
-```shell
+```console
 $ sudo cat /sys/kernel/debug/tracing/trace_pipe
               rm-9290    [004] d..2  4637.798698: bpf_trace_printk: fentry: pid = 9290, filename = test_file
               rm-9290    [004] d..2  4637.798843: bpf_trace_printk: fexit: pid = 9290, filename = test_file, ret = 0

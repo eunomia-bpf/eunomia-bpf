@@ -136,11 +136,6 @@ int eunomia_ebpf_program::wait_and_print_rb()
 {
   int err;
   exiting = false;
-  if (check_for_meta_types_and_create_print_format() < 0)
-  {
-    std::cerr << "Failed to create print format" << std::endl;
-    return -1;
-  }
   // help the wait_and_print_rb work with stop correctly in multi-thread
   std::lock_guard<std::mutex> guard(exit_mutex);
   /* Set up ring buffer polling */
@@ -154,6 +149,11 @@ int eunomia_ebpf_program::wait_and_print_rb()
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     return 0;
+  }
+  if (check_for_meta_types_and_create_print_format() < 0)
+  {
+    std::cerr << "Failed to create print format" << std::endl;
+    return -1;
   }
   rb = ring_buffer__new(bpf_map__fd(maps[id]), handle_print_event, this, NULL);
   if (!rb)
@@ -215,6 +215,7 @@ int eunomia_ebpf_program::create_prog_skeleton(void)
   if (!s->maps)
     goto err;
 
+  rb_map_id = -1;
   maps.resize(meta_data.maps.size());
   for (std::size_t i = 0; i < meta_data.maps.size(); i++)
   {

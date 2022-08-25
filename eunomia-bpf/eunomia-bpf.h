@@ -82,7 +82,7 @@ private:
   std::vector<struct bpf_link *> links;
   struct bpf_object_skeleton *skeleton;
 
-  std::size_t rb_map_id = -1;
+  int rb_map_id = -1;
   struct ring_buffer *rb = NULL;
 
 public:

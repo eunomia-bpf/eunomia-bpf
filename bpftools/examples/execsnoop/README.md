@@ -54,12 +54,12 @@ TIME     EVENT COMM             PID     PPID    FILENAME/EXIT CODE
 
 Compile:
 
-```console
+```shell
 docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/execsnoop:/src yunwei37/ebpm
 ```
 
 Run:
 
-```console
-sudo ecli/build/bin/Release/eunomia run bpftools/examples/execsnoop/package.json
+```shell
+sudo ./ecli run bpftools/examples/execsnoop/package.json
 ```

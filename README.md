@@ -32,7 +32,7 @@ To install, just download and use the `binary`:
 wget https://aka.pw/bpf-ecli -O ecli && chmod +x ecli
 ```
 
-see [eunomia-bpf](eunomia-bpf) folder for details. With the library, we have provide a simple cli(see our release)[https://github.com/eunomia-bpf/eunomia-bpf/releases/]), you can simply run pre-compiled ebpf data with a url or path, on most eBPF supported kernel versions:
+see [eunomia-bpf](eunomia-bpf) folder for details. With the library, we have provide [a simple cli](https://github.com/eunomia-bpf/eunomia-bpf/releases/), you can simply run pre-compiled ebpf data with a url or path, on most eBPF supported kernel versions:
 
 ```bash
 $ sudo ./ecli run https://github.com/eunomia-bpf/eunomia-bpf/raw/master/bpftools/examples/package.json
