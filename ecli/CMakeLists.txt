@@ -186,7 +186,7 @@ ExternalProject_Add(libbpf
 # you're in a highly vendored environment (like libbpf-bootstrap)
 set(BPFOBJECT_BPFTOOL_EXE ${THIRD_PARTY_DIR}/tools/bpftool)
 set(BPFOBJECT_VMLINUX_H ${THIRD_PARTY_DIR}/vmlinux/vmlinux.h)
-set(LIBBPF_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/libbpf)
+set(LIBBPF_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/libbpf/)
 set(LIBBPF_LIBRARIES ${CMAKE_CURRENT_BINARY_DIR}/libbpf/libbpf.a)
 find_package(BpfObject REQUIRED)
 

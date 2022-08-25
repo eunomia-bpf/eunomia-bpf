@@ -27,7 +27,6 @@ set(skel_includes
     include/eunomia/
     ../eunomia-bpf/
     ../eunomia-bpf/
-    ../eunomia-bpf/.output/
 )
 
 set(test_sources
