@@ -59,7 +59,7 @@ docs: ## generate Doxygen HTML documentation, including API docs
 
 install: ## install the package to the `INSTALL_LOCATION`
 	rm -rf build/
-	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -DCMAKE_BUILD_TYPE=Release
+	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -DCMAKE_BUILD_TYPE=Release  -Deunomia_ENABLE_UNIT_TESTING=0 -Deunomia_USE_GTEST=0
 	cmake --build build --config Release
 	cmake --build build --target install --config Release
 
