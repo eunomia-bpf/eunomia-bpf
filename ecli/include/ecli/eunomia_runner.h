@@ -59,7 +59,7 @@ class eunomia_runner : public tracker_with_exporter<eunomia_env, eunomia_event>
   };
 
  private:
-  eunomia_ebpf_program program;
+  eunomia::eunomia_ebpf_program program;
 };
 
 #endif

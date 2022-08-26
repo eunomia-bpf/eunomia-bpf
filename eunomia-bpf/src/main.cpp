@@ -1,18 +1,27 @@
 #include <eunomia/eunomia-bpf.hpp>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+
+using namespace eunomia;
 
 /// a dummy loader for test
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
-    {
-        std::cout << "Usage: " << argv[0] << " <json data>" << std::endl;
-        return -1;
-    }
-    eunomia_ebpf_program ebpf_program{argv[1]};
-    ebpf_program.run();
-    ebpf_program.wait_and_print_rb();
-    ebpf_program.stop_and_clean();
-    return 0;
+  std::string json_str;
+  while (std::getline(std::cin, json_str))
+  {
+  }
+  eunomia_ebpf_program ebpf_program{ json_str };
+  if (ebpf_program.run())
+  {
+    std::cerr << "Failed to run ebpf program" << std::endl;
+    return -1;
+  }
+  if (ebpf_program.wait_and_print_rb())
+  {
+    std::cerr << "Failed to wait and print rb" << std::endl;
+    return -1;
+  }
+  ebpf_program.stop_and_clean();
+  return 0;
 }
