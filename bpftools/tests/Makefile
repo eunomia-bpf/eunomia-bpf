@@ -19,7 +19,7 @@ clone_and_install_deps:
 	cp $(ECLI_DIR)build/bin/Release/eunomia ./ecli
 
 test:
-	make test_project TEST_EXAMPLE_DIR=../examples/execsnoop/
+	make test_project TEST_EXAMPLE_DIR=../examples/bootstrap/
 	make test_project TEST_EXAMPLE_DIR=../examples/minimal/
 	make test_project TEST_EXAMPLE_DIR=../examples/kprobe-link/
 	make test_project TEST_EXAMPLE_DIR=../examples/fentry-link/
