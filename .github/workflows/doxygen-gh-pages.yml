@@ -35,11 +35,11 @@ jobs:
 
       - name: install deps
         run: |
-            make -C ecli install-deps
+             sudo make -C ecli install-deps
 
       - name: build compile set
         run:  |
-              make -C bpftools/tests clone_and_install_deps
+              sudo make -C bpftools/tests clone_and_install_deps
               make -C bpftools/tests test
 
       - name: Setup Pages
