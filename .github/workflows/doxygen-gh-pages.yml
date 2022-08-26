@@ -39,7 +39,7 @@ jobs:
 
       - name: build compile set
         run:  |
-              sudo make -C bpftools/tests clone_and_install_deps
+              make -C bpftools/tests clone_and_install_deps
               make -C bpftools/tests test
 
       - name: Setup Pages

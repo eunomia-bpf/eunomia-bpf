@@ -24,7 +24,7 @@ jobs:
 
     - name: install deps
       run: |
-          make -C ecli install-deps
+          sudo make -C ecli install-deps
 
     - name: make eunomia-bpf
       run:  make eunomia-bpf
