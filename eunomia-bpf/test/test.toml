@@ -1,0 +1,34 @@
+
+[trackers]
+Enable = ["process", "tcp", "syscall"]
+container_id = 137768710737545
+process_id = 100
+run_time = 30
+fmt = "json"
+
+[exporter]
+Enable = ["prometheus"]
+
+[prometheus]
+endpoint ="127.0.0.1"
+port = 6789
+
+[rules]
+Enable = ["rule1", "rule2"]
+
+[rule1]
+type = "syscall"
+name = "bpf..."
+error_message = "error: bpf exec"
+
+[rule2]
+type = "file"
+name = "/proc/xxx"
+error_message = "error: bpf exec"
+
+[seccomp]
+allow = ["read","write", "connect"]
+
+[container]
+Enable = false
+log_path = "./logs/container_log.txt"

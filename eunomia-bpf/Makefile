@@ -1,90 +1,72 @@
-# SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
-# from https://github.com/libbpf/libbpf-bootstrap/
-OUTPUT := .output
-CLANG ?= clang
-LLVM_STRIP ?= llvm-strip
-BPFTOOL ?= $(abspath ../third_party/tools/bpftool)
-LIBBPF_SRC := $(abspath ../third_party/libbpf/src)
-LIBBPF_OBJ := $(abspath $(OUTPUT)/libbpf.a)
-ARCH := $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
-VMLINUX := ../third_party/vmlinux/$(ARCH)/vmlinux.h
-# Use our own libbpf API headers and Linux UAPI headers distributed with
-# libbpf to avoid dependency on system-wide headers, which could be missing or
-# outdated
-INCLUDES := -I$(OUTPUT) -I../third_party/libbpf/include/uapi -I../third_party/includes -I$(dir $(VMLINUX))
-CFLAGS := -g -Wall -fsanitize=address -Wno-unused-function
+.PHONY: install coverage test docs help generate_tools
+.DEFAULT_GOAL := help
 
-APPS = test
+define BROWSER_PYSCRIPT
+import os, webbrowser, sys
 
-# Get Clang's default includes on this system. We'll explicitly add these dirs
-# to the includes list when compiling with `-target bpf` because otherwise some
-# architecture-specific dirs will be "missing" on some architectures/distros -
-# headers such as asm/types.h, asm/byteorder.h, asm/socket.h, asm/sockios.h,
-# sys/cdefs.h etc. might be missing.
-#
-# Use '-idirafter': Don't interfere with include mechanics except where the
-# build would have failed anyways.
-CLANG_BPF_SYS_INCLUDES = $(shell $(CLANG) -v -E - </dev/null 2>&1 \
-	| sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }')
+try:
+	from urllib import pathname2url
+except:
+	from urllib.request import pathname2url
 
-ifeq ($(V),1)
-	Q =
-	msg =
-else
-	Q = @
-	msg = @printf '  %-8s %s%s\n'					\
-		      "$(1)"						\
-		      "$(patsubst $(abspath $(OUTPUT))/%,%,$(2))"	\
-		      "$(if $(3), $(3))";
-	MAKEFLAGS += --no-print-directory
-endif
+webbrowser.open("file://" + pathname2url(os.path.abspath(sys.argv[1])))
+endef
+export BROWSER_PYSCRIPT
 
-.PHONY: all
-all: $(APPS)
+define PRINT_HELP_PYSCRIPT
+import re, sys
 
-.PHONY: clean
-clean:
-	$(call msg,CLEAN)
-	$(Q)rm -rf $(OUTPUT) $(APPS)
-	$(Q)rm -rf *.o
+for line in sys.stdin:
+	match = re.match(r'^([a-zA-Z_-]+):.*?## (.*)$$', line)
+	if match:
+		target, help = match.groups()
+		print("%-20s %s" % (target, help))
+endef
+export PRINT_HELP_PYSCRIPT
 
-$(OUTPUT) $(OUTPUT)/libbpf:
-	$(call msg,MKDIR,$@)
-	$(Q)mkdir -p $@
+BROWSER := python -c "$$BROWSER_PYSCRIPT"
+INSTALL_LOCATION := ~/.local
 
-# Build libbpf
-$(LIBBPF_OBJ): $(wildcard $(LIBBPF_SRC)/*.[ch] $(LIBBPF_SRC)/Makefile) | $(OUTPUT)/libbpf
-	$(call msg,LIB,$@)
-	$(Q)$(MAKE) -C $(LIBBPF_SRC) BUILD_STATIC_ONLY=1		      \
-		    OBJDIR=$(dir $@)/libbpf DESTDIR=$(dir $@)		      \
-		    INCLUDEDIR= LIBDIR= UAPIDIR=			      \
-		    install
+help:
+	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-test.o: test.cpp
+install-deps: ## install deps
+	apt update
+	apt-get install libcurl4-openssl-dev libelf-dev clang llvm -y ## libgtest-dev
 
-trace_helpers.o: trace_helpers.c $(LIBBPF_OBJ)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
+test: ## run tests quickly with ctest
+	rm -rf build/
+	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -Deunomia_ENABLE_UNIT_TESTING=1 -DCMAKE_BUILD_TYPE="Release"
+	cmake --build build --config Release
+	cd build/ && ctest -C Release -VV
 
-btf_helpers.o: btf_helpers.c $(LIBBPF_OBJ)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
+coverage: ## check code coverage quickly GCC
+	rm -rf build/
+	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -Deunomia_ENABLE_CODE_COVERAGE=1
+	cmake --build build --config Release
+	cd build/ && ctest -C Release -VV
+	cd .. && (bash -c "find . -type f -name '*.gcno' -exec gcov -pb {} +" || true)
 
-uprobe_helpers.o: uprobe_helpers.c $(LIBBPF_OBJ)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
+docs: ## generate Doxygen HTML documentation, including API docs
+	rm -rf docs/
+	rm -rf build/
+	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -Deunomia_ENABLE_DOXYGEN=1 -Deunomia_ENABLE_UNIT_TESTING=0 -Deunomia_USE_GTEST=0 -DCMAKE_BUILD_TYPE=Release
+	cmake --build build --target doxygen-docs
+	mkdir docs/html/doc/
+	cp -r doc/imgs docs/html/
+	cp -r doc/imgs docs/html/doc/
+	$(BROWSER) docs/html/index.html
 
-map_helpers.o: map_helpers.c $(LIBBPF_OBJ)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
+install: ## install the package to the `INSTALL_LOCATION`
+	rm -rf build/
+	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -DCMAKE_BUILD_TYPE=Release  -Deunomia_ENABLE_UNIT_TESTING=0 -Deunomia_USE_GTEST=0
+	cmake --build build --config Release
+	cmake --build build --target install --config Release
 
-eunomia-bpf.o: eunomia-bpf.cpp $(LIBBPF_OBJ)
-	$(Q)$(CXX) $(CFLAGS) $(INCLUDES) -c $(filter %.cpp,$^) -o $@
+format: ## format the project sources
+	cmake -Bbuild
+	cmake --build build --target clang-format
 
-# Build application binary
-$(APPS): %: test.o eunomia-bpf.o $(LIBBPF_OBJ) | $(OUTPUT)
-	$(call msg,BINARY,$@)
-	$(Q)$(CXX) $(CFLAGS) $^ -lelf -lz -o $@
-
-# delete failed targets
-.DELETE_ON_ERROR:
-
-# keep intermediate (.skel.h, .bpf.o, etc) targets
-.SECONDARY:
-
+clean: ## clean the project build files
+	rm -rf build/
+	rm -rf docs/

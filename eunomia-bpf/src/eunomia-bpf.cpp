@@ -3,7 +3,7 @@
  * Copyright (c) 2022, 郑昱笙
  * All rights reserved.
  */
-#include "eunomia-bpf.h"
+#include <eunomia/eunomia-bpf.hpp>
 
 #include <iostream>
 #include <thread>

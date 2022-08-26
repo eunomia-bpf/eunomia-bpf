@@ -3,8 +3,8 @@
  * Copyright (c) 2022, Yusheng Zheng
  * All rights reserved.
  */
-#ifndef EUNOMIA_BPF_H
-#define EUNOMIA_BPF_H
+#ifndef EUNOMIA_BPF_HPP_
+#define EUNOMIA_BPF_HPP_
 
 #include <iostream>
 #include <string>
