@@ -31,11 +31,10 @@ help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 install-deps: ## install deps
-	sudo apt update
-	sudo apt-get install libcurl4-openssl-dev libelf-dev clang llvm ## libgtest-dev
+	apt update
+	apt-get install libcurl4-openssl-dev libelf-dev clang llvm ## libgtest-dev
 
 ecli: ## build the command line tool for eunomia-bpf
-	make -C eunomia-bpf
 	make -C ecli install
 
 eunomia-bpf: ## build the core library for eunomia-bpf

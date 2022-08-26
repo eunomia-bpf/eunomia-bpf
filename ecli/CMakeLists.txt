@@ -172,7 +172,7 @@ ExternalProject_Add(libbpf
   BUILD_COMMAND make
     BUILD_STATIC_ONLY=1
     OBJDIR=${CMAKE_CURRENT_BINARY_DIR}/libbpf/libbpf
-    DESTDIR=${CMAKE_CURRENT_BINARY_DIR}/libbpf/
+    DESTDIR=${CMAKE_CURRENT_BINARY_DIR}/libbpf
     INCLUDEDIR=
     LIBDIR=
     UAPIDIR=
@@ -186,10 +186,11 @@ ExternalProject_Add(libbpf
 # you're in a highly vendored environment (like libbpf-bootstrap)
 set(BPFOBJECT_BPFTOOL_EXE ${THIRD_PARTY_DIR}/tools/bpftool)
 set(BPFOBJECT_VMLINUX_H ${THIRD_PARTY_DIR}/vmlinux/vmlinux.h)
-set(LIBBPF_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/libbpf/)
+set(LIBBPF_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/libbpf)
 set(LIBBPF_LIBRARIES ${CMAKE_CURRENT_BINARY_DIR}/libbpf/libbpf.a)
 find_package(BpfObject REQUIRED)
 
+add_dependencies(${PROJECT_NAME} libbpf-build)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBBPF_LIBRARIES} -lelf -lz -lpthread)
 
 # For Windows, it is necessary to link with the MultiThreaded library.

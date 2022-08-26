@@ -1,52 +1,24 @@
-FROM ubuntu:20.04
+# build run env
+FROM ubuntu:22.04
 
-RUN echo "Updating Ubuntu"
-RUN apt-get update && apt-get upgrade -y
+ENV TZ = Asia/Shanghai
 
-RUN echo "Installing dependencies..."
-RUN apt install -y \
-			ccache \
-			clang \
-			clang-format \
-			clang-tidy \
-			cppcheck \
-			curl \
-			doxygen \
-			gcc \
-			git \
-			graphviz \
-			make \
-			ninja-build \
-			python3 \
-			python3-pip \
-			tar \
-			unzip \
-			vim
+WORKDIR /usr/local/src
 
-RUN echo "Installing dependencies not found in the package repos..."
+RUN apt-get update -y && apt-get install -y libssl-dev libcurl4-openssl-dev libcurl4 libelf-dev
 
-RUN apt install -y wget tar build-essential libssl-dev && \
-			wget https://github.com/Kitware/CMake/releases/download/v3.15.0/cmake-3.15.0.tar.gz && \
-			tar -zxvf cmake-3.15.0.tar.gz && \
-			cd cmake-3.15.0 && \
-			./bootstrap && \
-			make && \
-			make install 
+RUN apt-get install cmake -y
 
-RUN pip3 install conan
+RUN apt-get install clang -y
+RUN apt-get install llvm -y
+RUN apt-get install python-is-python3 -y
 
-RUN git clone https://github.com/catchorg/Catch2.git && \
-		 cd Catch2 && \
-		 cmake -Bbuild -H. -DBUILD_TESTING=OFF && \
-		 cmake --build build/ --target install
+COPY ./. /usr/local/src
+RUN make ecli install-deps
+RUN make eunomia-bpf
+RUN make ecli
 
-# Disabled pthread support for GTest due to linking errors
-RUN git clone https://github.com/google/googletest.git --branch release-1.10.0 && \
-        cd googletest && \
-        cmake -Bbuild -Dgtest_disable_pthreads=1 && \
-        cmake --build build --config Release && \
-        cmake --build build --target install --config Release
+VOLUME /data/
 
-RUN git clone https://github.com/microsoft/vcpkg -b 2020.06 && \
-		cd vcpkg && \
-		./bootstrap-vcpkg.sh -disableMetrics -useSystemBinaries	
+ENTRYPOINT ["/bin/bash","-l","-c"]
+CMD ["make build"]

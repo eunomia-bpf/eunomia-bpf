@@ -12,6 +12,7 @@ test_project:
 	sudo timeout --preserve-status -s 2 $(TEST_TIME) ./ecli run $(TEST_EXAMPLE_DIR)package.json
 
 clone_and_install_deps:
+	rm -rf ./eunomia-cc ./ecli
 	git clone https://github.com/eunomia-bpf/eunomia-cc --recursive 	# checkout the newest toolchain
 	make -C eunomia-cc install_deps
 	make -C eunomia-cc

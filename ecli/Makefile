@@ -31,8 +31,8 @@ help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 install-deps: ## install deps
-	sudo apt update
-	sudo apt-get install libcurl4-openssl-dev libelf-dev clang llvm ## libgtest-dev
+	apt update
+	apt-get install libcurl4-openssl-dev libelf-dev clang llvm -y ## libgtest-dev
 
 test: ## run tests quickly with ctest
 	rm -rf build/

@@ -358,7 +358,8 @@ void eunomia_ebpf_program::print_rb_event(const char *event) const
   printf("%-8s ", ts);
   for (const auto &f : print_rb_default_format)
   {
-    if (auto func = print_func_lookup_map.find(f.width); func != print_func_lookup_map.end())
+    auto func = print_func_lookup_map.find(f.width);
+    if (func != print_func_lookup_map.end())
     {
       func->second((const char *)event, f);
     }

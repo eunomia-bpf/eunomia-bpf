@@ -35,8 +35,7 @@ jobs:
 
       - name: install deps
         run: |
-            make install-deps
-            sudo apt install gcc-10 g++-10
+            make -C ecli install-deps
 
       - name: build compile set
         run:  |

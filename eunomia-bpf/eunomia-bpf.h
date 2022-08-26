@@ -117,8 +117,4 @@ public:
   void print_rb_event(const char *event) const;
 };
 
-int open_ebpf_program_from_json(struct eunomia_ebpf_program &ebpf_program, const std::string &json_str);
-int run_ebpf_program(struct eunomia_ebpf_program &ebpf_program);
-void stop_ebpf_program(struct eunomia_ebpf_program &ebpf_program);
-
 #endif

@@ -43,7 +43,7 @@ static void run_mode_operation(
 {
   core_config.run_selected = "run";
   core_config.enabled_trackers.clear();
-  core_config.enabled_trackers.push_back(tracker_config_data{ .url = path, "", {}, run_with_extra_args });
+  core_config.enabled_trackers.push_back(tracker_config_data{path, "", {}, run_with_extra_args });
   eunomia_core core(core_config);
   core.start_eunomia();
 }
