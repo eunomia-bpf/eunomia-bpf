@@ -46,5 +46,5 @@ docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/fentry-link:
 Run:
 
 ```console
-sudo ecli/build/bin/Release/eunomia run bpftools/examples/fentry-link/package.json
+sudo ecli/build/bin/Release/ecli run bpftools/examples/fentry-link/package.json
 ```

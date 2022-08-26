@@ -8,7 +8,7 @@ set(exe_sources
 )
 
 set(headers
-    include/eunomia/
+    include/
 )
 
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )

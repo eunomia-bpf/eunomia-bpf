@@ -66,7 +66,7 @@ foreach(file ${test_sources})
         ${${CMAKE_PROJECT_NAME}_TEST_LIB}
     )
   else()
-    message(FATAL_ERROR "Unknown testing library. Please setup your desired unit testing library by using `target_link_libraries`.")  
+    message("Unknown testing library. Please setup your desired unit testing library by using `target_link_libraries`.")  
   endif()
 
   #

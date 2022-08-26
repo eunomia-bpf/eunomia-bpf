@@ -37,5 +37,5 @@ docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/kprobe-link:
 Run:
 
 ```console
-sudo ecli/build/bin/Release/eunomia run bpftools/examples/kprobe-link/package.json
+sudo ecli/build/bin/Release/ecli run bpftools/examples/kprobe-link/package.json
 ```

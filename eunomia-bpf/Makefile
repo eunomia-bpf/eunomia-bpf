@@ -1,5 +1,5 @@
 .PHONY: install coverage test docs help generate_tools
-.DEFAULT_GOAL := help
+.DEFAULT_GOAL := install
 
 define BROWSER_PYSCRIPT
 import os, webbrowser, sys

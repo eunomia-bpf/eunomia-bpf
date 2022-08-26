@@ -11,9 +11,9 @@
 #include <string>
 #include <vector>
 
-#include "eunomia/eunomia_core.h"
-#include "eunomia/http_server.h"
-#include "eunomia/url_resolver.h"
+#include "ecli/ecli_core.h"
+#include "ecli/http_server.h"
+#include "ecli/url_resolver.h"
 
 using namespace std::chrono_literals;
 using json = nlohmann::json;
@@ -43,8 +43,8 @@ static void run_mode_operation(
 {
   core_config.run_selected = "run";
   core_config.enabled_trackers.clear();
-  core_config.enabled_trackers.push_back(tracker_config_data{path, "", {}, run_with_extra_args });
-  eunomia_core core(core_config);
+  core_config.enabled_trackers.push_back(tracker_config_data{ path, "", {}, run_with_extra_args });
+  ecli_core core(core_config);
   core.start_eunomia();
 }
 

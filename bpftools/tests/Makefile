@@ -16,7 +16,7 @@ clone_and_install_deps:
 	git clone https://github.com/eunomia-bpf/eunomia-cc --recursive 	# checkout the newest toolchain
 	make -C eunomia-cc
 	make -C $(ECLI_DIR) install
-	cp $(ECLI_DIR)build/bin/Release/eunomia ./ecli
+	cp $(ECLI_DIR)build/bin/Release/ecli ./ecli
 
 test:
 	make test_project TEST_EXAMPLE_DIR=../examples/bootstrap/

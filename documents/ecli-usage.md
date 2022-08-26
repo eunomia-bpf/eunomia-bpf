@@ -11,7 +11,7 @@ $ sudo ./ecli run bpftools/examples/package.json
 start a server:
 
 ```console
-$ sudo ecli/build/bin/Release/eunomia server
+$ sudo ecli/build/bin/Release/ecli server
 [2022-08-22 22:43:36.201] [info] start server mode...
 [2022-08-22 22:43:36.201] [info] start eunomia...
 [2022-08-22 22:43:36.201] [info] eunomia server start at port 8527
@@ -41,18 +41,18 @@ $ sudo ./ecli client list
 
 ```console
 SYNOPSIS
-        ecli/build/bin/Release/eunomia [--log-level <log level>] client list [--endpoint <server
+        ecli/build/bin/Release/ecli [--log-level <log level>] client list [--endpoint <server
             endpoint>]
 
-        ecli/build/bin/Release/eunomia [--log-level <log level>] client start <url> [<extra
+        ecli/build/bin/Release/ecli [--log-level <log level>] client start <url> [<extra
             args>]... [--endpoint <server endpoint>]
 
-        ecli/build/bin/Release/eunomia [--log-level <log level>] client stop <stop id> [--endpoint
+        ecli/build/bin/Release/ecli [--log-level <log level>] client stop <stop id> [--endpoint
             <server endpoint>]
 
-        ecli/build/bin/Release/eunomia [--log-level <log level>] run <url> [<extra args>]...
-        ecli/build/bin/Release/eunomia [--log-level <log level>] server [--config <config file>]
-        ecli/build/bin/Release/eunomia [--log-level <log level>] help
+        ecli/build/bin/Release/ecli [--log-level <log level>] run <url> [<extra args>]...
+        ecli/build/bin/Release/ecli [--log-level <log level>] server [--config <config file>]
+        ecli/build/bin/Release/ecli [--log-level <log level>] help
 
 OPTIONS
         --log-level <log level>

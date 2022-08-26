@@ -4,13 +4,13 @@
  * All rights reserved.
  */
 
-#ifndef PROCESS_CMD_H
-#define PROCESS_CMD_H
+#ifndef EUNOMIA_RUNNER_H
+#define EUNOMIA_RUNNER_H
 
 #include <memory>
 #include <string>
 
-#include "eunomia-bpf.h"
+#include "eunomia/eunomia-bpf.hpp"
 #include "model/tracker.h"
 
 struct eunomia_env

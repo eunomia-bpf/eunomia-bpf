@@ -63,6 +63,7 @@ include(cmake/SourcesAndHeaders.cmake)
 
 if(${PROJECT_NAME}_BUILD_EXECUTABLE)
   add_executable(${PROJECT_NAME} ${exe_sources})
+  add_library(${PROJECT_NAME}_LIB ${headers} ${sources})
 
   if(${PROJECT_NAME}_VERBOSE_OUTPUT)
     verbose_message("Found the following sources:")
@@ -211,7 +212,7 @@ verbose_message("Successfully added all dependencies and linked against them.")
 # Set the build/user include directories
 #
 
-include_directories(INTERFACE ${skel_includes} ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/include/uapi)
+include_directories(INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/include/uapi)
 include_directories(SYSTEM INTERFACE ${third_party_headers})
 include_directories(SYSTEM INTERFACE ${LIBBPF_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/bpftools)
 

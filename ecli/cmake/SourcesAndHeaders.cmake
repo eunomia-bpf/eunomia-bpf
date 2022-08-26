@@ -1,10 +1,9 @@
 set(sources
-    src/eunomia_core.cpp
+    src/ecli_core.cpp
     src/config.cpp
     src/http_server.cpp
     src/eunomia_runner.cpp
     src/url_resolver.cpp
-    ../eunomia-bpf/eunomia-bpf.cpp
 )
 
 set(exe_sources
@@ -24,9 +23,6 @@ set(third_party_headers
 )
 
 set(skel_includes
-    include/eunomia/
-    ../eunomia-bpf/
-    ../eunomia-bpf/
 )
 
 set(test_sources

@@ -4,7 +4,7 @@
  * All rights reserved.
  */
 
-#include "eunomia/config.h"
+#include "ecli/config.h"
 
 #include <json.hpp>
 

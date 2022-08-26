@@ -10,15 +10,15 @@
 #include <optional>
 
 #include "config.h"
-#include "eunomia/config.h"
-#include "eunomia/tracker_manager.h"
-#include "eunomia/eunomia_runner.h"
+#include "ecli/config.h"
+#include "ecli/eunomia_runner.h"
+#include "ecli/tracker_manager.h"
 
 /// core for building tracker
 
 /// construct tracker with handlers
 /// and manage state
-struct eunomia_core
+struct ecli_core
 {
  private:
   /// eunomia config
@@ -46,12 +46,12 @@ struct eunomia_core
   void check_auto_exit(std::size_t checker_count);
 
  public:
-  eunomia_core(eunomia_config_data& config);
+  ecli_core(eunomia_config_data& config);
   /// start the core
   int start_eunomia(void);
   /// start a single tracker base on config
-  std::size_t  start_tracker(const tracker_config_data& config);
-  std::size_t  start_tracker(const std::string& json_data);
+  std::size_t start_tracker(const tracker_config_data& config);
+  std::size_t start_tracker(const std::string& json_data);
   /// list all trackers
   std::vector<std::tuple<int, std::string>> list_all_trackers(void);
   /// stop a tracker by id

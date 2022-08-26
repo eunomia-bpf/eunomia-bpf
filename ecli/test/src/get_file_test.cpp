@@ -4,7 +4,6 @@
  * All rights reserved.
  */
 
-#include "eunomia/tracker_manager.h"
 
 int main(int argc, char **argv)
 {

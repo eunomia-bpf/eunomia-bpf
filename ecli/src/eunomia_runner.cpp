@@ -4,13 +4,12 @@
  * All rights reserved.
  */
 
-#include "eunomia_runner.h"
-
 #include <spdlog/spdlog.h>
 
 #include <json.hpp>
 
-#include "eunomia-bpf.h"
+#include "eunomia/eunomia-bpf.h"
+#include "ecli/eunomia_runner.h"
 
 using json = nlohmann::json;
 

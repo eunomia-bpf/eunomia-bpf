@@ -28,5 +28,5 @@ docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/minimal:/src
 Run:
 
 ```console
-sudo ecli/build/bin/Release/eunomia run bpftools/examples/minimal/package.json
+sudo ecli/build/bin/Release/ecli run bpftools/examples/minimal/package.json
 ```
