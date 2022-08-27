@@ -58,10 +58,18 @@ namespace eunomia
     }
     /// load and attach the ebpf program to the kernel
     int run(void);
-    /// wait and print the messages from te ring buffer
-    int wait_and_print_rb(void);
+
+    /// wait for the program to exit
+
+    /// if the program has a ring buffer or perf event to export data
+    /// to user space, the program will help load the map info and poll the
+    /// events automatically.
+    int wait_and_export(void);
+
     /// stop, detach, and clean up memory
-    /// This is thread safe with ring buffer.
+    /// This is thread safe with wait_and_export.
+    /// it will notify the wait_and_export to exit and
+    /// wait until it exits.
     void stop_and_clean(void);
 
     /// get the name id of the ebpf program

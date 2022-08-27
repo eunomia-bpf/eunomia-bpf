@@ -4,12 +4,13 @@
  * All rights reserved.
  */
 
+#include "ecli/eunomia_runner.h"
+
 #include <spdlog/spdlog.h>
 
 #include <json.hpp>
 
 #include "eunomia/eunomia-bpf.h"
-#include "ecli/eunomia_runner.h"
 
 using json = nlohmann::json;
 
@@ -32,7 +33,7 @@ void eunomia_runner::start_tracker()
     spdlog::error("start ebpf program failed");
     return;
   }
-  if (program.wait_and_print_rb() < 0)
+  if (program.wait_and_export() < 0)
   {
     spdlog::error("wait and print ebpf program failed");
     return;

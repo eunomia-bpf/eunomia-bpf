@@ -1,6 +1,7 @@
 set(sources
-    src/eunomia-bpf.cpp
-    src/print_events.cpp
+    src/eunomia_bpf.cpp
+    src/export_events.cpp
+    src/eunomia_meta.cpp
 )
 
 set(exe_sources
