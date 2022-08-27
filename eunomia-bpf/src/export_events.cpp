@@ -38,9 +38,9 @@ namespace eunomia
     // Support more types?
   };
 
-  int eunomia_ebpf_program::check_for_meta_types_and_create_print_format(void)
+  int eunomia_ebpf_program::check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types)
   {
-    auto fields = meta_data.maps[rb_map_id].export_data_types.fields;
+    auto fields = types.fields;
     for (std::size_t i = 0; i < fields.size(); ++i)
     {
       auto &field = fields[i];
@@ -52,32 +52,41 @@ namespace eunomia
       }
       else
       {
-        width = meta_data.maps[rb_map_id].export_data_types.data_size - field.field_offset;
+        width = types.data_size - field.field_offset;
       }
       // use the byte number instead of the width
       width /= 8;
+      bool is_vaild_type = false;
       // use the lookup table to determine format
       for (auto &type : base_type_look_up_table)
       {
+        // match basic types first, if not match, try llvm types
         if (field.type == type.type_str || field.llvm_type == type.llvm_type_str)
         {
           print_rb_default_format.push_back({ type.format, field.field_offset, width });
+          is_vaild_type = true;
           break;
         }
         else if (field.llvm_type.size() > 0)
         {
+          // a simple and naive match for arrays
           if (field.llvm_type.front() == '[' && field.type.size() > 4 && std::strncmp(field.type.c_str(), "char", 4) == 0)
           {
             // maybe a char array: fix this
             print_rb_default_format.push_back({ "%s", field.field_offset, width });
+            is_vaild_type = true;
             break;
           }
         }
       }
+      if (!is_vaild_type)
+      {
+        std::cerr << "Unsupported type: " << field.type << " " << field.llvm_type << std::endl;
+      }
     }
     if (print_rb_default_format.size() == 0)
     {
-      std::cout << "No available format type!" << std::endl;
+      std::cerr << "No available format type!" << std::endl;
       return -1;
     }
     return 0;
@@ -97,8 +106,7 @@ namespace eunomia
     { 8, print_rb_field<uint64_t> },
   };
 
-  /// FIXME: output config with lua
-  void eunomia_ebpf_program::print_event_with_default_types(const char *event) const
+  void eunomia_ebpf_program::print_default_export_event_with_time(const char *event) const
   {
     struct tm *tm;
     char ts[32];
@@ -124,17 +132,15 @@ namespace eunomia
     printf("\n");
   }
 
-  int handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
+  /// FIXME: output config with lua
+  void eunomia_ebpf_program::handler_export_events(const char *event) const
   {
-    const char *e = (const char *)(const void *)data;
-    const eunomia_ebpf_program *p = (const eunomia_ebpf_program *)ctx;
-    if (!p && !e)
+    if (user_export_event_handler)
     {
-      std::cerr << "empty ctx or events" << std::endl;
-      return -1;
+      user_export_event_handler(event);
+      return;
     }
-    p->print_event_with_default_types(e);
-    return 0;
+    print_default_export_event_with_time(event);
   }
 
 }  // namespace eunomia

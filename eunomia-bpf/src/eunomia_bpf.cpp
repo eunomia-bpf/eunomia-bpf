@@ -3,12 +3,11 @@
  * Copyright (c) 2022, 郑昱笙
  * All rights reserved.
  */
-#include "eunomia/eunomia-bpf.hpp"
-
 #include <iostream>
 #include <thread>
 
 #include "base64.h"
+#include "eunomia/eunomia-bpf.hpp"
 #include "json.hpp"
 
 extern "C"
@@ -62,41 +61,40 @@ namespace eunomia
     return meta_data.ebpf_name;
   }
 
-  int eunomia_ebpf_program::wait_and_export()
+  int handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
+  {
+    const char *e = (const char *)(const void *)data;
+    const eunomia_ebpf_program *p = (const eunomia_ebpf_program *)ctx;
+    if (!p && !e)
+    {
+      std::cerr << "empty ctx or events" << std::endl;
+      return -1;
+    }
+    p->handler_export_events(e);
+    return 0;
+  }
+
+  int eunomia_ebpf_program::wait_and_poll_from_rb(std::size_t rb_map_id)
   {
     int err;
-    exiting = false;
-    // help the wait_and_print work with stop correctly in multi-thread
-    std::lock_guard<std::mutex> guard(exit_mutex);
-    /* Set up ring buffer polling */
-    auto id = rb_map_id;
-    if (id < 0)
-    {
-      std::cout << "running and waiting for the ebpf program..." << std::endl;
-      // if we don't have a ring buffer, just wait for the program to exit
-      while (!exiting)
-      {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
-      return 0;
-    }
-    if (check_for_meta_types_and_create_print_format() < 0)
+
+    if (check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
     {
       std::cerr << "Failed to create print format" << std::endl;
       return -1;
     }
-    rb = ring_buffer__new(bpf_map__fd(maps[id]), handle_print_ringbuf_event, this, NULL);
-    if (!rb)
+    ring_buffer_map = ring_buffer__new(bpf_map__fd(maps[rb_map_id]), handle_print_ringbuf_event, this, NULL);
+    if (!ring_buffer_map)
     {
       fprintf(stderr, "Failed to create ring buffer\n");
       return 0;
     }
 
-    std::cout << "running and waiting for the ebpf events..." << std::endl;
+    std::cout << "running and waiting for the ebpf events from ring buffer..." << std::endl;
     /* Process events */
     while (!exiting)
     {
-      err = ring_buffer__poll(rb, 100 /* timeout, ms */);
+      err = ring_buffer__poll(ring_buffer_map, 100 /* timeout, ms */);
       /* Ctrl-C will cause -EINTR */
       if (err == -EINTR)
       {
@@ -112,18 +110,40 @@ namespace eunomia
     return 0;
   }
 
+  int eunomia_ebpf_program::wait_for_no_export_program(void)
+  {
+    std::cout << "running and waiting for the ebpf program..." << std::endl;
+    // if we don't have a ring buffer, just wait for the program to exit
+    while (!exiting)
+    {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    return 0;
+  }
+
+  int eunomia_ebpf_program::wait_and_export(void)
+  {
+    int err;
+    exiting = false;
+    // help the wait_and_print work with stop correctly in multi-thread
+    std::lock_guard<std::mutex> guard(exit_mutex);
+
+    return 0;
+  }
+
   void eunomia_ebpf_program::stop_and_clean()
   {
     exiting = true;
     /// wait until poll has exit
     std::lock_guard<std::mutex> guard(exit_mutex);
+    // TODO: fix this with smart ptr
     if (skeleton)
     {
       bpf_object__destroy_skeleton(skeleton);
     }
-    if (rb)
+    if (ring_buffer_map)
     {
-      ring_buffer__free(rb);
+      ring_buffer__free(ring_buffer_map);
     }
   }
 
@@ -145,7 +165,6 @@ namespace eunomia
     if (!s->maps)
       goto err;
 
-    rb_map_id = -1;
     maps.resize(meta_data.maps.size());
     for (std::size_t i = 0; i < meta_data.maps.size(); i++)
     {
@@ -153,10 +172,6 @@ namespace eunomia
       {
         // skip unrecognized maps
         continue;
-      }
-      if (meta_data.maps[i].type == "BPF_MAP_TYPE_RINGBUF")
-      {
-        rb_map_id = i;
       }
       s->maps[s->map_cnt].name = meta_data.maps[i].name.c_str();
       s->maps[s->map_cnt].map = &maps[i];

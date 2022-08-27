@@ -6,6 +6,7 @@
 #ifndef EUNOMIA_BPF_HPP_
 #define EUNOMIA_BPF_HPP_
 
+#include <functional>
 #include <iostream>
 #include <mutex>
 #include <string>
@@ -27,25 +28,44 @@ namespace eunomia
    private:
     /// create an ebpf skeleton
     int create_prog_skeleton(void);
-    int check_for_meta_types_and_create_print_format(void);
+
+    /// check for types and create export format
+
+    /// check the types from ebpf source code and export header
+    /// create export formats for correctly print the data,
+    /// and used by user space.
+    int check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types);
+
+    /// wait and polling the ring buffer map
+    int wait_and_poll_from_rb(std::size_t id);
+
+    /// simply wait for the program to exit
+    /// use in no export data mode
+    int wait_for_no_export_program(void);
+
+    /// a default printer to print event data
+    void print_default_export_event_with_time(const char *event) const;
 
    private:
     /// is the polling ring buffer loop exiting?
     std::mutex exit_mutex;
-    volatile bool exiting;
+    volatile bool exiting = false;
     /// meta data storage
     eunomia_ebpf_meta_data meta_data;
 
     /// buffer to base 64 decode
-    bpf_object *obj;
+    bpf_object *obj = nullptr;
     std::vector<char> base64_decode_buffer;
-    std::vector<bpf_map *> maps;
-    std::vector<bpf_program *> progs;
-    std::vector<bpf_link *> links;
-    bpf_object_skeleton *skeleton;
+    std::vector<bpf_map *> maps = {};
+    std::vector<bpf_program *> progs = {};
+    std::vector<bpf_link *> links = {};
+    bpf_object_skeleton *skeleton = nullptr;
 
-    int rb_map_id = -1;
-    ring_buffer *rb = NULL;
+    /// user define handler to process export data
+    void (*user_export_event_handler)(const char *event) = nullptr;
+
+    /// used for processing maps and free them
+    ring_buffer *ring_buffer_map;
 
    public:
     /// create a ebpf program from json config str
@@ -81,10 +101,10 @@ namespace eunomia
     const std::string &get_program_name(void) const;
 
     /// print event with meta data;
-    void print_event_with_default_types(const char *event) const;
+    /// used for export call backs: ring buffer and perf events
+    /// provide a common interface to print the event data
+    void handler_export_events(const char *event) const;
   };
-
-  int handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz);
 }  // namespace eunomia
 
 #endif
