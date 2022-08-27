@@ -14,12 +14,14 @@ extern "C"
 
 namespace eunomia
 {
-#define print_not_zero(format, value) \
-  do                                  \
-  {                                   \
-    if (value)                        \
-      printf(format, value);          \
-  } while (false)
+  // format data
+  struct format_info
+  {
+    const char *print_fmt;
+    std::size_t field_offset;
+    std::size_t width;
+  };
+  std::vector<format_info> print_rb_default_format;
 
   struct print_type_format_map
   {
@@ -38,7 +40,7 @@ namespace eunomia
 
   int eunomia_ebpf_program::check_for_meta_types_and_create_print_format(void)
   {
-    auto fields = meta_data.maps[rb_map_id].ring_buffer_export.fields;
+    auto fields = meta_data.maps[rb_map_id].export_data_types.fields;
     for (std::size_t i = 0; i < fields.size(); ++i)
     {
       auto &field = fields[i];
@@ -50,7 +52,7 @@ namespace eunomia
       }
       else
       {
-        width = meta_data.maps[rb_map_id].ring_buffer_export.data_size - field.field_offset;
+        width = meta_data.maps[rb_map_id].export_data_types.data_size - field.field_offset;
       }
       // use the byte number instead of the width
       width /= 8;
@@ -82,19 +84,18 @@ namespace eunomia
   }
 
   template<typename T>
-  static void print_rb_field(const char *data, const eunomia_ebpf_program::format_info &f)
+  static void print_rb_field(const char *data, const format_info &f)
   {
     printf(f.print_fmt, *(T *)(data + f.field_offset / 8));
     printf(" ");
   }
 
-  static const std::map<std::size_t, std::function<void(const char *data, const eunomia_ebpf_program::format_info &f)>>
-      print_func_lookup_map = {
-        { 1, print_rb_field<uint8_t> },
-        { 2, print_rb_field<uint16_t> },
-        { 4, print_rb_field<uint32_t> },
-        { 8, print_rb_field<uint64_t> },
-      };
+  static const std::map<std::size_t, std::function<void(const char *data, const format_info &f)>> print_func_lookup_map = {
+    { 1, print_rb_field<uint8_t> },
+    { 2, print_rb_field<uint16_t> },
+    { 4, print_rb_field<uint32_t> },
+    { 8, print_rb_field<uint64_t> },
+  };
 
   /// FIXME: output config with lua
   void eunomia_ebpf_program::print_event_with_default_types(const char *event) const
@@ -127,7 +128,8 @@ namespace eunomia
   {
     const char *e = (const char *)(const void *)data;
     const eunomia_ebpf_program *p = (const eunomia_ebpf_program *)ctx;
-    if (!p && !e) {
+    if (!p && !e)
+    {
       std::cerr << "empty ctx or events" << std::endl;
       return -1;
     }

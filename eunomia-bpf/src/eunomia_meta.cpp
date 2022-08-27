@@ -47,7 +47,7 @@ namespace eunomia
     j.at("LLVMType").get_to(data.llvm_type);
   }
 
-  static void from_json(const nlohmann::json &j, ebpf_rb_export_meta_data &data)
+  static void from_json(const nlohmann::json &j, ebpf_export_types_meta_data &data)
   {
     j.at("Alignment").get_to(data.alignment);
     j.at("DataSize").get_to(data.data_size);
@@ -66,7 +66,7 @@ namespace eunomia
   {
     get_from_json_at(name);
     get_from_json_at(type);
-    get_opt_from_json_at(ring_buffer_export);
+    get_opt_from_json_at(export_data_types);
   }
 
   void eunomia_ebpf_meta_data::from_json_str(const std::string &j_str)
@@ -77,5 +77,11 @@ namespace eunomia
     progs = jj["progs"];
     data_sz = jj["data_sz"];
     ebpf_data = jj["data"];
+  }
+
+  /// create a ebpf program from json str
+  eunomia_ebpf_program::eunomia_ebpf_program(const std::string &json_str)
+  {
+    meta_data.from_json_str(json_str);
   }
 }  // namespace eunomia

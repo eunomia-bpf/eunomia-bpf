@@ -48,7 +48,7 @@ namespace eunomia
     ring_buffer *rb = NULL;
 
    public:
-    /// create a ebpf program from json str
+    /// create a ebpf program from json config str
     eunomia_ebpf_program(const std::string &json_str);
     eunomia_ebpf_program(const eunomia_ebpf_program &) = delete;
     eunomia_ebpf_program(eunomia_ebpf_program &&) = delete;
@@ -56,7 +56,11 @@ namespace eunomia
     {
       stop_and_clean();
     }
-    /// load and attach the ebpf program to the kernel
+    /// start running the ebpf program
+
+    /// load and attach the ebpf program to the kernel to run the ebpf program
+    /// if the ebpf program has maps to export to user space, you need to call
+    /// the wait and export.
     int run(void);
 
     /// wait for the program to exit
@@ -67,6 +71,7 @@ namespace eunomia
     int wait_and_export(void);
 
     /// stop, detach, and clean up memory
+
     /// This is thread safe with wait_and_export.
     /// it will notify the wait_and_export to exit and
     /// wait until it exits.
@@ -75,20 +80,11 @@ namespace eunomia
     /// get the name id of the ebpf program
     const std::string &get_program_name(void) const;
 
-    // format data
-    struct format_info
-    {
-      const char *print_fmt;
-      std::size_t field_offset;
-      std::size_t width;
-    };
-    std::vector<format_info> print_rb_default_format;
     /// print event with meta data;
     void print_event_with_default_types(const char *event) const;
   };
 
   int handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz);
-
 }  // namespace eunomia
 
 #endif

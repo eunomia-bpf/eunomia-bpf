@@ -21,11 +21,6 @@ extern "C"
 using json = nlohmann::json;
 namespace eunomia
 {
-  /// create a ebpf program from json str
-  eunomia_ebpf_program::eunomia_ebpf_program(const std::string &json_str)
-  {
-    meta_data.from_json_str(json_str);
-  }
   /// load and attach the ebpf program to the kernel
   int eunomia_ebpf_program::run(void)
   {

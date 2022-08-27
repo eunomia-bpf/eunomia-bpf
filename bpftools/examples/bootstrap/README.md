@@ -31,19 +31,16 @@ Here's an example output in minimum process duration mode:
 
 ```console
 $ sudo ./bootstrap -d 50
-TIME     EVENT COMM             PID     PPID    FILENAME/EXIT CODE
-19:18:32 EXIT  timeout          3817109 402466  [0] (126ms)
-19:18:32 EXIT  sudo             3817117 3817111 [0] (259ms)
-19:18:32 EXIT  timeout          3817110 402466  [0] (264ms)
-19:18:33 EXIT  python3.7        3817083 1       [0] (1026ms)
-19:18:38 EXIT  python3          3817429 3817424 [1] (60ms)
-19:18:38 EXIT  sh               3817424 3817420 [0] (79ms)
-19:18:38 EXIT  timeout          3817420 402466  [0] (80ms)
-19:18:43 EXIT  timeout          3817610 402466  [0] (70ms)
-19:18:43 EXIT  grep             3817619 3817617 [1] (271ms)
-19:18:43 EXIT  timeout          3817609 402466  [0] (321ms)
-19:18:44 EXIT  iostat           3817585 3817531 [0] (3006ms)
-19:18:44 EXIT  tee              3817587 3817531 [0] (3005ms)
+running and waiting for the ebpf events...
+01:21:48 167307 166025 0 0 sh /bin/sh 0
+01:21:48 167308 167307 0 0 which /usr/bin/which 0
+01:21:48 167308 167307 0 3515432 which  1
+01:21:48 167307 166025 0 8797379 sh  1
+01:21:49 167309 166025 0 0 sh /bin/sh 0
+01:21:49 167310 167309 0 0 ps /usr/bin/ps 0
+01:21:49 167310 167309 0 83298343 ps  1
+01:21:49 167309 166025 0 88504290 sh  1
+01:21:49 167311 166025 0 0 sh /bin/sh 0
 ...
 ```
 
@@ -55,11 +52,11 @@ TIME     EVENT COMM             PID     PPID    FILENAME/EXIT CODE
 Compile:
 
 ```shell
-docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/execsnoop:/src yunwei37/ebpm
+docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/bootstrap:/src yunwei37/ebpm
 ```
 
 Run:
 
 ```shell
-sudo ./ecli run bpftools/examples/execsnoop/package.json
+sudo ./ecli run bpftools/examples/bootstrap/package.json
 ```
