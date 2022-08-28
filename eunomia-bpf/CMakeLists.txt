@@ -73,7 +73,7 @@ if(${PROJECT_NAME}_BUILD_EXECUTABLE)
   endif()
 
   if(${PROJECT_NAME}_ENABLE_UNIT_TESTING)
-    add_library(${PROJECT_NAME}_LIB ${headers} ${sources})
+    # add_library(${PROJECT_NAME}_LIB ${headers} ${sources})
 
     if(${PROJECT_NAME}_VERBOSE_OUTPUT)
       verbose_message("Found the following headers:")

@@ -8,8 +8,24 @@ using namespace eunomia;
 int main(int argc, char *argv[])
 {
   std::string json_str;
-  while (std::getline(std::cin, json_str))
+  if (argc == 2)
   {
+    std::ifstream json_file(argv[1]);
+    if (json_file.is_open())
+    {
+      std::string line;
+      while (std::getline(json_file, line))
+      {
+        json_str += line;
+      }
+      json_file.close();
+    }
+  }
+  else
+  {
+    while (std::cin >> json_str)
+    {
+    }
   }
   std::cout << json_str << std::endl;
   eunomia_ebpf_program ebpf_program{ json_str };

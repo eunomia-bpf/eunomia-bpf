@@ -20,6 +20,8 @@ namespace eunomia
     const char *print_fmt;
     std::size_t field_offset;
     std::size_t width;
+    std::string name;
+    std::string llvm_type;
   };
   std::vector<format_info> checked_export_types;
 
@@ -53,7 +55,7 @@ namespace eunomia
       // match basic types first, if not match, try llvm types
       if (field.type == type.type_str || field.llvm_type == type.llvm_type_str)
       {
-        checked_export_types.push_back({ type.format, field.field_offset, width });
+        checked_export_types.push_back({ type.format, field.field_offset, width, field.name, field.llvm_type });
         is_vaild_type = true;
         break;
       }
@@ -63,7 +65,7 @@ namespace eunomia
         if (field.llvm_type.front() == '[' && field.type.size() > 4 && std::strncmp(field.type.c_str(), "char", 4) == 0)
         {
           // maybe a char array: fix this
-          checked_export_types.push_back({ "%s", field.field_offset, width });
+          checked_export_types.push_back({ "%s", field.field_offset, width, field.name, field.llvm_type });
           is_vaild_type = true;
           break;
         }
@@ -128,12 +130,12 @@ namespace eunomia
     printf(" ");
   }
 
-  static const std::map<std::size_t, std::function<void(const char *data, const format_info &f)>> print_func_lookup_map = {
-    { 1, print_rb_field<uint8_t> },
-    { 2, print_rb_field<uint16_t> },
-    { 4, print_rb_field<uint32_t> },
-    { 8, print_rb_field<uint64_t> },
-    { 16, print_rb_field<__uint128_t> }
+  static const std::map<std::string, std::function<void(const char *data, const format_info &f)>> print_func_lookup_map = {
+    { "i8", print_rb_field<uint8_t> },
+    { "i16", print_rb_field<uint16_t> },
+    { "i32", print_rb_field<uint32_t> },
+    { "i64", print_rb_field<uint64_t> },
+    { "i128", print_rb_field<__uint128_t> }
   };
 
   void eunomia_ebpf_program::print_default_export_event_with_time(const char *event) const
@@ -148,7 +150,7 @@ namespace eunomia
     printf("%-8s ", ts);
     for (const auto &f : checked_export_types)
     {
-      auto func = print_func_lookup_map.find(f.width);
+      auto func = print_func_lookup_map.find(f.llvm_type);
       if (func != print_func_lookup_map.end())
       {
         func->second((const char *)event, f);

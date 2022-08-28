@@ -65,7 +65,7 @@ namespace eunomia
   {
     const char *e = (const char *)(const void *)data;
     const eunomia_ebpf_program *p = (const eunomia_ebpf_program *)ctx;
-    if (!p && !e)
+    if (!p || !e)
     {
       std::cerr << "empty ctx or events" << std::endl;
       return -1;
@@ -114,7 +114,7 @@ namespace eunomia
   {
     const char *e = (const char *)(const void *)data;
     const eunomia_ebpf_program *p = (const eunomia_ebpf_program *)ctx;
-    if (!p && !e)
+    if (!p || !e)
     {
       std::cerr << "empty ctx or events" << std::endl;
       return;
