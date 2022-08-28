@@ -21,7 +21,7 @@ namespace eunomia
     std::size_t field_offset;
     std::size_t width;
   };
-  std::vector<format_info> print_rb_default_format;
+  std::vector<format_info> checked_export_types;
 
   struct print_type_format_map
   {
@@ -31,9 +31,15 @@ namespace eunomia
   };
 
   static print_type_format_map base_type_look_up_table[] = {
-    { "%d", "int", "i32" },          { "%lld", "long long", "i64" },
-    { "%u", "unsigned int", "i32" }, { "%llu", "unsigned long long", "i64" },
-    { "%d", "unsigned char", "i8" }, { "%c", "char", "i8" },
+    { "%llx", "unsigned __int128", "i128" },
+    { "%llu", "unsigned long long", "i64" },
+    { "%lld", "long long", "i64" },
+    { "%d", "int", "i32" },
+    { "%u", "unsigned int", "i32" },
+    { "%hu", "unsigned short", "i16" },
+    { "%hd", "short", "i16" },
+    { "%d", "unsigned char", "i8" },
+    { "%c", "char", "i8" },
     { "%c", "_Bool", "i8" },
     // Support more types?
   };
@@ -47,7 +53,7 @@ namespace eunomia
       // match basic types first, if not match, try llvm types
       if (field.type == type.type_str || field.llvm_type == type.llvm_type_str)
       {
-        print_rb_default_format.push_back({ type.format, field.field_offset, width });
+        checked_export_types.push_back({ type.format, field.field_offset, width });
         is_vaild_type = true;
         break;
       }
@@ -57,7 +63,7 @@ namespace eunomia
         if (field.llvm_type.front() == '[' && field.type.size() > 4 && std::strncmp(field.type.c_str(), "char", 4) == 0)
         {
           // maybe a char array: fix this
-          print_rb_default_format.push_back({ "%s", field.field_offset, width });
+          checked_export_types.push_back({ "%s", field.field_offset, width });
           is_vaild_type = true;
           break;
         }
@@ -82,7 +88,7 @@ namespace eunomia
     if (config_data.print_header)
     {
       // print the time header
-      std::cout << "time " << std::endl;
+      std::cout << "time ";
     }
     auto fields = types.fields;
     for (std::size_t i = 0; i < fields.size(); ++i)
@@ -102,7 +108,7 @@ namespace eunomia
       width /= 8;
       check_and_add_export_type(field, width);
     }
-    if (print_rb_default_format.size() == 0)
+    if (checked_export_types.size() == 0)
     {
       std::cerr << "No available format type!" << std::endl;
       return -1;
@@ -127,6 +133,7 @@ namespace eunomia
     { 2, print_rb_field<uint16_t> },
     { 4, print_rb_field<uint32_t> },
     { 8, print_rb_field<uint64_t> },
+    { 16, print_rb_field<__uint128_t> }
   };
 
   void eunomia_ebpf_program::print_default_export_event_with_time(const char *event) const
@@ -139,7 +146,7 @@ namespace eunomia
     tm = localtime(&t);
     strftime(ts, sizeof(ts), "%H:%M:%S", tm);
     printf("%-8s ", ts);
-    for (const auto &f : print_rb_default_format)
+    for (const auto &f : checked_export_types)
     {
       auto func = print_func_lookup_map.find(f.width);
       if (func != print_func_lookup_map.end())

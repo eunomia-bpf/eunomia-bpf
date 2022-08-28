@@ -22,6 +22,7 @@ test:
 	make test_project TEST_EXAMPLE_DIR=../examples/bootstrap/
 	make test_project TEST_EXAMPLE_DIR=../examples/minimal/
 	make test_project TEST_EXAMPLE_DIR=../examples/opensnoop/
+	make test_project TEST_EXAMPLE_DIR=../examples/bindsnoop/
 	make test_project TEST_EXAMPLE_DIR=../examples/sigsnoop/
 	make test_project TEST_EXAMPLE_DIR=../examples/kprobe-link/
 	make test_project TEST_EXAMPLE_DIR=../examples/fentry-link/
