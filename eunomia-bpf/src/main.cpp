@@ -11,6 +11,7 @@ int main(int argc, char *argv[])
   while (std::getline(std::cin, json_str))
   {
   }
+  std::cout << json_str << std::endl;
   eunomia_ebpf_program ebpf_program{ json_str };
   if (ebpf_program.run())
   {

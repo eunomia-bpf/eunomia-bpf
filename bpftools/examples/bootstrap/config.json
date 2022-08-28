@@ -5,5 +5,5 @@
 	"license": "GPL",
 	"author": "John Doe",
 	"url": "http://example.com/package.json",
-	"description": "This is a template for a ebpm BPF program."
+	"description": "This is a bootstrap template for a ebpm BPF program."
 }

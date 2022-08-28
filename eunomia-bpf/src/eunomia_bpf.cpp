@@ -61,7 +61,7 @@ namespace eunomia
     return meta_data.ebpf_name;
   }
 
-  int handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
+  static int handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
   {
     const char *e = (const char *)(const void *)data;
     const eunomia_ebpf_program *p = (const eunomia_ebpf_program *)ctx;
@@ -94,7 +94,7 @@ namespace eunomia
     /* Process events */
     while (!exiting)
     {
-      err = ring_buffer__poll(ring_buffer_map, 100 /* timeout, ms */);
+      err = ring_buffer__poll(ring_buffer_map, config_data.poll_timeout_ms);
       /* Ctrl-C will cause -EINTR */
       if (err == -EINTR)
       {
@@ -110,6 +110,58 @@ namespace eunomia
     return 0;
   }
 
+  static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
+  {
+    const char *e = (const char *)(const void *)data;
+    const eunomia_ebpf_program *p = (const eunomia_ebpf_program *)ctx;
+    if (!p && !e)
+    {
+      std::cerr << "empty ctx or events" << std::endl;
+      return;
+    }
+    p->handler_export_events(e);
+  }
+
+  static void handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
+  {
+    fprintf(stderr, "Lost %llu events on CPU #%d!\n", lost_cnt, cpu);
+  }
+
+  int eunomia_ebpf_program::wait_and_poll_from_perf_event(std::size_t rb_map_id)
+  {
+    int err = 0;
+
+    if (check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
+    {
+      std::cerr << "Failed to create print format" << std::endl;
+      return -1;
+    }
+    std::cout << "running and waiting for the ebpf events from perf event..." << std::endl;
+    /* setup event callbacks */
+    perf_buffer_map = perf_buffer__new(
+        bpf_map__fd(maps[rb_map_id]), config_data.perf_buffer_pages, handle_event, handle_lost_events, this, NULL);
+    if (!perf_buffer_map)
+    {
+      err = -errno;
+      fprintf(stderr, "failed to open perf buffer: %d\n", err);
+      return err;
+    }
+
+    /* main: poll */
+    while (!exiting)
+    {
+      err = perf_buffer__poll(perf_buffer_map, config_data.poll_timeout_ms);
+      if (err < 0 && err != -EINTR)
+      {
+        fprintf(stderr, "error polling perf buffer: %s\n", strerror(-err));
+        return err;
+      }
+      /* reset err to return 0 if exiting */
+      err = 0;
+    }
+    return 0;
+  }
+
   int eunomia_ebpf_program::wait_for_no_export_program(void)
   {
     std::cout << "running and waiting for the ebpf program..." << std::endl;
@@ -121,14 +173,30 @@ namespace eunomia
     return 0;
   }
 
+  int eunomia_ebpf_program::check_export_maps(void)
+  {
+    for (std::size_t i = 0; i < meta_data.maps.size(); i++)
+    {
+      auto &map = meta_data.maps[i];
+      if (map.type == "BPF_MAP_TYPE_RINGBUF")
+      {
+        return wait_and_poll_from_rb(i);
+      }
+      else if (map.type == "BPF_MAP_TYPE_PERF_EVENT_ARRAY")
+      {
+        return wait_and_poll_from_perf_event(i);
+      }
+    }
+    return wait_for_no_export_program();
+  }
+
   int eunomia_ebpf_program::wait_and_export(void)
   {
     int err;
     exiting = false;
     // help the wait_and_print work with stop correctly in multi-thread
     std::lock_guard<std::mutex> guard(exit_mutex);
-
-    return 0;
+    return check_export_maps();
   }
 
   void eunomia_ebpf_program::stop_and_clean()
@@ -144,6 +212,10 @@ namespace eunomia
     if (ring_buffer_map)
     {
       ring_buffer__free(ring_buffer_map);
+    }
+    if (perf_buffer_map)
+    {
+      perf_buffer__free(perf_buffer_map);
     }
   }
 

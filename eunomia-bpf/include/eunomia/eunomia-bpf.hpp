@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "eunomia-meta.hpp"
+#include "eunomia-config.h"
 
 struct bpf_map;
 struct bpf_program;
@@ -20,6 +21,7 @@ struct bpf_link;
 struct bpf_object_skeleton;
 struct ring_buffer;
 struct bpf_object;
+struct perf_buffer;
 
 namespace eunomia
 {
@@ -39,9 +41,14 @@ namespace eunomia
     /// wait and polling the ring buffer map
     int wait_and_poll_from_rb(std::size_t id);
 
+    /// wait and polling from perf event
+    int wait_and_poll_from_perf_event(std::size_t id);
+
     /// simply wait for the program to exit
     /// use in no export data mode
     int wait_for_no_export_program(void);
+
+    int check_export_maps(void);
 
     /// a default printer to print event data
     void print_default_export_event_with_time(const char *event) const;
@@ -52,10 +59,11 @@ namespace eunomia
     volatile bool exiting = false;
     /// meta data storage
     eunomia_ebpf_meta_data meta_data;
+    eunomia_config config_data;
 
     /// buffer to base 64 decode
     bpf_object *obj = nullptr;
-    std::vector<char> base64_decode_buffer;
+    std::vector<char> base64_decode_buffer = {};
     std::vector<bpf_map *> maps = {};
     std::vector<bpf_program *> progs = {};
     std::vector<bpf_link *> links = {};
@@ -65,7 +73,9 @@ namespace eunomia
     void (*user_export_event_handler)(const char *event) = nullptr;
 
     /// used for processing maps and free them
-    ring_buffer *ring_buffer_map;
+    // FIXME: use smart pointer instead of raw pointer
+    ring_buffer *ring_buffer_map = nullptr;
+    perf_buffer *perf_buffer_map = nullptr;
 
    public:
     /// create a ebpf program from json config str
