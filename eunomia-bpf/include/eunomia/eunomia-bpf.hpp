@@ -37,6 +37,7 @@ namespace eunomia
     /// create export formats for correctly print the data,
     /// and used by user space.
     int check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types);
+    void check_and_add_export_type(ebpf_rb_export_field_meta_data &field, std::size_t width);
 
     /// wait and polling the ring buffer map
     int wait_and_poll_from_rb(std::size_t id);

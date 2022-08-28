@@ -76,8 +76,9 @@ namespace eunomia
 
   int eunomia_ebpf_program::wait_and_poll_from_rb(std::size_t rb_map_id)
   {
-    int err;
+    int err = 0;
 
+    std::cout << "running and waiting for the ebpf events from ring buffer..." << std::endl;
     if (check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
     {
       std::cerr << "Failed to create print format" << std::endl;
@@ -90,7 +91,6 @@ namespace eunomia
       return 0;
     }
 
-    std::cout << "running and waiting for the ebpf events from ring buffer..." << std::endl;
     /* Process events */
     while (!exiting)
     {
@@ -131,12 +131,12 @@ namespace eunomia
   {
     int err = 0;
 
+    std::cout << "running and waiting for the ebpf events from perf event..." << std::endl;
     if (check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
     {
       std::cerr << "Failed to create print format" << std::endl;
       return -1;
     }
-    std::cout << "running and waiting for the ebpf events from perf event..." << std::endl;
     /* setup event callbacks */
     perf_buffer_map = perf_buffer__new(
         bpf_map__fd(maps[rb_map_id]), config_data.perf_buffer_pages, handle_event, handle_lost_events, this, NULL);

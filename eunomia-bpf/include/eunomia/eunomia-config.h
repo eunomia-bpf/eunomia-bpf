@@ -9,8 +9,12 @@ struct eunomia_config {
     std::size_t perf_buffer_pages = 64;
     std::size_t perf_buffer_time_ms = 10;
 
-    // poll config
+    /// poll config
     int poll_timeout_ms = 100;
+
+    /// print config
+    /// print the types and names of export headers
+    bool print_header = true;
 };
 
 #endif
