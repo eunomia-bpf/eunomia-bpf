@@ -79,6 +79,11 @@ namespace eunomia
 
   int eunomia_ebpf_program::check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types)
   {
+    if (config_data.print_header)
+    {
+      // print the time header
+      std::cout << "time " << std::endl;
+    }
     auto fields = types.fields;
     for (std::size_t i = 0; i < fields.size(); ++i)
     {
