@@ -22,7 +22,7 @@ A wrapper of main functions of libbpf, some helper functions for user developmen
 
 - provide the ability to load ebpf code to the kernel and run it.
 - Use some additional data to help load and config the eBPF bytecode.
-- multiple language bindings
+- multiple language bindings: see [eunomia-sdks](eunomia-sdks)
 
 #### Install and Run
 
@@ -64,7 +64,7 @@ see https://github.com/eunomia-bpf/ebpm for details.
 - [ ] support more ebpf program types:
 - [ ] add more possibilities from `libbpf`
 - [ ] provide python, go and others sdk
-- [ ] add configurable prometheus exporter
+- [ ] add configurable exporter
 - [ ] add support of `etcd` and enhance server
 - [ ] fix ci and docs, multi proto supports
 
