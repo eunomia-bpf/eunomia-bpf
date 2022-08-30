@@ -1,6 +1,5 @@
-## opensnoop
+## mountsnoop
 
-opensnoop traces the open() syscall system-wide, and prints various details.
 
 ## result
 

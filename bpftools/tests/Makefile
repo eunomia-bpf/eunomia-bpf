@@ -27,6 +27,7 @@ test:
 	make test_project TEST_EXAMPLE_DIR=../examples/bindsnoop/
 	make test_project TEST_EXAMPLE_DIR=../examples/sigsnoop/
 	make test_project TEST_EXAMPLE_DIR=../examples/mountsnoop/
+	make test_project TEST_EXAMPLE_DIR=../examples/tcpconnlat/
 
 clean:
 	@make -C client clean
