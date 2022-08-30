@@ -279,3 +279,44 @@ namespace eunomia
   }
 
 }  // namespace eunomia
+
+// simple wrappers for C API
+extern "C"
+{
+  struct eunomia_bpf
+  {
+    struct eunomia::eunomia_ebpf_program program;
+  };
+  struct eunomia_bpf *create_ebpf_program_from_json(const char *json_data)
+  {
+    return new eunomia_bpf{ eunomia::eunomia_ebpf_program(json_data) };
+  }
+
+  int run_ebpf_program(struct eunomia_bpf *prog)
+  {
+    if (!prog)
+    {
+      return -1;
+    }
+    return prog->program.run();
+  }
+
+  int wait_and_export_ebpf_program(struct eunomia_bpf *prog)
+  {
+    if (!prog)
+    {
+      return -1;
+    }
+    return prog->program.wait_and_export();
+  }
+
+  void stop_and_clean_ebpf_program(struct eunomia_bpf *prog)
+  {
+    if (!prog)
+    {
+      return;
+    }
+    prog->program.stop_and_clean();
+    delete prog;
+  }
+}

@@ -23,4 +23,5 @@ set(third_party_headers
 
 set(test_sources
     src/config_test.cpp
+    src/test_c_api.c
 )
