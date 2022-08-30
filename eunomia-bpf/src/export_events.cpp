@@ -138,7 +138,7 @@ namespace eunomia
     { "i128", print_rb_field<__uint128_t> }
   };
 
-  void eunomia_ebpf_program::print_default_export_event_with_time(const char *event) const
+  void eunomia_ebpf_program::print_default_export_event_with_time(const char *event)
   {
     struct tm *tm;
     char ts[32];
@@ -171,8 +171,14 @@ namespace eunomia
     {
       user_export_event_handler(event);
       return;
+    } else {
+      assert(false && "No export event handler!");
     }
-    print_default_export_event_with_time(event);
+  }
+
+  int wait_and_export_with_json_receiver(void (*receiver)(const char * const json_str)) {
+    // TODO: read and export
+    return -1;
   }
 
 }  // namespace eunomia

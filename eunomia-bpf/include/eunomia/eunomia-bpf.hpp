@@ -41,18 +41,18 @@ namespace eunomia
 
     /// wait and polling the ring buffer map
     int wait_and_poll_from_rb(std::size_t id);
-
     /// wait and polling from perf event
     int wait_and_poll_from_perf_event(std::size_t id);
-
     /// simply wait for the program to exit
     /// use in no export data mode
     int wait_for_no_export_program(void);
-
+    /// check and decide the map to export data from
     int check_export_maps(void);
+    /// called after setting the export handler
+    int enter_wait_and_export(void);
 
     /// a default printer to print event data
-    void print_default_export_event_with_time(const char *event) const;
+    void print_default_export_event_with_time(const char *event);
 
    private:
     /// is the polling ring buffer loop exiting?
@@ -71,7 +71,7 @@ namespace eunomia
     bpf_object_skeleton *skeleton = nullptr;
 
     /// user define handler to process export data
-    void (*user_export_event_handler)(const char *event) = nullptr;
+    std::function<void (const char *event)> user_export_event_handler = nullptr;
 
     /// used for processing maps and free them
     // FIXME: use smart pointer instead of raw pointer
@@ -82,7 +82,7 @@ namespace eunomia
     /// create a ebpf program from json config str
     eunomia_ebpf_program(const std::string &json_str);
     eunomia_ebpf_program(const eunomia_ebpf_program &) = delete;
-    eunomia_ebpf_program(eunomia_ebpf_program &&) = delete;
+    eunomia_ebpf_program(eunomia_ebpf_program &&);
     ~eunomia_ebpf_program()
     {
       stop_and_clean();
@@ -100,6 +100,10 @@ namespace eunomia
     /// to user space, the program will help load the map info and poll the
     /// events automatically.
     int wait_and_export(void);
+    /// export the data as json string.
+
+    /// The key of the value is the field name in the export format.
+    int wait_and_export_with_json_receiver(void (*receiver)(const char * const json_str));
 
     /// stop, detach, and clean up memory
 

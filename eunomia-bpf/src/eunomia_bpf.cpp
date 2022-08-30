@@ -190,13 +190,20 @@ namespace eunomia
     return wait_for_no_export_program();
   }
 
-  int eunomia_ebpf_program::wait_and_export(void)
+  int eunomia_ebpf_program::enter_wait_and_export(void)
   {
     int err;
     exiting = false;
     // help the wait_and_print work with stop correctly in multi-thread
     std::lock_guard<std::mutex> guard(exit_mutex);
     return check_export_maps();
+  }
+
+  int eunomia_ebpf_program::wait_and_export(void)
+  {
+    user_export_event_handler =
+        std::bind(&eunomia_ebpf_program::print_default_export_event_with_time, this, std::placeholders::_1);
+    return enter_wait_and_export();
   }
 
   void eunomia_ebpf_program::stop_and_clean()
