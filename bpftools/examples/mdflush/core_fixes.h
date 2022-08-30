@@ -74,13 +74,6 @@ struct trace_event_raw_block_rq_completion___x {
 	unsigned int nr_sector;
 } __attribute__((preserve_access_index));
 
-static __always_inline bool has_block_rq_completion()
-{
-	if (bpf_core_type_exists(struct trace_event_raw_block_rq_completion___x))
-		return true;
-	return false;
-}
-
 /**
  * commit d152c682f03c ("block: add an explicit ->disk backpointer to the
  * request_queue") and commit f3fa33acca9f ("block: remove the ->rq_disk
