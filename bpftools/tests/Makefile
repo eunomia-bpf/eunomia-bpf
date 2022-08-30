@@ -18,17 +18,15 @@ clone_and_install_deps:
 	make -C $(ECLI_DIR) install
 	cp $(ECLI_DIR)build/bin/Release/ecli ./ecli
 
-test:
-	make test_project TEST_EXAMPLE_DIR=../examples/bootstrap/
-	make test_project TEST_EXAMPLE_DIR=../examples/minimal/
-	make test_project TEST_EXAMPLE_DIR=../examples/kprobe-link/
-	make test_project TEST_EXAMPLE_DIR=../examples/fentry-link/
-	make test_project TEST_EXAMPLE_DIR=../examples/opensnoop/
-	make test_project TEST_EXAMPLE_DIR=../examples/bindsnoop/
-	make test_project TEST_EXAMPLE_DIR=../examples/sigsnoop/
-	make test_project TEST_EXAMPLE_DIR=../examples/mdflush/
-	make test_project TEST_EXAMPLE_DIR=../examples/mountsnoop/
-	make test_project TEST_EXAMPLE_DIR=../examples/tcpconnlat/
+# test with the files in eunomia-bpf
+TEST_CASES_DIRS=$(shell ls -l ../examples | grep ^d | awk '{print $$9}')
+test: $(TEST_CASES_DIRS)
+
+.PHONY:$(TEST_CASES_DIRS)
+# build the test cases
+$(TEST_CASES_DIRS):
+	SOURCE_DIR=../../examples/$@/ make -C eunomia-cc build
+	sudo timeout --preserve-status -s 2 $(TEST_TIME) ./ecli run ../examples/$@/package.json
 
 clean:
 	@make -C client clean
