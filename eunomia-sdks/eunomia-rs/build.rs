@@ -4,8 +4,8 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    println!("cargo:rustc-link-search=../../eunomia-bpf/build");
-    println!("cargo:rustc-link-search=../../eunomia-bpf/build/libbpf");
+    println!("cargo:rustc-link-search=/home/yunwei/coding/eunomia-bpf/eunomia-bpf/build");
+    println!("cargo:rustc-link-search=/home/yunwei/coding/eunomia-bpf/eunomia-bpf/build/libbpf");
     println!("cargo:rustc-link-search=/lib/x86_64-linux-gnu");
     println!("cargo:rustc-link-search=/lib32");
 
