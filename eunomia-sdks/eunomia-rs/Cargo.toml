@@ -2,6 +2,8 @@
 name = "eunomia-rs"
 version = "0.1.0"
 edition = "2021"
+description = "A rust binding for eunomia-bpf."
+license = "MIT"
 
 [dependencies]
 link-cplusplus = "1.0"
