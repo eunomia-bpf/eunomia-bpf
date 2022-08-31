@@ -4,16 +4,19 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
+    // FIXME: fix hardcoded abs path
+    // because cargo publish is not working with relative path, we need to use absolute path
     println!("cargo:rustc-link-search=/home/yunwei/coding/eunomia-bpf/eunomia-bpf/build");
     println!("cargo:rustc-link-search=/home/yunwei/coding/eunomia-bpf/eunomia-bpf/build/libbpf");
+    println!("cargo:rustc-link-search=../../eunomia-bpf/build");
+    println!("cargo:rustc-link-search=../../eunomia-bpf/build/libbpf");
     println!("cargo:rustc-link-search=/lib/x86_64-linux-gnu");
     println!("cargo:rustc-link-search=/lib32");
 
     println!("cargo:rustc-flags=-l dylib=stdc++");
     println!("cargo:rustc-link-lib=dylib=stdc++");
 
-    // Tell cargo to tell rustc to link the system bzip2
-    // shared library.
+    // Tell cargo to tell rustc to link
     println!("cargo:rustc-link-lib=static=bpf");
     println!("cargo:rustc-link-lib=static=elf");
     println!("cargo:rustc-link-lib=static=z");

@@ -1,32 +1,46 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "eunomia/eunomia-bpf.h"
 
+const char* read_file_data(const char* path)
+{
+  int res = 0;
+  FILE* fp = fopen(path, "r");
+  if (!fp)
+  {
+    return NULL;
+  }
+  res = fseek(fp, 0, SEEK_END);
+  long size = ftell(fp);
+  res = fseek(fp, 0, SEEK_SET);
+  char* data = malloc(size + 1);
+  if (!data)
+  {
+    fclose(fp);
+    return NULL;
+  }
+  res = fread(data, size, 1, fp);
+  data[size] = '\0';
+  res = fclose(fp);
+  return data;
+}
+
 int main(int argc, char** argv)
 {
-  if (argc != 2)
-  {
-    printf("Usage: %s <bpf-json>\n", argv[0]);
-    return 1;
-  }
-  struct eunomia_bpf* ctx = create_ebpf_program_from_json(argv[1]);
+  const char* data = read_file_data("../../test/asserts/minimal.json");
+  struct eunomia_bpf* ctx = create_ebpf_program_from_json(data);
   if (!ctx)
   {
     printf("Failed to create eunomia bpf program\n");
     return 1;
   }
-  int res = run_ebpf_program(ctx);
-  if (res < 0)
-  {
-    printf("Failed to run eunomia bpf program\n");
-    return 1;
-  }
-  res = wait_and_export_ebpf_program(ctx);
-  if (res < 0)
-  {
-    printf("Failed to wait and export eunomia bpf program\n");
-    return 1;
-  }
+  // failed if not in root
+  // FIXME: possible double free if not in root?
+  // int res = run_ebpf_program(ctx);
+  // res = sleep(1);
   stop_and_clean_ebpf_program(ctx);
+  free((void*)data);
   return 0;
 }

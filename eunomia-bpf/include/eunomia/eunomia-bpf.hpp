@@ -58,7 +58,7 @@ namespace eunomia
 
    private:
     /// is the polling ring buffer loop exiting?
-    std::mutex exit_mutex;
+    std::mutex exit_mutex = {};
     volatile bool exiting = false;
     /// meta data storage
     eunomia_ebpf_meta_data meta_data;

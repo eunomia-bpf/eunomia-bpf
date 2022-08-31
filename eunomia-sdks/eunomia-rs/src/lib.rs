@@ -68,7 +68,7 @@ mod tests {
     use super::*;
 
     #[test]
-    #[expected_failure]
+    #[ignore]
     fn test_run_ebpf_program() {
         unsafe {
             let input =
