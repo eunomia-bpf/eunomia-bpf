@@ -4,12 +4,20 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    // Tell cargo to look for shared libraries in the specified directory
-    println!("cargo:rustc-link-search=/path/to/lib");
+    println!("cargo:rustc-link-search=../../eunomia-bpf/build");
+    println!("cargo:rustc-link-search=../../eunomia-bpf/build/libbpf");
+    println!("cargo:rustc-link-search=/lib/x86_64-linux-gnu");
+    println!("cargo:rustc-link-search=/lib32");
+
+    println!("cargo:rustc-flags=-l dylib=stdc++");
+    println!("cargo:rustc-link-lib=dylib=stdc++");
 
     // Tell cargo to tell rustc to link the system bzip2
     // shared library.
-    println!("cargo:rustc-link-lib=bz2");
+    println!("cargo:rustc-link-lib=static=bpf");
+    println!("cargo:rustc-link-lib=static=elf");
+    println!("cargo:rustc-link-lib=static=z");
+    println!("cargo:rustc-link-lib=static=eunomia_LIB");
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=wrapper.h");

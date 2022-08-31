@@ -20,8 +20,7 @@ extern "C"
 using json = nlohmann::json;
 namespace eunomia
 {
-  /// load and attach the ebpf program to the kernel
-  int eunomia_ebpf_program::run(void)
+  int eunomia_ebpf_program::load_and_attach_prog(void)
   {
     int err = 0;
 
@@ -54,6 +53,20 @@ namespace eunomia
       return -1;
     }
     return 0;
+  }
+  /// load and attach the eBPF program to the kernel
+  int eunomia_ebpf_program::run(void) noexcept
+  {
+    int err = 0;
+    try
+    {
+      err = load_and_attach_prog();
+    }
+    catch (const std::exception &e)
+    {
+      std::cerr << "Failed to run eBPF program: " << e.what() << std::endl;
+    }
+    return err;
   }
 
   const std::string &eunomia_ebpf_program::get_program_name(void) const
@@ -199,14 +212,24 @@ namespace eunomia
     return check_export_maps();
   }
 
-  int eunomia_ebpf_program::wait_and_export(void)
+  int eunomia_ebpf_program::wait_and_export(void) noexcept
   {
     user_export_event_handler =
         std::bind(&eunomia_ebpf_program::print_default_export_event_with_time, this, std::placeholders::_1);
-    return enter_wait_and_export();
+    int err = 0;
+    try
+    {
+      err = enter_wait_and_export();
+    }
+    catch (const std::exception &e)
+    {
+      std::cerr << "Exception: " << e.what() << std::endl;
+      err = -1;
+    }
+    return err;
   }
 
-  void eunomia_ebpf_program::stop_and_clean()
+  void eunomia_ebpf_program::stop_and_clean() noexcept
   {
     exiting = true;
     /// wait until poll has exit

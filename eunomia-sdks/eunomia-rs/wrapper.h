@@ -1,2 +1,1 @@
-// #include <eunomia/eunomia-bpf.h>
-#include <bzlib.h>
+../../eunomia-bpf/include/eunomia/eunomia-bpf.h
