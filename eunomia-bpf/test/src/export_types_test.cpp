@@ -14,18 +14,16 @@
 #define TASK_COMM_LEN 16
 #define NAME_MAX 255
 
-struct event {
+struct opensnoop_event {
 	/* user terminology for pid: */
-	unsigned long long ts;
-	int pid;
-	int uid;
-	int ret;
-	int flags;
-	char comm[TASK_COMM_LEN];
-	char fname[NAME_MAX];
+	unsigned long long ts = 1000;
+	int pid = 20;
+	int uid= 1000;
+	int ret= 1;
+	int flags = 777;
+	char comm[TASK_COMM_LEN] = "hello";
+	char fname[NAME_MAX] = "/test/hello/opensnoop";
 };
-
-
 
 int main(int argc, char **argv)
 {

@@ -2,6 +2,7 @@
 #define EUNOMIA_EXPORT_EVENTS_HPP_
 
 #include <functional>
+#include <memory>
 #include <vector>
 
 #include "eunomia-meta.hpp"
@@ -12,7 +13,7 @@ namespace eunomia
   /// format data
   struct export_type_info
   {
-    const char *print_fmt;
+    std::string print_fmt;
     std::size_t field_offset;
     std::size_t width;
     std::string name;
@@ -21,27 +22,45 @@ namespace eunomia
 
   enum class export_format_type
   {
-    STDOUT,
+    PLANT_TEXT,
     JSON,
+    RAW_EVENT,
   };
+
+  using export_event_handler = std::function<void(const char *event)>;
 
   /// @brief eunomia-bpf exporter for events in user space
   class eunomia_event_exporter
   {
    private:
+    const std::size_t EXPORT_BUFFER_SIZE = 2048;
+    std::vector<char> export_event_buffer;
     /// @brief export format type
     export_format_type format_type;
     /// user define handler to process export data
-    std::function<void(const char *event)> user_export_event_handler = nullptr;
+    export_event_handler user_export_event_handler = nullptr;
+    /// internal handler to process export data to a given format
+    export_event_handler internal_event_processor = nullptr;
     /// export types meta data
     std::vector<export_type_info> checked_export_types;
 
+    /// @brief add the type to checked_export_types base on export_format_type
+    /// @param f export_type_info data
+    void add_export_type_with_fmt(const export_type_info &&f);
+    /// @brief check a single type in export map and insert into the checked_export_types array
+    /// @param field field meta data
+    /// @param width the width of the type in bytes
     void check_and_add_export_type(ebpf_rb_export_field_meta_data &field, std::size_t width);
     /// print the export header meta if needed
     void print_export_types_header(void);
 
     /// a default printer to print event data
-    void print_default_export_event_with_time(const char *event);
+    void print_plant_text_event_with_time(const char *event);
+    ///  printer to print event data to json
+    void print_export_event_to_json(const char *event);
+
+    /// export event to json format
+    void export_event_to_json(const char *event);
 
    public:
     eunomia_event_exporter(const eunomia_event_exporter &) = delete;
@@ -60,7 +79,7 @@ namespace eunomia
     int check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types);
 
     /// @brief set user export event handler to type
-    void set_export_type(export_format_type type);
+    void set_export_type(export_format_type type, export_event_handler handler);
   };
 
 }  // namespace eunomia

@@ -1,0 +1,10 @@
+ignore:
+  - "eunomia-bpf/test"
+  - "ecli"
+  - "bpftools"
+  - "eunomia-exporter"
+  - "eunomia-sdks"
+  - "third_party"
+
+comment:
+  require_changes: true

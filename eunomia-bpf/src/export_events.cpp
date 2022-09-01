@@ -35,6 +35,16 @@ namespace eunomia
     // Support more types?
   };
 
+  void eunomia_event_exporter::add_export_type_with_fmt(const export_type_info &&f)
+  {
+    auto &info = checked_export_types.emplace_back(std::move(f));
+    switch (format_type)
+    {
+      case export_format_type::JSON: info.print_fmt = "\"" + info.name + "\":\"%s\""; break;
+      default: break;
+    }
+  }
+
   void eunomia_event_exporter::check_and_add_export_type(ebpf_rb_export_field_meta_data &field, std::size_t width)
   {
     bool is_vaild_type = false;
@@ -44,7 +54,7 @@ namespace eunomia
       // match basic types first, if not match, try llvm types
       if (field.type == type.type_str || field.llvm_type == type.llvm_type_str)
       {
-        checked_export_types.push_back({ type.format, field.field_offset, width, field.name, field.llvm_type });
+        add_export_type_with_fmt({ type.format, field.field_offset, width, field.name, field.llvm_type });
         is_vaild_type = true;
         break;
       }
@@ -54,7 +64,7 @@ namespace eunomia
         if (field.llvm_type.front() == '[' && field.type.size() > 4 && std::strncmp(field.type.c_str(), "char", 4) == 0)
         {
           // maybe a char array: fix this
-          checked_export_types.push_back({ "%s", field.field_offset, width, field.name, field.llvm_type });
+          add_export_type_with_fmt({ "%s", field.field_offset, width, field.name, "cstring" });
           is_vaild_type = true;
           break;
         }
@@ -103,51 +113,158 @@ namespace eunomia
       std::cerr << "No available format type!" << std::endl;
       return -1;
     }
-    else if (format_type == export_format_type::STDOUT)
+    else if (user_export_event_handler == nullptr)
     {
       print_export_types_header();
     }
     return 0;
   }
 
-  template<typename T>
-  static void print_rb_field(const char *data, const export_type_info &f)
+  struct sprintf_printer
   {
-    printf(f.print_fmt, *(T *)(data + f.field_offset / 8));
-    printf(" ");
+    char *output_buffer_pointer;
+    std::size_t output_buffer_left;
+    sprintf_printer(std::vector<char> &buffer, std::size_t max_size)
+    {
+      buffer.resize(max_size, 0);
+      output_buffer_pointer = buffer.data();
+      output_buffer_left = buffer.size();
+    }
+    int update_buffer(int res)
+    {
+      if (res < 0)
+      {
+        std::cerr << "Failed to sprint event" << std::endl;
+        return res;
+      }
+      output_buffer_pointer += res;
+      output_buffer_left -= res;
+      if (output_buffer_left <= 1)
+      {
+        std::cerr << "Failed to sprint event, buffer size limited" << std::endl;
+        return -1;
+      }
+    }
+    int snprintf_event(const char *fmt, ...)
+    {
+      va_list args;
+      va_start(args, fmt);
+      int res = vsnprintf(output_buffer_pointer, output_buffer_left, fmt, args);
+      va_end(args);
+      return update_buffer(res);
+    }
+  };
+
+  template<typename T>
+  static int print_export_field(const char *data, const export_type_info &f, sprintf_printer &recorder)
+  {
+    auto *field = reinterpret_cast<const T *>(data + f.field_offset / 8);
+    return std::snprintf(recorder.output_buffer_pointer, recorder.output_buffer_left, f.print_fmt.c_str(), *field);
   }
 
-  static const std::map<std::string, std::function<void(const char *data, const export_type_info &f)>>
-      print_func_lookup_map = { { "i8", print_rb_field<uint8_t> },
-                                { "i16", print_rb_field<uint16_t> },
-                                { "i32", print_rb_field<uint32_t> },
-                                { "i64", print_rb_field<uint64_t> },
-                                { "i128", print_rb_field<__uint128_t> } };
+  static int print_export_cstring(const char *data, const export_type_info &f, sprintf_printer &recorder)
+  {
+    auto *field = reinterpret_cast<const char *>(data + f.field_offset / 8);
+    return std::snprintf(recorder.output_buffer_pointer, recorder.output_buffer_left, f.print_fmt.c_str(), *field);
+  }
 
-  void eunomia_event_exporter::print_default_export_event_with_time(const char *event)
+  static const std::
+      map<std::string, std::function<int(const char *data, const export_type_info &f, sprintf_printer &recorder)>>
+          print_func_lookup_map = { { "i8", print_export_field<uint8_t> },       { "i16", print_export_field<uint16_t> },
+                                    { "i32", print_export_field<uint32_t> },     { "i64", print_export_field<uint64_t> },
+                                    { "i128", print_export_field<__uint128_t> }, { "cstring", print_export_cstring } };
+
+  void eunomia_event_exporter::print_export_event_to_json(const char *event)
+  {
+    sprintf_printer printer{ export_event_buffer, EXPORT_BUFFER_SIZE };
+
+    int res = printer.snprintf_event("{");
+    if (res < 0)
+    {
+      return;
+    }
+    for (std::size_t i = 0; i < checked_export_types.size(); ++i)
+    {
+      auto &f = checked_export_types[i];
+      auto func = print_func_lookup_map.find(f.llvm_type);
+      if (func != print_func_lookup_map.end())
+      {
+        res = printer.update_buffer(func->second((const char *)event, f, printer));
+        if (res < 0)
+        {
+          return;
+        }
+      }
+      if (i < checked_export_types.size() - 1)
+      {
+        res = printer.snprintf_event(",");
+        if (res < 0)
+        {
+          return;
+        }
+      }
+    }
+    res = printer.snprintf_event("}");
+    if (res < 0)
+    {
+      return;
+    }
+    if (user_export_event_handler != nullptr)
+    {
+      user_export_event_handler(export_event_buffer.data());
+    }
+    else
+    {
+      printf("%s", export_event_buffer.data());
+    }
+  }
+
+  void eunomia_event_exporter::print_plant_text_event_with_time(const char *event)
   {
     struct tm *tm;
     char ts[32];
     time_t t;
+    sprintf_printer printer{ export_event_buffer, EXPORT_BUFFER_SIZE };
 
     time(&t);
     tm = localtime(&t);
     strftime(ts, sizeof(ts), "%H:%M:%S", tm);
-    printf("%-8s ", ts);
+    int res = printer.snprintf_event("%-8s ", ts);
+    if (res < 0)
+    {
+      return;
+    }
+
     for (const auto &f : checked_export_types)
     {
       auto func = print_func_lookup_map.find(f.llvm_type);
       if (func != print_func_lookup_map.end())
       {
-        func->second((const char *)event, f);
-      }
-      else
-      {
-        // should be an array
-        printf("%s ", (char *)(event + f.field_offset / 8));
+        res = printer.update_buffer(func->second((const char *)event, f, printer));
+        if (res < 0)
+        {
+          return;
+        }
+        res = printer.snprintf_event(" ");
+        if (res < 0)
+        {
+          return;
+        }
       }
     }
-    printf("\n");
+    res = printer.snprintf_event("\n");
+    if (res < 0)
+    {
+      return;
+    }
+    if (user_export_event_handler != nullptr)
+    {
+      user_export_event_handler(export_event_buffer.data());
+    }
+    else
+    {
+      printf("%s", export_event_buffer.data());
+    }
   }
 
   /// FIXME: output config with lua
@@ -155,7 +272,7 @@ namespace eunomia
   {
     if (user_export_event_handler)
     {
-      user_export_event_handler(event);
+      internal_event_processor(event);
       return;
     }
     else
@@ -164,19 +281,24 @@ namespace eunomia
     }
   }
 
-  void eunomia_event_exporter::set_export_type(export_format_type type)
+  void eunomia_event_exporter::set_export_type(export_format_type type, export_event_handler handler)
   {
     format_type = type;
-    switch (type)
+    /// preserve the user defined handler
+    user_export_event_handler = handler;
+    switch (format_type)
     {
       case export_format_type::JSON:
-        assert(false && "Not implemented yet!");
-        /* code */
-        break;
-      case export_format_type::STDOUT: [[fallthrough]];
+      {
+        internal_event_processor =
+            std::bind(&eunomia_event_exporter::print_export_event_to_json, this, std::placeholders::_1);
+      }
+      break;
+      case export_format_type::RAW_EVENT: internal_event_processor = handler; break;
+      case export_format_type::PLANT_TEXT: [[fallthrough]];
       default:
-        user_export_event_handler =
-            std::bind(&eunomia_event_exporter::print_default_export_event_with_time, this, std::placeholders::_1);
+        internal_event_processor =
+            std::bind(&eunomia_event_exporter::print_plant_text_event_with_time, this, std::placeholders::_1);
         break;
     }
   }
@@ -186,7 +308,7 @@ namespace eunomia
     event_exporter.handler_export_events(event);
   }
 
-  int wait_and_export_with_json_receiver(void (*receiver)(const char *const json_str))
+  int wait_and_export_with_json_receiver(void (*receiver)(const char *json_str))
   {
     // TODO: read and export
     return -1;

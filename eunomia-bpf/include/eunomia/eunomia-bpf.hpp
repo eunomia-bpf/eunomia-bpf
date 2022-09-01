@@ -120,7 +120,7 @@ namespace eunomia
     /// export the data as json string.
 
     /// The key of the value is the field name in the export format.
-    [[nodiscard]] int wait_and_export_with_json_receiver(void (*receiver)(const char *const json_str)) noexcept;
+    [[nodiscard]] int wait_and_export_with_json_receiver(void (*receiver)(const char *json_str)) noexcept;
 
     /// stop, detach, and clean up memory
 
