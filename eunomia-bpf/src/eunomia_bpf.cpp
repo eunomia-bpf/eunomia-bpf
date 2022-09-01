@@ -57,6 +57,15 @@ namespace eunomia
   /// load and attach the eBPF program to the kernel
   int eunomia_ebpf_program::run(void) noexcept
   {
+    // check the state of the program
+    if (state == ebpf_program_state::INVALID)
+    {
+      return -1;
+    }
+    else if (state == ebpf_program_state::RUNNING)
+    {
+      return 0;
+    }
     int err = 0;
     try
     {
@@ -65,7 +74,9 @@ namespace eunomia
     catch (const std::exception &e)
     {
       std::cerr << "Failed to run eBPF program: " << e.what() << std::endl;
+      state = ebpf_program_state::INVALID;
     }
+    state = ebpf_program_state::RUNNING;
     return err;
   }
 
@@ -207,6 +218,12 @@ namespace eunomia
   {
     int err;
     exiting = false;
+    // check the state
+    if (state != ebpf_program_state::RUNNING)
+    {
+      std::cerr << "ebpf program is not running" << std::endl;
+      return -1;
+    }
     // help the wait_and_print work with stop correctly in multi-thread
     std::lock_guard<std::mutex> guard(exit_mutex);
     return check_export_maps();
@@ -231,27 +248,27 @@ namespace eunomia
 
   void eunomia_ebpf_program::stop_and_clean() noexcept
   {
+    if (state != ebpf_program_state::RUNNING)
+    {
+      return;
+    }
     exiting = true;
     /// wait until poll has exit
     std::lock_guard<std::mutex> guard(exit_mutex);
     // TODO: fix this with smart ptr
-    if (skeleton)
-    {
-      bpf_object__destroy_skeleton(skeleton);
-    }
-    if (ring_buffer_map)
-    {
-      ring_buffer__free(ring_buffer_map);
-    }
-    if (perf_buffer_map)
-    {
-      perf_buffer__free(perf_buffer_map);
-    }
+    bpf_object__destroy_skeleton(skeleton);
+    skeleton = nullptr;
+    ring_buffer__free(ring_buffer_map);
+    ring_buffer_map = nullptr;
+    perf_buffer__free(perf_buffer_map);
+    perf_buffer_map = nullptr;
+    state = ebpf_program_state::STOPPED;
   }
 
   int eunomia_ebpf_program::create_prog_skeleton(void)
   {
     struct bpf_object_skeleton *s;
+    skeleton = nullptr;
 
     s = (struct bpf_object_skeleton *)calloc(1, sizeof(*s));
     if (!s)

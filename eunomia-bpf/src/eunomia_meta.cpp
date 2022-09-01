@@ -85,10 +85,12 @@ namespace eunomia
     try
     {
       meta_data.from_json_str(json_str);
+      state = ebpf_program_state::INIT;
     }
     catch (...)
     {
       std::cerr << "Failed to parse json" << std::endl;
+      state = ebpf_program_state::INVALID;
     }
   }
 }  // namespace eunomia

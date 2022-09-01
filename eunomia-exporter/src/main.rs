@@ -1,4 +1,6 @@
-#[macro_use]
+mod config;
+mod server;
+
 extern crate lazy_static;
 
 use hyper::{
@@ -23,30 +25,6 @@ fn init_meter() -> PrometheusExporter {
     opentelemetry_prometheus::exporter()
         .with_resource(Resource::new(vec![KeyValue::new("R", "V")]))
         .init()
-}
-
-fn mainq() {
-    let exporter = init_meter();
-    let meter = global::meter("my-app");
-
-    // Use two instruments
-    let counter = meter
-        .u64_counter("a.counter")
-        .with_description("Counts things")
-        .init();
-    let recorder = meter
-        .i64_value_recorder("a.value_recorder")
-        .with_description("Records values")
-        .init();
-
-    counter.add(100, &[KeyValue::new("key", "value")]);
-    recorder.record(100, &[KeyValue::new("key", "value")]);
-
-    // Encode data as text or protobuf
-    let encoder = TextEncoder::new();
-    let metric_families = exporter.registry().gather();
-    let mut result = Vec::new();
-    encoder.encode(&metric_families, &mut result);
 }
 
 async fn serve_req(

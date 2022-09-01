@@ -171,12 +171,15 @@ namespace eunomia
     {
       user_export_event_handler(event);
       return;
-    } else {
+    }
+    else
+    {
       assert(false && "No export event handler!");
     }
   }
 
-  int wait_and_export_with_json_receiver(void (*receiver)(const char * const json_str)) {
+  int wait_and_export_with_json_receiver(void (*receiver)(const char *const json_str))
+  {
     // TODO: read and export
     return -1;
   }

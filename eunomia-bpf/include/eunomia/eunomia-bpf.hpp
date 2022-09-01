@@ -25,6 +25,17 @@ struct perf_buffer;
 
 namespace eunomia
 {
+  enum class ebpf_program_state
+  {
+    /// @brief The config is set but the program is not loaded
+    INIT,
+    /// @brief The program is loaded and attached to the kernel
+    RUNNING,
+    /// @brief  The program is stopped
+    STOPPED,
+    /// @brief invalid format or cannot be load
+    INVALID
+  };
   class eunomia_ebpf_program
   {
    private:
@@ -57,6 +68,8 @@ namespace eunomia
     void print_default_export_event_with_time(const char *event);
 
    private:
+    /// The state of eunomia-bpf program
+    ebpf_program_state state = ebpf_program_state::INVALID;
     /// is the polling ring buffer loop exiting?
     std::mutex exit_mutex = {};
     volatile bool exiting = false;
