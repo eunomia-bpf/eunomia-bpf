@@ -79,18 +79,26 @@ namespace eunomia
     ebpf_data = jj["data"];
   }
 
-  /// create a ebpf program from json str
-  eunomia_ebpf_program::eunomia_ebpf_program(const std::string &json_str)
+  int eunomia_ebpf_program::load_json_config(const std::string &json_str) noexcept
   {
     try
     {
       meta_data.from_json_str(json_str);
       state = ebpf_program_state::INIT;
+      return 0;
     }
     catch (...)
     {
       std::cerr << "Failed to parse json" << std::endl;
       state = ebpf_program_state::INVALID;
+      return -1;
     }
+  }
+
+  /// create a ebpf program from json str
+  eunomia_ebpf_program::eunomia_ebpf_program(const std::string &json_str)
+  {
+    meta_data.from_json_str(json_str);
+    state = ebpf_program_state::INIT;
   }
 }  // namespace eunomia

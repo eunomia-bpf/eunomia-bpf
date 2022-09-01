@@ -1,5 +1,5 @@
 # Simple workflow for deploying static content to GitHub Pages
-name: Generate compiled eBPF json data
+name: Test compiled eBPF json data
 
 on:
   # Runs on pushes targeting the default branch

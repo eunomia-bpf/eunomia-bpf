@@ -4,9 +4,25 @@
  * All rights reserved.
  */
 
+#include <cassert>
+#include <fstream>
+#include <iostream>
+#include <string>
+
+#include "eunomia/eunomia-bpf.hpp"
+
 int main(int argc, char **argv)
 {
+  std::ifstream fs("../../test/asserts/bootstrap.json");
+
+  if (!fs.is_open())
   {
+    std::cerr << "Failed to open json file" << std::endl;
+    return -1;
   }
+  std::string json_str((std::istreambuf_iterator<char>(fs)), std::istreambuf_iterator<char>());
+  fs.close();
+  eunomia::eunomia_ebpf_program program;
+  assert(program.load_json_config(json_str) == 0);
   return 0;
 }

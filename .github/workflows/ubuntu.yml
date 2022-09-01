@@ -26,9 +26,6 @@ jobs:
       run: |
           sudo make -C ecli install-deps
 
-    - name: make eunomia-bpf
-      run:  make eunomia-bpf
-
     - name: cache dependencies
       uses: actions/cache@v2
       id: cache
@@ -36,6 +33,18 @@ jobs:
         path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
         key: ${{ runner.os }}-dependencies
 
+    - name: make eunomia-bpf
+      run:  make eunomia-bpf
+
     - name: build ecli
       run: |
           make ecli
+
+    - name: run tests
+      run: |
+        cd eunomia-bpf/build
+        ctest -C $BUILD_TYPE -VV
+
+    - name: Code coverage using Codecov
+      run: bash <(curl -s https://codecov.io/bash)
+

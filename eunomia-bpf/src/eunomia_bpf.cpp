@@ -336,7 +336,17 @@ extern "C"
   };
   struct eunomia_bpf *create_ebpf_program_from_json(const char *json_data)
   {
-    return new eunomia_bpf{ eunomia::eunomia_ebpf_program(json_data) };
+    struct eunomia_bpf *bpf = new eunomia_bpf{ eunomia::eunomia_ebpf_program() };
+    if (!bpf)
+    {
+      return nullptr;
+    }
+    if (bpf->program.load_json_config(json_data) < 0)
+    {
+      delete bpf;
+      return nullptr;
+    }
+    return bpf;
   }
 
   int run_ebpf_program(struct eunomia_bpf *prog)

@@ -96,6 +96,8 @@ namespace eunomia
    public:
     /// create a ebpf program from json config str
     eunomia_ebpf_program(const std::string &json_str);
+    eunomia_ebpf_program() = default;
+    [[nodiscard]] int load_json_config(const std::string &json_str) noexcept;
     eunomia_ebpf_program(const eunomia_ebpf_program &) = delete;
     eunomia_ebpf_program(eunomia_ebpf_program &&);
     ~eunomia_ebpf_program()
@@ -107,18 +109,18 @@ namespace eunomia
     /// load and attach the ebpf program to the kernel to run the ebpf program
     /// if the ebpf program has maps to export to user space, you need to call
     /// the wait and export.
-    int run(void) noexcept;
+    [[nodiscard]] int run(void) noexcept;
 
     /// wait for the program to exit
 
     /// if the program has a ring buffer or perf event to export data
     /// to user space, the program will help load the map info and poll the
     /// events automatically.
-    int wait_and_export(void) noexcept;
+    [[nodiscard]] int wait_and_export(void) noexcept;
     /// export the data as json string.
 
     /// The key of the value is the field name in the export format.
-    int wait_and_export_with_json_receiver(void (*receiver)(const char *const json_str)) noexcept;
+    [[nodiscard]] int wait_and_export_with_json_receiver(void (*receiver)(const char *const json_str)) noexcept;
 
     /// stop, detach, and clean up memory
 
