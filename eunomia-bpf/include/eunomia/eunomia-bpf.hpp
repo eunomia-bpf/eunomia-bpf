@@ -111,16 +111,14 @@ namespace eunomia
     /// the wait and export.
     [[nodiscard]] int run(void) noexcept;
 
-    /// wait for the program to exit
-
-    /// if the program has a ring buffer or perf event to export data
+    /// @brief wait for the program to exit
+    /// @details the program has a ring buffer or perf event to export data
     /// to user space, the program will help load the map info and poll the
     /// events automatically.
     [[nodiscard]] int wait_and_export(void) noexcept;
-    /// export the data as json string.
-
-    /// The key of the value is the field name in the export format.
-    [[nodiscard]] int wait_and_export_with_json_receiver(void (*receiver)(const char *json_str)) noexcept;
+    /// @brief export the data as json string.
+    /// @details The key of the value is the field name in the export json.
+    [[nodiscard]] int wait_and_export_with_json_receiver(export_event_handler handler) noexcept;
 
     /// stop, detach, and clean up memory
 

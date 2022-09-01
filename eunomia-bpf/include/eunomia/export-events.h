@@ -46,7 +46,7 @@ namespace eunomia
 
     /// @brief add the type to checked_export_types base on export_format_type
     /// @param f export_type_info data
-    void add_export_type_with_fmt(const export_type_info &&f);
+    void add_export_type_with_fmt(export_type_info f);
     /// @brief check a single type in export map and insert into the checked_export_types array
     /// @param field field meta data
     /// @param width the width of the type in bytes

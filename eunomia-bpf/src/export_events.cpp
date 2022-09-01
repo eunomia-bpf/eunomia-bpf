@@ -35,9 +35,9 @@ namespace eunomia
     // Support more types?
   };
 
-  void eunomia_event_exporter::add_export_type_with_fmt(const export_type_info &&f)
+  void eunomia_event_exporter::add_export_type_with_fmt(export_type_info f)
   {
-    auto &info = checked_export_types.emplace_back(std::move(f));
+    auto info = f;
     switch (format_type)
     {
       case export_format_type::JSON:
@@ -56,6 +56,7 @@ namespace eunomia
       break;
       default: break;
     }
+    checked_export_types.emplace_back(info);
   }
 
   void eunomia_event_exporter::check_and_add_export_type(ebpf_rb_export_field_meta_data &field, std::size_t width)
@@ -328,9 +329,20 @@ namespace eunomia
     event_exporter.handler_export_events(event);
   }
 
-  int wait_and_export_with_json_receiver(void (*receiver)(const char *json_str))
+  int eunomia_ebpf_program::wait_and_export_with_json_receiver(export_event_handler handler) noexcept
   {
-    // TODO: read and export
+    event_exporter.set_export_type(export_format_type::JSON, handler);
+    int err = 0;
+    try
+    {
+      err = enter_wait_and_export();
+    }
+    catch (const std::exception &e)
+    {
+      std::cerr << "Exception: " << e.what() << std::endl;
+      err = -1;
+    }
+    return err;
     return -1;
   }
 
