@@ -42,7 +42,9 @@ jobs:
 
     - name: run tests
       run: |
-        cd eunomia-bpf/build
+        cd eunomia-bpf/
+        make test
+        cd build
         ctest -C $BUILD_TYPE -VV
 
     - name: Code coverage using Codecov

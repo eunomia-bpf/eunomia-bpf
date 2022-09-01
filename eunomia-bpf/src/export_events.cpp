@@ -14,17 +14,6 @@ extern "C"
 
 namespace eunomia
 {
-  // format data
-  struct format_info
-  {
-    const char *print_fmt;
-    std::size_t field_offset;
-    std::size_t width;
-    std::string name;
-    std::string llvm_type;
-  };
-  std::vector<format_info> checked_export_types;
-
   struct print_type_format_map
   {
     const char *format;
@@ -32,7 +21,7 @@ namespace eunomia
     const char *llvm_type_str;
   };
 
-  static print_type_format_map base_type_look_up_table[] = {
+  static const print_type_format_map base_type_look_up_table[] = {
     { "%llx", "unsigned __int128", "i128" },
     { "%llu", "unsigned long long", "i64" },
     { "%lld", "long long", "i64" },

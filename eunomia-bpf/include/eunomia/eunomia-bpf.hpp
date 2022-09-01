@@ -36,6 +36,20 @@ namespace eunomia
     /// @brief invalid format or cannot be load
     INVALID
   };
+
+  /// format data
+  struct format_info
+  {
+    const char *print_fmt;
+    std::size_t field_offset;
+    std::size_t width;
+    std::string name;
+    std::string llvm_type;
+  };
+
+  /// @brief eunomia-bpf program class
+
+  /// @details Used for managing the life span of eBPF program
   class eunomia_ebpf_program
   {
    private:
@@ -51,6 +65,8 @@ namespace eunomia
     /// and used by user space.
     int check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types);
     void check_and_add_export_type(ebpf_rb_export_field_meta_data &field, std::size_t width);
+    /// print the export header meta if needed
+    void print_export_types_header(void);
 
     /// wait and polling the ring buffer map
     int wait_and_poll_from_rb(std::size_t id);
@@ -87,6 +103,8 @@ namespace eunomia
 
     /// user define handler to process export data
     std::function<void(const char *event)> user_export_event_handler = nullptr;
+    /// export types meta data
+    std::vector<format_info> checked_export_types;
 
     /// used for processing maps and free them
     // FIXME: use smart pointer instead of raw pointer
