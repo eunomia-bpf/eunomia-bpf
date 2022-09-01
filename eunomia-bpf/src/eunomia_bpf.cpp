@@ -103,7 +103,7 @@ namespace eunomia
     int err = 0;
 
     std::cout << "running and waiting for the ebpf events from ring buffer..." << std::endl;
-    if (check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
+    if (event_exporter.check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
     {
       std::cerr << "Failed to create print format" << std::endl;
       return -1;
@@ -156,7 +156,7 @@ namespace eunomia
     int err = 0;
 
     std::cout << "running and waiting for the ebpf events from perf event..." << std::endl;
-    if (check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
+    if (event_exporter.check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
     {
       std::cerr << "Failed to create print format" << std::endl;
       return -1;
@@ -231,8 +231,7 @@ namespace eunomia
 
   int eunomia_ebpf_program::wait_and_export(void) noexcept
   {
-    user_export_event_handler =
-        std::bind(&eunomia_ebpf_program::print_default_export_event_with_time, this, std::placeholders::_1);
+    event_exporter.set_export_type(export_format_type::STDOUT);
     int err = 0;
     try
     {

@@ -14,6 +14,7 @@
 
 #include "eunomia-config.h"
 #include "eunomia-meta.hpp"
+#include "export-events.h"
 
 struct bpf_map;
 struct bpf_program;
@@ -37,16 +38,6 @@ namespace eunomia
     INVALID
   };
 
-  /// format data
-  struct format_info
-  {
-    const char *print_fmt;
-    std::size_t field_offset;
-    std::size_t width;
-    std::string name;
-    std::string llvm_type;
-  };
-
   /// @brief eunomia-bpf program class
 
   /// @details Used for managing the life span of eBPF program
@@ -57,16 +48,6 @@ namespace eunomia
     int create_prog_skeleton(void);
 
     int load_and_attach_prog(void);
-
-    /// check for types and create export format
-
-    /// check the types from ebpf source code and export header
-    /// create export formats for correctly print the data,
-    /// and used by user space.
-    int check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types);
-    void check_and_add_export_type(ebpf_rb_export_field_meta_data &field, std::size_t width);
-    /// print the export header meta if needed
-    void print_export_types_header(void);
 
     /// wait and polling the ring buffer map
     int wait_and_poll_from_rb(std::size_t id);
@@ -80,18 +61,24 @@ namespace eunomia
     /// called after setting the export handler
     int enter_wait_and_export(void);
 
-    /// a default printer to print event data
-    void print_default_export_event_with_time(const char *event);
-
    private:
     /// The state of eunomia-bpf program
     ebpf_program_state state = ebpf_program_state::INVALID;
     /// is the polling ring buffer loop exiting?
     std::mutex exit_mutex = {};
     volatile bool exiting = false;
-    /// meta data storage
+    /// @brief  data storage
+    /// @details meta data control the behavior of ebpf program:
+    /// eg. types of the eBPF maps and prog, export data types
     eunomia_ebpf_meta_data meta_data;
+    /// @brief  config of eunomia own
+    /// @details config of eunomia own,
+    /// for how we creating, loading and interacting with the eBPF program
+    /// eg. poll maps timeout in ms
     eunomia_config config_data;
+
+    /// @brief  controler of the export event to user space
+    eunomia_event_exporter event_exporter;
 
     /// buffer to base 64 decode
     bpf_object *obj = nullptr;
@@ -100,11 +87,6 @@ namespace eunomia
     std::vector<bpf_program *> progs = {};
     std::vector<bpf_link *> links = {};
     bpf_object_skeleton *skeleton = nullptr;
-
-    /// user define handler to process export data
-    std::function<void(const char *event)> user_export_event_handler = nullptr;
-    /// export types meta data
-    std::vector<format_info> checked_export_types;
 
     /// used for processing maps and free them
     // FIXME: use smart pointer instead of raw pointer

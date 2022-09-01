@@ -35,7 +35,7 @@ namespace eunomia
     // Support more types?
   };
 
-  void eunomia_ebpf_program::check_and_add_export_type(ebpf_rb_export_field_meta_data &field, std::size_t width)
+  void eunomia_event_exporter::check_and_add_export_type(ebpf_rb_export_field_meta_data &field, std::size_t width)
   {
     bool is_vaild_type = false;
     // use the lookup table to determine format
@@ -60,27 +60,26 @@ namespace eunomia
         }
       }
     }
-    if (is_vaild_type)
-    {
-      if (config_data.print_header)
-      {
-        // print the field name
-        std::cout << field.name << ' ';
-      }
-    }
-    else
+    if (!is_vaild_type)
     {
       std::cerr << "Unsupported type: " << field.type << " " << field.llvm_type << std::endl;
     }
   }
 
-  int eunomia_ebpf_program::check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types)
+  void eunomia_event_exporter::print_export_types_header(void)
   {
-    if (config_data.print_header)
+    // print the time header
+    std::cout << "time ";
+    for (auto &type : checked_export_types)
     {
-      // print the time header
-      std::cout << "time ";
+      std::cout << type.name << ' ';
     }
+    // print the field name endline
+    std::cout << std::endl;
+  }
+
+  int eunomia_event_exporter::check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types)
+  {
     auto fields = types.fields;
     for (std::size_t i = 0; i < fields.size(); ++i)
     {
@@ -104,30 +103,28 @@ namespace eunomia
       std::cerr << "No available format type!" << std::endl;
       return -1;
     }
-    else if (config_data.print_header)
+    else if (format_type == export_format_type::STDOUT)
     {
-      // print the field name endline
-      std::cout << std::endl;
+      print_export_types_header();
     }
     return 0;
   }
 
   template<typename T>
-  static void print_rb_field(const char *data, const format_info &f)
+  static void print_rb_field(const char *data, const export_type_info &f)
   {
     printf(f.print_fmt, *(T *)(data + f.field_offset / 8));
     printf(" ");
   }
 
-  static const std::map<std::string, std::function<void(const char *data, const format_info &f)>> print_func_lookup_map = {
-    { "i8", print_rb_field<uint8_t> },
-    { "i16", print_rb_field<uint16_t> },
-    { "i32", print_rb_field<uint32_t> },
-    { "i64", print_rb_field<uint64_t> },
-    { "i128", print_rb_field<__uint128_t> }
-  };
+  static const std::map<std::string, std::function<void(const char *data, const export_type_info &f)>>
+      print_func_lookup_map = { { "i8", print_rb_field<uint8_t> },
+                                { "i16", print_rb_field<uint16_t> },
+                                { "i32", print_rb_field<uint32_t> },
+                                { "i64", print_rb_field<uint64_t> },
+                                { "i128", print_rb_field<__uint128_t> } };
 
-  void eunomia_ebpf_program::print_default_export_event_with_time(const char *event)
+  void eunomia_event_exporter::print_default_export_event_with_time(const char *event)
   {
     struct tm *tm;
     char ts[32];
@@ -154,7 +151,7 @@ namespace eunomia
   }
 
   /// FIXME: output config with lua
-  void eunomia_ebpf_program::handler_export_events(const char *event) const
+  void eunomia_event_exporter::handler_export_events(const char *event) const
   {
     if (user_export_event_handler)
     {
@@ -165,6 +162,28 @@ namespace eunomia
     {
       assert(false && "No export event handler!");
     }
+  }
+
+  void eunomia_event_exporter::set_export_type(export_format_type type)
+  {
+    format_type = type;
+    switch (type)
+    {
+      case export_format_type::JSON:
+        assert(false && "Not implemented yet!");
+        /* code */
+        break;
+      case export_format_type::STDOUT: [[fallthrough]];
+      default:
+        user_export_event_handler =
+            std::bind(&eunomia_event_exporter::print_default_export_event_with_time, this, std::placeholders::_1);
+        break;
+    }
+  }
+
+  void eunomia_ebpf_program::handler_export_events(const char *event) const
+  {
+    event_exporter.handler_export_events(event);
   }
 
   int wait_and_export_with_json_receiver(void (*receiver)(const char *const json_str))
