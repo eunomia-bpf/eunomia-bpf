@@ -22,6 +22,7 @@ namespace eunomia
     uint32_t size;
     uint32_t data_size;
     uint32_t alignment;
+    void from_json_str(const std::string &j_str);
   };
 
   struct ebpf_maps_meta_data

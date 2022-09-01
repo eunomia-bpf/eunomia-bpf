@@ -40,7 +40,20 @@ namespace eunomia
     auto &info = checked_export_types.emplace_back(std::move(f));
     switch (format_type)
     {
-      case export_format_type::JSON: info.print_fmt = "\"" + info.name + "\":\"%s\""; break;
+      case export_format_type::JSON:
+      {
+        if (info.llvm_type == "cstring")
+        {
+          // print as json type string
+          info.print_fmt = std::string("\"") + info.name + "\":\"" + info.print_fmt + "\"";
+        }
+        else
+        {
+          // print as json type integer
+          info.print_fmt = std::string("\"") + info.name + "\":" + info.print_fmt;
+        }
+      }
+      break;
       default: break;
     }
   }
@@ -91,6 +104,8 @@ namespace eunomia
   int eunomia_event_exporter::check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types)
   {
     auto fields = types.fields;
+    // clean the last fields
+    checked_export_types.clear();
     for (std::size_t i = 0; i < fields.size(); ++i)
     {
       auto &field = fields[i];
@@ -113,7 +128,7 @@ namespace eunomia
       std::cerr << "No available format type!" << std::endl;
       return -1;
     }
-    else if (user_export_event_handler == nullptr)
+    else if (user_export_event_handler == nullptr && format_type == export_format_type::PLANT_TEXT)
     {
       print_export_types_header();
     }
@@ -122,13 +137,15 @@ namespace eunomia
 
   struct sprintf_printer
   {
-    char *output_buffer_pointer;
-    std::size_t output_buffer_left;
+    char *output_buffer_pointer = nullptr;
+    std::size_t output_buffer_left = 0;
+    char *buffer_base = nullptr;
     sprintf_printer(std::vector<char> &buffer, std::size_t max_size)
     {
       buffer.resize(max_size, 0);
       output_buffer_pointer = buffer.data();
       output_buffer_left = buffer.size();
+      buffer_base = buffer.data();
     }
     int update_buffer(int res)
     {
@@ -138,12 +155,13 @@ namespace eunomia
         return res;
       }
       output_buffer_pointer += res;
-      output_buffer_left -= res;
+      output_buffer_left -= static_cast<std::size_t>(res);
       if (output_buffer_left <= 1)
       {
         std::cerr << "Failed to sprint event, buffer size limited" << std::endl;
         return -1;
       }
+      return res;
     }
     int snprintf_event(const char *fmt, ...)
     {
@@ -152,6 +170,18 @@ namespace eunomia
       int res = vsnprintf(output_buffer_pointer, output_buffer_left, fmt, args);
       va_end(args);
       return update_buffer(res);
+    }
+    void export_to_handler_or_print(export_event_handler &user_export_event_handler)
+    {
+      *output_buffer_pointer = 0;
+      if (user_export_event_handler != nullptr)
+      {
+        user_export_event_handler(buffer_base);
+      }
+      else
+      {
+        printf("%s\n", buffer_base);
+      }
     }
   };
 
@@ -165,7 +195,7 @@ namespace eunomia
   static int print_export_cstring(const char *data, const export_type_info &f, sprintf_printer &recorder)
   {
     auto *field = reinterpret_cast<const char *>(data + f.field_offset / 8);
-    return std::snprintf(recorder.output_buffer_pointer, recorder.output_buffer_left, f.print_fmt.c_str(), *field);
+    return std::snprintf(recorder.output_buffer_pointer, recorder.output_buffer_left, f.print_fmt.c_str(), field);
   }
 
   static const std::
@@ -209,14 +239,7 @@ namespace eunomia
     {
       return;
     }
-    if (user_export_event_handler != nullptr)
-    {
-      user_export_event_handler(export_event_buffer.data());
-    }
-    else
-    {
-      printf("%s", export_event_buffer.data());
-    }
+    printer.export_to_handler_or_print(user_export_event_handler);
   }
 
   void eunomia_event_exporter::print_plant_text_event_with_time(const char *event)
@@ -257,20 +280,17 @@ namespace eunomia
     {
       return;
     }
-    if (user_export_event_handler != nullptr)
-    {
-      user_export_event_handler(export_event_buffer.data());
-    }
-    else
-    {
-      printf("%s", export_event_buffer.data());
-    }
+    printer.export_to_handler_or_print(user_export_event_handler);
   }
 
   /// FIXME: output config with lua
   void eunomia_event_exporter::handler_export_events(const char *event) const
   {
-    if (user_export_event_handler)
+    if (!event)
+    {
+      return;
+    }
+    if (internal_event_processor)
     {
       internal_event_processor(event);
       return;

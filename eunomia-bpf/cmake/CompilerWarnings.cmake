@@ -64,6 +64,7 @@ function(set_project_warnings project_name)
         -Wno-missing-field-initializers
         -Wno-pointer-arith
         -fno-strict-aliasing
+        -Wno-format-nonliteral
   )
 
   if (${PROJECT_NAME}_WARNINGS_AS_ERRORS)

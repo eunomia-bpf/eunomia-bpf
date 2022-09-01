@@ -56,6 +56,14 @@ namespace eunomia
     j.at("Fields").get_to(data.fields);
   }
 
+  void ebpf_export_types_meta_data::from_json_str(const std::string &j_str)
+  {
+    json j = json::parse(j_str);
+    ebpf_export_types_meta_data meta = j.get<ebpf_export_types_meta_data>();
+    *this = meta;
+    return;
+  }
+
   static void from_json(const nlohmann::json &j, ebpf_progs_meta_data &data)
   {
     get_from_json_at(name);
