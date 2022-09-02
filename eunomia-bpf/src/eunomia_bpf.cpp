@@ -20,11 +20,22 @@ extern "C"
 using json = nlohmann::json;
 namespace eunomia
 {
+  // control the debug info callback from libbpf
+  static thread_local bool verbose_local = false;
+  static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
+  {
+    if (level == LIBBPF_DEBUG && !verbose_local)
+      return 0;
+    return vfprintf(stderr, format, args);
+  }
   int eunomia_ebpf_program::load_and_attach_prog(void)
   {
     int err = 0;
 
+    verbose_local = config_data.libbpf_debug_verbose;
     libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
+    /* Set up libbpf errors and debug info callback */
+    libbpf_set_print(libbpf_print_fn);
 
     if (create_prog_skeleton())
     {

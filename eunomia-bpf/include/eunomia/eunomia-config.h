@@ -15,6 +15,10 @@ struct eunomia_config {
     /// print config
     /// print the types and names of export headers
     bool print_header = true;
+
+    /// Whether libbpf should print debug info
+    /// This will only be apply to libbpf when start running
+    bool libbpf_debug_verbose = false;
 };
 
 #endif

@@ -62,7 +62,7 @@ see https://github.com/eunomia-bpf/ebpm for details.
 ## Road-map
 
 - [X] refactor the code from project `Eunomia` and provide quick examples
-- [X] support `tracepoints`, `fentry`, `kprobe`, and `ring buffer` / `perf event` output in userspace.
+- [X] support `tracepoints`, `fentry`, `kprobe`, `lsm`, and `ring buffer` / `perf event` output in userspace.
 - [X] make the compile easier to use, and more flexible. Don't need any code modified to compile.
 - [ ] use lua for ebpf package load config and add more ebpf support
 - [ ] support more ebpf program types:

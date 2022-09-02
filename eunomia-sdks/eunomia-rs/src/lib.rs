@@ -16,6 +16,12 @@ pub struct Eunomia_bpf_program {
     ctx: *mut eunomia_bpf,
 }
 
+impl Drop for Eunomia_bpf_program {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
+
 impl Eunomia_bpf_program {
     /// create a new eunomia bpf program from a json file
     pub fn create_ebpf_program(json_data: &str) -> Result<Eunomia_bpf_program, &str> {
