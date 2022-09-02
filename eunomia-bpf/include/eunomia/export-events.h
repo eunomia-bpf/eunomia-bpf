@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "eunomia-meta.hpp"
+#include "eunomia-bpf.h"
 
 namespace eunomia
 {
@@ -18,13 +19,6 @@ namespace eunomia
     std::size_t width;
     std::string name;
     std::string llvm_type;
-  };
-
-  enum class export_format_type
-  {
-    PLANT_TEXT,
-    JSON,
-    RAW_EVENT,
   };
 
   using export_event_handler = std::function<void(const char *event)>;

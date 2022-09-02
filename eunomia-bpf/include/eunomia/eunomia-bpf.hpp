@@ -118,7 +118,9 @@ namespace eunomia
     [[nodiscard]] int wait_and_export(void) noexcept;
     /// @brief export the data as json string.
     /// @details The key of the value is the field name in the export json.
-    [[nodiscard]] int wait_and_export_with_json_receiver(export_event_handler handler) noexcept;
+    [[nodiscard]] int wait_and_export_to_handler(
+        enum export_format_type type,
+        export_event_handler handler) noexcept;
 
     /// stop, detach, and clean up memory
 
@@ -130,8 +132,8 @@ namespace eunomia
     /// get the name id of the ebpf program
     const std::string &get_program_name(void) const;
 
-    /// print event with meta data;
-    /// used for export call backs: ring buffer and perf events
+    /// @brief  event with meta data;
+    /// @details  for export call backs: ring buffer and perf events
     /// provide a common interface to print the event data
     void handler_export_events(const char *event) const;
   };
