@@ -26,7 +26,7 @@ A wrapper of main functions of libbpf, some helper functions for user developmen
 
 - provide the ability to load ebpf code to the kernel and run it.
 - Use some additional data to help load and config the eBPF bytecode.
-- multiple language bindings: see [eunomia-sdks](eunomia-sdks). We have Rust now and will add more in the future.
+- multiple language bindings: see [eunomia-sdks](eunomia-sdks). We have `Rust` now and will add more in the future.
 
 #### Install and Run
 
@@ -55,7 +55,7 @@ see the compile toolchains [eunomia-cc](https://github.com/eunomia-bpf/eunomia-c
 
 you can also simply use the [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) repo as a template in github, just push to it and github action can help you compile CO-RE ebpf code!
 
-## An Observability tool
+### An Observability tool
 
 An observability tool use eBPFm with prometheus and OpenTelemetry exporter: [eunomia-exporter](eunomia-exporter)
 

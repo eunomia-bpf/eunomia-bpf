@@ -9,16 +9,24 @@
 
 extern crate link_cplusplus;
 
+
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 /// The eunomia ebpf rust bindings.
 pub struct Eunomia_bpf_program {
     ctx: *mut eunomia_bpf,
+    json_handler: Option<fn(event_json: &str)>
 }
 
 impl Drop for Eunomia_bpf_program {
     fn drop(&mut self) {
         self.stop();
+    }
+}
+
+unsafe extern "C" fn raw_handler_callback(ctx: *mut ::std::os::raw::c_void, event: *const ::std::os::raw::c_char) {
+    unsafe {
+        
     }
 }
 
@@ -30,7 +38,7 @@ impl Eunomia_bpf_program {
         if ctx.is_null() {
             return Err("Failed to create ebpf program");
         } else {
-            Ok(Eunomia_bpf_program { ctx })
+            Ok(Eunomia_bpf_program { ctx , json_handler: None })
         }
     }
     /// start running the ebpf program
@@ -53,6 +61,13 @@ impl Eunomia_bpf_program {
     /// events automatically.
     pub fn wait_and_export(&self) -> Result<(), &str> {
         let ret = unsafe { wait_and_export_ebpf_program(self.ctx) };
+        // let ret = unsafe {
+        //     wait_and_export_ebpf_program_to_handler(
+        //         self.ctx,
+        //         export_format_type_EEXPORT_JSON,
+        //         self.handler_callback,
+        //     )
+        // };
         if ret == 0 {
             Ok(())
         } else {
@@ -74,17 +89,16 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore]
-    fn test_run_ebpf_program() {
+    fn test_link() {
         unsafe {
-            let input =
-                include_str!("../../../bpftools/examples/bindsnoop/package.json").as_bytes();
+            let input = "{}";
+            print!("input: {}", input.len());
             let ctx: *mut eunomia_bpf = create_ebpf_program_from_json(input.as_ptr() as *const i8);
-            assert!(!ctx.is_null());
+            assert!(ctx.is_null());
             let res = run_ebpf_program(ctx);
-            assert!(res == 0);
+            assert!(res != 0);
             let res = wait_and_export_ebpf_program(ctx);
-            assert!(res == 0);
+            assert!(res != 0);
             stop_and_clean_ebpf_program(ctx);
         }
     }

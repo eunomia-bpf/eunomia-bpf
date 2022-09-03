@@ -23,9 +23,7 @@ int main(int argc, char *argv[])
   }
   else
   {
-    while (std::cin >> json_str)
-    {
-    }
+    json_str = std::string((std::istreambuf_iterator<char>(std::cin)), std::istreambuf_iterator<char>());
   }
   std::cout << json_str << std::endl;
   eunomia_ebpf_program ebpf_program{ json_str };
