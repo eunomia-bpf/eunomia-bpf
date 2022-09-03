@@ -29,7 +29,8 @@ extern "C"
   int wait_and_export_ebpf_program_to_handler(
       struct eunomia_bpf* program,
       enum export_format_type type,
-      void (*handler)(const char*));
+      void (*handler)(void* ,const char *),
+      void* ctx);
 
   /// @brief stop, detach, and clean up memory
   /// @details This is thread safe with wait_and_export.

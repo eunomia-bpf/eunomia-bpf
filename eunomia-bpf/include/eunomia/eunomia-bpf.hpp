@@ -120,7 +120,8 @@ namespace eunomia
     /// @details The key of the value is the field name in the export json.
     [[nodiscard]] int wait_and_export_to_handler(
         enum export_format_type type,
-        export_event_handler handler) noexcept;
+        export_event_handler handler,
+        void* ctx = nullptr) noexcept;
 
     /// stop, detach, and clean up memory
 

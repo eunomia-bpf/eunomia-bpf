@@ -172,12 +172,12 @@ namespace eunomia
       va_end(args);
       return update_buffer(res);
     }
-    void export_to_handler_or_print(export_event_handler &user_export_event_handler)
+    void export_to_handler_or_print(void *user_ctx, export_event_handler &user_export_event_handler)
     {
       *output_buffer_pointer = 0;
       if (user_export_event_handler != nullptr)
       {
-        user_export_event_handler(buffer_base);
+        user_export_event_handler(user_ctx, buffer_base);
       }
       else
       {
@@ -240,7 +240,15 @@ namespace eunomia
     {
       return;
     }
-    printer.export_to_handler_or_print(user_export_event_handler);
+    printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
+  }
+
+  void eunomia_event_exporter::raw_event_handler(const char *event)
+  {
+    if (user_export_event_handler)
+    {
+      user_export_event_handler(user_ctx, event);
+    }
   }
 
   void eunomia_event_exporter::print_plant_text_event_with_time(const char *event)
@@ -276,7 +284,7 @@ namespace eunomia
         }
       }
     }
-    printer.export_to_handler_or_print(user_export_event_handler);
+    printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
   }
 
   /// FIXME: output config with lua
@@ -297,11 +305,12 @@ namespace eunomia
     }
   }
 
-  void eunomia_event_exporter::set_export_type(export_format_type type, export_event_handler handler)
+  void eunomia_event_exporter::set_export_type(export_format_type type, export_event_handler handler, void *ctx)
   {
     format_type = type;
     /// preserve the user defined handler
     user_export_event_handler = handler;
+    user_ctx = ctx;
     switch (format_type)
     {
       case export_format_type::EEXPORT_JSON:
@@ -310,7 +319,9 @@ namespace eunomia
             std::bind(&eunomia_event_exporter::print_export_event_to_json, this, std::placeholders::_1);
       }
       break;
-      case export_format_type::EEXPORT_RAW_EVENT: internal_event_processor = handler; break;
+      case export_format_type::EEXPORT_RAW_EVENT:
+        internal_event_processor = std::bind(&eunomia_event_exporter::raw_event_handler, this, std::placeholders::_1);
+        break;
       case export_format_type::EEXPORT_PLANT_TEXT: [[fallthrough]];
       default:
         internal_event_processor =
@@ -324,9 +335,12 @@ namespace eunomia
     event_exporter.handler_export_events(event);
   }
 
-  int eunomia_ebpf_program::wait_and_export_to_handler(enum export_format_type type, export_event_handler handler) noexcept
+  int eunomia_ebpf_program::wait_and_export_to_handler(
+      enum export_format_type type,
+      export_event_handler handler,
+      void *ctx) noexcept
   {
-    event_exporter.set_export_type(type, handler);
+    event_exporter.set_export_type(type, handler, ctx);
     int err = 0;
     try
     {

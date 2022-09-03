@@ -28,6 +28,7 @@ struct opensnoop_event
   char comm[TASK_COMM_LEN] = "hello";
   char fname[NAME_MAX] = "/test/hello/opensnoop";
 } opensnoop_event_data;
+
 const char* opensnoop_meta_types =
     "{\"Fields\": [{\"Name\": \"ts\", \"Type\": \"unsigned long long\","
     " \"LLVMType\": \"i64\", \"FieldOffset\": 0}, {\"Name\": \"pid\", \"Type\": \"int\", \"LLVMType\":"
@@ -51,20 +52,16 @@ struct test_case
                      "{\"ts\":1000,\"pid\":20,\"uid\":1000,\"ret\":1,\"flags\":777,\"comm\":\"hello\",\"fname\":\"/test/"
                      "hello/opensnoop\"}" } };
 
-const char* check_buffer = nullptr;
-
-void plant_text_cmp_handler(const char* event)
+void plant_text_cmp_handler(void* ctx, const char* event)
 {
-  // printf("%s", event + 9);
-  // printf("%s", check_buffer + 9);
   // skip timestamp
+  const char* check_buffer = (const char*)ctx;
   assert(std::strcmp(event + 9, check_buffer + 9) == 0);
 }
 
-void json_cmp_handler(const char* event)
+void json_cmp_handler(void* ctx, const char* event)
 {
-  // printf("%s\n", event);
-  // printf("%s\n", check_buffer);
+  const char* check_buffer = (const char*)ctx;
   assert(std::strcmp(event, check_buffer) == 0);
 }
 
@@ -90,19 +87,17 @@ int check_event_output(test_case& t_case)
   exporter.handler_export_events(t_case.event);
 
   //  test plant text output to handler
-  exporter.set_export_type(export_format_type::EEXPORT_PLANT_TEXT, plant_text_cmp_handler);
+  exporter.set_export_type(export_format_type::EEXPORT_PLANT_TEXT, plant_text_cmp_handler, (void*)t_case.plant_text_result);
   res = exporter.check_for_meta_types_and_create_export_format(meta);
   assert(res >= 0);
   std::cout << "check_event handler plant text: " << res << std::endl;
-  check_buffer = t_case.plant_text_result;
   exporter.handler_export_events(t_case.event);
 
   // test json output to handler
-  exporter.set_export_type(export_format_type::EEXPORT_JSON, json_cmp_handler);
+  exporter.set_export_type(export_format_type::EEXPORT_JSON, json_cmp_handler, (void*)t_case.json_result);
   res = exporter.check_for_meta_types_and_create_export_format(meta);
   assert(res >= 0);
   std::cout << "check_event handler json: " << res << std::endl;
-  check_buffer = t_case.json_result;
   exporter.handler_export_events(t_case.event);
 
   return 0;

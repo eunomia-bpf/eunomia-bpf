@@ -21,7 +21,8 @@ namespace eunomia
     std::string llvm_type;
   };
 
-  using export_event_handler = std::function<void(const char *event)>;
+  using internal_event_handler = std::function<void(const char *event)>;
+  using export_event_handler = std::function<void(void* ctx, const char *event)>;
 
   /// @brief eunomia-bpf exporter for events in user space
   class eunomia_event_exporter
@@ -34,9 +35,12 @@ namespace eunomia
     /// user define handler to process export data
     export_event_handler user_export_event_handler = nullptr;
     /// internal handler to process export data to a given format
-    export_event_handler internal_event_processor = nullptr;
+    internal_event_handler internal_event_processor = nullptr;
     /// export types meta data
     std::vector<export_type_info> checked_export_types;
+
+    /// user defined export ctx pointer
+    void* user_ctx = nullptr;
 
     /// @brief add the type to checked_export_types base on export_format_type
     /// @param f export_type_info data
@@ -50,6 +54,8 @@ namespace eunomia
 
     /// a default printer to print event data
     void print_plant_text_event_with_time(const char *event);
+    /// a default printer to pass event data to user defined handler
+    void raw_event_handler(const char *event);
     ///  printer to print event data to json
     void print_export_event_to_json(const char *event);
 
@@ -73,7 +79,7 @@ namespace eunomia
     int check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types);
 
     /// @brief set user export event handler to type
-    void set_export_type(export_format_type type, export_event_handler handler);
+    void set_export_type(export_format_type type, export_event_handler handler, void* ctx = nullptr);
   };
 
 }  // namespace eunomia
