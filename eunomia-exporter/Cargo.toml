@@ -2,14 +2,18 @@
 name = "eunomia-exporter"
 version = "0.1.0"
 edition = "2021"
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-eunomia-rs = { path = "../eunomia-sdks/eunomia-rs" }
 opentelemetry = { version="0.17" }
 opentelemetry-prometheus = "0.10"
 prometheus = "0.13"
 lazy_static = "1.4"
 hyper = { version = "0.14", features = ["full"] }
 tokio = { version = "1", features = ["full"] }
+link-cplusplus = "1.0"
+
+[build-dependencies]
+bindgen = "0.60.1"

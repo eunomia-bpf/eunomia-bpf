@@ -4,9 +4,13 @@ version = "0.1.0"
 edition = "2021"
 description = "A rust binding for eunomia-bpf."
 license = "MIT"
+build = "build.rs"
 
 [dependencies]
 link-cplusplus = "1.0"
 
 [build-dependencies]
 bindgen = "0.60.1"
+
+[lib]
+crate-type = ["lib", "staticlib"]

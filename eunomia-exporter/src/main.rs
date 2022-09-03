@@ -1,10 +1,11 @@
+mod bindings;
 mod config;
 mod server;
-use std::{env};
+use std::env;
 
 extern crate link_cplusplus;
 
-use eunomia_rs::Eunomia_bpf_program;
+use bindings::BPFProgram;
 use tokio::{fs, time::Instant};
 extern crate lazy_static;
 
@@ -17,9 +18,12 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
     let json_data = fs::read_to_string(&args[1]).await?;
     let now = Instant::now();
-    let ebpf_program = Eunomia_bpf_program::create_ebpf_program(&json_data)?;
+    let ebpf_program = BPFProgram::create_ebpf_program(&json_data)?;
     ebpf_program.run()?;
     let elapsed_time = now.elapsed();
-    println!("Running slow_function() took {} seconds.", elapsed_time.as_secs());
+    println!(
+        "Running slow_function() took {} seconds.",
+        elapsed_time.as_secs()
+    );
     Ok(())
 }

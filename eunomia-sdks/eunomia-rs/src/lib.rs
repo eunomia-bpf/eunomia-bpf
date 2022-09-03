@@ -9,36 +9,39 @@
 
 extern crate link_cplusplus;
 
-
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 /// The eunomia ebpf rust bindings.
-pub struct Eunomia_bpf_program {
+pub struct BPFProgram {
     ctx: *mut eunomia_bpf,
-    json_handler: Option<fn(event_json: &str)>
+    json_handler: Option<fn(event_json: &str)>,
 }
 
-impl Drop for Eunomia_bpf_program {
+impl Drop for BPFProgram {
     fn drop(&mut self) {
         self.stop();
     }
 }
 
-unsafe extern "C" fn raw_handler_callback(ctx: *mut ::std::os::raw::c_void, event: *const ::std::os::raw::c_char) {
-    unsafe {
-        
-    }
+unsafe extern "C" fn raw_handler_callback(
+    ctx: *mut ::std::os::raw::c_void,
+    event: *const ::std::os::raw::c_char,
+) {
+    unsafe {}
 }
 
-impl Eunomia_bpf_program {
+impl BPFProgram {
     /// create a new eunomia bpf program from a json file
-    pub fn create_ebpf_program(json_data: &str) -> Result<Eunomia_bpf_program, &str> {
+    pub fn create_ebpf_program(json_data: &str) -> Result<BPFProgram, &str> {
         let ctx =
             unsafe { create_ebpf_program_from_json(json_data.as_bytes().as_ptr() as *const i8) };
         if ctx.is_null() {
             return Err("Failed to create ebpf program");
         } else {
-            Ok(Eunomia_bpf_program { ctx , json_handler: None })
+            Ok(BPFProgram {
+                ctx,
+                json_handler: None,
+            })
         }
     }
     /// start running the ebpf program
