@@ -26,7 +26,7 @@ A wrapper of main functions of libbpf, some helper functions for user developmen
 
 - provide the ability to load ebpf code to the kernel and run it.
 - Use some additional data to help load and config the eBPF bytecode.
-- multiple language bindings: see [eunomia-sdks](eunomia-sdks)
+- multiple language bindings: see [eunomia-sdks](eunomia-sdks). We have Rust now and will add more in the future.
 
 #### Install and Run
 
@@ -39,7 +39,7 @@ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ecli
 see [eunomia-bpf](eunomia-bpf) folder for details. With the library, we have provide [a simple cli](https://github.com/eunomia-bpf/eunomia-bpf/releases/), you can simply run pre-compiled ebpf data with a url or path, on most eBPF supported kernel versions:
 
 ```bash
-$ sudo ./ecli run https://gitee.com/yunwei37/eunomia-bpf/raw/master/bpftools/examples/package.json
+$ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json
 $ sudo ./ecli run bpftools/examples/package.json
 
 $ sudo ./ecli server # run as a simple server

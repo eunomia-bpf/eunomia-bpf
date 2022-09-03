@@ -23,8 +23,8 @@ use client to communicate with the server:
 $ sudo ./ecli client list
 200 :["status","ok","list",[]]
 
-$ sudo ./ecli client start https://gitee.com/yunwei37/eunomia-bpf/raw/master/bpftools/examples/package.json
-2022-08-22 22:44:37 URL:https://gitee.com/yunwei37/eunomia-bpf/raw/master/bpftools/examples/package.json [42181] -> "/tmp/ebpm/package.json" [1]
+$ sudo ./ecli client start https://eunomia-bpf.github.io/ebpm-template/package.json
+2022-08-22 22:44:37 URL:https://eunomia-bpf.github.io/ebpm-template/package.json [42181] -> "/tmp/ebpm/package.json" [1]
 200 :["status","ok","id",1]
 
 $ sudo ./ecli client list
