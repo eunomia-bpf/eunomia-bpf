@@ -55,6 +55,10 @@ see the compile toolchains [eunomia-cc](https://github.com/eunomia-bpf/eunomia-c
 
 you can also simply use the [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) repo as a template in github, just push to it and github action can help you compile CO-RE ebpf code!
 
+## An Observability tool
+
+An observability tool use eBPFm with prometheus and OpenTelemetry exporter: [eunomia-exporter](eunomia-exporter)
+
 ### An ebpf package manager: ebpm
 
 see https://github.com/eunomia-bpf/ebpm for details.

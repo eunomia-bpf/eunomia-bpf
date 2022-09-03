@@ -47,7 +47,7 @@ struct test_case
   const char* json_result;
 } test_cases[] = { { reinterpret_cast<const char*>(&opensnoop_event_data),
                      opensnoop_meta_types,
-                     "08:38:52 1000 20 1000 1 777 hello /test/hello/opensnoop \n",
+                     "08:38:52 1000 20 1000 1 777 hello /test/hello/opensnoop ",
                      "{\"ts\":1000,\"pid\":20,\"uid\":1000,\"ret\":1,\"flags\":777,\"comm\":\"hello\",\"fname\":\"/test/"
                      "hello/opensnoop\"}" } };
 

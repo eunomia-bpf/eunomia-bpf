@@ -13,7 +13,7 @@ test_project:
 
 clone_and_install_deps:
 	rm -rf ./eunomia-cc ./ecli
-	git clone https://github.com/eunomia-bpf/eunomia-cc --recursive 	# checkout the newest toolchain
+	git clone https://github.com/eunomia-bpf/eunomia-cc --recursive --depth=1	# checkout the newest toolchain
 	make -C eunomia-cc
 	make -C $(ECLI_DIR) install
 	cp $(ECLI_DIR)build/bin/Release/ecli ./ecli

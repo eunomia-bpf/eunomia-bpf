@@ -276,11 +276,6 @@ namespace eunomia
         }
       }
     }
-    res = printer.snprintf_event("\n");
-    if (res < 0)
-    {
-      return;
-    }
     printer.export_to_handler_or_print(user_export_event_handler);
   }
 
