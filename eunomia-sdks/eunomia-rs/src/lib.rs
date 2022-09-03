@@ -7,30 +7,49 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
+use std::ffi::CString;
+use std::{rc::Weak, sync::Arc};
 extern crate link_cplusplus;
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-/// The eunomia ebpf rust bindings.
-pub struct BPFProgram {
-    ctx: *mut eunomia_bpf,
-    json_handler: Option<fn(event_json: &str)>,
+impl<'a> Drop for BPFProgram<'a> {
+    fn drop(&mut self) {
+        unsafe { stop_and_clean_ebpf_program(self.ctx) };
+    }
 }
 
-impl Drop for BPFProgram {
-    fn drop(&mut self) {
-        self.stop();
-    }
+pub struct BPFEvent<'b> {
+    messgae: &'b str,
+}
+
+/// impl this trait to handle the bpf events
+pub trait HandleBPFEvent {
+    fn on_event(&self, event: &BPFEvent);
+}
+
+/// The eunomia ebpf rust bindings.
+pub struct BPFProgram<'a> {
+    ctx: *mut eunomia_bpf,
+    handlers: Vec<Arc<Weak<dyn HandleBPFEvent + 'a>>>,
 }
 
 unsafe extern "C" fn raw_handler_callback(
     ctx: *mut ::std::os::raw::c_void,
     event: *const ::std::os::raw::c_char,
 ) {
-    unsafe {}
+    let bpf_program = &*(ctx as *const BPFProgram);
+    let event = BPFEvent {
+        messgae: std::ffi::CStr::from_ptr(event).to_str().unwrap(),
+    };
+    for handler in &bpf_program.handlers {
+        if let Some(handler) = handler.upgrade() {
+            handler.on_event(&event);
+        }
+    }
 }
 
-impl BPFProgram {
+impl<'a> BPFProgram<'a> {
     /// create a new eunomia bpf program from a json file
     pub fn create_ebpf_program(json_data: &str) -> Result<BPFProgram, &str> {
         let ctx =
@@ -40,7 +59,7 @@ impl BPFProgram {
         } else {
             Ok(BPFProgram {
                 ctx,
-                json_handler: None,
+                handlers: vec![],
             })
         }
     }
@@ -57,20 +76,31 @@ impl BPFProgram {
             Err("Failed to run ebpf program")
         }
     }
+    pub fn register_handler(&mut self, cb: Weak<impl HandleBPFEvent + 'a>) -> usize {
+        self.handlers.push(Arc::new(cb));
+        let id = self.handlers.len();
+        id - 1
+    }
+
     /// wait for the program to exit and receive data from export maps
     ///
     /// if the program has a ring buffer or perf event to export data
     /// to user space, the program will help load the map info and poll the
     /// events automatically.
     pub fn wait_and_export(&self) -> Result<(), &str> {
-        let ret = unsafe { wait_and_export_ebpf_program(self.ctx) };
-        // let ret = unsafe {
-        //     wait_and_export_ebpf_program_to_handler(
-        //         self.ctx,
-        //         export_format_type_EEXPORT_JSON,
-        //         self.handler_callback,
-        //     )
-        // };
+        let mut ret = 0;
+        if self.handlers.len() == 0 {
+            ret = unsafe { wait_and_export_ebpf_program(self.ctx) };
+        } else {
+            ret = unsafe {
+                wait_and_export_ebpf_program_to_handler(
+                    self.ctx,
+                    export_format_type_EEXPORT_JSON,
+                    Some(raw_handler_callback),
+                    self as *const BPFProgram as *mut ::std::os::raw::c_void,
+                )
+            };
+        }
         if ret == 0 {
             Ok(())
         } else {
@@ -89,6 +119,8 @@ impl BPFProgram {
 
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use super::*;
 
     #[test]
@@ -104,5 +136,32 @@ mod tests {
             assert!(res != 0);
             stop_and_clean_ebpf_program(ctx);
         }
+    }
+
+    #[test]
+    fn test_handler() {
+        struct TestHandler {
+            count: usize,
+        }
+        impl HandleBPFEvent for TestHandler {
+            fn on_event(&self, event: &BPFEvent) {
+                assert_eq!(event.messgae, "test");
+            }
+        }
+        let handler = Rc::new(TestHandler { count: 0 });
+        let mut ebpf_program = BPFProgram {
+            ctx: std::ptr::null_mut(),
+            handlers: vec![],
+        };
+        ebpf_program.register_handler(Rc::downgrade(&handler));
+        let test_str = "test";
+        let cstr = CString::new(test_str).unwrap();
+        // send a signal to the program
+        unsafe {
+            raw_handler_callback(
+                &ebpf_program as *const BPFProgram as *mut ::std::os::raw::c_void,
+                cstr.as_ptr(),
+            )
+        };
     }
 }

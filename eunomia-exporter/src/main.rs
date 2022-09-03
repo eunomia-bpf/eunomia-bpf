@@ -1,6 +1,7 @@
 mod bindings;
 mod config;
 mod server;
+mod state;
 use std::env;
 
 extern crate link_cplusplus;
@@ -11,6 +12,8 @@ extern crate lazy_static;
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let config = config::ExporterConfig {};
+
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
         println!("Usage: {} <json file>", args[0]);
@@ -22,8 +25,10 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     ebpf_program.run()?;
     let elapsed_time = now.elapsed();
     println!(
-        "Running slow_function() took {} seconds.",
-        elapsed_time.as_secs()
+        "Running slow_function() took {} ms.",
+        elapsed_time.as_millis()
     );
+    // ebpf_program.wait_and_export()?;
+    server::start_server(&config).await?;
     Ok(())
 }
