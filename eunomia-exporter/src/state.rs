@@ -9,6 +9,7 @@ use opentelemetry::sdk::Resource;
 use opentelemetry_prometheus::PrometheusExporter;
 use prometheus::proto::MetricFamily;
 use tokio::runtime::{Builder, Runtime};
+use tokio::task::JoinHandle;
 
 use crate::bindings::{BPFEvent, BPFProgram, HandleBPFEvent};
 use crate::config::ExporterConfig;
@@ -57,72 +58,102 @@ impl AppState {
 
 impl<'a> HandleBPFEvent for AppState {
     fn on_event(&self, event: &BPFEvent) {
-        print!("{} ", event.messgae);
+        println!("{}", event.messgae);
         self.http_counter
             .add(1, &[KeyValue::new("key", event.messgae.to_string())]);
     }
 }
 
 pub struct BPFProgramManager<'a> {
-    states: Mutex<HashMap<u32, Arc<BPFProgramState<'a>>>>,
+    states: HashMap<u32, BPFProgramState<'a>>,
     id: u32,
 }
 
 impl<'a> BPFProgramManager<'a> {
     pub fn new() -> BPFProgramManager<'a> {
         BPFProgramManager {
-            states: Mutex::new(HashMap::new()),
+            states: HashMap::new(),
             id: 0,
         }
     }
-    pub fn add_ebpf_prog(&mut self, prog: Arc<BPFProgramState<'a>>) {
-        let mut progs = self.states.lock().unwrap();
-        progs.insert(self.id, prog);
+    pub fn add_bpf_prog(&mut self, prog: BPFProgramState<'a>) {
+        self.states.insert(self.id, prog);
         self.id += 1;
     }
-    pub async fn run_ebpf(
-        &mut self,
-        json_data: &'a str,
-        name: String,
-        cb: Weak<impl HandleBPFEvent + 'a>,
-    ) -> Result<()> {
-        // let future = tokio::spawn(async move {
-        //     let mut prog = BPFProgramState::new(json_data, name)?;
-        //     prog.run(cb)?;
-        //     prog.wait_and_export()
-        // });
-        Ok(())
-    }
     pub fn list_all_progs(&self) -> Vec<(u32, String)> {
-        let progs = self.states.lock().unwrap();
         let mut result = Vec::new();
-        for (id, prog) in progs.iter() {
+        for (id, prog) in self.states.iter() {
             result.push((*id, prog.name.clone()));
         }
         result
+    }
+    pub fn remove_bpf_prog(&mut self, id: u32) -> Result<()> {
+        self.states.remove(&id);
+        Ok(())
     }
 }
 
 pub struct BPFProgramState<'a> {
     name: String,
-    program: BPFProgram<'a>,
+    program: Arc<BPFProgram<'a>>,
+    handler: JoinHandle<Result<()>>,
 }
 
 impl<'a> BPFProgramState<'a> {
-    pub fn new(json_data: String, name: String) -> Result<BPFProgramState<'a>> {
-        let program = BPFProgram::create_ebpf_program(json_data)?;
-        Ok(BPFProgramState { name, program })
-    }
-    pub fn run(&mut self, cb: Weak<impl HandleBPFEvent + 'a>) -> Result<()> {
-        self.program.run()?;
-        self.program.register_handler(cb);
-        Ok(())
-    }
-    pub fn wait_and_export(&self) -> Result<()> {
-        self.program.wait_and_export()?;
-        Ok(())
+    pub fn run_and_wait(
+        json_data: String,
+        name: String,
+        cb: Weak<AppState>,
+        runtime: &Runtime,
+    ) -> Result<BPFProgramState<'a>> {
+        let mut program = BPFProgram::create_ebpf_program(json_data)?;
+        program.register_handler(cb);
+        let program = Arc::new(program);
+        let new_prog = program.clone();
+        let handler = runtime.spawn(async move {
+            new_prog.run()?;
+            print!("Running ebpf program");
+            new_prog.wait_and_export()
+        });
+        let state = BPFProgramState {
+            name,
+            program,
+            handler,
+        };
+        Ok(state)
     }
     pub fn stop(&self) {
         self.program.stop();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config;
+    use std::{fs, time::Duration, time::Instant};
+
+    #[test]
+    fn test_async_start_ebpf_program_state() {
+        let config = config::ExporterConfig {};
+        let state = Arc::new(AppState::init(&config));
+
+        let json_data = fs::read_to_string("tests/package.json").unwrap();
+        let now = Instant::now();
+        let ebpf_program = BPFProgramState::run_and_wait(
+            json_data,
+            "hello".to_string(),
+            Arc::downgrade(&state),
+            state.get_runtime(),
+        )
+        .unwrap();
+        let elapsed_time = now.elapsed();
+        println!(
+            "Running slow_function() took {} ms.",
+            elapsed_time.as_millis()
+        );
+        std::thread::sleep(Duration::from_secs(5));
+        println!("Finished time-consuming task.");
+        ebpf_program.stop();
     }
 }
