@@ -380,8 +380,8 @@ extern "C"
   int wait_and_export_ebpf_program_to_handler(
       struct eunomia_bpf *prog,
       enum export_format_type type,
-      void (*handler)(void* ,const char *),
-      void* ctx)
+      void (*handler)(void *, const char *),
+      void *ctx)
   {
     if (!prog || !handler)
     {
@@ -397,6 +397,25 @@ extern "C"
       return;
     }
     prog->program.stop_and_clean();
+    delete prog;
+  }
+
+  /// @brief stop the ebpf program
+  void stop_ebpf_program(struct eunomia_bpf *prog)
+  {
+    if (!prog)
+    {
+      return;
+    }
+    prog->program.stop_and_clean();
+  }
+  /// @brief free the memory of the program
+  void free_ebpf_program(struct eunomia_bpf *prog)
+  {
+    if (!prog)
+    {
+      return;
+    }
     delete prog;
   }
 }

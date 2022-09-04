@@ -7,20 +7,24 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use std::ffi::CString;
-use std::{rc::Weak, sync::Arc};
+use anyhow::{anyhow, Result};
+use std::{sync::Arc, sync::Weak};
 extern crate link_cplusplus;
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 impl<'a> Drop for BPFProgram<'a> {
     fn drop(&mut self) {
-        unsafe { stop_and_clean_ebpf_program(self.ctx) };
+        if self.ctx.is_null() {
+            return;
+        }
+        unsafe { free_ebpf_program(self.ctx) };
+        self.ctx = std::ptr::null_mut();
     }
 }
 
 pub struct BPFEvent<'b> {
-    messgae: &'b str,
+    pub messgae: &'b str,
 }
 
 /// impl this trait to handle the bpf events
@@ -33,6 +37,9 @@ pub struct BPFProgram<'a> {
     ctx: *mut eunomia_bpf,
     handlers: Vec<Arc<Weak<dyn HandleBPFEvent + 'a>>>,
 }
+
+unsafe impl Send for BPFProgram<'_> {}
+unsafe impl Sync for BPFProgram<'_> {}
 
 unsafe extern "C" fn raw_handler_callback(
     ctx: *mut ::std::os::raw::c_void,
@@ -51,11 +58,11 @@ unsafe extern "C" fn raw_handler_callback(
 
 impl<'a> BPFProgram<'a> {
     /// create a new eunomia bpf program from a json file
-    pub fn create_ebpf_program(json_data: &str) -> Result<BPFProgram, &str> {
+    pub fn create_ebpf_program(json_data: String) -> Result<BPFProgram<'a>> {
         let ctx =
             unsafe { create_ebpf_program_from_json(json_data.as_bytes().as_ptr() as *const i8) };
         if ctx.is_null() {
-            return Err("Failed to create ebpf program");
+            return Err(anyhow!("Failed to create ebpf program"));
         } else {
             Ok(BPFProgram {
                 ctx,
@@ -68,12 +75,12 @@ impl<'a> BPFProgram<'a> {
     /// load and attach the ebpf program to the kernel to run the ebpf program
     /// if the ebpf program has maps to export to user space, you need to call
     /// the wait and export.
-    pub fn run(&self) -> Result<(), &str> {
+    pub fn run(&self) -> Result<()> {
         let ret = unsafe { run_ebpf_program(self.ctx) };
         if ret == 0 {
             Ok(())
         } else {
-            Err("Failed to run ebpf program")
+            Err(anyhow!("Failed to run ebpf program"))
         }
     }
     pub fn register_handler(&mut self, cb: Weak<impl HandleBPFEvent + 'a>) -> usize {
@@ -87,7 +94,7 @@ impl<'a> BPFProgram<'a> {
     /// if the program has a ring buffer or perf event to export data
     /// to user space, the program will help load the map info and poll the
     /// events automatically.
-    pub fn wait_and_export(&self) -> Result<(), &str> {
+    pub fn wait_and_export(&self) -> Result<()> {
         let mut ret = 0;
         if self.handlers.len() == 0 {
             ret = unsafe { wait_and_export_ebpf_program(self.ctx) };
@@ -104,7 +111,7 @@ impl<'a> BPFProgram<'a> {
         if ret == 0 {
             Ok(())
         } else {
-            Err("Failed to wait and export ebpf program")
+            Err(anyhow!("Failed to wait and export ebpf program"))
         }
     }
     /// stop, detach, and clean up memory
@@ -113,13 +120,16 @@ impl<'a> BPFProgram<'a> {
     /// it will notify the wait_and_export to exit and
     /// wait until it exits.
     pub fn stop(&self) {
-        unsafe { stop_and_clean_ebpf_program(self.ctx) };
+        if self.ctx.is_null() {
+            return;
+        }
+        unsafe { stop_ebpf_program(self.ctx) };
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
+    use std::ffi::CString;
 
     use super::*;
 
@@ -135,25 +145,24 @@ mod tests {
             let res = wait_and_export_ebpf_program(ctx);
             assert!(res != 0);
             stop_and_clean_ebpf_program(ctx);
+            stop_and_clean_ebpf_program(ctx);
         }
     }
 
     #[test]
     fn test_handler() {
-        struct TestHandler {
-            count: usize,
-        }
+        struct TestHandler {}
         impl HandleBPFEvent for TestHandler {
             fn on_event(&self, event: &BPFEvent) {
                 assert_eq!(event.messgae, "test");
             }
         }
-        let handler = Rc::new(TestHandler { count: 0 });
+        let handler = Arc::new(TestHandler {});
         let mut ebpf_program = BPFProgram {
             ctx: std::ptr::null_mut(),
             handlers: vec![],
         };
-        ebpf_program.register_handler(Rc::downgrade(&handler));
+        ebpf_program.register_handler(Arc::downgrade(&handler));
         let test_str = "test";
         let cstr = CString::new(test_str).unwrap();
         // send a signal to the program
