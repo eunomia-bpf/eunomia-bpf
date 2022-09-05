@@ -33,7 +33,8 @@ A wrapper of main functions of libbpf, some helper functions for user developmen
 To install, just download and use the `binary`:
 
 ```bash
-wget https://aka.pw/bpf-ecli -O ecli && chmod +x ecli
+$ # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
+$ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ecli
 ```
 
 see [eunomia-bpf](eunomia-bpf) folder for details. With the library, we have provide [a simple cli](https://github.com/eunomia-bpf/eunomia-bpf/releases/), you can simply run pre-compiled ebpf data with a url or path, on most eBPF supported kernel versions:

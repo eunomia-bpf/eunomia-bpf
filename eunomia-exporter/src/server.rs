@@ -36,10 +36,20 @@ async fn serve_req(
                 .body(Body::from(buffer))
                 .unwrap()
         }
-        (&Method::GET, "/") => Response::builder()
-            .status(200)
-            .body(Body::from("Hello World"))
-            .unwrap(),
+        (&Method::GET, "/") => {
+            let json_data = fs::read_to_string("tests/package.json").unwrap();
+            let ebpf_program = BPFProgramState::run_and_wait(
+                json_data,
+                "newaaa".to_string(),
+                Arc::downgrade(&state),
+                state.get_runtime(),
+            )
+            .unwrap();
+            Response::builder()
+                .status(200)
+                .body(Body::from("Hello World"))
+                .unwrap()
+        }
         _ => Response::builder()
             .status(404)
             .body(Body::from("Missing Page"))

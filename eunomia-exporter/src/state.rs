@@ -115,6 +115,7 @@ impl<'a> BPFProgramState<'a> {
             print!("Running ebpf program");
             new_prog.wait_and_export()
         });
+        println!("Running ebpf program {}", name);
         let state = BPFProgramState {
             name,
             program,
