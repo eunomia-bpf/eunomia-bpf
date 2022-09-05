@@ -59,6 +59,9 @@ unsafe extern "C" fn raw_handler_callback(
 impl<'a> BPFProgram<'a> {
     /// create a new eunomia bpf program from a json file
     pub fn create_ebpf_program(json_data: String) -> Result<BPFProgram<'a>> {
+        if json_data.is_empty() {
+            return Err(anyhow!("json data is empty"));
+        }
         let ctx =
             unsafe { create_ebpf_program_from_json(json_data.as_bytes().as_ptr() as *const i8) };
         if ctx.is_null() {
@@ -129,12 +132,12 @@ impl<'a> BPFProgram<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::CString;
+    use std::{ffi::CString, fs};
 
     use super::*;
 
     #[test]
-    fn test_link() {
+    fn test_link_and_raw_api() {
         unsafe {
             let input = "{}";
             print!("input: {}", input.len());
@@ -172,5 +175,18 @@ mod tests {
                 cstr.as_ptr(),
             )
         };
+    }
+
+    #[test]
+    fn test_run_program() {
+        let json_data = fs::read_to_string("tests/package.json").unwrap();
+        let ebpf_program = Arc::new(BPFProgram::create_ebpf_program(json_data).unwrap());
+        let handler = ebpf_program.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_secs(5));
+            handler.stop();
+        });
+        ebpf_program.run().unwrap();
+        ebpf_program.wait_and_export().unwrap();
     }
 }

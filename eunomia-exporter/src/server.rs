@@ -11,8 +11,8 @@ use std::{convert::Infallible, fs, time::Duration};
 use tokio::time::Instant;
 
 use crate::{
-    config::ExporterConfig,
-    state::{AppState, BPFProgramState},
+    config::{ExporterConfig, ProgramConfig},
+    state::{AppState}, bpfprog::BPFProgramState,
 };
 
 async fn serve_req(
@@ -39,10 +39,8 @@ async fn serve_req(
         (&Method::GET, "/") => {
             let json_data = fs::read_to_string("tests/package.json").unwrap();
             let ebpf_program = BPFProgramState::run_and_wait(
-                json_data,
-                "newaaa".to_string(),
-                Arc::downgrade(&state),
-                state.get_runtime(),
+                ProgramConfig::default(),
+                state.clone(),
             )
             .unwrap();
             Response::builder()
@@ -67,11 +65,11 @@ pub fn start_server(
     let new_state = state.clone();
 
     let json_data = fs::read_to_string("tests/package.json").unwrap();
+        let mut prog_config = ProgramConfig::default();
+        prog_config.ebpf_data = json_data;
     let ebpf_program = BPFProgramState::run_and_wait(
-        json_data,
-        "hello".to_string(),
-        Arc::downgrade(&state),
-        state.get_runtime(),
+        prog_config,
+        state.clone(),
     )
     .unwrap();
 
@@ -96,7 +94,6 @@ pub fn start_server(
         let server = Server::bind(&addr).serve(make_svc);
 
         println!("Listening on http://{}", addr);
-
         server.await
     });
     Ok(())
