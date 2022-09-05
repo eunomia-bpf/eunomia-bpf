@@ -33,7 +33,6 @@ impl AppState {
         let exporter = init_meter();
         let meter = global::meter("ex.com/eunomia");
         let runtime = Builder::new_multi_thread()
-            .worker_threads(3)
             .enable_all()
             .build()
             .unwrap();
@@ -53,5 +52,7 @@ impl AppState {
     pub fn get_runtime(&self) -> &Runtime {
         return &self.runtime;
     }
+    pub fn shutdown(self) {
+        self.runtime.shutdown_background();
+    }
 }
-

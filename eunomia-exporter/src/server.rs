@@ -11,8 +11,9 @@ use std::{convert::Infallible, fs, time::Duration};
 use tokio::time::Instant;
 
 use crate::{
+    bpfprog::BPFProgramState,
     config::{ExporterConfig, ProgramConfig},
-    state::{AppState}, bpfprog::BPFProgramState,
+    state::AppState,
 };
 
 async fn serve_req(
@@ -38,11 +39,8 @@ async fn serve_req(
         }
         (&Method::GET, "/") => {
             let json_data = fs::read_to_string("tests/package.json").unwrap();
-            let ebpf_program = BPFProgramState::run_and_wait(
-                ProgramConfig::default(),
-                state.clone(),
-            )
-            .unwrap();
+            let ebpf_program =
+                BPFProgramState::run_and_wait(ProgramConfig::default(), state.clone()).unwrap();
             Response::builder()
                 .status(200)
                 .body(Body::from("Hello World"))
@@ -65,13 +63,9 @@ pub fn start_server(
     let new_state = state.clone();
 
     let json_data = fs::read_to_string("tests/package.json").unwrap();
-        let mut prog_config = ProgramConfig::default();
-        prog_config.ebpf_data = json_data;
-    let ebpf_program = BPFProgramState::run_and_wait(
-        prog_config,
-        state.clone(),
-    )
-    .unwrap();
+    let mut prog_config = ProgramConfig::default();
+    prog_config.ebpf_data = json_data;
+    let ebpf_program = BPFProgramState::run_and_wait(prog_config, state.clone()).unwrap();
 
     let server_handler = new_state.get_runtime().block_on(async move {
         // For every connection, we must make a `Service` to handle all

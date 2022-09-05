@@ -2,7 +2,8 @@ use anyhow::Result;
 use opentelemetry::{global, metrics::Counter, KeyValue};
 use std::{
     collections::HashMap,
-    sync::{Arc, Weak}, marker::PhantomData,
+    marker::PhantomData,
+    sync::{Arc, Weak},
 };
 use tokio::task::JoinHandle;
 
@@ -32,7 +33,10 @@ impl<'a> BPFEventHandler<'a> {
             .u64_counter("example.http_requests_total")
             .with_description("Total number of HTTP requests made.")
             .try_init()?;
-        Ok(BPFEventHandler { http_counter, marker: PhantomData })
+        Ok(BPFEventHandler {
+            http_counter,
+            marker: PhantomData,
+        })
     }
 }
 
@@ -105,29 +109,29 @@ impl<'a> BPFProgramState<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{ExporterConfig};
-    use std::{fs, time::Duration, time::Instant};
+    use crate::config::ExporterConfig;
+    use std::{fs, time::Duration, time::Instant, process::exit};
 
     #[test]
+    #[ignore]
     fn test_async_start_ebpf_program_state() {
         let config = ExporterConfig::default();
         let state = Arc::new(AppState::init(&config));
-        let json_data = fs::read_to_string("tests/package.json").unwrap();
-        let mut prog_config = ProgramConfig::default();
-        prog_config.ebpf_data = json_data;
-        let now = Instant::now();
-        let ebpf_program = BPFProgramState::run_and_wait(
-            prog_config,
-            state,
-        )
-        .unwrap();
-        let elapsed_time = now.elapsed();
-        println!(
-            "Running slow_function() took {} ms.",
-            elapsed_time.as_millis()
-        );
+        let new_state = state.clone();
+        new_state.get_runtime().spawn(async move {
+            let json_data = fs::read_to_string("tests/package.json").unwrap();
+            let mut prog_config = ProgramConfig::default();
+            prog_config.ebpf_data = json_data;
+            let now = Instant::now();
+            let ebpf_program = BPFProgramState::run_and_wait(prog_config, state).unwrap();
+            let elapsed_time = now.elapsed();
+            println!(
+                "Running slow_function() took {} ms.",
+                elapsed_time.as_millis()
+            );
+            ebpf_program.stop();
+        });
         std::thread::sleep(Duration::from_secs(5));
         println!("Finished time-consuming task.");
-        ebpf_program.stop();
     }
 }
