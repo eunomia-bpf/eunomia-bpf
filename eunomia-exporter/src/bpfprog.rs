@@ -1,40 +1,68 @@
 use anyhow::Result;
 use opentelemetry::{global, metrics::Counter, KeyValue};
-use std::{
-    collections::HashMap,
-    marker::PhantomData,
-    sync::{Arc, Weak},
-};
+use serde_json::Value;
+use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 use tokio::task::JoinHandle;
 
 use crate::{
     bindings::{BPFEvent, BPFProgram, HandleBPFEvent},
-    config::{CounterConfig, MetricsConfig, ProgramConfig},
+    config::{ExporterConfig, MetricsConfig, ProgramConfig},
     state::AppState,
 };
 
 struct BPFEventHandler<'a> {
-    http_counter: Counter<u64>,
+    counters: Vec<Counter<u64>>,
+    config: MetricsConfig,
     marker: PhantomData<&'a ()>,
 }
 
 impl<'a> HandleBPFEvent for BPFEventHandler<'a> {
     fn on_event(&self, event: &BPFEvent) {
-        // println!("{}", event.messgae);
-        self.http_counter
-            .add(1, &[KeyValue::new("key", event.messgae.to_string())]);
+        let v = serde_json::from_str(event.messgae);
+        if v.is_err() {
+            return;
+        }
+        let v: Value = v.unwrap();
+        let len = self.counters.len();
+
+        for i in 0..len {
+            let config = &self.config.counters[i];
+            let counter = &self.counters[i];
+            let mut labels = Vec::new();
+            for label in &config.labels {
+                let key = if label.from.len() == 0 {
+                    &label.name
+                } else {
+                    &label.from
+                };
+                let value = v.get(key);
+                if value.is_none() {
+                    continue;
+                }
+                labels.push(KeyValue::new(
+                    label.name.clone(),
+                    value.unwrap().to_string(),
+                ));
+            }
+            counter.add(1, &labels);
+        }
     }
 }
 
 impl<'a> BPFEventHandler<'a> {
     pub fn new(config: MetricsConfig) -> Result<BPFEventHandler<'a>> {
         let meter = global::meter("ex.com/eunomia");
-        let http_counter = meter
-            .u64_counter("example.http_requests_total")
-            .with_description("Total number of HTTP requests made.")
-            .try_init()?;
+        let mut counters = Vec::new();
+        for counter in &config.counters {
+            let counter = meter
+                .u64_counter(counter.name.clone())
+                .with_description(counter.description.clone())
+                .init();
+            counters.push(counter);
+        }
         Ok(BPFEventHandler {
-            http_counter,
+            counters,
+            config,
             marker: PhantomData,
         })
     }
@@ -52,9 +80,11 @@ impl<'a> BPFProgramManager<'a> {
             id: 0,
         }
     }
-    pub fn add_bpf_prog(&mut self, prog: BPFProgramState<'a>) {
+    fn insert_bpf_prog(&mut self, prog: BPFProgramState<'a>) -> u32 {
         self.states.insert(self.id, prog);
+        let id = self.id;
         self.id += 1;
+        id
     }
     pub fn list_all_progs(&self) -> Vec<(u32, String)> {
         let mut result = Vec::new();
@@ -64,8 +94,20 @@ impl<'a> BPFProgramManager<'a> {
         result
     }
     pub fn remove_bpf_prog(&mut self, id: u32) -> Result<()> {
+        if let Some(prog) = self.states.remove(&id) {
+            prog.stop();
+        }
         self.states.remove(&id);
         Ok(())
+    }
+    pub fn add_bpf_prog(&mut self, config: &ProgramConfig, state: Arc<AppState>) -> Result<u32> {
+        let prog = BPFProgramState::run_and_wait(config, state)?;
+        Ok(self.insert_bpf_prog(prog))
+    }
+    pub fn start_programs_for_exporter(&mut self, config: &ExporterConfig, state: Arc<AppState>) {
+        for program in &config.programs {
+            let _ = self.add_bpf_prog(program, state.clone());
+        }
     }
 }
 
@@ -78,23 +120,23 @@ pub struct BPFProgramState<'a> {
 
 impl<'a> BPFProgramState<'a> {
     pub fn run_and_wait(
-        config: ProgramConfig,
+        config: &ProgramConfig,
         state: Arc<AppState>,
     ) -> Result<BPFProgramState<'a>> {
-        let mut program = BPFProgram::create_ebpf_program(config.ebpf_data)?;
-        let event_handler = Arc::new(BPFEventHandler::new(config.metrics)?);
+        let mut program = BPFProgram::create_ebpf_program(config.ebpf_data.clone())?;
+        let event_handler = Arc::new(BPFEventHandler::new(config.metrics.clone())?);
         program.register_handler(Arc::downgrade(&event_handler));
 
         let program = Arc::new(program);
+        program.run()?;
         let new_prog = program.clone();
-        let handler = state.get_runtime().spawn(async move {
-            new_prog.run()?;
+        let handler = state.get_runtime().spawn_blocking(move || {
             print!("Running ebpf program");
             new_prog.wait_and_export()
         });
         println!("Running ebpf program {}", config.name);
         let state = BPFProgramState {
-            name: config.name,
+            name: config.name.clone(),
             program,
             event_handler,
             join_handler: handler,
@@ -110,11 +152,11 @@ impl<'a> BPFProgramState<'a> {
 mod tests {
     use super::*;
     use crate::config::ExporterConfig;
-    use std::{fs, time::Duration, time::Instant, process::exit};
+    use std::{fs, time::Duration, time::Instant};
 
     #[test]
     #[ignore]
-    fn test_async_start_ebpf_program_state() {
+    fn test_async_ebpf_program_state() {
         let config = ExporterConfig::default();
         let state = Arc::new(AppState::init(&config));
         let new_state = state.clone();
@@ -123,7 +165,7 @@ mod tests {
             let mut prog_config = ProgramConfig::default();
             prog_config.ebpf_data = json_data;
             let now = Instant::now();
-            let ebpf_program = BPFProgramState::run_and_wait(prog_config, state).unwrap();
+            let ebpf_program = BPFProgramState::run_and_wait(&prog_config, state).unwrap();
             let elapsed_time = now.elapsed();
             println!(
                 "Running slow_function() took {} ms.",

@@ -1,50 +1,86 @@
+use anyhow::Result;
 use hyper::{
+    body::Buf,
     header::CONTENT_TYPE,
     service::{make_service_fn, service_fn},
     Body, Method, Request, Response, Server,
 };
 use opentelemetry::Context;
 use prometheus::{Encoder, TextEncoder};
+use std::convert::Infallible;
 use std::sync::Arc;
-use std::time::SystemTime;
-use std::{convert::Infallible, fs, time::Duration};
-use tokio::time::Instant;
+use tokio::sync::Mutex;
 
 use crate::{
-    bpfprog::BPFProgramState,
+    bpfprog::BPFProgramManager,
     config::{ExporterConfig, ProgramConfig},
     state::AppState,
 };
+
+#[derive(Clone)]
+struct BPFManagerGuard<'a> {
+    guard: Arc<Mutex<BPFProgramManager<'a>>>,
+}
+
+impl<'a> BPFManagerGuard<'a> {
+    pub fn new(config: &ExporterConfig, state: Arc<AppState>) -> BPFManagerGuard<'a> {
+        let mut program_manager = BPFProgramManager::new();
+        program_manager.start_programs_for_exporter(config, state);
+        BPFManagerGuard {
+            guard: Arc::new(Mutex::new(program_manager)),
+        }
+    }
+    pub async fn start(&self, config: ProgramConfig, state: Arc<AppState>) -> Result<u32> {
+        let mut guard = self.guard.lock().await;
+        guard.add_bpf_prog(&config, state)
+    }
+    pub async fn stop(&self, id: u32) -> Result<()> {
+        let mut guard = self.guard.lock().await;
+        guard.remove_bpf_prog(id)
+    }
+    pub async fn list(&self) -> Vec<(u32, String)> {
+        let guard = self.guard.lock().await;
+        guard.list_all_progs()
+    }
+}
 
 async fn serve_req(
     cx: Context,
     req: Request<Body>,
     state: Arc<AppState>,
-) -> Result<Response<Body>, hyper::Error> {
+    program_manager: BPFManagerGuard<'_>,
+) -> Result<Response<Body>> {
     println!("Receiving request at path {}", req.uri());
-    let request_start = SystemTime::now();
 
     let response = match (req.method(), req.uri().path()) {
         (&Method::GET, "/metrics") => {
             let mut buffer = vec![];
             let encoder = TextEncoder::new();
             let metric_families = state.gather();
-            encoder.encode(&metric_families, &mut buffer).unwrap();
+            encoder.encode(&metric_families, &mut buffer)?;
 
             Response::builder()
                 .status(200)
                 .header(CONTENT_TYPE, encoder.format_type())
-                .body(Body::from(buffer))
-                .unwrap()
+                .body(Body::from(buffer))?
         }
-        (&Method::GET, "/") => {
-            let json_data = fs::read_to_string("tests/package.json").unwrap();
-            let ebpf_program =
-                BPFProgramState::run_and_wait(ProgramConfig::default(), state.clone()).unwrap();
+        (&Method::POST, "/start") => {
+            let whole_body = hyper::body::aggregate(req).await?;
+            let config: ProgramConfig = serde_json::from_reader(whole_body.reader())?;
+            program_manager.start(config, state).await?;
+            Response::builder().status(200).body(Body::from("{}"))?
+        }
+        (&Method::GET, "/list") => {
+            let lists = program_manager.list().await;
             Response::builder()
                 .status(200)
-                .body(Body::from("Hello World"))
-                .unwrap()
+                .body(Body::from(serde_json::to_string(&lists)?))?
+        }
+        (&Method::POST, "/stop") => {
+            let whole_body = hyper::body::aggregate(req).await?;
+            // let config:ProgramConfig = serde_json::from_reader(whole_body.reader())?;
+            program_manager.stop(0).await?;
+            Response::builder().status(200).body(Body::from("{}"))?
         }
         _ => Response::builder()
             .status(404)
@@ -61,24 +97,21 @@ pub fn start_server(
     let cx = Context::new();
     let state = Arc::new(AppState::init(config));
     let new_state = state.clone();
+    let manager = BPFManagerGuard::new(config, new_state.clone());
 
-    let json_data = fs::read_to_string("tests/package.json").unwrap();
-    let mut prog_config = ProgramConfig::default();
-    prog_config.ebpf_data = json_data;
-    let ebpf_program = BPFProgramState::run_and_wait(prog_config, state.clone()).unwrap();
-
-    let server_handler = new_state.get_runtime().block_on(async move {
+    let _ = new_state.get_runtime().block_on(async move {
         // For every connection, we must make a `Service` to handle all
         // incoming HTTP requests on said connection.
         let make_svc = make_service_fn(move |_conn| {
             let state = state.clone();
             let cx = cx.clone();
+            let manager = manager.clone();
             // This is the `Service` that will handle the connection.
             // `service_fn` is a helper to convert a function that
             // returns a Response into a `Service`.
             async move {
                 Ok::<_, Infallible>(service_fn(move |req| {
-                    serve_req(cx.clone(), req, state.clone())
+                    serve_req(cx.clone(), req, state.clone(), manager.clone())
                 }))
             }
         });

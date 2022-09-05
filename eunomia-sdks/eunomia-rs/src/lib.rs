@@ -46,6 +46,9 @@ unsafe extern "C" fn raw_handler_callback(
     event: *const ::std::os::raw::c_char,
 ) {
     let bpf_program = &*(ctx as *const BPFProgram);
+    if event.is_null() {
+        return;
+    }
     let event = BPFEvent {
         messgae: std::ffi::CStr::from_ptr(event).to_str().unwrap(),
     };

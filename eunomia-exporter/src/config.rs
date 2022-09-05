@@ -2,12 +2,12 @@ use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct ExporterConfig {
-    pub progtams: Vec<ProgramConfig>,
+    pub programs: Vec<ProgramConfig>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct ProgramConfig {
     pub name: String,
     pub metrics: MetricsConfig,
@@ -19,7 +19,7 @@ pub struct ProgramConfig {
 
 impl ExporterConfig {
     fn load_ebpf_json_data(&mut self) -> Result<()> {
-        for prog in &mut self.progtams {
+        for prog in &mut self.programs {
             if !prog.ebpf_data.is_empty() {
                 continue;
             }
@@ -32,18 +32,22 @@ impl ExporterConfig {
     }
     pub fn from_file(filename: &str) -> Result<ExporterConfig> {
         let json_str = fs::read_to_string(filename)?;
-        let mut config: ExporterConfig = serde_json::from_str(&json_str)?;
+        let mut config: ExporterConfig = if filename.ends_with(".json") {
+            serde_json::from_str(&json_str)?
+        } else {
+            serde_yaml::from_str(&json_str)?
+        };
         config.load_ebpf_json_data()?;
         Ok(config)
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct MetricsConfig {
     pub counters: Vec<CounterConfig>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct CounterConfig {
     pub name: String,
     #[serde(default)]
@@ -52,7 +56,7 @@ pub struct CounterConfig {
     pub labels: Vec<LabelConfig>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct LabelConfig {
     pub name: String,
     #[serde(default)]
@@ -89,12 +93,14 @@ mod tests {
             ]
         });
         let config: ExporterConfig = serde_json::from_value(config).unwrap();
-        let prog_config = config.progtams.get(0).unwrap();
+        let prog_config = config.programs.get(0).unwrap();
         let _ = serde_json::to_string(&prog_config).unwrap();
     }
 
     #[test]
     fn load_from_example() {
-        let _ = ExporterConfig::from_file("examples/opensnoop/opensnoop.json").unwrap();
+        let json_config = ExporterConfig::from_file("examples/opensnoop/opensnoop.json").unwrap();
+        let yaml_config = ExporterConfig::from_file("examples/opensnoop/opensnoop.yaml").unwrap();
+        assert_eq!(json_config, yaml_config);
     }
 }
