@@ -43,3 +43,7 @@ eunomia-bpf: ## build the core library for eunomia-bpf
 clean: ## clean all build projects
 	make -C eunomia-bpf clean
 	make -C ecli clean
+
+eunomia-exporter: ## build the exporter for custom metric
+	make -C eunomia-bpf
+	cd eunomia-exporter && cargo build --release

@@ -12,7 +12,6 @@ extern crate lazy_static;
 
 pub fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let config = ExporterConfig::from_file("examples/opensnoop/opensnoop.json")?;
-
     server::start_server(&config)?;
     Ok(())
 }

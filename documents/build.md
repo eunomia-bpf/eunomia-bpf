@@ -2,13 +2,6 @@
 
 If you want to run the cli, in most cases, you don't need to build your own.
 
-## common problems
-
-if you get a error
-
-sudo apt-get upgrade libstdc++6
-
-
 # Building
 
 libbpf-bootstrap supports multiple build systems that do the same thing.
@@ -28,14 +21,38 @@ On CentOS/Fedora, you need:
 $ dnf install clang elfutils-libelf elfutils-libelf-devel zlib-devel
 ```
 
-## build
+## build eunomia-bpf
+
+eunomia-bpf is our core library written in C++17. It has no other dependencies except libbpf.
 
 ```shell
 $ git submodule update --init --recursive       # check out libbpf
 $ make eunomia-bpf                              # build eunomia-bpf
 ```
 
-build ecli:
+The recommended compiler is gcc9 or later.
 
+## build ecli:
+
+After compile the eunomia-bpf, you can build the cli tool in C++:
+
+```shell
+$ make ecli
+```
 
 reference: https://github.com/libbpf/libbpf-bootstrap
+
+## build eunomia-exporter
+
+The eunomia-exporter is written in Rust, you need to install the toolchain first. And you need to compile the `eunomia-bpf` library, which will be statically linked to the exporter.
+
+then you can build the exporter:
+
+```shell
+$ make eunomia-exporter
+```
+
+## more details
+
+- You can check the Makefile at project root for more details: [Makefile](../Makefile)
+- You may want to refer to our CI for more build info: [.github/workflowsubuntu.yml](../.github/workflows/ubuntu.yml)
