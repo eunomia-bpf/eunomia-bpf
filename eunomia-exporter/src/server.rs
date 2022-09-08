@@ -23,12 +23,12 @@ struct BPFManagerGuard<'a> {
 }
 
 impl<'a> BPFManagerGuard<'a> {
-    pub fn new(config: &ExporterConfig, state: Arc<AppState>) -> BPFManagerGuard<'a> {
+    pub fn new(config: &ExporterConfig, state: Arc<AppState>) -> Result<BPFManagerGuard<'a>> {
         let mut program_manager = BPFProgramManager::new();
-        program_manager.start_programs_for_exporter(config, state);
-        BPFManagerGuard {
+        program_manager.start_programs_for_exporter(config, state)?;
+        Ok(BPFManagerGuard {
             guard: Arc::new(Mutex::new(program_manager)),
-        }
+        })
     }
     pub async fn start(&self, config: ProgramConfig, state: Arc<AppState>) -> Result<u32> {
         let mut guard = self.guard.lock().await;
@@ -45,7 +45,7 @@ impl<'a> BPFManagerGuard<'a> {
 }
 
 async fn serve_req(
-    cx: Context,
+    _cx: Context,
     req: Request<Body>,
     state: Arc<AppState>,
     program_manager: BPFManagerGuard<'_>,
@@ -77,7 +77,7 @@ async fn serve_req(
                 .body(Body::from(serde_json::to_string(&lists)?))?
         }
         (&Method::POST, "/stop") => {
-            let whole_body = hyper::body::aggregate(req).await?;
+            let _whole_body = hyper::body::aggregate(req).await?;
             // let config:ProgramConfig = serde_json::from_reader(whole_body.reader())?;
             program_manager.stop(0).await?;
             Response::builder().status(200).body(Body::from("{}"))?
@@ -95,13 +95,11 @@ pub fn start_server(
     config: &ExporterConfig,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let cx = Context::new();
-    let state = Arc::new(AppState::init(config));
+    let state = Arc::new(AppState::init());
     let new_state = state.clone();
-    let manager = BPFManagerGuard::new(config, new_state.clone());
+    let manager = BPFManagerGuard::new(config, new_state.clone())?;
 
     let _ = new_state.get_runtime().block_on(async move {
-        // For every connection, we must make a `Service` to handle all
-        // incoming HTTP requests on said connection.
         let make_svc = make_service_fn(move |_conn| {
             let state = state.clone();
             let cx = cx.clone();

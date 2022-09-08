@@ -31,14 +31,19 @@ impl ExporterConfig {
         Ok(())
     }
     pub fn from_file(filename: &str) -> Result<ExporterConfig> {
-        let json_str = fs::read_to_string(filename)?;
-        let mut config: ExporterConfig = if filename.ends_with(".json") {
-            serde_json::from_str(&json_str)?
-        } else {
-            serde_yaml::from_str(&json_str)?
-        };
-        config.load_ebpf_json_data()?;
-        Ok(config)
+        let res = fs::read_to_string(filename);
+        match res {
+            Ok(data) => {
+                let mut config: ExporterConfig = if filename.ends_with(".json") {
+                    serde_json::from_str(&data)?
+                } else {
+                    serde_yaml::from_str(&data)?
+                };
+                config.load_ebpf_json_data()?;
+                Ok(config)
+            }
+            Err(e) => Err(anyhow!("cannot read config file: {}", e)),
+        }
     }
 }
 

@@ -10,10 +10,10 @@
 - simply requests with a json and run `any` pre-compiled ebpf code on `any` kernel version
 - very small and simple! Only a binary about `3MB` and no `LLVM/Clang` dependence
 - as fast as `<100ms` to load and run a ebpf program
-- `Distributed` and `decentralized`, No compile helper server needed
+- `Distributed` and `decentralized`, No remote compile server needed when loading
 - Only write Kernel C code which is compatible with `libbpf`
 
-In general, we develop an approach to compile, transmit, and run most libbpf CO-RE objects with some user space config meta data to help us load and operator the eBPF byte code. So, when loading the eBPF program, only the eBPF byte code and a few kB of meta data is needed.
+In general, we develop an approach to compile, transmit, and run most libbpf CO-RE objects with some user space config meta data to help us load and operator the eBPF byte code. The compilation and runtime phases of eBPF is separated completely, so, when loading the eBPF program, only the eBPF byte code and a few kB of meta data is needed.
 
 Most of the time, the only thing you need to do is focus on writing a single eBPF program in the kernel. We have a compiler here: [eunomia-cc](https://github.com/eunomia-bpf/eunomia-cc)
 
@@ -42,8 +42,12 @@ see [eunomia-bpf](eunomia-bpf) folder for details. With the library, we have pro
 
 ```bash
 $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url
+```
 
-$ docker run -it -v /path/to/repo/bpftools/examples/bootstrap:/src yunwei37/ebpm:latest # use docker image to compile
+And you can compile and run the program, the only thing you need to do is write the [libbpf kernel C code](bpftools/examples/bootstrap/bootstrap.bpf.c):
+
+```bash
+$ docker run -it -v /path/to/repo/bpftools/examples/bootstrap:/src yunwei37/ebpm:latest
 $ sudo ./ecli run bpftools/examples/bootstrap/package.json              # run the compiled ebpf code
 ```
 
@@ -63,7 +67,7 @@ you can also simply use the [ebpm-template](https://github.com/eunomia-bpf/ebpm-
 
 An prometheus and OpenTelemetry exporter for custom eBPF metrics, written in async rust: [eunomia-exporter](eunomia-exporter)
 
-You can compile it or 
+You can compile it or download from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)
 
 #### example
 

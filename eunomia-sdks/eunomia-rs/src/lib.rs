@@ -101,19 +101,18 @@ impl<'a> BPFProgram<'a> {
     /// to user space, the program will help load the map info and poll the
     /// events automatically.
     pub fn wait_and_export(&self) -> Result<()> {
-        let mut ret = 0;
-        if self.handlers.len() == 0 {
-            ret = unsafe { wait_and_export_ebpf_program(self.ctx) };
+        let ret = if self.handlers.len() == 0 {
+            unsafe { wait_and_export_ebpf_program(self.ctx) }
         } else {
-            ret = unsafe {
+            unsafe {
                 wait_and_export_ebpf_program_to_handler(
                     self.ctx,
                     export_format_type_EEXPORT_JSON,
                     Some(raw_handler_callback),
                     self as *const BPFProgram as *mut ::std::os::raw::c_void,
                 )
-            };
-        }
+            }
+        };
         if ret == 0 {
             Ok(())
         } else {

@@ -1,10 +1,8 @@
 use opentelemetry::sdk::Resource;
-use opentelemetry::{global, KeyValue};
+use opentelemetry::KeyValue;
 use opentelemetry_prometheus::PrometheusExporter;
 use prometheus::proto::MetricFamily;
 use tokio::runtime::{Builder, Runtime};
-
-use crate::config::ExporterConfig;
 
 pub struct AppState {
     runtime: Runtime,
@@ -21,7 +19,7 @@ fn init_meter() -> PrometheusExporter {
 }
 
 impl AppState {
-    pub fn init(config: &ExporterConfig) -> AppState {
+    pub fn init() -> AppState {
         let exporter = init_meter();
         let runtime = Builder::new_multi_thread().enable_all().build().unwrap();
         let state = AppState { runtime, exporter };
@@ -33,7 +31,7 @@ impl AppState {
     pub fn get_runtime(&self) -> &Runtime {
         return &self.runtime;
     }
-    pub fn shutdown(self) {
+    pub fn _shutdown(self) {
         self.runtime.shutdown_background();
     }
 }

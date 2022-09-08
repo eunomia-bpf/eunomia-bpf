@@ -104,18 +104,23 @@ impl<'a> BPFProgramManager<'a> {
         let prog = BPFProgramState::run_and_wait(config, state)?;
         Ok(self.insert_bpf_prog(prog))
     }
-    pub fn start_programs_for_exporter(&mut self, config: &ExporterConfig, state: Arc<AppState>) {
+    pub fn start_programs_for_exporter(
+        &mut self,
+        config: &ExporterConfig,
+        state: Arc<AppState>,
+    ) -> Result<()> {
         for program in &config.programs {
-            let _ = self.add_bpf_prog(program, state.clone());
+            self.add_bpf_prog(program, state.clone())?;
         }
+        Ok(())
     }
 }
 
 pub struct BPFProgramState<'a> {
     name: String,
     program: Arc<BPFProgram<'a>>,
-    event_handler: Arc<BPFEventHandler<'a>>,
-    join_handler: JoinHandle<Result<()>>,
+    _event_handler: Arc<BPFEventHandler<'a>>,
+    _join_handler: JoinHandle<Result<()>>,
 }
 
 impl<'a> BPFProgramState<'a> {
@@ -138,8 +143,8 @@ impl<'a> BPFProgramState<'a> {
         let state = BPFProgramState {
             name: config.name.clone(),
             program,
-            event_handler,
-            join_handler: handler,
+            _event_handler: event_handler,
+            _join_handler: handler,
         };
         Ok(state)
     }
@@ -158,7 +163,7 @@ mod tests {
     #[ignore]
     fn test_async_ebpf_program_state() {
         let config = ExporterConfig::default();
-        let state = Arc::new(AppState::init(&config));
+        let state = Arc::new(AppState::init());
         let new_state = state.clone();
         new_state.get_runtime().spawn(async move {
             let json_data = fs::read_to_string("tests/package.json").unwrap();
