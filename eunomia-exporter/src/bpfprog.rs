@@ -133,13 +133,14 @@ impl<'a> BPFProgramState<'a> {
         program.register_handler(Arc::downgrade(&event_handler));
 
         let program = Arc::new(program);
+        let start_time = std::time::Instant::now();
         program.run()?;
         let new_prog = program.clone();
         let handler = state.get_runtime().spawn_blocking(move || {
-            print!("Running ebpf program");
             new_prog.wait_and_export()
         });
-        println!("Running ebpf program {}", config.name);
+        let duration = start_time.elapsed();
+        println!("Running ebpf program {} takes {} ms", config.name, duration.as_millis());
         let state = BPFProgramState {
             name: config.name.clone(),
             program,
@@ -162,7 +163,7 @@ mod tests {
     #[test]
     #[ignore]
     fn test_async_ebpf_program_state() {
-        let config = ExporterConfig::default();
+        let _config = ExporterConfig::default();
         let state = Arc::new(AppState::init());
         let new_state = state.clone();
         new_state.get_runtime().spawn(async move {

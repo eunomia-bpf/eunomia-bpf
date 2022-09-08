@@ -90,9 +90,11 @@ programs:
   compiled_ebpf_filename: bpftools/examples/opensnoop/package.json
 ```
 
-After start the Prometheus exporter, you can see the metrics like this:
+Then you can start the Prometheus exporter anywhere with the `config.yaml` and pre-compiled eBPF data `package.json`, you can see the metrics like this:
 
-![](doc/images/prometheus.png)
+![opensnoop_prometheus](documents/opensnoop_prometheus.png)
+
+You can deploy the exporter on any kernel version without `LLVM/Clang` dependence. See the [eunomia-exporter](eunomia-exporter/README.md) for more details.
 
 ## Road-map
 

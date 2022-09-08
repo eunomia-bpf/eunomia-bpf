@@ -1,5 +1,3 @@
-use opentelemetry::sdk::Resource;
-use opentelemetry::KeyValue;
 use opentelemetry_prometheus::PrometheusExporter;
 use prometheus::proto::MetricFamily;
 use tokio::runtime::{Builder, Runtime};
@@ -10,12 +8,7 @@ pub struct AppState {
 }
 
 fn init_meter() -> PrometheusExporter {
-    opentelemetry_prometheus::exporter()
-        .with_resource(Resource::new(vec![KeyValue::new(
-            "R",
-            String::from("Rust"),
-        )]))
-        .init()
+    opentelemetry_prometheus::exporter().init()
 }
 
 impl AppState {
