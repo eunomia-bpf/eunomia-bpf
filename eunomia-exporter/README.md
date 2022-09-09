@@ -61,7 +61,25 @@ The result is:
 
 ![img](../documents/opensnoop_prometheus.png)
 
-## hot install eBPF tracing program
+## manage eBPF tracing program via API
+
+start an eBPF exporter via web API:
+
+```sh
+curl -X POST http://127.0.0.1:8526/start -H "Content-Type: application/json" -d @eunomia-exporter/examples/opensnoop/opensnoop_package.json
+```
+
+list all running eBPF programs:
+
+```sh
+curl http://127.0.0.1:8526/list
+```
+
+stop an eBPF program:
+
+```sh
+curl -X POST http://127.0.0.1:8526/start -H "Content-Type: application/json" -d '{"id": 1}'
+```
 
 ## benchmark
 
@@ -74,3 +92,7 @@ root      171605  0.1  0.0 350540  7740 pts/6    Sl+  01:08   0:00 ./eunomia-exp
 ```
 
 The memory usage and CPU usage is also low.
+
+## Supported scenarios
+
+Currently the only supported way of getting data out of the kernel is via maps (we call them tables in configuration).
