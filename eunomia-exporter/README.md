@@ -4,15 +4,32 @@ An prometheus and OpenTelemetry exporter for custom eBPF metrics, written in asy
 
 This is a single binary exporter, you don't need to install `BCC/LLVM` when you use it. The only thing you will need to run the exporter on another machine is the config file and pre-compiled eBPF code.
 
-## build
+This component was written by rust,Please install `rust` before build.
 
+```shell
+$ curl -sSf https://static.rust-lang.org/rustup.sh | sh
+```
+
+## build
+### Notice:You must compile `eunomia-bpf` before build `eunomia-exporter`. Details in https://github.com/eunomia-bpf/eunomia-bpf/blob/master/documents/build.md (documents/build.md)
 You can compile the rust code from project root:
 
 ```shell
-$ make eunomia-exporter
+$ cargo build --release
 ```
 
-for more details, see [documents/build.md](documents/build.md). You can get a pre-build binary from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)
+After the compilation is complete, a folder named `target` can be found in the current directory.
+```shell
+$ cd target 
+$ cd release
+$ ls
+```
+You can see a binary called eunomia-exporter.
+Change the binary file permission code, or you can't run it.
+```shell
+$ chmod 777 ./eunomia-exporter
+$ ./eunomia-exporter -h
+```
 
 ## example
 
@@ -22,8 +39,9 @@ You can compile the [opensnoop](bpftools/examples/opensnoop) like this:
 
 ```sh
 $ cd bpftools/examples/opensnoop
-$ docker run -it -v /path/to/repo/bpftools/examples/opensnoop:/src yunwei37/ebpm:latest
+$ docker run -it -v /userpath/eunomia-bpf/bpftools/examples/opensnoop:/src yunwei37/ebpm:latest
 ```
+`userpath` needs to be replaced with your own path.
 
 After compile the eBPF code, you can define a config file like this:
 
@@ -47,15 +65,18 @@ use the path to `package.json` as compiled_ebpf_filename in the config file. You
 Then, you can start the exporter:
 
 ```console
-$ sudo ./eunomia-exporter
+$ cd /userpath/eunomia-bpf/bpftools/examples/opensnoop
+$ cp /userpath/eunomia-bpf/eunomia-exporter/target/release/eunomia-exporter eunomia-exporter
+$ sudo ./eunomia-exporter 
 
 Running ebpf program opensnoop takes 46 ms
 Listening on http://127.0.0.1:8526
 running and waiting for the ebpf events from perf event...
 Receiving request at path /metrics
 ```
-
-Different from the bcc ebpf_exporter, the only thing you need to run on the deployment machine is the `config file` and `package.json`. There is no need to install `LLVM/CLang` for BCC.
+`userpath` needs to be replaced with your own path.
+ 
+ Different from the bcc ebpf_exporter, the only thing you need to run on the deployment machine is the `config file` and `package.json`. There is no need to install `LLVM/CLang` for BCC.
 
 The result is:
 
