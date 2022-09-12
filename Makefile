@@ -1,4 +1,4 @@
-.PHONY: ecli eunomia-bpf help install-deps clean
+.PHONY: ecli eunomia-bpf eunomia-exporter help install-deps clean
 .DEFAULT_GOAL := help
 
 define BROWSER_PYSCRIPT
