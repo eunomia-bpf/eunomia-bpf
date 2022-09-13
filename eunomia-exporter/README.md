@@ -4,44 +4,19 @@ An prometheus and OpenTelemetry exporter for custom eBPF metrics, written in asy
 
 This is a single binary exporter, you don't need to install `BCC/LLVM` when you use it. The only thing you will need to run the exporter on another machine is the config file and pre-compiled eBPF code.
 
-This component was written by rust,Please install `rust` before build.
-
-```shell
-$ curl -sSf https://static.rust-lang.org/rustup.sh | sh
-```
-
-## build
-### Notice:You must compile `eunomia-bpf` before build `eunomia-exporter`. Details in https://github.com/eunomia-bpf/eunomia-bpf/blob/master/documents/build.md (documents/build.md)
-You can compile the rust code from project root:
-
-```shell
-$ cargo build --release
-```
-
-After the compilation is complete, a folder named `target` can be found in the current directory.
-```shell
-$ cd target 
-$ cd release
-$ ls
-```
-You can see a binary called eunomia-exporter.
-Change the binary file permission code, or you can't run it.
-```shell
-$ chmod 777 ./eunomia-exporter
-$ ./eunomia-exporter -h
-```
-
 ## example
 
 This is an adapted version of opensnoop from [bcc/libbpf-tools](https://github.com/iovisor/bcc/blob/master/libbpf-tools/opensnoop.bpf.c), you can check our source code here: [bpftools/examples/opensnoop](bpftools/examples/opensnoop)
 
-You can compile the [opensnoop](bpftools/examples/opensnoop) like this:
+You can just download the pre-compiled [opensnoop package.json]([bpftools/examples/opensnoop](https://eunomia-bpf.github.io/eunomia-bpf/opensnoop/package.json)).
+
+Or you can compile the [opensnoop](bpftools/examples/opensnoop) like this:
 
 ```sh
 $ cd bpftools/examples/opensnoop
 $ docker run -it -v /userpath/eunomia-bpf/bpftools/examples/opensnoop:/src yunwei37/ebpm:latest
 ```
-`userpath` needs to be replaced with your own path.
+`userpath` needs to be replaced with your own repo path.
 
 After compile the eBPF code, you can define a config file like this:
 
@@ -65,18 +40,17 @@ use the path to `package.json` as compiled_ebpf_filename in the config file. You
 Then, you can start the exporter:
 
 ```console
-$ cd /userpath/eunomia-bpf/bpftools/examples/opensnoop
-$ cp /userpath/eunomia-bpf/eunomia-exporter/target/release/eunomia-exporter eunomia-exporter
-$ sudo ./eunomia-exporter 
+$ ls
+config.yaml  eunomia-exporter package.json
+$ sudo ./eunomia-exporter
 
 Running ebpf program opensnoop takes 46 ms
 Listening on http://127.0.0.1:8526
 running and waiting for the ebpf events from perf event...
 Receiving request at path /metrics
 ```
-`userpath` needs to be replaced with your own path.
- 
- Different from the bcc ebpf_exporter, the only thing you need to run on the deployment machine is the `config file` and `package.json`. There is no need to install `LLVM/CLang` for BCC.
+
+Different from the bcc ebpf_exporter, the only thing you need to run on the deployment machine is the `config file` and `package.json`. There is no need to install `LLVM/CLang` for BCC.
 
 The result is:
 
@@ -87,7 +61,7 @@ The result is:
 start an eBPF exporter via web API:
 
 ```sh
-curl -X POST http://127.0.0.1:8526/start -H "Content-Type: application/json" -d @eunomia-exporter/examples/opensnoop/opensnoop_package.json
+curl -X POST http://127.0.0.1:8526/start -H "Content-Type: application/json" -d @examples/opensnoop/curl_post_example.json
 ```
 
 list all running eBPF programs:
@@ -100,6 +74,32 @@ stop an eBPF program:
 
 ```sh
 curl -X POST http://127.0.0.1:8526/stop -H "Content-Type: application/json" -d '{"id": 1}'
+```
+
+## build
+
+Notice: You must compile `eunomia-bpf` before build `eunomia-exporter`. Details in [build.md](../documents/build.md)
+
+This component was written by rust,Please install `rust` before build.
+
+```shell
+$ curl -sSf https://static.rust-lang.org/rustup.sh | sh
+```
+
+You can compile the rust code in this folder:
+
+```console
+$ cargo build --release
+$ target/release/eunomia-exporter -h
+eunomia-exporter 0.1.0
+
+USAGE:
+    eunomia-exporter [OPTIONS]
+
+OPTIONS:
+    -c, --config <CONFIG>    Sets a custom config file [default: config.yaml]
+    -h, --help               Print help information
+    -V, --version            Print version information
 ```
 
 ## benchmark
