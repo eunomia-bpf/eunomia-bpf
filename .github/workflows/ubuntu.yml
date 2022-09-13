@@ -2,9 +2,9 @@ name: Build and test ecli and eunomia-bpf on Ubuntu
 
 on:
   push:
-    branches: [ * ]
+    branches: ["master", "main"]
   pull_request:
-    branches: [ master ]
+    branches: [ master, "main" ]
 
 env:
   BUILD_TYPE: Release
