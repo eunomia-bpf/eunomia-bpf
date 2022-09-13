@@ -99,7 +99,7 @@ curl http://127.0.0.1:8526/list
 stop an eBPF program:
 
 ```sh
-curl -X POST http://127.0.0.1:8526/start -H "Content-Type: application/json" -d '{"id": 1}'
+curl -X POST http://127.0.0.1:8526/stop -H "Content-Type: application/json" -d '{"id": 1}'
 ```
 
 ## benchmark

@@ -7,6 +7,7 @@ use hyper::{
 };
 use opentelemetry::Context;
 use prometheus::{Encoder, TextEncoder};
+use serde_json::Value;
 use std::convert::Infallible;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -77,10 +78,14 @@ async fn serve_req(
                 .body(Body::from(serde_json::to_string(&lists)?))?
         }
         (&Method::POST, "/stop") => {
-            let _whole_body = hyper::body::aggregate(req).await?;
-            // let config:ProgramConfig = serde_json::from_reader(whole_body.reader())?;
-            program_manager.stop(0).await?;
-            Response::builder().status(200).body(Body::from("{}"))?
+            let whole_body = hyper::body::aggregate(req).await?;
+            let data: Value = serde_json::from_reader(whole_body.reader())?;
+            if let Some(id) = data["id"].as_u64() {
+                program_manager.stop(id as u32).await?;
+                Response::builder().status(200).body(Body::from("{}"))?
+            } else {
+                Response::builder().status(400).body(Body::from("{}"))?
+            }
         }
         _ => Response::builder()
             .status(404)
