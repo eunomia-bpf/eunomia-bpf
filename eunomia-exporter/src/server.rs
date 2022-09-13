@@ -10,40 +10,12 @@ use prometheus::{Encoder, TextEncoder};
 use serde_json::Value;
 use std::convert::Infallible;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 use crate::{
-    bpfprog::BPFProgramManager,
+    bpfmanager::BPFManagerGuard,
     config::{ExporterConfig, ProgramConfig},
     state::AppState,
 };
-
-#[derive(Clone)]
-struct BPFManagerGuard<'a> {
-    guard: Arc<Mutex<BPFProgramManager<'a>>>,
-}
-
-impl<'a> BPFManagerGuard<'a> {
-    pub fn new(config: &ExporterConfig, state: Arc<AppState>) -> Result<BPFManagerGuard<'a>> {
-        let mut program_manager = BPFProgramManager::new();
-        program_manager.start_programs_for_exporter(config, state)?;
-        Ok(BPFManagerGuard {
-            guard: Arc::new(Mutex::new(program_manager)),
-        })
-    }
-    pub async fn start(&self, config: ProgramConfig, state: Arc<AppState>) -> Result<u32> {
-        let mut guard = self.guard.lock().await;
-        guard.add_bpf_prog(&config, state)
-    }
-    pub async fn stop(&self, id: u32) -> Result<()> {
-        let mut guard = self.guard.lock().await;
-        guard.remove_bpf_prog(id)
-    }
-    pub async fn list(&self) -> Vec<(u32, String)> {
-        let guard = self.guard.lock().await;
-        guard.list_all_progs()
-    }
-}
 
 async fn serve_req(
     _cx: Context,
