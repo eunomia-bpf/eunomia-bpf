@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -35,10 +36,19 @@ impl<'a> BPFManagerGuard<'a> {
         guard.remove_bpf_prog(id)
     }
     /// get all BPFPrograms list
-    pub async fn list(&self) -> Vec<(u32, String)> {
+    pub async fn list(&self) -> Vec<BPFListItem> {
         let guard = self.guard.lock().await;
         guard.list_all_progs()
     }
+}
+
+/// The list item return by list in manager
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
+pub struct BPFListItem {
+    /// the id of the program in manager
+    id: u32,
+    /// the name of the program
+    name: String,
 }
 
 struct BPFProgramManager<'a> {
@@ -59,10 +69,13 @@ impl<'a> BPFProgramManager<'a> {
         self.id += 1;
         id
     }
-    pub fn list_all_progs(&self) -> Vec<(u32, String)> {
+    pub fn list_all_progs(&self) -> Vec<BPFListItem> {
         let mut result = Vec::new();
         for (id, prog) in self.states.iter() {
-            result.push((*id, prog.get_name()));
+            result.push(BPFListItem {
+                id: *id,
+                name: prog.get_name(),
+            });
         }
         result
     }

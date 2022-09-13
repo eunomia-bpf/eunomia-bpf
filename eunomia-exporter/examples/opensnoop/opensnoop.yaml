@@ -9,4 +9,4 @@ programs:
       - name: comm
       - name: filename
         from: fname
-  compiled_ebpf_filename: examples/opensnoop/opensnoop_package.json
+  compiled_ebpf_filename: ../bpftools/examples/opensnoop/package.json

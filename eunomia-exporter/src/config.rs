@@ -104,8 +104,6 @@ mod tests {
 
     #[test]
     fn load_from_example() {
-        let json_config = ExporterConfig::from_file("examples/opensnoop/opensnoop.json").unwrap();
-        let yaml_config = ExporterConfig::from_file("examples/opensnoop/opensnoop.yaml").unwrap();
-        assert_eq!(json_config, yaml_config);
+        let _ = ExporterConfig::from_file("examples/opensnoop/opensnoop.yaml").unwrap();
     }
 }
