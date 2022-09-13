@@ -8,7 +8,7 @@ This is a single binary exporter, you don't need to install `BCC/LLVM` when you 
 
 This is an adapted version of opensnoop from [bcc/libbpf-tools](https://github.com/iovisor/bcc/blob/master/libbpf-tools/opensnoop.bpf.c), you can check our source code here: [bpftools/examples/opensnoop](bpftools/examples/opensnoop)
 
-You can just download the pre-compiled [opensnoop package.json]([bpftools/examples/opensnoop](https://eunomia-bpf.github.io/eunomia-bpf/opensnoop/package.json)).
+You can just download the pre-compiled [opensnoop package.json](https://eunomia-bpf.github.io/eunomia-bpf/opensnoop/package.json).
 
 Or you can compile the [opensnoop](bpftools/examples/opensnoop) like this:
 
@@ -60,20 +60,26 @@ The result is:
 
 start an eBPF exporter via web API:
 
-```sh
-curl -X POST http://127.0.0.1:8526/start -H "Content-Type: application/json" -d @examples/opensnoop/curl_post_example.json
+```console
+$ curl -X POST http://127.0.0.1:8526/start -H "Content-Type: application/json" -d @examples/opensnoop/curl_post_example.json
+
+{"id":1}
 ```
+
+see [curl_post_example.json](eunomia-exporter/examples/opensnoop/curl_post_example.json) for the example of the request body.
 
 list all running eBPF programs:
 
-```sh
-curl http://127.0.0.1:8526/list
+```console
+$ curl http://127.0.0.1:8526/list
+
+[{"id":0,"name":"bootstrap"},{"id":1,"name":"opensnoop"}]
 ```
 
 stop an eBPF program:
 
 ```sh
-curl -X POST http://127.0.0.1:8526/stop -H "Content-Type: application/json" -d '{"id": 1}'
+$ curl -X POST http://127.0.0.1:8526/stop -H "Content-Type: application/json" -d '{"id": 1}'
 ```
 
 ## build
