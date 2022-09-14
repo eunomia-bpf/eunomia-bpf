@@ -77,7 +77,7 @@ mod tests {
     #[test]
     fn from_json() {
         let config = json!({
-            "progtams": [
+            "programs": [
                 {
                     "name": "test",
                     "ebpf_data": "test",
@@ -104,13 +104,6 @@ mod tests {
 
     #[test]
     fn load_from_example() {
-        let json_config = ExporterConfig::from_file("examples/opensnoop/opensnoop.json").unwrap();
-        let yaml_config = ExporterConfig::from_file("examples/opensnoop/opensnoop.yaml").unwrap();
-        assert_eq!(json_config, yaml_config);
-        fs::write(
-            "examples/opensnoop/opensnoop_package.json",
-            serde_json::to_string(&json_config).unwrap(),
-        )
-        .unwrap();
+        let _ = ExporterConfig::from_file("examples/opensnoop/opensnoop.yaml").unwrap();
     }
 }

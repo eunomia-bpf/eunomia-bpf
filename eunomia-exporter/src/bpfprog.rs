@@ -1,12 +1,12 @@
 use anyhow::Result;
 use opentelemetry::{global, metrics::Counter, KeyValue};
 use serde_json::Value;
-use std::{collections::HashMap, marker::PhantomData, sync::Arc};
+use std::{marker::PhantomData, sync::Arc};
 use tokio::task::JoinHandle;
 
 use crate::{
     bindings::{BPFEvent, BPFProgram, HandleBPFEvent},
-    config::{ExporterConfig, MetricsConfig, ProgramConfig},
+    config::{MetricsConfig, ProgramConfig},
     state::AppState,
 };
 
@@ -68,54 +68,7 @@ impl<'a> BPFEventHandler<'a> {
     }
 }
 
-pub struct BPFProgramManager<'a> {
-    states: HashMap<u32, BPFProgramState<'a>>,
-    id: u32,
-}
-
-impl<'a> BPFProgramManager<'a> {
-    pub fn new() -> BPFProgramManager<'a> {
-        BPFProgramManager {
-            states: HashMap::new(),
-            id: 0,
-        }
-    }
-    fn insert_bpf_prog(&mut self, prog: BPFProgramState<'a>) -> u32 {
-        self.states.insert(self.id, prog);
-        let id = self.id;
-        self.id += 1;
-        id
-    }
-    pub fn list_all_progs(&self) -> Vec<(u32, String)> {
-        let mut result = Vec::new();
-        for (id, prog) in self.states.iter() {
-            result.push((*id, prog.name.clone()));
-        }
-        result
-    }
-    pub fn remove_bpf_prog(&mut self, id: u32) -> Result<()> {
-        if let Some(prog) = self.states.remove(&id) {
-            prog.stop();
-        }
-        self.states.remove(&id);
-        Ok(())
-    }
-    pub fn add_bpf_prog(&mut self, config: &ProgramConfig, state: Arc<AppState>) -> Result<u32> {
-        let prog = BPFProgramState::run_and_wait(config, state)?;
-        Ok(self.insert_bpf_prog(prog))
-    }
-    pub fn start_programs_for_exporter(
-        &mut self,
-        config: &ExporterConfig,
-        state: Arc<AppState>,
-    ) -> Result<()> {
-        for program in &config.programs {
-            self.add_bpf_prog(program, state.clone())?;
-        }
-        Ok(())
-    }
-}
-
+/// used for recording state for a BPFProgram
 pub struct BPFProgramState<'a> {
     name: String,
     program: Arc<BPFProgram<'a>>,
@@ -124,6 +77,7 @@ pub struct BPFProgramState<'a> {
 }
 
 impl<'a> BPFProgramState<'a> {
+    /// create a new BPFProgramState in a separate routine and wait for output
     pub fn run_and_wait(
         config: &ProgramConfig,
         state: Arc<AppState>,
@@ -136,11 +90,15 @@ impl<'a> BPFProgramState<'a> {
         let start_time = std::time::Instant::now();
         program.run()?;
         let new_prog = program.clone();
-        let handler = state.get_runtime().spawn_blocking(move || {
-            new_prog.wait_and_export()
-        });
+        let handler = state
+            .get_runtime()
+            .spawn_blocking(move || new_prog.wait_and_export());
         let duration = start_time.elapsed();
-        println!("Running ebpf program {} takes {} ms", config.name, duration.as_millis());
+        println!(
+            "Running ebpf program {} takes {} ms",
+            config.name,
+            duration.as_millis()
+        );
         let state = BPFProgramState {
             name: config.name.clone(),
             program,
@@ -149,8 +107,13 @@ impl<'a> BPFProgramState<'a> {
         };
         Ok(state)
     }
+    /// stop the BPFProgramState
     pub fn stop(&self) {
         self.program.stop();
+    }
+    /// get the name of the BPFProgramState
+    pub fn get_name(&self) -> String {
+        self.name.clone()
     }
 }
 

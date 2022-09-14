@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 mod bindings;
+mod bpfmanager;
 mod bpfprog;
 mod config;
 mod server;

@@ -1,10 +1,10 @@
-name: Build and test ecli and eunomia-bpf on Ubuntu
+name: Build and test eunomia-bpf on Ubuntu
 
 on:
   push:
-    branches: [ * ]
+    branches: ["master", "main"]
   pull_request:
-    branches: [ master ]
+    branches: [ master, "main" ]
 
 env:
   BUILD_TYPE: Release
@@ -40,12 +40,10 @@ jobs:
       run: |
           make ecli
 
-    - name: run tests
+    - name: run unit tests
       run: |
         cd eunomia-bpf/
         make test
-        cd build
-        ctest -C $BUILD_TYPE -VV
 
     - name: Code coverage using Codecov
       run: bash <(curl -s https://codecov.io/bash)
