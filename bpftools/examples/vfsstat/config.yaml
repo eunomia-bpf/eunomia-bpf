@@ -1,0 +1,21 @@
+programs:
+  - name: vfsstat
+      description: Detect key calls to the Virtual File System (VFS) interface
+    metrics:
+      gauge:
+        - name: eunomia_vfsstat_read
+          labels:
+            - name: read/s
+        - name: eunomia_vfsstat_write
+            labels:
+                - name: write/s
+        - name: eunomia_vfsstat_fsync
+            labels:
+                - name: fsync/s
+        - name: eunomia_vfsstat_open
+            labels:
+                - name: open/s
+        - name: eunomia_vfsstat_create
+            labels:
+                - name: create/s
+    compiled_ebpf_filename: package.json
