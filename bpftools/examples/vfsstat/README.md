@@ -6,7 +6,7 @@ Detect key calls to the Virtual File System (VFS) interface
 
 origin from:
 
-https://github.com/iovisor/bcc/blob/master/libbpf-tools/tcpconnlat.bpf.c
+https://github.com/iovisor/bcc/blob/master/libbpf-tools/vfsstat.bpf.c
 
 ## Run
 
