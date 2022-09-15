@@ -7,6 +7,19 @@
 #include <bpf/bpf_tracing.h>
 #include "vfsstat.bpf.h"
 
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 10240);
+	__type(key, u32);
+	__type(value, struct args_t);
+} start SEC(".maps");
+
+struct {
+    __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY)
+    __uint(key_size, sizeof(u32))
+    __uint(value_size, sizeof(u32))
+} events SEC(".map");
+
 __u64 stats[S_MAXSTAT] = {};
 
 static __always_inline int inc_stats(int key)
