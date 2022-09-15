@@ -3,12 +3,13 @@
 #ifndef __VFSSTAT_H
 #define __VFSSTAT_H
 
-struct event {
-    int read/s;
-    int write/s;
-    int fsync/s;
-    int open/s;
-    int create/s;
-}
+enum stat_types {
+	S_READ,
+	S_WRITE,
+	S_FSYNC,
+	S_OPEN,
+	S_CREATE,
+	S_MAXSTAT,
+};
 
 #endif /* __VFSSTAT_H */
