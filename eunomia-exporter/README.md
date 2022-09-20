@@ -54,7 +54,7 @@ Different from the bcc ebpf_exporter, the only thing you need to run on the depl
 
 The result is:
 
-![img](../documents/opensnoop_prometheus.png)
+![img](../documents/images/opensnoop_prometheus.png)
 
 ## manage eBPF tracing program via API
 

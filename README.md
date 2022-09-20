@@ -52,7 +52,7 @@ $ docker run -it -v /path/to/repo/bpftools/examples/bootstrap:/src yunwei37/ebpm
 $ sudo ./ecli run bpftools/examples/bootstrap/package.json              # run the compiled ebpf code
 ```
 
-The cli tool can also run as a simple server to receive requests, or as a client to send requests to another server. see [doc/ecli-usage.md](doc/ecli-usage.md) for more usages.
+The cli tool can also run as a simple server to receive requests, or as a client to send requests to another server. see [doc/ecli-usage.md](https://eunomia-bpf.github.io/ecli/index.html) for more usages.
 
 For more examples, see [bpftools/examples](bpftools/examples) directory.
 
