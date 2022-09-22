@@ -1,5 +1,5 @@
-#ifndef EUNOMIA_CONFIG_H_
-#define EUNOMIA_CONFIG_H_
+#ifndef EUNOMIA_CONFIG_HPP_
+#define EUNOMIA_CONFIG_HPP_
 
 #include <string>
 

@@ -9,6 +9,7 @@
 #include "base64.h"
 #include "eunomia/eunomia-bpf.hpp"
 #include "json.hpp"
+#include "eunomia/utils.hpp"
 
 extern "C"
 {

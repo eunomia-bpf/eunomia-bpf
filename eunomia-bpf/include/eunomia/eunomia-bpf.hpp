@@ -12,9 +12,9 @@
 #include <string>
 #include <vector>
 
-#include "eunomia-config.h"
+#include "eunomia-config.hpp"
 #include "eunomia-meta.hpp"
-#include "export-events.h"
+#include "export-events.hpp"
 
 struct bpf_map;
 struct bpf_program;
@@ -86,6 +86,8 @@ namespace eunomia
     std::vector<bpf_map *> maps = {};
     std::vector<bpf_program *> progs = {};
     std::vector<bpf_link *> links = {};
+    std::vector<char> bss_buffer = {};
+    std::vector<char> rodata_buffer = {};
     bpf_object_skeleton *skeleton = nullptr;
 
     /// used for processing maps and free them
