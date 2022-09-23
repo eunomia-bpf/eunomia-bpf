@@ -88,11 +88,11 @@ namespace eunomia
 
   bool ebpf_maps_meta_data::is_rodata(void) const
   {
-    return str_ends_with(name, ".bss");
+    return str_ends_with(name, ".rodata");
   }
   bool ebpf_maps_meta_data::is_bss(void) const
   {
-    return str_ends_with(name, ".rodata");
+    return str_ends_with(name, ".bss");
   }
 
   void eunomia_ebpf_meta_data::from_json_str(const std::string &j_str)

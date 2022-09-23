@@ -25,20 +25,21 @@ namespace eunomia
   template<typename T>
   void load_data(const json& json_obj, const std::string& name, char* buffer, size_t offset)
   {
-    auto obj = json_obj[name];
-    if (obj.is_null())
+    if (!json_obj.contains(name))
     {
       return;
     }
-    T value = obj;
+    T value = json_obj[name];
+    std::cout << "load runtime arg: " << name << " " << value << std::endl;
     memcpy(buffer + offset, &value, sizeof(T));
   }
 
-  void eunomia_raw_processor::load_section_data(
-      std::size_t index,
-      const ebpf_maps_meta_data& map,
-      char* buffer)
+  void eunomia_raw_processor::load_section_data(std::size_t index, const ebpf_maps_meta_data& map, char* buffer)
   {
+    if (!buffer || runtime_args.empty())
+    {
+      return;
+    }
     json json_obj;
     try
     {
@@ -69,7 +70,10 @@ namespace eunomia
               break;
             }
             std::string value = obj;
-            memcpy(buffer + offset, value.c_str(), len);
+            std::cout << "load runtime arg: " << sec.name << " " << value << std::endl;
+            memcpy(buffer + offset, value.c_str(), value.size() > len ? len : value.size());
+            offset += len;
+            continue;
           }
           else
           {

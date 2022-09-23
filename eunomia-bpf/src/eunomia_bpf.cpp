@@ -48,7 +48,7 @@ namespace eunomia
       std::cerr << "failed to open skeleton" << std::endl;
       return -1;
     }
-
+    processor.load_map_data(*this);
     /* Load & verify BPF programs */
     err = bpf_object__load_skeleton(skeleton);
     if (err)
@@ -287,7 +287,7 @@ namespace eunomia
       return -1;
 
     s->sz = sizeof(*s);
-    s->name = "client_bpf"; // FIXME: use ebpf_name in meta data
+    s->name = "client_bpf";  // FIXME: use ebpf_name in meta data
 
     /* maps */
     s->map_cnt = 0;
