@@ -14,7 +14,7 @@ namespace eunomia
   /// - reorder the data before run eBPF program
   class eunomia_processor
   {
-    public:
+   public:
     /// @brief create program meta data from json
     /// @param json_str config json str
     /// @return meta data
@@ -25,9 +25,14 @@ namespace eunomia
     virtual ~eunomia_processor() = default;
   };
 
-  class eunomia_raw_processor: public eunomia_processor
+  class eunomia_raw_processor : public eunomia_processor
   {
-    public:
+   private:
+    /// @brief preserve the meta data json for further use
+    std::string runtime_args;
+    void load_section_data(std::size_t index, const ebpf_maps_meta_data& map, char* buffer);
+
+   public:
     eunomia_ebpf_meta_data create_meta_from_json(const std::string& json_str) override;
     void load_map_data(eunomia_ebpf_program& prog) override;
     virtual ~eunomia_raw_processor() = default;

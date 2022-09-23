@@ -25,12 +25,24 @@ namespace eunomia
     void from_json_str(const std::string &j_str);
   };
 
+  struct ebpf_btf_type_meta_data
+  {
+    std::string name;
+    std::string type;
+    std::size_t size;
+  };
+
   struct ebpf_maps_meta_data
   {
     std::string name;
     std::string type;
     ebpf_export_types_meta_data export_data_types;
+    std::vector<ebpf_btf_type_meta_data> sec_data;
+
+    bool is_rodata(void) const;
+    bool is_bss(void) const;
   };
+
 
   struct ebpf_progs_meta_data
   {

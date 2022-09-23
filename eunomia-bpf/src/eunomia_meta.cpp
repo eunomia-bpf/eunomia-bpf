@@ -3,6 +3,7 @@
 
 #include "base64.h"
 #include "eunomia/eunomia-bpf.hpp"
+#include "eunomia/utils.hpp"
 #include "json.hpp"
 
 extern "C"
@@ -70,11 +71,28 @@ namespace eunomia
     get_opt_from_json_at(type);
   }
 
+  static void from_json(const nlohmann::json &j, ebpf_btf_type_meta_data &data)
+  {
+    get_from_json_at(name);
+    get_from_json_at(type);
+    get_from_json_at(size);
+  }
+
   static void from_json(const nlohmann::json &j, ebpf_maps_meta_data &data)
   {
     get_from_json_at(name);
     get_from_json_at(type);
     get_opt_from_json_at(export_data_types);
+    get_opt_from_json_at(sec_data);
+  }
+
+  bool ebpf_maps_meta_data::is_rodata(void) const
+  {
+    return str_ends_with(name, ".bss");
+  }
+  bool ebpf_maps_meta_data::is_bss(void) const
+  {
+    return str_ends_with(name, ".rodata");
   }
 
   void eunomia_ebpf_meta_data::from_json_str(const std::string &j_str)
@@ -97,7 +115,7 @@ namespace eunomia
     }
     catch (...)
     {
-      std::cerr << "Failed to parse json" << std::endl;
+      std::cerr << "failed to parse json" << std::endl;
       state = ebpf_program_state::INVALID;
       return -1;
     }
@@ -106,7 +124,10 @@ namespace eunomia
   /// create a ebpf program from json str
   eunomia_ebpf_program::eunomia_ebpf_program(const std::string &json_str)
   {
-    meta_data.from_json_str(json_str);
-    state = ebpf_program_state::INIT;
+    int res = load_json_config(json_str);
+    if (res != 0)
+    {
+      std::cerr << "failed to load json config" << std::endl;
+    }
   }
 }  // namespace eunomia

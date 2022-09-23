@@ -72,6 +72,7 @@ namespace eunomia
     // check the state of the program
     if (state == ebpf_program_state::INVALID)
     {
+      std::cerr << "invalid program state" << std::endl;
       return -1;
     }
     else if (state == ebpf_program_state::RUNNING)
@@ -300,11 +301,11 @@ namespace eunomia
     {
       if (meta_data.maps[i].type == "BPF_MAP_TYPE_UNSPEC")
       {
-        if (str_ends_with(meta_data.maps[i].name, ".rodata"))
+        if (meta_data.maps[i].is_rodata())
         {
           s->maps[s->map_cnt].mmaped = (void **)&rodata_buffer;
         }
-        else if (str_ends_with(meta_data.maps[i].name, ".bss"))
+        else if (meta_data.maps[i].is_bss())
         {
           s->maps[s->map_cnt].mmaped = (void **)&bss_buffer;
         }

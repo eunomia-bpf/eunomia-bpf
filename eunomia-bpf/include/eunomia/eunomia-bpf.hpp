@@ -44,6 +44,7 @@ namespace eunomia
   /// @details Used for managing the life span of eBPF program
   class eunomia_ebpf_program
   {
+   friend class eunomia_raw_processor;
    private:
     /// create an ebpf skeleton
     int create_prog_skeleton(void);
