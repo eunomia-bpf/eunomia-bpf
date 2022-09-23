@@ -40,12 +40,12 @@ namespace eunomia
 
     if (create_prog_skeleton())
     {
-      std::cerr << "Failed to create skeleton from json" << std::endl;
+      std::cerr << "failed to create skeleton from json" << std::endl;
       return -1;
     }
     if (bpf_object__open_skeleton(skeleton, NULL))
     {
-      std::cerr << "Failed to open skeleton" << std::endl;
+      std::cerr << "failed to open skeleton" << std::endl;
       return -1;
     }
 
@@ -53,7 +53,7 @@ namespace eunomia
     err = bpf_object__load_skeleton(skeleton);
     if (err)
     {
-      std::cerr << "Failed to load skeleton" << std::endl;
+      std::cerr << "failed to load skeleton" << std::endl;
       return -1;
     }
 
@@ -61,7 +61,7 @@ namespace eunomia
     err = bpf_object__attach_skeleton(skeleton);
     if (err)
     {
-      std::cerr << "Failed to attach skeleton" << std::endl;
+      std::cerr << "failed to attach skeleton" << std::endl;
       return -1;
     }
     return 0;
@@ -286,7 +286,7 @@ namespace eunomia
       return -1;
 
     s->sz = sizeof(*s);
-    s->name = meta_data.ebpf_name.c_str();
+    s->name = "client_bpf"; // FIXME: use ebpf_name in meta data
 
     /* maps */
     s->map_cnt = 0;
