@@ -93,7 +93,7 @@ programs:
 
 Then you can start the Prometheus exporter anywhere with the `config.yaml` and pre-compiled eBPF data `package.json`, you can see the metrics like this:
 
-![opensnoop_prometheus](documents/opensnoop_prometheus.png)
+![opensnoop_prometheus](documents/images/opensnoop_prometheus.png)
 
 You can deploy the exporter on any kernel version without `LLVM/Clang` dependence. See the [eunomia-exporter](eunomia-exporter/README.md) for more details.
 

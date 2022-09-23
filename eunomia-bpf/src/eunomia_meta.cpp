@@ -91,7 +91,7 @@ namespace eunomia
   {
     try
     {
-      meta_data.from_json_str(json_str);
+      meta_data = processor.create_meta_from_json(json_str);
       state = ebpf_program_state::INIT;
       return 0;
     }

@@ -15,6 +15,7 @@
 #include "eunomia-config.hpp"
 #include "eunomia-meta.hpp"
 #include "export-events.hpp"
+#include "processor.hpp"
 
 struct bpf_map;
 struct bpf_program;
@@ -80,14 +81,17 @@ namespace eunomia
     /// @brief  controler of the export event to user space
     eunomia_event_exporter event_exporter;
 
+    // use lua or wasm to help process the eBPF program in every state
+    eunomia_raw_processor processor = {};
+
     /// buffer to base 64 decode
     bpf_object *obj = nullptr;
     std::vector<char> base64_decode_buffer = {};
     std::vector<bpf_map *> maps = {};
     std::vector<bpf_program *> progs = {};
     std::vector<bpf_link *> links = {};
-    std::vector<char> bss_buffer = {};
-    std::vector<char> rodata_buffer = {};
+    char* bss_buffer = nullptr;
+    char* rodata_buffer = nullptr;
     bpf_object_skeleton *skeleton = nullptr;
 
     /// used for processing maps and free them
@@ -120,10 +124,8 @@ namespace eunomia
     [[nodiscard]] int wait_and_export(void) noexcept;
     /// @brief export the data as json string.
     /// @details The key of the value is the field name in the export json.
-    [[nodiscard]] int wait_and_export_to_handler(
-        enum export_format_type type,
-        export_event_handler handler,
-        void* ctx = nullptr) noexcept;
+    [[nodiscard]] int
+    wait_and_export_to_handler(enum export_format_type type, export_event_handler handler, void *ctx = nullptr) noexcept;
 
     /// stop, detach, and clean up memory
 

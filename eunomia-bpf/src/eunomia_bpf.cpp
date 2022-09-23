@@ -8,8 +8,8 @@
 
 #include "base64.h"
 #include "eunomia/eunomia-bpf.hpp"
-#include "json.hpp"
 #include "eunomia/utils.hpp"
+#include "json.hpp"
 
 extern "C"
 {
@@ -300,8 +300,19 @@ namespace eunomia
     {
       if (meta_data.maps[i].type == "BPF_MAP_TYPE_UNSPEC")
       {
-        // skip unrecognized maps
-        continue;
+        if (str_ends_with(meta_data.maps[i].name, ".rodata"))
+        {
+          s->maps[s->map_cnt].mmaped = (void **)&rodata_buffer;
+        }
+        else if (str_ends_with(meta_data.maps[i].name, ".bss"))
+        {
+          s->maps[s->map_cnt].mmaped = (void **)&bss_buffer;
+        }
+        else
+        {
+          // skip unrecognized maps
+          continue;
+        }
       }
       s->maps[s->map_cnt].name = meta_data.maps[i].name.c_str();
       s->maps[s->map_cnt].map = &maps[i];

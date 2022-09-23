@@ -93,7 +93,7 @@ programs:
 
 然后，您可以在任何地方使用 `config.yaml` 和预编译的 eBPF 数据 `package.json` 启动 Prometheus 导出器，您可以看到如下指标：
 
-![opensnoop_prometheus](documents/opensnoop_prometheus.png)
+![opensnoop_prometheus](documents/images/opensnoop_prometheus.png)
 
 您可以在任何内核版本上部署导出器，而无需依赖 `LLVM/Clang`。 有关详细信息，请参阅 [eunomia-exporter](eunomia-exporter/README.md)。
 
