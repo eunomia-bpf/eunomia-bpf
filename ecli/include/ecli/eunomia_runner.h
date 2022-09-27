@@ -17,6 +17,7 @@ struct eunomia_env
 {
   std::vector<std::string> args;
   std::vector<char> buffer;
+  export_format_type type;
 };
 
 struct eunomia_event
@@ -36,15 +37,16 @@ class eunomia_runner : public tracker_with_exporter<eunomia_env, eunomia_event>
       tracker_event_handler handler,
       const std::string &name,
       const std::string &json_data,
-      const std::vector<std::string> &args)
+      const std::vector<std::string> &args, export_format_type type)
   {
-    return std::make_unique<eunomia_runner>(handler, name, json_data, args);
+    return std::make_unique<eunomia_runner>(handler, name, json_data, args, type);
   }
   eunomia_runner(
       tracker_event_handler handler,
       const std::string &name,
       const std::string &json_data,
-      const std::vector<std::string> &args);
+      const std::vector<std::string> &args,
+      export_format_type type);
 
   /// start process tracker
   void start_tracker();

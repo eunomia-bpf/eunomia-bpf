@@ -35,20 +35,6 @@ static void from_json(const nlohmann::json& j, tracker_config_data& data)
   get_from_json_at(export_handlers);
 }
 
-static void from_json(const nlohmann::json& j, rule_config_data& data)
-{
-  get_from_json_at(rule_name);
-  get_from_json_at(type);
-  get_from_json_at(err_msg);
-  get_from_json_at(trigger);
-}
-
-static void from_json(const nlohmann::json& j, seccomp_config_data& data)
-{
-  get_from_json_at(allow_syscall);
-  get_from_json_at(container_id);
-}
-
 static void from_json(const nlohmann::json& j, eunomia_config_data& data)
 {
   get_from_json_at(run_selected);
@@ -97,18 +83,4 @@ tracker_config_data tracker_config_data::from_json_str(const std::string& json_s
     spdlog::error("json parse error for tracker_config_data! {}", json_str);
   }
   return tracker_config_data{};
-}
-
-rule_config_data rule_config_data::from_json_str(const std::string& json_str)
-{
-  try
-  {
-    nlohmann::json j = nlohmann::json::parse(json_str);
-    return j.get<rule_config_data>();
-  }
-  catch (...)
-  {
-    spdlog::error("json parse error for rule_config_data! {}", json_str);
-  }
-  return rule_config_data{};
 }

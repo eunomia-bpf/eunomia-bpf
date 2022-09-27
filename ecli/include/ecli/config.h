@@ -10,22 +10,7 @@
 #include <set>
 #include <string>
 #include <vector>
-
-/// sec rules config
-struct rule_config
-{
-  std::string rule_name;
-  std::string type;
-  std::string trigger;
-  std::string err_msg;
-};
-
-/// seccomp config
-struct seccomp_config
-{
-  /// the syscalls name which is allowed
-  std::vector<std::string> allow_syscall;
-};
+#include <eunomia/eunomia-bpf.h>
 
 /// handler config data
 struct handler_config_data
@@ -41,29 +26,10 @@ struct tracker_config_data
   std::string json_data;
   std::vector<handler_config_data> export_handlers;
   std::vector<std::string> args;
+  /// export type format
+  export_format_type export_format = export_format_type::EXPORT_PLANT_TEXT;
 
   static tracker_config_data from_json_str(const std::string& json_str);
-};
-
-/// security rule config
-struct rule_config_data
-{
-  std::string rule_name;
-  std::string type;
-  std::string trigger;
-  std::string err_msg;
-
-  static rule_config_data from_json_str(const std::string& json_str);
-};
-
-/// seccomp config data
-struct seccomp_config_data
-{
-  std::string container_id;
-  /// the syscalls name which is allowed
-  std::vector<std::string> allow_syscall;
-
-  static seccomp_config_data from_json_str(const std::string& json_str);
 };
 
 /// config for eunomia

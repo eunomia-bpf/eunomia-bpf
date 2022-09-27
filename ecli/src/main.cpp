@@ -39,11 +39,21 @@ constexpr auto default_json_data_file_name = "package.json";
 static void run_mode_operation(
     const std::string& path,
     const std::vector<std::string>& run_with_extra_args,
-    eunomia_config_data& core_config)
+    eunomia_config_data& core_config,
+    bool export_to_json)
 {
   core_config.run_selected = "run";
   core_config.enabled_trackers.clear();
-  core_config.enabled_trackers.push_back(tracker_config_data{ path, "", {}, run_with_extra_args });
+  export_format_type type;
+  if (export_to_json)
+  {
+    type = export_format_type::EXPORT_JSON;
+  }
+  else
+  {
+    type = export_format_type::EXPORT_PLANT_TEXT;
+  }
+  core_config.enabled_trackers.push_back(tracker_config_data{ path, "", {}, run_with_extra_args,  type});
   ecli_core core(core_config);
   core.start_eunomia();
 }
@@ -113,6 +123,7 @@ int main(int argc, char* argv[])
   std::string ebpf_program_name = default_json_data_file_name;
   std::string log_level = "default";
   std::vector<std::string> run_with_extra_args;
+  bool export_as_json;
 
   eunomia_client_mode client_selected = eunomia_client_mode::list;
   std::string server_endpoint = default_endpoint;
@@ -123,6 +134,7 @@ int main(int argc, char* argv[])
       clipp::opt_values("extra args", run_with_extra_args) % "Some extra args provided to the ebpf program";
   auto log_level_opt = (clipp::option("--log-level") & clipp::value("log level", log_level)) %
                        "The log level for the eunomia cli, can be debug, info, warn, error";
+  auto export_json_opt = clipp::option("-j", "--json").set(export_as_json).doc("export the result as json");
 
   auto client_endpoint_opt = (clipp::option("--endpoint") & clipp::value("server endpoint", server_endpoint)) %
                              "The endpoint of server to connect to";
@@ -148,7 +160,7 @@ int main(int argc, char* argv[])
   auto run_cmd = (clipp::command("run").set(cmd_selected, eunomia_cmd_mode::run), run_url_value, run_opt_cmd_args) %
                  "run a ebpf program";
   auto cli =
-      (log_level_opt,
+      (log_level_opt, export_json_opt,
        (client_cmd | run_cmd | server_cmd | clipp::command("help").set(cmd_selected, eunomia_cmd_mode::help)));
 
   if (!clipp::parse(argc, argv, cli))
@@ -176,7 +188,7 @@ int main(int argc, char* argv[])
 
   switch (cmd_selected)
   {
-    case eunomia_cmd_mode::run: run_mode_operation(ebpf_program_name, run_with_extra_args, core_config); break;
+    case eunomia_cmd_mode::run: run_mode_operation(ebpf_program_name, run_with_extra_args, core_config, export_as_json); break;
     case eunomia_cmd_mode::server: server_mode_operation(core_config); break;
     case eunomia_cmd_mode::client:
     {

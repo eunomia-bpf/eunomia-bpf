@@ -4,13 +4,14 @@
  * All rights reserved.
  */
 
+#include "ecli/ecli_core.h"
+
 #include <signal.h>
 #include <unistd.h>
 
 #include <json.hpp>
 #include <optional>
 
-#include "ecli/ecli_core.h"
 #include "ecli/eunomia_runner.h"
 #include "ecli/tracker_manager.h"
 #include "ecli/url_resolver.h"
@@ -84,7 +85,7 @@ std::unique_ptr<eunomia_runner> ecli_core::create_tracker_with_handler(
   {
     return nullptr;
   }
-  return eunomia_runner::create_tracker_with_args(handler, base.url, *json_data, base.args);
+  return eunomia_runner::create_tracker_with_args(handler, base.url, *json_data, base.args, base.export_format);
 }
 
 std::unique_ptr<eunomia_runner> ecli_core::create_default_tracker(const tracker_config_data& base)

@@ -18,8 +18,9 @@ eunomia_runner::eunomia_runner(
     tracker_event_handler handler,
     const std::string &name,
     const std::string &json_data,
-    const std::vector<std::string> &args)
-    : tracker_with_exporter{ export_data{ eunomia_env{}, name, handler } },
+    const std::vector<std::string> &args,
+    export_format_type type)
+    : tracker_with_exporter{ export_data{ eunomia_env{{}, {}, type}, name, handler } },
       program(json_data)
 
 {
@@ -33,7 +34,7 @@ void eunomia_runner::start_tracker()
     spdlog::error("start ebpf program failed");
     return;
   }
-  if (program.wait_and_export() < 0)
+  if (program.wait_and_export_to_handler(current_config.env.type, nullptr) < 0)
   {
     spdlog::error("wait and print ebpf program failed");
     return;
