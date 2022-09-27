@@ -73,28 +73,28 @@ int check_event_output(test_case& t_case)
 
   //  test plant text output
   meta.from_json_str(t_case.json_data);
-  exporter.set_export_type(export_format_type::EEXPORT_PLANT_TEXT, nullptr);
+  exporter.set_export_type(export_format_type::EXPORT_PLANT_TEXT, nullptr);
   res = exporter.check_for_meta_types_and_create_export_format(meta);
   assert(res >= 0);
   std::cout << "check_event_output plant text: " << res << std::endl;
   exporter.handler_export_events(t_case.event);
 
   //  test json output
-  exporter.set_export_type(export_format_type::EEXPORT_JSON, nullptr);
+  exporter.set_export_type(export_format_type::EXPORT_JSON, nullptr);
   res = exporter.check_for_meta_types_and_create_export_format(meta);
   assert(res >= 0);
   std::cout << "check_event_output json: " << res << std::endl;
   exporter.handler_export_events(t_case.event);
 
   //  test plant text output to handler
-  exporter.set_export_type(export_format_type::EEXPORT_PLANT_TEXT, plant_text_cmp_handler, (void*)t_case.plant_text_result);
+  exporter.set_export_type(export_format_type::EXPORT_PLANT_TEXT, plant_text_cmp_handler, (void*)t_case.plant_text_result);
   res = exporter.check_for_meta_types_and_create_export_format(meta);
   assert(res >= 0);
   std::cout << "check_event handler plant text: " << res << std::endl;
   exporter.handler_export_events(t_case.event);
 
   // test json output to handler
-  exporter.set_export_type(export_format_type::EEXPORT_JSON, json_cmp_handler, (void*)t_case.json_result);
+  exporter.set_export_type(export_format_type::EXPORT_JSON, json_cmp_handler, (void*)t_case.json_result);
   res = exporter.check_for_meta_types_and_create_export_format(meta);
   assert(res >= 0);
   std::cout << "check_event handler json: " << res << std::endl;

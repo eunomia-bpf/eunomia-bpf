@@ -244,7 +244,7 @@ namespace eunomia
 
   int eunomia_ebpf_program::wait_and_export(void) noexcept
   {
-    event_exporter.set_export_type(export_format_type::EEXPORT_PLANT_TEXT, nullptr);
+    event_exporter.set_export_type(export_format_type::EXPORT_PLANT_TEXT, nullptr);
     int err = 0;
     try
     {

@@ -7,9 +7,9 @@ extern "C"
 #endif
   enum export_format_type
   {
-    EEXPORT_PLANT_TEXT,
-    EEXPORT_JSON,
-    EEXPORT_RAW_EVENT,
+    EXPORT_PLANT_TEXT,
+    EXPORT_JSON,
+    EXPORT_RAW_EVENT,
   };
   struct eunomia_bpf;
   /// create a new eunomia bpf program from a json file

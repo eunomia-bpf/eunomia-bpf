@@ -40,7 +40,7 @@ namespace eunomia
     auto info = f;
     switch (format_type)
     {
-      case export_format_type::EEXPORT_JSON:
+      case export_format_type::EXPORT_JSON:
       {
         if (info.llvm_type == "cstring")
         {
@@ -129,7 +129,7 @@ namespace eunomia
       std::cerr << "No available format type!" << std::endl;
       return -1;
     }
-    else if (user_export_event_handler == nullptr && format_type == export_format_type::EEXPORT_PLANT_TEXT)
+    else if (user_export_event_handler == nullptr && format_type == export_format_type::EXPORT_PLANT_TEXT)
     {
       print_export_types_header();
     }
@@ -313,16 +313,16 @@ namespace eunomia
     user_ctx = ctx;
     switch (format_type)
     {
-      case export_format_type::EEXPORT_JSON:
+      case export_format_type::EXPORT_JSON:
       {
         internal_event_processor =
             std::bind(&eunomia_event_exporter::print_export_event_to_json, this, std::placeholders::_1);
       }
       break;
-      case export_format_type::EEXPORT_RAW_EVENT:
+      case export_format_type::EXPORT_RAW_EVENT:
         internal_event_processor = std::bind(&eunomia_event_exporter::raw_event_handler, this, std::placeholders::_1);
         break;
-      case export_format_type::EEXPORT_PLANT_TEXT: [[fallthrough]];
+      case export_format_type::EXPORT_PLANT_TEXT: [[fallthrough]];
       default:
         internal_event_processor =
             std::bind(&eunomia_event_exporter::print_plant_text_event_with_time, this, std::placeholders::_1);
