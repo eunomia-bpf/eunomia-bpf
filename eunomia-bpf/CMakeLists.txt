@@ -195,9 +195,12 @@ add_dependencies(${PROJECT_NAME} libbpf-build)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBBPF_LIBRARIES} -lelf -lz -lpthread)
 target_link_libraries(${PROJECT_NAME}_LIB PUBLIC ${LIBBPF_LIBRARIES} -lelf -lz -lpthread)
 
-set(WASMTIME_LIBRARIES ${CMAKE_SOURCE_DIR}/../third_party/wasmtime/lib/libwasmtime.a)
-target_link_libraries(${PROJECT_NAME} PUBLIC PUBLIC ${WASMTIME_LIBRARIES} -ldl -lm)
-target_link_libraries(${PROJECT_NAME}_LIB PUBLIC PUBLIC PUBLIC ${WASMTIME_LIBRARIES} -ldl -lm)
+if(ENABLE_EUNOMIA_WASM)
+  add_compile_definitions(ENABLE_EUNOMIA_WASM)
+  set(WASMTIME_LIBRARIES ${CMAKE_SOURCE_DIR}/../third_party/wasmtime/lib/libwasmtime.a)
+  target_link_libraries(${PROJECT_NAME} PUBLIC PUBLIC ${WASMTIME_LIBRARIES} -ldl -lm)
+  target_link_libraries(${PROJECT_NAME}_LIB PUBLIC PUBLIC PUBLIC ${WASMTIME_LIBRARIES} -ldl -lm)
+endif()
 # For Windows, it is necessary to link with the MultiThreaded library.
 # Depending on how the rest of the project's dependencies are linked, it might be necessary
 # to change the line to statically link with the library.

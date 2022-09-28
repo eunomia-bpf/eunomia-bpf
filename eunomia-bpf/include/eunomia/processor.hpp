@@ -27,16 +27,30 @@ namespace eunomia
 
   class eunomia_raw_processor : public eunomia_processor
   {
-   private:
+   protected:
     /// @brief preserve the meta data json for further use
     std::string runtime_args;
     void load_section_data(std::size_t index, const ebpf_maps_meta_data& map, char* buffer);
 
    public:
-    eunomia_ebpf_meta_data create_meta_from_json(const std::string& json_str) override;
-    void load_map_data(eunomia_ebpf_program& prog) override;
+    virtual eunomia_ebpf_meta_data create_meta_from_json(const std::string& json_str) override;
+    virtual void load_map_data(eunomia_ebpf_program& prog) override;
     virtual ~eunomia_raw_processor() = default;
   };
+
+#ifdef ENABLE_EUNOMIA_WASM
+  class eunomia_wasm_processor : private eunomia_raw_processor
+  {
+   protected:
+    std::string wasm_code;
+
+   private:
+    std::string run_wasm_for_load_json(const std::string& json_str);
+
+   public:
+    eunomia_ebpf_meta_data create_meta_from_json(const std::string& json_str) override;
+  };
+#endif
 }  // namespace eunomia
 
 #endif
