@@ -20,6 +20,7 @@ set(third_party_headers
     ../third_party/includes/
     ../third_party/libbpf/include/uapi
     ../third_party/libbpf/
+    ../third_party/wasmtime/include
 )
 
 set(skel_includes

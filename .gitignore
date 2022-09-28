@@ -3,3 +3,4 @@ build/
 errors
 doxygens/
 docs/
+third_party/wasmtime/
