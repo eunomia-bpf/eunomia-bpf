@@ -51,13 +51,6 @@ then you can build the exporter:
 ```shell
 $ make eunomia-exporter
 ```
-# build wasmtime in eunomia-bpf as wasm runtime
-
-- download wasmtime from https://github.com/bytecodealliance/wasmtime/releases
-- place the content in third_party/wasmtime
-
-see the https://github.com/bytecodealliance/wasmtime-cpp for more details.
-
 
 ## more details
 

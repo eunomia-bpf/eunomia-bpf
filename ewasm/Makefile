@@ -1,5 +1,5 @@
 .PHONY: install coverage test docs help generate_tools
-.DEFAULT_GOAL := install
+.DEFAULT_GOAL := help
 
 define BROWSER_PYSCRIPT
 import os, webbrowser, sys
@@ -36,9 +36,9 @@ install-deps: ## install deps
 
 test: ## run tests quickly with ctest
 	rm -rf build/
-	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -Deunomia_ENABLE_UNIT_TESTING=1 -Deunomia_ENABLE_ASAN=1
-	cmake --build build
-	cd build/ && sudo ctest -VV
+	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -Deunomia_ENABLE_UNIT_TESTING=1 -DCMAKE_BUILD_TYPE="Release"
+	cmake --build build --config Release
+	cd build/ && ctest -C Release -VV
 
 coverage: ## check code coverage quickly GCC
 	rm -rf build/

@@ -1,8 +1,5 @@
 set(sources
-    src/eunomia_bpf.cpp
-    src/export_events.cpp
-    src/eunomia_meta.cpp
-    src/processor.cpp
+    src/ewasm.cpp
 )
 
 set(exe_sources
@@ -11,7 +8,6 @@ set(exe_sources
 )
 
 set(headers
-    include/
 )
 
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
@@ -22,8 +18,9 @@ set(third_party_headers
     ../third_party/libbpf/
 )
 
+set(skel_includes
+)
+
 set(test_sources
-    src/config_test.cpp
-    src/export_types_test.cpp
-    src/test_c_api.c
+    src/example_test.cpp
 )

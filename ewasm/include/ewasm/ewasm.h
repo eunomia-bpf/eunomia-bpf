@@ -1,0 +1,4 @@
+#ifndef EUNOMIA_EWASM
+#define EUNOMIA_EWASM
+
+#endif // EUNOMIA_EWASM

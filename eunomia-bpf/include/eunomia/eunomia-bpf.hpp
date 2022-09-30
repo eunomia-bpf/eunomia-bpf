@@ -82,7 +82,7 @@ namespace eunomia
     /// @brief  controler of the export event to user space
     eunomia_event_exporter event_exporter;
 
-    // use lua or wasm to help process the eBPF program in every state
+    // help process the eBPF program with json config
     eunomia_raw_processor processor = {};
 
     /// buffer to base 64 decode
