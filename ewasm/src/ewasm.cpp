@@ -1,1 +1,3 @@
-int init(void) {}
+int init(void) {
+    return 0;
+}

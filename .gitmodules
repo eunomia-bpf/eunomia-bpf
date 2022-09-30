@@ -1,3 +1,6 @@
 [submodule "libbpf"]
 	path = third_party/libbpf
 	url = https://github.com/libbpf/libbpf.git
+[submodule "third_party/wasm-micro-runtime"]
+	path = third_party/wasm-micro-runtime
+	url = https://github.com/bytecodealliance/wasm-micro-runtime

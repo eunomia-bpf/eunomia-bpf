@@ -175,32 +175,25 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
 verbose_message("Successfully added all dependencies and linked against them.")
 
-#
-# Set the build/user include directories
-#
-set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
-# Tell cmake where to find BpfObject module
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-
-# Set BpfObject input parameters -- note this is usually not necessary unless
-# you're in a highly vendored environment (like libbpf-bootstrap)
-set(BPFOBJECT_BPFTOOL_EXE ${THIRD_PARTY_DIR}/tools/bpftool)
-set(BPFOBJECT_VMLINUX_H ${THIRD_PARTY_DIR}/vmlinux/vmlinux.h)
-set(LIBBPF_INCLUDE_DIRS ${EUNOMIA_BINARY_DIR}/libbpf)
-set(LIBBPF_LIBRARIES ${EUNOMIA_BINARY_DIR}/libbpf/libbpf.a)
-include_directories(${EUNOMIA_DIR}/include)
-
-include_directories(INTERFACE ${skel_includes} ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/include/uapi)
-include_directories(SYSTEM INTERFACE ${third_party_headers})
-include_directories(SYSTEM INTERFACE ${LIBBPF_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/bpftools)
-
-add_subdirectory(${EUNOMIA_DIR} ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
-# find_package(eunomia CONFIG REQUIRED)
 add_dependencies(${PROJECT_NAME}_LIB eunomia_LIB)
-add_dependencies(eunomia_LIB libbpf-build)
 add_dependencies(${PROJECT_NAME} eunomia_LIB)
 target_link_libraries(${PROJECT_NAME} PRIVATE eunomia_LIB)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBBPF_LIBRARIES} -lelf -lz -lpthread)
+
+set (WAMR_BUILD_PLATFORM "linux")
+set (WAMR_BUILD_TARGET "X86_64")
+set (WAMR_BUILD_INTERP 1)
+set (WAMR_BUILD_FAST_INTERP 1)
+set (WAMR_BUILD_AOT 1)
+set (WAMR_BUILD_LIBC_BUILTIN 1)
+set (WAMR_BUILD_LIBC_WASI 1)
+set (WAMR_BUILD_SIMD 1)
+set (WAMR_ROOT_DIR ../third_party/wasm-micro-runtime)
+
+include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+add_library(vmlib PRIVATE ${WAMR_RUNTIME_LIB_SOURCE})
+
+target_link_libraries (${PROJECT_NAME} vmlib)
 
 # Allow usage of header files in the `src` directory, but only for utilities
 if(${PROJECT_NAME}_BUILD_HEADERS_ONLY)
