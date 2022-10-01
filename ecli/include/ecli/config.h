@@ -12,19 +12,11 @@
 #include <vector>
 #include <eunomia/eunomia-bpf.h>
 
-/// handler config data
-struct handler_config_data
-{
-  std::string name;
-  std::vector<std::string> args;
-};
-
 /// tracker config data
 struct tracker_config_data
 {
   std::string url;
   std::string json_data;
-  std::vector<handler_config_data> export_handlers;
   std::vector<std::string> args;
   /// export type format
   export_format_type export_format = export_format_type::EXPORT_PLANT_TEXT;

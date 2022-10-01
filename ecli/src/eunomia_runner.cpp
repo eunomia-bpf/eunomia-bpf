@@ -14,33 +14,25 @@
 
 using json = nlohmann::json;
 
-eunomia_runner::eunomia_runner(
-    tracker_event_handler handler,
-    const std::string &name,
-    const std::string &json_data,
-    const std::vector<std::string> &args,
-    export_format_type type)
-    : tracker_with_exporter{ export_data{ eunomia_env{{}, {}, type}, name, handler } },
-      program(json_data)
-
+eunomia_runner::eunomia_runner(const tracker_config_data& config) : current_config(config)
 {
-  spdlog::debug("eunomia_runner::eunomia_runner created");
+  spdlog::debug("eunomia_runner created");
 }
 
 void eunomia_runner::start_tracker()
 {
+  if (program.load_json_config(current_config.json_data) < 0) {
+    spdlog::error("load json config failed");
+    return;
+  } 
   if (program.run() < 0)
   {
     spdlog::error("start ebpf program failed");
     return;
   }
-  if (program.wait_and_export_to_handler(current_config.env.type, nullptr) < 0)
+  if (program.wait_and_export_to_handler(current_config.export_format, nullptr) < 0)
   {
     spdlog::error("wait and print ebpf program failed");
     return;
   }
-}
-
-void eunomia_runner::plain_text_event_printer::handle(tracker_event<eunomia_event> &e)
-{
 }

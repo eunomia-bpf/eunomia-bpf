@@ -21,18 +21,11 @@
     spdlog::warn("{} use default value", #name); \
   }
 
-static void from_json(const nlohmann::json& j, handler_config_data& data)
-{
-  get_from_json_at(name);
-  get_from_json_at(args);
-}
-
 static void from_json(const nlohmann::json& j, tracker_config_data& data)
 {
   get_from_json_at(url);
   get_from_json_at(json_data);
   get_from_json_at(args);
-  get_from_json_at(export_handlers);
 }
 
 static void from_json(const nlohmann::json& j, eunomia_config_data& data)

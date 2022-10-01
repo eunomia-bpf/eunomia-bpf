@@ -11,42 +11,19 @@
 #include <string>
 
 #include "eunomia/eunomia-bpf.hpp"
+#include "config.h"
 #include "model/tracker.h"
 
-struct eunomia_env
-{
-  std::vector<std::string> args;
-  std::vector<char> buffer;
-  export_format_type type;
-};
-
-struct eunomia_event
-{
-  /// pid for the event
-  int pid;
-  /// the message for the event
-  /// note this may be multi-line
-  std::string messages;
-};
-
-class eunomia_runner : public tracker_with_exporter<eunomia_env, eunomia_event>
+class eunomia_runner : public tracker_base
 {
  public:
   /// create a tracker with deafult config
-  static std::unique_ptr<eunomia_runner> create_tracker_with_args(
-      tracker_event_handler handler,
-      const std::string &name,
-      const std::string &json_data,
-      const std::vector<std::string> &args, export_format_type type)
+  static std::unique_ptr<eunomia_runner> create_tracker_with_args(const tracker_config_data& config)
   {
-    return std::make_unique<eunomia_runner>(handler, name, json_data, args, type);
+    return std::make_unique<eunomia_runner>(config);
   }
-  eunomia_runner(
-      tracker_event_handler handler,
-      const std::string &name,
-      const std::string &json_data,
-      const std::vector<std::string> &args,
-      export_format_type type);
+
+  eunomia_runner(const tracker_config_data& config);
 
   /// start process tracker
   void start_tracker();
@@ -55,13 +32,9 @@ class eunomia_runner : public tracker_with_exporter<eunomia_env, eunomia_event>
     return program.get_program_name();
   }
 
-  struct plain_text_event_printer : public event_handler<eunomia_event>
-  {
-    void handle(tracker_event<eunomia_event> &e);
-  };
-
  private:
   eunomia::eunomia_ebpf_program program;
+  tracker_config_data current_config;
 };
 
 #endif

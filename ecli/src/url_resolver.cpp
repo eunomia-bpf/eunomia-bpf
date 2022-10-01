@@ -9,7 +9,13 @@ namespace fs = std::filesystem;
 
 constexpr auto default_download_path = "/tmp/ebpm/";
 
-static std::optional<std::string> try_download_with_wget(const std::string& url)
+static std::string get_file_contents(const std::string& path)
+{
+  std::ifstream json_file(path);
+  return std::string((std::istreambuf_iterator<char>(json_file)), std::istreambuf_iterator<char>());
+}
+
+static bool try_download_with_wget(const std::string& url, tracker_config_data& config_data)
 {
   std::string resource_name = url.substr(url.find_last_of("/") + 1);
   auto path = default_download_path + resource_name;
@@ -18,27 +24,26 @@ static std::optional<std::string> try_download_with_wget(const std::string& url)
   int res = std::system(cmd.c_str());
   if (res >= 0 && fs::exists(path))
   {
-    std::ifstream json_file(path);
-    spdlog::info("wget download success.");
-    return std::string((std::istreambuf_iterator<char>(json_file)), std::istreambuf_iterator<char>());
+    config_data.json_data = get_file_contents(path);
+    return true;
   }
   spdlog::error("failed to wget {}", url);
-  return std::nullopt;
+  return false;
 }
 
-std::optional<std::string> resolve_json_data(const tracker_config_data& config_data)
+bool resolve_json_data(tracker_config_data& config_data)
 {
   if (config_data.url == "")
   {
-    spdlog::info("url is empty, use json_data directly");
+    spdlog::debug("url is empty, use json_data directly");
     // accept a web requests or others, try to use json_data directly.
-    return config_data.json_data;
+    return true;
   }
   if (fs::is_regular_file(config_data.url))
   {
-    std::ifstream json_file(config_data.url);
-    spdlog::info("reading json data from regular file {}", config_data.url);
-    return std::string((std::istreambuf_iterator<char>(json_file)), std::istreambuf_iterator<char>());
+    spdlog::debug("json data path is a file: {}", config_data.url);
+    config_data.json_data = get_file_contents(config_data.url);
+    return true;
   }
   if (config_data.url.length() > 4 && std::strncmp(config_data.url.c_str(), "http", 4) == 0)
   {
@@ -52,17 +57,18 @@ std::optional<std::string> resolve_json_data(const tracker_config_data& config_d
     auto res = client.Get("");
     if (!res)
     {
-      spdlog::info("Connection failed.");
-      return try_download_with_wget(config_data.url);
+      spdlog::debug("Connection failed.");
+      return try_download_with_wget(config_data.url, config_data);
     }
     if (res->status == 404)
     {
-      spdlog::info("Not found.");
-      return try_download_with_wget(config_data.url);
+      spdlog::debug("Not found.");
+      return try_download_with_wget(config_data.url, config_data);
     }
     spdlog::info("Get json data complete: {}", res->status);
-    return res->body;
+    config_data.json_data = res->body;
+    return true;
   }
   spdlog::error("json data path not exits: {}", config_data.url);
-  return std::nullopt;
+  return false;
 }

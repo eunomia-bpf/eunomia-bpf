@@ -27,18 +27,7 @@ struct ecli_core
   /// manager for all tracker
   tracker_manager core_tracker_manager;
 
-  /// if the config is invalid, it will return a nullptr.
-  eunomia_runner::tracker_event_handler create_tracker_event_handler(const handler_config_data& config);
-  /// create all event handlers for a tracker
-  eunomia_runner::tracker_event_handler create_tracker_event_handlers(
-      const std::vector<handler_config_data>& handler_configs);
-
-  std::unique_ptr<eunomia_runner> create_default_tracker(const tracker_config_data& base);
-
-  /// create a default tracker with other handlers
-  std::unique_ptr<eunomia_runner> create_tracker_with_handler(
-      const tracker_config_data& base,
-      eunomia_runner::tracker_event_handler);
+  std::unique_ptr<eunomia_runner> create_default_tracker(tracker_config_data& base);
 
   /// start all trackers
   std::size_t start_trackers(void);
@@ -50,7 +39,7 @@ struct ecli_core
   /// start the core
   int start_eunomia(void);
   /// start a single tracker base on config
-  std::size_t start_tracker(const tracker_config_data& config);
+  std::size_t start_tracker(tracker_config_data& config);
   std::size_t start_tracker(const std::string& json_data);
   /// list all trackers
   std::vector<std::tuple<int, std::string>> list_all_trackers(void);

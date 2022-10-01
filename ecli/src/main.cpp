@@ -53,7 +53,7 @@ static void run_mode_operation(
   {
     type = export_format_type::EXPORT_PLANT_TEXT;
   }
-  core_config.enabled_trackers.push_back(tracker_config_data{ path, "", {}, run_with_extra_args,  type});
+  core_config.enabled_trackers.push_back(tracker_config_data{ path, "", run_with_extra_args,  type});
   ecli_core core(core_config);
   core.start_eunomia();
 }
@@ -77,13 +77,12 @@ void client_start_operation(
 {
   tracker_config_data base{};
   base.url = url;
-  auto json_data = resolve_json_data(base);
-  if (!json_data)
+  if (!resolve_json_data(base))
   {
     return;
   }
   httplib::Client cli(endpoint);
-  auto req = cli.Post("/start", *json_data, "text/plain");
+  auto req = cli.Post("/start", base.json_data, "text/plain");
   if (!req)
   {
     spdlog::error("cannot connect to the server!");
