@@ -152,7 +152,7 @@ verbose_message("Applied compiler warnings. Using standard ${CMAKE_CXX_STANDARD}
 # Enable Doxygen
 #
 
-include(cmake/Doxygen.cmake)
+# include(cmake/Doxygen.cmake)
 
 #
 # Model project dependencies
