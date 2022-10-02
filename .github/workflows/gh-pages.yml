@@ -39,8 +39,8 @@ jobs:
 
       - name: build compile set
         run:  |
-              make -C bpftools/tests clone_and_install_deps
-              make -C bpftools/tests test
+              make -C examples/tests clone_and_install_deps
+              make -C examples/tests test
 
       - name: Setup Pages
         uses: actions/configure-pages@v1
