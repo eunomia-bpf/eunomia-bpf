@@ -14,12 +14,7 @@
 
 using json = nlohmann::json;
 
-eunomia_runner::eunomia_runner(const tracker_config_data& config) : current_config(config)
-{
-  spdlog::debug("eunomia_runner created");
-}
-
-void eunomia_runner::start_tracker()
+void  eunomia_program::run_ebpf_program()
 {
   if (program.load_json_config(current_config.json_data) < 0) {
     spdlog::error("load json config failed");

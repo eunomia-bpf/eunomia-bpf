@@ -11,8 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "ecli/ecli_core.h"
-#include "ecli/http_server.h"
+#include "ecli/server.h"
 #include "ecli/url_resolver.h"
 
 using namespace std::chrono_literals;
@@ -53,8 +52,8 @@ static void run_mode_operation(
   {
     type = export_format_type::EXPORT_PLANT_TEXT;
   }
-  core_config.enabled_trackers.push_back(tracker_config_data{ path, "", run_with_extra_args,  type});
-  ecli_core core(core_config);
+  core_config.enabled_trackers.push_back(tracker_config_data{ path, "", run_with_extra_args, type });
+  server_manager core(core_config);
   core.start_eunomia();
 }
 
@@ -159,7 +158,8 @@ int main(int argc, char* argv[])
   auto run_cmd = (clipp::command("run").set(cmd_selected, eunomia_cmd_mode::run), run_url_value, run_opt_cmd_args) %
                  "run a ebpf program";
   auto cli =
-      (log_level_opt, export_json_opt,
+      (log_level_opt,
+       export_json_opt,
        (client_cmd | run_cmd | server_cmd | clipp::command("help").set(cmd_selected, eunomia_cmd_mode::help)));
 
   if (!clipp::parse(argc, argv, cli))
@@ -187,7 +187,9 @@ int main(int argc, char* argv[])
 
   switch (cmd_selected)
   {
-    case eunomia_cmd_mode::run: run_mode_operation(ebpf_program_name, run_with_extra_args, core_config, export_as_json); break;
+    case eunomia_cmd_mode::run:
+      run_mode_operation(ebpf_program_name, run_with_extra_args, core_config, export_as_json);
+      break;
     case eunomia_cmd_mode::server: server_mode_operation(core_config); break;
     case eunomia_cmd_mode::client:
     {

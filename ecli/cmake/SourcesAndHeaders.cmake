@@ -1,7 +1,6 @@
 set(sources
-    src/ecli_core.cpp
     src/config.cpp
-    src/http_server.cpp
+    src/server.cpp
     src/eunomia_runner.cpp
     src/url_resolver.cpp
 )
