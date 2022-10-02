@@ -158,9 +158,6 @@ include(cmake/Doxygen.cmake)
 # Model project dependencies
 #
 
-set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../eunomia-bpf)
-set(EUNOMIA_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
-
 # For Windows, it is necessary to link with the MultiThreaded library.
 # Depending on how the rest of the project's dependencies are linked, it might be necessary
 # to change the line to statically link with the library.
@@ -175,10 +172,15 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
 verbose_message("Successfully added all dependencies and linked against them.")
 
+set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../eunomia-bpf)
+set(EUNOMIA_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
+include_directories(${EUNOMIA_DIR}/include)
+
+add_subdirectory(${EUNOMIA_DIR} ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
 add_dependencies(${PROJECT_NAME}_LIB eunomia_LIB)
+add_dependencies(eunomia_LIB libbpf-build)
 add_dependencies(${PROJECT_NAME} eunomia_LIB)
 target_link_libraries(${PROJECT_NAME} PRIVATE eunomia_LIB)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBBPF_LIBRARIES} -lelf -lz -lpthread)
 
 set (WAMR_BUILD_PLATFORM "linux")
 set (WAMR_BUILD_TARGET "X86_64")
@@ -187,13 +189,13 @@ set (WAMR_BUILD_FAST_INTERP 1)
 set (WAMR_BUILD_AOT 1)
 set (WAMR_BUILD_LIBC_BUILTIN 1)
 set (WAMR_BUILD_LIBC_WASI 1)
-set (WAMR_BUILD_SIMD 1)
+set (WAMR_BUILD_SIMD 0)
 set (WAMR_ROOT_DIR ../third_party/wasm-micro-runtime)
 
 include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
-add_library(vmlib PRIVATE ${WAMR_RUNTIME_LIB_SOURCE})
+add_library(vmlib ${WAMR_RUNTIME_LIB_SOURCE})
 
-target_link_libraries (${PROJECT_NAME} vmlib)
+target_link_libraries (${PROJECT_NAME} PRIVATE vmlib)
 
 # Allow usage of header files in the `src` directory, but only for utilities
 if(${PROJECT_NAME}_BUILD_HEADERS_ONLY)

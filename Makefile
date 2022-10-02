@@ -1,4 +1,4 @@
-.PHONY: ecli eunomia-bpf eunomia-exporter help install-deps clean
+.PHONY: ecli eunomia-bpf eunomia-exporter help install-deps clean ewasm
 .DEFAULT_GOAL := help
 
 define BROWSER_PYSCRIPT
@@ -32,10 +32,13 @@ help:
 
 install-deps: ## install deps
 	apt update
-	apt-get install libcurl4-openssl-dev libelf-dev clang llvm ## libgtest-dev
+	apt-get install libcurl4-openssl-dev libelf-dev clang llvm cmake zlib1g-dev
 
 ecli: ## build the command line tool for eunomia-bpf
 	make -C ecli install
+
+ewasm: ## build the command line tool for eunomia-bpf
+	make -C ewasm install
 
 eunomia-bpf: ## build the core library for eunomia-bpf
 	make -C eunomia-bpf

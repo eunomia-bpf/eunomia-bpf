@@ -1,14 +1,14 @@
-# eunomia-bpf: A dynamic loader to run CO-RE eBPF as a service
+# eunomia-bpf: A Dynamic Loading Framework for CO-RE eBPF with WASM
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
 <!-- [![codecov](https://codecov.io/gh/eunomia-bpf/eunomia-bpf/branch/master/graph/badge.svg)](https://codecov.io/gh/filipdutescu/modern-cpp-template) -->
 
-## Our target: Run <abbr title="Compile Once - Run Everywhere">CO-RE</abbr> eBPF function as a service!
+## Our target
 
 - Run `CO-RE` eBPF code without provisioning or managing infrastructure
 - simply requests with a json and run `any` pre-compiled ebpf code on `any` kernel version
-- very small and simple! Only a binary about `3MB` and no `LLVM/Clang` dependence
+- very small and simple! Only about `3MB` and no `LLVM/Clang` dependence
 - Provide a custom eBPF metrics exporter to `Prometheus` or `OpenTelemetry` in async rust
 - as fast as `<100ms` to load and run eBPF program, much more faster than `bcc`'s `ebpf_exporter` when exporting data
 - `Distributed` and `decentralized`, No remote compile server needed when loading
@@ -24,11 +24,9 @@ we have a loader library, a compile toolchain, and some additional tools like cl
 
 ### An eunomia-bpf library
 
-A wrapper of main functions of libbpf, some helper functions for user development.
+A wrapper of main functions of libbpf, provide the ability to dynamically load eBPF code to the kernel and run it with a simple JSON and a few API.
 
-- provide the ability to load ebpf code to the kernel and run it.
-- Use some additional data to help load and config the eBPF bytecode.
-- multiple language bindings: see [eunomia-sdks](eunomia-sdks). We have `Rust` now and will add more in the future.
+see [eunomia-bpf](eunomia-bpf) for details.
 
 #### Install and Run
 

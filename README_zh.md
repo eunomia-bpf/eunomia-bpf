@@ -1,4 +1,4 @@
-# eunomia-bpf: 一个通用的 CO-RE eBPF 编译工具链和加载器，以及可视化工具
+# eunomia-bpf: 一个通用的 CO-RE eBPF 编译工具链和动态加载器
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
@@ -6,7 +6,7 @@
 
 ## 我们的目标：将 CO-RE eBPF 功能作为服务运行！
 
-eunomia-bpf 是一套编译工具链和运行时，以及一些附加项目，我们希望做到让 eBPF 程序真正像 JavaScript 或者 WASM 那样易于分发和运行，或者说内核态或可观测性层面的 FaaS：eBPF 即服务
+eunomia-bpf 是一套编译工具链和运行时，以及一些附加项目，我们希望做到让 eBPF 程序真正像 JavaScript 或者 WASM 那样易于分发和运行
 
 - 仅需一个数十kb的请求，包含预编译 eBPF 程序字节码和辅助信息，即可实现多种完全不同功能的 eBPF 程序的热插拔、热更新；加载时间通常为数十毫秒且内存占用少；（例如使用 [libbpf-bootstrap/bootstrap.bpf.c](https://github.com/libbpf/libbpf-bootstrap/blob/master/examples/c/bootstrap.bpf.c) ，热加载时间约为 50ms,运行时内存占用约为 5 MB，同时新增更多的 eBPF 程序通常只会增加数百 kB 的内存占用）
 - 相比于传统的基于 BCC 或远程编译的分发方式，分发时间和启动时内存占用均减少了一到二个数量级；
