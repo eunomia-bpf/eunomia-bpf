@@ -15,11 +15,11 @@ https://github.com/iovisor/bcc/blob/master/libbpf-tools/mdflush.bpf.c
 Compile:
 
 ```shell
-docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/mdflush:/src yunwei37/ebpm:latest
+docker run -it -v /home/yunwei/coding/eunomia-bpf/examples/bpftools/mdflush:/src yunwei37/ebpm:latest
 ```
 
 Run:
 
 ```shell
-sudo ./ecli run bpftools/examples/mdflush/package.json
+sudo ./ecli run examples/bpftools/mdflush/package.json
 ```

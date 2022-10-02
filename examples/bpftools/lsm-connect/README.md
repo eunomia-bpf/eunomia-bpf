@@ -5,13 +5,13 @@ BPF LSM program (on socket_connect hook) that prevents any connection towards 1.
 ## run
 
 ```console
-docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/lsm-connect:/src yunwei37/ebpm:latest
+docker run -it -v /home/yunwei/coding/eunomia-bpf/examples/bpftools/lsm-connect:/src yunwei37/ebpm:latest
 ```
 
 Run:
 
 ```console
-sudo ecli/build/bin/Release/ecli run bpftools/examples/lsm-connect/package.json
+sudo ecli/build/bin/Release/ecli run examples/bpftools/lsm-connect/package.json
 ```
 
 ## reference

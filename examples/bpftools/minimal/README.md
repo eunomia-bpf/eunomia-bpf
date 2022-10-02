@@ -22,11 +22,11 @@ new ideas or BPF features.
 Compile:
 
 ```console
-docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/minimal:/src yunwei37/ebpm
+docker run -it -v /home/yunwei/coding/eunomia-bpf/examples/bpftools/minimal:/src yunwei37/ebpm
 ```
 
 Run:
 
 ```console
-sudo ecli/build/bin/Release/ecli run bpftools/examples/minimal/package.json
+sudo ecli/build/bin/Release/ecli run examples/bpftools/minimal/package.json
 ```

@@ -15,11 +15,11 @@ https://github.com/iovisor/bcc/blob/master/libbpf-tools/bindsnoop.bpf.c
 Compile:
 
 ```shell
-docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/bindsnoop:/src yunwei37/ebpm:latest
+docker run -it -v /home/yunwei/coding/eunomia-bpf/examples/bpftools/bindsnoop:/src yunwei37/ebpm:latest
 ```
 
 Run:
 
 ```shell
-sudo ./ecli run bpftools/examples/bindsnoop/package.json
+sudo ./ecli run examples/bpftools/bindsnoop/package.json
 ```

@@ -40,11 +40,11 @@ $ sudo cat /sys/kernel/debug/tracing/trace_pipe
 Compile:
 
 ```console
-docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/fentry-link:/src yunwei37/ebpm
+docker run -it -v /home/yunwei/coding/eunomia-bpf/examples/bpftools/fentry-link:/src yunwei37/ebpm
 ```
 
 Run:
 
 ```console
-sudo ecli/build/bin/Release/ecli run bpftools/examples/fentry-link/package.json
+sudo ecli/build/bin/Release/ecli run examples/bpftools/fentry-link/package.json
 ```

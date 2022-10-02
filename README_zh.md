@@ -49,14 +49,14 @@ $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ecli
 $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url
 ```
 
-可以使用容器进行编译, 仅需要专注于编写[内核态代码](bpftools/examples/bootstrap/bootstrap.bpf.c):
+可以使用容器进行编译, 仅需要专注于编写[内核态代码](examples/bpftools/bootstrap/bootstrap.bpf.c):
 
 ```bash
-$ docker run -it -v ./bpftools/examples/bootstrap:/src yunwei37/ebpm:latest
-$ sudo ./ecli run bpftools/examples/bootstrap/package.json              # run the compiled ebpf code
+$ docker run -it -v ./examples/bpftools/bootstrap:/src yunwei37/ebpm:latest
+$ sudo ./ecli run examples/bpftools/bootstrap/package.json              # run the compiled ebpf code
 ```
 
-更多的例子请参考 [bpftools/examples](bpftools/examples) 文件夹.
+更多的例子请参考 [examples/bpftools](examples/bpftools) 文件夹.
 
 ### 用于生成预编译 eBPF 数据的编译工具链
 
@@ -72,7 +72,7 @@ You can compile it or download from [release](https://github.com/eunomia-bpf/eun
 
 #### example
 
-This is an adapted version of opensnoop from [bcc/libbpf-tools](https://github.com/iovisor/bcc/blob/master/libbpf-tools/opensnoop.bpf.c), you can check our source code here: [bpftools/examples/opensnoop](bpftools/examples/opensnoop)
+This is an adapted version of opensnoop from [bcc/libbpf-tools](https://github.com/iovisor/bcc/blob/master/libbpf-tools/opensnoop.bpf.c), you can check our source code here: [examples/bpftools/opensnoop](examples/bpftools/opensnoop)
 
 After compile the eBPF code, you can define a config file like this:
 
@@ -88,7 +88,7 @@ programs:
       - name: comm
       - name: filename
         from: fname
-  compiled_ebpf_filename: bpftools/examples/opensnoop/package.json
+  compiled_ebpf_filename: examples/bpftools/opensnoop/package.json
 ```
 
 然后，您可以在任何地方使用 `config.yaml` 和预编译的 eBPF 数据 `package.json` 启动 Prometheus 导出器，您可以看到如下指标：

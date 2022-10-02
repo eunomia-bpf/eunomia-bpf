@@ -11,7 +11,7 @@ https://github.com/iovisor/bcc/blob/master/libbpf-tools/opensnoop.bpf.c
 result:
 
 ```console
-$ sudo ecli/build/bin/Release/ecli run bpftools/examples/opensnoop/package.json
+$ sudo ecli/build/bin/Release/ecli run examples/bpftools/opensnoop/package.json
 
 running and waiting for the ebpf events from perf event...
 time ts pid uid ret flags comm fname 
@@ -34,11 +34,11 @@ time ts pid uid ret flags comm fname
 Compile:
 
 ```shell
-docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/opensnoop:/src yunwei37/ebpm:latest
+docker run -it -v /home/yunwei/coding/eunomia-bpf/examples/bpftools/opensnoop:/src yunwei37/ebpm:latest
 ```
 
 Run:
 
 ```shell
-sudo ./ecli run bpftools/examples/opensnoop/package.json
+sudo ./ecli run examples/bpftools/opensnoop/package.json
 ```

@@ -52,11 +52,11 @@ running and waiting for the ebpf events...
 Compile:
 
 ```shell
-docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/bootstrap:/src yunwei37/ebpm
+docker run -it -v /home/yunwei/coding/eunomia-bpf/examples/bpftools/bootstrap:/src yunwei37/ebpm
 ```
 
 Run:
 
 ```shell
-sudo ./ecli run bpftools/examples/bootstrap/package.json
+sudo ./ecli run examples/bpftools/bootstrap/package.json
 ```

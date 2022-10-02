@@ -31,11 +31,11 @@ $ sudo cat /sys/kernel/debug/tracing/trace_pipe
 Compile:
 
 ```console
-docker run -it -v /home/yunwei/coding/eunomia-bpf/bpftools/examples/kprobe-link:/src yunwei37/ebpm
+docker run -it -v /home/yunwei/coding/eunomia-bpf/examples/bpftools/kprobe-link:/src yunwei37/ebpm
 ```
 
 Run:
 
 ```console
-sudo ecli/build/bin/Release/ecli run bpftools/examples/kprobe-link/package.json
+sudo ecli/build/bin/Release/ecli run examples/bpftools/kprobe-link/package.json
 ```
