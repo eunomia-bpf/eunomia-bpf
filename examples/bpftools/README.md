@@ -35,22 +35,6 @@ generate small BTF files for the most popular Linux distributions that
 are shipped with the tools in order to provide the needed information to
 perform the CO-RE relocations when loading the eBPF programs.
 
-If you haven't cloned the
-[btfhub-archive](https://github.com/aquasecurity/btfhub) repository, you
-can run make and it'll clone it for you into the `$HOME/.local/share`
-directory:
-
-```bash
-make ENABLE_MIN_CORE_BTFS=1 -j$(nproc)
-```
-
-If you have a local copy of such repository, you can pass it's location
-to avoid cloning it again:
-
-```bash
-make ENABLE_MIN_CORE_BTFS=1 BTF_HUB_ARCHIVE=<path_to_btfhub-archive> -j$(nproc)
-```
-
 ## reference
 
 Most codes come from:
