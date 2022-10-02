@@ -1,5 +1,5 @@
 set(sources
-    src/ewasm.cpp
+    src/ewasm.c
 )
 
 set(exe_sources

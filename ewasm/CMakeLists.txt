@@ -195,7 +195,7 @@ set (WAMR_ROOT_DIR ../third_party/wasm-micro-runtime)
 include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
 add_library(vmlib ${WAMR_RUNTIME_LIB_SOURCE})
 
-target_link_libraries (${PROJECT_NAME} PRIVATE vmlib)
+target_link_libraries (${PROJECT_NAME} PRIVATE vmlib -lpthread)
 
 # Allow usage of header files in the `src` directory, but only for utilities
 if(${PROJECT_NAME}_BUILD_HEADERS_ONLY)

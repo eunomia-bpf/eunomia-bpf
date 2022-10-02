@@ -8,11 +8,10 @@
 
 - Run `CO-RE` eBPF code without provisioning or managing infrastructure
 - simply requests with a json and run `any` pre-compiled ebpf code on `any` kernel version
-- very small and simple! Only about `3MB` and no `LLVM/Clang` dependence
+- very small and simple! Only about `3MB` and no `LLVM/Clang` dependence, can be embedded easily
 - Provide a custom eBPF metrics exporter to `Prometheus` or `OpenTelemetry` in async rust
 - as fast as `<100ms` to dynamically load and run any eBPF program, much more faster than `bcc`
-- `Distributed` and `decentralized`, No remote compile server needed when loading
-- Only write Kernel C code which is compatible with `libbpf`
+- Only write Kernel C code which is compatible with `libbpf`, or use WASM for processing data
 
 In general, we develop an approach to compile, transmit, and run most libbpf CO-RE objects with some user space config meta data to help you load and operator the eBPF byte code. The compilation and runtime phases of eBPF is separated completely, so, when loading the eBPF program, only the eBPF byte code and a few kB of meta data is needed.
 
