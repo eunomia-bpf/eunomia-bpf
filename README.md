@@ -1,4 +1,4 @@
-# eunomia-bpf: A Dynamic Loading Framework for CO-RE eBPF with WASM
+# eunomia-bpf: A Dynamic Loading Framework for CO-RE eBPF program with WASM
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
@@ -10,13 +10,13 @@
 - simply requests with a json and run `any` pre-compiled ebpf code on `any` kernel version
 - very small and simple! Only about `3MB` and no `LLVM/Clang` dependence
 - Provide a custom eBPF metrics exporter to `Prometheus` or `OpenTelemetry` in async rust
-- as fast as `<100ms` to load and run eBPF program, much more faster than `bcc`'s `ebpf_exporter` when exporting data
+- as fast as `<100ms` to dynamically load and run any eBPF program, much more faster than `bcc`
 - `Distributed` and `decentralized`, No remote compile server needed when loading
 - Only write Kernel C code which is compatible with `libbpf`
 
-In general, we develop an approach to compile, transmit, and run most libbpf CO-RE objects with some user space config meta data to help us load and operator the eBPF byte code. The compilation and runtime phases of eBPF is separated completely, so, when loading the eBPF program, only the eBPF byte code and a few kB of meta data is needed.
+In general, we develop an approach to compile, transmit, and run most libbpf CO-RE objects with some user space config meta data to help you load and operator the eBPF byte code. The compilation and runtime phases of eBPF is separated completely, so, when loading the eBPF program, only the eBPF byte code and a few kB of meta data is needed.
 
-Most of the time, the only thing you need to do is focus on writing a single eBPF program in the kernel. We have a compiler here: [eunomia-cc](https://github.com/eunomia-bpf/eunomia-cc)
+Most of the time, the only thing you need to do is focus on writing a single eBPF program in the kernel.
 
 ## Project Arch
 
@@ -28,31 +28,11 @@ A wrapper of main functions of libbpf, provide the ability to dynamically load e
 
 see [eunomia-bpf](eunomia-bpf) for details.
 
-#### Install and Run
-
-To install, just download and use the `binary`:
+A [simple cli interface](ecli) is provided for eunomia-bpf library, which you can use it to start any eBPF program from a url in a command, for example:
 
 ```bash
-$ # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
-$ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ecli
+$ sudo ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url
 ```
-
-see [eunomia-bpf](eunomia-bpf) folder for details. With the library, we have provide [a simple cli](https://github.com/eunomia-bpf/eunomia-bpf/releases/), you can simply run pre-compiled ebpf data with a url or path, on most eBPF supported kernel versions:
-
-```bash
-$ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url
-```
-
-And you can compile and run the program, the only thing you need to do is write the [libbpf kernel C code](examples/bpftools/bootstrap/bootstrap.bpf.c):
-
-```bash
-$ docker run -it -v /path/to/repo/examples/bpftools/bootstrap:/src yunwei37/ebpm:latest
-$ sudo ./ecli run examples/bpftools/bootstrap/package.json              # run the compiled ebpf code
-```
-
-The cli tool can also run as a simple server to receive requests, or as a client to send requests to another server. see [doc/ecli-usage.md](https://eunomia-bpf.github.io/ecli/index.html) for more usages.
-
-For more examples, see [examples/bpftools](examples/bpftools) directory.
 
 ### A compile toolchain for you to generate pre compiled eBPF data
 
@@ -68,32 +48,10 @@ An prometheus and OpenTelemetry exporter for custom eBPF metrics, written in asy
 
 You can compile it or download from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)
 
-#### example
+### other related projects
 
-This is an adapted version of opensnoop from [bcc/libbpf-tools](https://github.com/iovisor/bcc/blob/master/libbpf-tools/opensnoop.bpf.c), you can check our source code here: [examples/bpftools/opensnoop](examples/bpftools/opensnoop)
-
-After compile the eBPF code, you can define a config file like this:
-
-```yml
-programs:
-- name: opensnoop
-  metrics:
-    counters:
-    - name: eunomia_file_open_counter
-      description: test
-      labels:
-      - name: pid
-      - name: comm
-      - name: filename
-        from: fname
-  compiled_ebpf_filename: examples/bpftools/opensnoop/package.json
-```
-
-Then you can start the Prometheus exporter anywhere with the `config.yaml` and pre-compiled eBPF data `package.json`, you can see the metrics like this:
-
-![opensnoop_prometheus](documents/images/opensnoop_prometheus.png)
-
-You can deploy the exporter on any kernel version without `LLVM/Clang` dependence. See the [eunomia-exporter](eunomia-exporter/README.md) for more details.
+- LMP eBPF Hub: [github.com/linuxkerneltravel/lmp](https://github.com/linuxkerneltravel/lmp)
+- bolipi online compiler & runner: [https://bolipi.com/ebpf/home/online](https://bolipi.com/ebpf/home/online)
 
 ## Road-map
 

@@ -355,7 +355,7 @@ extern "C"
 {
   struct eunomia_bpf
   {
-    struct eunomia::eunomia_ebpf_program program;
+    eunomia::eunomia_ebpf_program program;
   };
   struct eunomia_bpf *create_ebpf_program_from_json(const char *json_data)
   {

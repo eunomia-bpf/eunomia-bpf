@@ -21,3 +21,11 @@ add_dependencies(eunomia_LIB libbpf-build)
 add_dependencies(${PROJECT_NAME} eunomia_LIB)
 target_link_libraries(${PROJECT_NAME} PRIVATE eunomia_LIB)
 ```
+
+see the example in [../examples/simple-runner](../examples/simple-runner) for more details.
+
+## cli tool
+
+a simple cli interface for eunomia-bpf library, which you can use it to start any eBPF program from a url in a command.
+
+see [ecli](../ecli) for details.

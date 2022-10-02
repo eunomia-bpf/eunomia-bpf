@@ -50,7 +50,7 @@ coverage: ## check code coverage quickly GCC
 docs: ## generate Doxygen HTML documentation, including API docs
 	rm -rf docs/
 	rm -rf build/
-	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -Deunomia_ENABLE_DOXYGEN=1 -Deunomia_ENABLE_UNIT_TESTING=0 -Deunomia_USE_GTEST=0 -DCMAKE_BUILD_TYPE=Release
+	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -Deunomia_ENABLE_DOXYGEN=1 -DCMAKE_BUILD_TYPE=Release
 	cmake --build build --target doxygen-docs
 	mkdir docs/html/doc/
 	cp -r doc/imgs docs/html/
@@ -59,7 +59,7 @@ docs: ## generate Doxygen HTML documentation, including API docs
 
 install: ## install the package to the `INSTALL_LOCATION`
 	rm -rf build/
-	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -DCMAKE_BUILD_TYPE=Release  -Deunomia_ENABLE_UNIT_TESTING=0 -Deunomia_USE_GTEST=0
+	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -DCMAKE_BUILD_TYPE=Release
 	cmake --build build --config Release
 	cmake --build build --target install --config Release
 

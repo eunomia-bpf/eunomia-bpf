@@ -4,7 +4,7 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
 <!-- [![codecov](https://codecov.io/gh/eunomia-bpf/eunomia-bpf/branch/master/graph/badge.svg)](https://codecov.io/gh/filipdutescu/modern-cpp-template) -->
 
-## 我们的目标：将 CO-RE eBPF 功能作为服务运行！
+## 我们的目标：提供一个通用的 CO-RE eBPF 插件扩展平台，帮助  eBPF 程序的分发和运行
 
 eunomia-bpf 是一套编译工具链和运行时，以及一些附加项目，我们希望做到让 eBPF 程序真正像 JavaScript 或者 WASM 那样易于分发和运行
 
