@@ -149,58 +149,26 @@ set(CMAKE_CXX_STANDARD 17)
 verbose_message("Applied compiler warnings. Using standard ${CMAKE_CXX_STANDARD}.\n")
 
 #
-# Enable Doxygen
-#
-
-# include(cmake/Doxygen.cmake)
-
-#
 # Model project dependencies
 #
-
-set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../eunomia-bpf)
-set(EUNOMIA_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
-
-# For Windows, it is necessary to link with the MultiThreaded library.
-# Depending on how the rest of the project's dependencies are linked, it might be necessary
-# to change the line to statically link with the library.
-#
-# This is done as follows:
-#
-# set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-#
-# On Linux and Mac this variable is ignored. If any issues rise from it, try commenting it out
-# and letting CMake decide how to link with it.
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
 verbose_message("Successfully added all dependencies and linked against them.")
 
+set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
 #
 # Set the build/user include directories
 #
-set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
-# Tell cmake where to find BpfObject module
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-
-# Set BpfObject input parameters -- note this is usually not necessary unless
-# you're in a highly vendored environment (like libbpf-bootstrap)
-set(BPFOBJECT_BPFTOOL_EXE ${THIRD_PARTY_DIR}/tools/bpftool)
-set(BPFOBJECT_VMLINUX_H ${THIRD_PARTY_DIR}/vmlinux/vmlinux.h)
-set(LIBBPF_INCLUDE_DIRS ${EUNOMIA_BINARY_DIR}/libbpf)
-set(LIBBPF_LIBRARIES ${EUNOMIA_BINARY_DIR}/libbpf/libbpf.a)
+set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../eunomia-bpf)
+set(EUNOMIA_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
 include_directories(${EUNOMIA_DIR}/include)
-
-include_directories(INTERFACE ${skel_includes} ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/include/uapi)
 include_directories(SYSTEM INTERFACE ${third_party_headers})
-include_directories(SYSTEM INTERFACE ${LIBBPF_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/bpftools)
 
 add_subdirectory(${EUNOMIA_DIR} ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
-# find_package(eunomia CONFIG REQUIRED)
 add_dependencies(${PROJECT_NAME}_LIB eunomia_LIB)
 add_dependencies(eunomia_LIB libbpf-build)
 add_dependencies(${PROJECT_NAME} eunomia_LIB)
-target_link_libraries(${PROJECT_NAME} PRIVATE eunomia_LIB)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBBPF_LIBRARIES} -lelf -lz -lpthread)
+target_link_libraries(${PROJECT_NAME} PRIVATE eunomia_LIB -lpthread)
 
 # Allow usage of header files in the `src` directory, but only for utilities
 if(${PROJECT_NAME}_BUILD_HEADERS_ONLY)
@@ -244,12 +212,6 @@ else()
 endif()
 
 verbose_message("Project is now aliased as ${PROJECT_NAME}::${PROJECT_NAME}.\n")
-
-#
-# Format the project using the `clang-format` target (i.e: cmake --build build --target clang-format)
-#
-
-# add_clang_format_target()
 
 #
 # Install library for easy downstream inclusion

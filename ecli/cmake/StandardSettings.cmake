@@ -47,12 +47,6 @@ option(${PROJECT_NAME}_ENABLE_CPPCHECK "Enable static analysis with Cppcheck." O
 option(${PROJECT_NAME}_ENABLE_CODE_COVERAGE "Enable code coverage through GCC." OFF)
 
 #
-# Doxygen
-#
-
-option(${PROJECT_NAME}_ENABLE_DOXYGEN "Enable Doxygen documentation builds of source." OFF)
-
-#
 # Miscelanious options
 #
 
@@ -78,14 +72,6 @@ if(${PROJECT_NAME}_ENABLE_LTO)
   else()
     message(SEND_ERROR "IPO is not supported: ${output}.")
   endif()
-endif()
-
-
-option(${PROJECT_NAME}_ENABLE_CCACHE "Enable the usage of Ccache, in order to speed up rebuild times." ON)
-find_program(CCACHE_FOUND ccache)
-if(CCACHE_FOUND)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif()
 
 option(${PROJECT_NAME}_ENABLE_ASAN "Enable Address Sanitize to detect memory error." OFF)
