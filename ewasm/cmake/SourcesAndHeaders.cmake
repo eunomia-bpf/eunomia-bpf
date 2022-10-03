@@ -1,5 +1,6 @@
 set(sources
-    src/ewasm.c
+    src/ewasm.cpp
+    src/eunomia-api.cpp
 )
 
 set(exe_sources

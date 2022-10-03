@@ -28,7 +28,7 @@ namespace eunomia
   class eunomia_event_exporter
   {
    private:
-    const std::size_t EXPORT_BUFFER_SIZE = 2048;
+    std::size_t EXPORT_BUFFER_SIZE = 2048;
     std::vector<char> export_event_buffer;
     /// @brief export format type
     export_format_type format_type;
@@ -65,15 +65,15 @@ namespace eunomia
    public:
     eunomia_event_exporter(const eunomia_event_exporter &) = delete;
     eunomia_event_exporter() = default;
+    eunomia_event_exporter(std::size_t max_buffer_size) : EXPORT_BUFFER_SIZE(max_buffer_size) {}
 
     /// print event with meta data;
     /// used for export call backs: ring buffer and perf events
     /// provide a common interface to print the event data
     void handler_export_events(const char *event) const;
 
-    /// check for types and create export format
-
-    /// check the types from ebpf source code and export header
+    /// @brief check for types and create export format
+    /// @details  the types from ebpf source code and export header
     /// create export formats for correctly print the data,
     /// and used by user space.
     int check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types);

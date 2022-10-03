@@ -34,8 +34,9 @@ extern "C"
 
   /// @brief stop, detach, and free the memory
   /// @warning this function will free the memory of the program
-  /// it's not reenterable, and you should not use the program after this function
+  /// it's not reenter-able, and you should not use the program after this function.
   void stop_and_clean_ebpf_program(struct eunomia_bpf* prog);
+
   /// @brief stop, detach, but not clean the memory
   void stop_ebpf_program(struct eunomia_bpf* prog);
   /// @brief free the memory of the program
