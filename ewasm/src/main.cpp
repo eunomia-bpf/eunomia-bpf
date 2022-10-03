@@ -38,5 +38,9 @@ main(int argc, char *argv_main[])
     buffer_vector =
         std::vector<char>((std::istreambuf_iterator<char>(json_file)),
                           std::istreambuf_iterator<char>());
+    ewasm_program p;
+    std::string json_env =  "{}";
+    p.init(buffer_vector, json_env);
+    //p.process_event("hello");
     return 0;
 }

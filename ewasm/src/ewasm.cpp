@@ -101,6 +101,10 @@ ewasm_program::init(std::vector<char> &buffer_vector, std::string &json_env)
         printf("Create wasm execution environment failed.\n");
         return -1;
     }
+    if (init_wasm_functions() < 0) {
+        printf("Init wasm functions failed.\n");
+        return -1;
+    }
     return call_wasm_init(json_env);
 }
 
@@ -124,6 +128,7 @@ ewasm_program::init_wasm_functions()
         printf("The wasm function process_event wasm function is not found.\n");
         return -1;
     }
+    return 0;
 }
 
 int
@@ -150,6 +155,12 @@ ewasm_program::call_wasm_init(std::string &json_env)
            "int value: %d\n",
            ret_val);
     return ret_val;
+}
+
+void
+ewasm_program::process_event(const char *e)
+{
+    call_wasm_process_event(e);
 }
 
 int

@@ -9,7 +9,7 @@
 class ewasm_program
 {
   public:
-    ewasm_program();
+    ewasm_program() = default;
     ~ewasm_program();
 
     int init(std::vector<char> &wasm_buffer, std::string &json_env);

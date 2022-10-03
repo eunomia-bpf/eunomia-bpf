@@ -9,7 +9,6 @@
 
 using namespace eunomia;
 
-
 extern bool
 wasm_runtime_call_indirect(wasm_exec_env_t exec_env, uint32_t element_indices,
                            uint32_t argc, uint32_t argv[]);
@@ -18,19 +17,21 @@ extern "C" {
 int
 create_bpf(wasm_exec_env_t exec_env, char *ebpf_json, int str_len)
 {
+    return 0;
 }
 
 int
 run_bpf(wasm_exec_env_t exec_env, int id)
 {
+    return 0;
 }
 
 int
 wait_and_export_bpf(wasm_exec_env_t exec_env, int id)
 {
+    return 0;
 }
 }
-
 
 int
 init_eunomia(int argc, char *argv[])

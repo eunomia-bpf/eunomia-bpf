@@ -20,9 +20,8 @@ OUT_FILE=${i%.*}.wasm
         --sysroot=${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot  \
         -Wl,--allow-undefined-file=${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot/share/defined-symbols.txt \
         -Wl,--strip-all,--no-entry -nostdlib \
-        -Wl,--export=generate_float \
-        -Wl,--export=float_to_string \
-        -Wl,--export=calculate\
+        -Wl,--export=init \
+        -Wl,--export=process_event \
         -Wl,--allow-undefined \
         -o ${OUT_FILE} ${APP_SRC}
 
