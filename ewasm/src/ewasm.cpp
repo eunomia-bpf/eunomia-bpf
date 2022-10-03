@@ -87,8 +87,8 @@ ewasm_program::init_wasm_functions()
         return -1;
     }
 
-    event_wasm_buffer = wasm_runtime_module_malloc(module_inst, EVENT_BUFFER_SIZE,
-                                                   (void **)&event_data_buffer);
+    event_wasm_buffer = wasm_runtime_module_malloc(
+        module_inst, EVENT_BUFFER_SIZE, (void **)&event_data_buffer);
     if (!event_wasm_buffer) {
         printf("Allocate memory failed.\n");
         return -1;
@@ -105,16 +105,14 @@ int
 ewasm_program::call_wasm_init(std::string &json_env)
 {
     strncpy(json_data_buffer, json_env.c_str(), PROGRAM_BUFFER_SIZE);
-    wasm_val_t arguments[2] = { { .kind = WASM_I32,
-                                  .of.i32 = (int32_t)json_data_wasm_buffer },
-                                { .kind = WASM_I32, .of.i32 = (int)json_env.size() } };
-    if (wasm_runtime_call_wasm_a(exec_env, wasm_init_func, 1, results, 2,
-                                 arguments)) {
-        printf("Native finished calling wasm function: init, "
-               "returned a formatted string: %s\n",
-               json_data_buffer);
-    }
-    else {
+    wasm_val_t arguments[2];
+    arguments[0].kind = WASM_I32;
+    arguments[0].of.i32 = (int32_t)json_data_wasm_buffer;
+    arguments[1].kind = WASM_I32;
+    arguments[1].of.i32 = (int)json_env.size();
+
+    if (!wasm_runtime_call_wasm_a(exec_env, wasm_init_func, 1, results, 2,
+                                  arguments)) {
         printf("call wasm function init failed. error: %s\n",
                wasm_runtime_get_exception(module_inst));
         return -1;
@@ -143,26 +141,22 @@ int
 ewasm_program::call_wasm_process_event(const char *e)
 {
     strncpy(event_data_buffer, e, EVENT_BUFFER_SIZE);
-    wasm_val_t arguments[3] = { { .kind = WASM_I32, .of.i32 = wasm_process_ctx },
-                                { .kind = WASM_I32,
-                                  .of.i32 = (int32_t)event_wasm_buffer },
-                                { .kind = WASM_I32, .of.i32 = (int)strnlen(e, EVENT_BUFFER_SIZE) } };
-    if (wasm_runtime_call_wasm_a(exec_env, wasm_process_event_func, 1, results,
-                                 3, arguments)) {
-        printf("Native finished calling wasm function: process_event, "
-               "returned a formatted string: %s\n",
-               wasm_process_event_func);
-    }
-    else {
+    wasm_val_t arguments[3];
+    arguments[0].kind = WASM_I32;
+    arguments[0].of.i32 = (int32_t)wasm_process_ctx;
+    arguments[1].kind = WASM_I32;
+    arguments[1].of.i32 = (int32_t)event_wasm_buffer;
+    arguments[2].kind = WASM_I32;
+    arguments[2].of.i32 = (int)strnlen(e, EVENT_BUFFER_SIZE);
+
+    if (!wasm_runtime_call_wasm_a(exec_env, wasm_process_event_func, 1, results,
+                                  3, arguments)) {
         printf("call wasm function process_event failed. error: %s\n",
                wasm_runtime_get_exception(module_inst));
         return -1;
     }
     int ret_val;
     ret_val = results[0].of.i32;
-    printf("Native finished calling wasm function process_event(), returned a "
-           "int value: %d\n",
-           ret_val);
     return ret_val;
 }
 
