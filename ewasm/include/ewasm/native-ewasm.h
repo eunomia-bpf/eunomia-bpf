@@ -35,7 +35,7 @@ wait_and_export_bpf(int id);
 /// @return 0 on success, -1 on failure, the eBPF program will be terminated in
 /// failure case
 int
-init(char *env_json, int str_len);
+bpf_main(char *env_json, int str_len);
 
 /// @brief handle the event output from the eBPF program, valid only when
 /// wait_and_export_ebpf_program is called

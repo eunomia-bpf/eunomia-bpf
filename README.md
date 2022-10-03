@@ -59,7 +59,7 @@ You can compile it or download from [release](https://github.com/eunomia-bpf/eun
 - [X] make the compile easier to use, and more flexible. Don't need any code modified to compile.
 - [X] add configurable exporter as an example
 - [X] add simple pacakage manager for eunomia-bpf: in [LMP](https://github.com/linuxkerneltravel/lmp) community
-- [ ] use WASM for ebpf package load config and add more user space support
+- [X] use WASM for ebpf package load config and add more user space support
 - [ ] support more ebpf program types: uprobe, xdp etc.
 - [ ] add more possibilities and helper functions from `libbpf`
 - [ ] provide python, go and others sdk

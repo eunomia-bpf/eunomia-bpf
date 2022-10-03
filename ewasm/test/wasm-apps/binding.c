@@ -9,7 +9,7 @@
 /// @return 0 on success, -1 on failure, the eBPF program will be terminated in
 /// failure case
 int
-init(char *env_json, int str_len)
+bpf_main(char *env_json, int str_len)
 {
     printf("calling into init: %s %d", env_json, str_len);
     int res = create_bpf("hhhh", 3);

@@ -82,8 +82,8 @@ ewasm_program::init_wasm_functions()
         return -1;
     }
     if (!(wasm_init_func =
-              wasm_runtime_lookup_function(module_inst, "init", NULL))) {
-        printf("The wasm function init wasm function is not found.\n");
+              wasm_runtime_lookup_function(module_inst, "bpf_main", NULL))) {
+        printf("The wasm function main wasm function is not found.\n");
         return -1;
     }
 
@@ -119,9 +119,6 @@ ewasm_program::call_wasm_init(std::string &json_env)
     }
     int ret_val;
     ret_val = results[0].of.i32;
-    printf("Native finished calling wasm function init(), returned a "
-           "int value: %d\n",
-           ret_val);
     return ret_val;
 }
 

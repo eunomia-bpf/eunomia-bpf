@@ -18,8 +18,7 @@ int
 ewasm_program::create_bpf_program(char *ebpf_json)
 {
     int id = (int)bpf_program_map.size();
-    bpf_program_map.emplace(id,
-                            std::make_unique<eunomia_ebpf_program>());
+    bpf_program_map.emplace(id, std::make_unique<eunomia_ebpf_program>());
     int res = bpf_program_map[id]->load_json_config(ebpf_json);
     if (res < 0) {
         return res;
@@ -52,14 +51,16 @@ ewasm_program::wait_and_export_bpf_program(int id)
     if (bpf_program == bpf_program_map.end()) {
         return -1;
     }
-    return bpf_program->second->wait_and_export_to_handler(export_format_type::EXPORT_JSON, handle_eunomia_event, this);
+    return bpf_program->second->wait_and_export_to_handler(
+        export_format_type::EXPORT_JSON, handle_eunomia_event, this);
 }
 
 extern "C" {
 int
 create_bpf(wasm_exec_env_t exec_env, char *ebpf_json, int str_len)
 {
-    ewasm_program* program = (ewasm_program*)wasm_runtime_get_user_data(exec_env);
+    ewasm_program *program =
+        (ewasm_program *)wasm_runtime_get_user_data(exec_env);
     assert("program is null" && program != nullptr);
     return program->create_bpf_program(ebpf_json);
 }
@@ -67,15 +68,17 @@ create_bpf(wasm_exec_env_t exec_env, char *ebpf_json, int str_len)
 int
 run_bpf(wasm_exec_env_t exec_env, int id)
 {
-    ewasm_program* program = (ewasm_program*)wasm_runtime_get_user_data(exec_env);
+    ewasm_program *program =
+        (ewasm_program *)wasm_runtime_get_user_data(exec_env);
     assert("program is null" && program != nullptr);
-    return  program->run_bpf_program(id);
+    return program->run_bpf_program(id);
 }
 
 int
 wait_and_export_bpf(wasm_exec_env_t exec_env, int id)
 {
-    ewasm_program* program = (ewasm_program*)wasm_runtime_get_user_data(exec_env);
+    ewasm_program *program =
+        (ewasm_program *)wasm_runtime_get_user_data(exec_env);
     assert("program is null" && program != nullptr);
     return program->wait_and_export_bpf_program(id);
 }

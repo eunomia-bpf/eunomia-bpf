@@ -11,7 +11,7 @@
 /// @return 0 on success, -1 on failure, the eBPF program will be terminated in
 /// failure case
 int
-init(char *env_json, int str_len)
+bpf_main(char *env_json, int str_len)
 {
     int res = create_bpf(program_data, strlen(program_data));
     if (res < 0) {
@@ -41,6 +41,6 @@ init(char *env_json, int str_len)
 int
 process_event(int ctx, char *e, int str_len)
 {
-    printf("event: %s %d ctx: %d\n", e, str_len, ctx);
+    printf("%s\n", e);
     return -1;
 }

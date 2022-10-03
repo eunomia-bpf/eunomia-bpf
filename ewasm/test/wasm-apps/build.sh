@@ -21,7 +21,7 @@ OUT_FILE=${i%.*}.wasm
         -I../../include/ewasm \
         -Wl,--allow-undefined-file=${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot/share/defined-symbols.txt \
         -Wl,--strip-all,--no-entry -nostdlib \
-        -Wl,--export=init \
+        -Wl,--export=bpf_main \
         -Wl,--export=process_event \
         -Wl,--allow-undefined \
         -o ${OUT_FILE} ${APP_SRC}
