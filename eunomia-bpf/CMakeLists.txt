@@ -193,7 +193,6 @@ find_package(BpfObject REQUIRED)
 
 add_dependencies(${PROJECT_NAME} libbpf-build)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBBPF_LIBRARIES} -lelf -lz)
-target_link_libraries(${PROJECT_NAME}_LIB PUBLIC ${LIBBPF_LIBRARIES} -lelf -lz)
 
 # For Windows, it is necessary to link with the MultiThreaded library.
 # Depending on how the rest of the project's dependencies are linked, it might be necessary

@@ -41,6 +41,6 @@ main(int argc, char *argv_main[])
     ewasm_program p;
     std::string json_env =  "{}";
     p.init(buffer_vector, json_env);
-    //p.process_event("hello");
+    p.process_event("hello");
     return 0;
 }
