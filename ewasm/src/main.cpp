@@ -11,7 +11,7 @@
 #include <iostream>
 #include <vector>
 
-#include "ewasm/ewasm.h"
+#include "ewasm/ewasm.hpp"
 #include "wasm_export.h"
 
 void

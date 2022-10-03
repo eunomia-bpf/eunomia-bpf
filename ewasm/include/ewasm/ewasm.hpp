@@ -31,7 +31,7 @@ class ewasm_program
     wasm_function_inst_t wasm_process_event_func = NULL;
     wasm_function_inst_t wasm_init_func = NULL;
 
-    wasm_val_t results[1] = { { .kind = WASM_F32, .of.f32 = 0 } };
+    wasm_val_t results[1];
 
     char global_heap_buf[512 * 1024];
     char *buffer, error_buf[128];

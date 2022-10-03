@@ -107,7 +107,7 @@ impl<'a> BPFProgram<'a> {
             unsafe {
                 wait_and_export_ebpf_program_to_handler(
                     self.ctx,
-                    export_format_type_EEXPORT_JSON,
+                    export_format_type_EXPORT_JSON,
                     Some(raw_handler_callback),
                     self as *const BPFProgram as *mut ::std::os::raw::c_void,
                 )

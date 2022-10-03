@@ -1,4 +1,4 @@
-#include "ewasm/ewasm.h"
+#include "ewasm/ewasm.hpp"
 
 #include <string>
 #include <vector>
