@@ -63,7 +63,7 @@ function(set_project_warnings project_name)
         -Wno-unused-parameter
         -Wno-missing-field-initializers
         -Wno-pointer-arith
-        -fno-strict-aliasing
+        -Wno-c99-designator
   )
 
   if (${PROJECT_NAME}_WARNINGS_AS_ERRORS)

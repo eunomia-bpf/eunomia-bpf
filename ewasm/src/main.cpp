@@ -40,7 +40,9 @@ main(int argc, char *argv_main[])
                           std::istreambuf_iterator<char>());
     ewasm_program p;
     std::string json_env =  "{}";
-    p.init(buffer_vector, json_env);
-    p.process_event("hello");
+    int res = p.start(buffer_vector, json_env);
+    if (res != 0) {
+        return 1;
+    }
     return 0;
 }

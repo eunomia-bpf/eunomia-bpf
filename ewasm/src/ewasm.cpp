@@ -10,7 +10,7 @@
 #include "ewasm/native-ewasm.h"
 
 int
-ewasm_program::init(std::vector<char> &buffer_vector, std::string &json_env)
+ewasm_program::start(std::vector<char> &buffer_vector, std::string &json_env)
 {
     RuntimeInitArgs init_args;
     memset(&init_args, 0, sizeof(RuntimeInitArgs));
@@ -20,20 +20,9 @@ ewasm_program::init(std::vector<char> &buffer_vector, std::string &json_env)
     init_args.mem_alloc_option.pool.heap_size = sizeof(global_heap_buf);
 
     static NativeSymbol native_symbols[] = {
-        {
-            "create_ebpf_program", // the name of WASM function name
-            (void *)create_bpf,    // the native function pointer
-            "(*~)i", // the function prototype signature, avoid to use i32
-            NULL     // attachment is NULL
-        },
-        {
-            "run_ebpf_program", // the name of WASM function name
-            (void *)run_bpf,    // the native function pointer
-            "(i)i", // the function prototype signature, avoid to use i32
-            NULL    // attachment is NULL
-        },
-        { "wait_and_export_ebpf_program", (void *)wait_and_export_bpf, "(i)i",
-          NULL }
+        EXPORT_WASM_API_WITH_SIG(create_bpf, "(*~)i"),
+        EXPORT_WASM_API_WITH_SIG(run_bpf, "(i)i"),
+        EXPORT_WASM_API_WITH_SIG(wait_and_export_bpf, "(i)i")
     };
 
     // Native symbols need below registration phase
@@ -47,7 +36,7 @@ ewasm_program::init(std::vector<char> &buffer_vector, std::string &json_env)
     }
 
     buffer = buffer_vector.data();
-    buf_size = buffer_vector.size();
+    buf_size = (uint32_t)buffer_vector.size();
 
     if (!buffer) {
         printf("Open wasm app file failed.\n");
@@ -68,12 +57,12 @@ ewasm_program::init(std::vector<char> &buffer_vector, std::string &json_env)
         printf("Instantiate wasm module failed. error: %s\n", error_buf);
         return -1;
     }
-
     exec_env = wasm_runtime_create_exec_env(module_inst, stack_size);
     if (!exec_env) {
         printf("Create wasm execution environment failed.\n");
         return -1;
     }
+    wasm_runtime_set_user_data(exec_env, this);
     if (init_wasm_functions() < 0) {
         printf("Init wasm functions failed.\n");
         return -1;
@@ -87,15 +76,23 @@ ewasm_program::init_wasm_functions()
     // must allocate buffer from wasm instance memory space (never use pointer
     // from host runtime)
     json_data_wasm_buffer = wasm_runtime_module_malloc(
-        module_inst, 100, (void **)&json_data_buffer);
+        module_inst, PROGRAM_BUFFER_SIZE, (void **)&json_data_buffer);
+    if (!json_data_wasm_buffer) {
+        printf("Allocate memory failed.\n");
+        return -1;
+    }
     if (!(wasm_init_func =
               wasm_runtime_lookup_function(module_inst, "init", NULL))) {
         printf("The wasm function init wasm function is not found.\n");
         return -1;
     }
 
-    event_wasm_buffer = wasm_runtime_module_malloc(module_inst, 100,
+    event_wasm_buffer = wasm_runtime_module_malloc(module_inst, EVENT_BUFFER_SIZE,
                                                    (void **)&event_data_buffer);
+    if (!event_wasm_buffer) {
+        printf("Allocate memory failed.\n");
+        return -1;
+    }
     if (!(wasm_process_event_func = wasm_runtime_lookup_function(
               module_inst, "process_event", NULL))) {
         printf("The wasm function process_event wasm function is not found.\n");
@@ -107,10 +104,10 @@ ewasm_program::init_wasm_functions()
 int
 ewasm_program::call_wasm_init(std::string &json_env)
 {
-    strncpy(json_data_buffer, json_env.c_str(), json_env.size());
+    strncpy(json_data_buffer, json_env.c_str(), PROGRAM_BUFFER_SIZE);
     wasm_val_t arguments[2] = { { .kind = WASM_I32,
                                   .of.i32 = (int32_t)json_data_wasm_buffer },
-                                { .kind = WASM_I32, .of.i32 = 100 } };
+                                { .kind = WASM_I32, .of.i32 = (int)json_env.size() } };
     if (wasm_runtime_call_wasm_a(exec_env, wasm_init_func, 1, results, 2,
                                  arguments)) {
         printf("Native finished calling wasm function: init, "
@@ -133,17 +130,23 @@ ewasm_program::call_wasm_init(std::string &json_env)
 void
 ewasm_program::process_event(const char *e)
 {
-    call_wasm_process_event(e);
+    int res = call_wasm_process_event(e);
+    if (res < 0) {
+        return;
+    }
+    if (event_handler) {
+        event_handler(event_ctx, event_data_buffer);
+    }
 }
 
 int
 ewasm_program::call_wasm_process_event(const char *e)
 {
-    strncpy(event_data_buffer, e, strlen(e));
-    wasm_val_t arguments[3] = { { .kind = WASM_I32, .of.i32 = ctx },
+    strncpy(event_data_buffer, e, EVENT_BUFFER_SIZE);
+    wasm_val_t arguments[3] = { { .kind = WASM_I32, .of.i32 = wasm_process_ctx },
                                 { .kind = WASM_I32,
                                   .of.i32 = (int32_t)event_wasm_buffer },
-                                { .kind = WASM_I32, .of.i32 = 100 } };
+                                { .kind = WASM_I32, .of.i32 = (int)strnlen(e, EVENT_BUFFER_SIZE) } };
     if (wasm_runtime_call_wasm_a(exec_env, wasm_process_event_func, 1, results,
                                  3, arguments)) {
         printf("Native finished calling wasm function: process_event, "

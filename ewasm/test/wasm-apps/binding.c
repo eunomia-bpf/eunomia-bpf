@@ -12,6 +12,12 @@ int
 init(char *env_json, int str_len)
 {
     printf("calling into init: %s %d", env_json, str_len);
+    int res = create_bpf("hhhh", 3);
+    printf("create_bpf %d\n", res);
+    res = run_bpf(0);
+    printf("run_bpf %d\n", res);
+    res = wait_and_export_bpf(0);
+    printf("wait_and_export_bpf %d\n", res);
     return 0;
 }
 
