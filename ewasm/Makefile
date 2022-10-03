@@ -1,5 +1,5 @@
-.PHONY: install coverage test docs help generate_tools
-.DEFAULT_GOAL := help
+.PHONY: install coverage test docs help generate_tools build
+.DEFAULT_GOAL := build
 
 define BROWSER_PYSCRIPT
 import os, webbrowser, sys
@@ -26,6 +26,11 @@ export PRINT_HELP_PYSCRIPT
 
 BROWSER := python -c "$$BROWSER_PYSCRIPT"
 INSTALL_LOCATION := ~/.local
+
+build: ## build all projects
+	rm -rf build/
+	cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
+	cmake --build build --config Release
 
 help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)

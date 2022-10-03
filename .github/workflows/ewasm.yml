@@ -1,4 +1,4 @@
-name: Build and test eunomia-bpf on Ubuntu
+name: Build and test ewasm on Ubuntu
 
 on:
   push:
@@ -33,12 +33,12 @@ jobs:
         path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
         key: ${{ runner.os }}-dependencies
 
-    - name: make eunomia-bpf
-      run:  make eunomia-bpf
+    - name: make ewasm
+      run:  make ewasm
 
     - name: run unit tests
       run: |
-        cd eunomia-bpf/
+        cd ewasm/
         make test
 
     - name: Code coverage using Codecov

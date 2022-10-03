@@ -89,7 +89,7 @@ Notice: You must compile `eunomia-bpf` before build `eunomia-exporter`. Details 
 This component was written by rust,Please install `rust` before build.
 
 ```shell
-$ curl -sSf https://static.rust-lang.org/rustup.sh | sh
+$ curl https://sh.rustup.rs -sSf | sh
 ```
 
 You can compile the rust code in this folder:

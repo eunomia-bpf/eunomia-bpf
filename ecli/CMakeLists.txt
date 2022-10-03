@@ -165,10 +165,8 @@ include_directories(${EUNOMIA_DIR}/include)
 include_directories(SYSTEM INTERFACE ${third_party_headers})
 
 add_subdirectory(${EUNOMIA_DIR} ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
-add_dependencies(${PROJECT_NAME}_LIB eunomia_LIB)
-add_dependencies(eunomia_LIB libbpf-build)
-add_dependencies(${PROJECT_NAME} eunomia_LIB)
-target_link_libraries(${PROJECT_NAME} PRIVATE eunomia_LIB -lpthread)
+add_dependencies(${PROJECT_NAME} eunomia)
+target_link_libraries(${PROJECT_NAME} PRIVATE eunomia -lpthread)
 
 # Allow usage of header files in the `src` directory, but only for utilities
 if(${PROJECT_NAME}_BUILD_HEADERS_ONLY)
