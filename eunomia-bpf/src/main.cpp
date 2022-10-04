@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     std::cerr << "Failed to run ebpf program" << std::endl;
     return -1;
   }
-  if (ebpf_program.wait_and_export())
+  if (ebpf_program.wait_and_poll())
   {
     std::cerr << "Failed to wait and print rb" << std::endl;
     return -1;

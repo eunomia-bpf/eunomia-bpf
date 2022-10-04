@@ -100,12 +100,12 @@ impl<'a> BPFProgram<'a> {
     /// if the program has a ring buffer or perf event to export data
     /// to user space, the program will help load the map info and poll the
     /// events automatically.
-    pub fn wait_and_export(&self) -> Result<()> {
+    pub fn wait_and_poll(&self) -> Result<()> {
         let ret = if self.handlers.len() == 0 {
-            unsafe { wait_and_export_ebpf_program(self.ctx) }
+            unsafe { wait_and_poll_ebpf_program(self.ctx) }
         } else {
             unsafe {
-                wait_and_export_ebpf_program_to_handler(
+                wait_and_poll_ebpf_program_to_handler(
                     self.ctx,
                     export_format_type_EXPORT_JSON,
                     Some(raw_handler_callback),
@@ -121,8 +121,8 @@ impl<'a> BPFProgram<'a> {
     }
     /// stop, detach, and clean up memory
     ///
-    /// This is thread safe with wait_and_export.
-    /// it will notify the wait_and_export to exit and
+    /// This is thread safe with wait_and_poll.
+    /// it will notify the wait_and_poll to exit and
     /// wait until it exits.
     pub fn stop(&self) {
         if self.ctx.is_null() {
@@ -147,7 +147,7 @@ mod tests {
             assert!(ctx.is_null());
             let res = run_ebpf_program(ctx);
             assert!(res != 0);
-            let res = wait_and_export_ebpf_program(ctx);
+            let res = wait_and_poll_ebpf_program(ctx);
             assert!(res != 0);
             stop_and_clean_ebpf_program(ctx);
             stop_and_clean_ebpf_program(ctx);
@@ -189,6 +189,6 @@ mod tests {
             handler.stop();
         });
         ebpf_program.run().unwrap();
-        ebpf_program.wait_and_export().unwrap();
+        ebpf_program.wait_and_poll().unwrap();
     }
 }

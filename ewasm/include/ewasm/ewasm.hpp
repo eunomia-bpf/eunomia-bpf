@@ -16,7 +16,7 @@ class ewasm_program_base
 
     virtual int create_bpf_program(char *ebpf_json) = 0;
     virtual int run_bpf_program(int id) = 0;
-    virtual int wait_and_export_bpf_program(int id) = 0;
+    virtual int wait_and_poll_bpf_program(int id) = 0;
 
     virtual int start(std::vector<char> &wasm_buffer, std::string &json_env) = 0;
 
@@ -41,7 +41,7 @@ class ewasm_program : public ewasm_program_base
 
     int create_bpf_program(char *ebpf_json) override;
     int run_bpf_program(int id) override;
-    int wait_and_export_bpf_program(int id) override;
+    int wait_and_poll_bpf_program(int id) override;
     void process_event(const char *e) override;
 
   private:

@@ -335,7 +335,7 @@ namespace eunomia
     event_exporter.handler_export_events(event);
   }
 
-  int eunomia_ebpf_program::wait_and_export_to_handler(
+  int eunomia_ebpf_program::wait_and_poll_to_handler(
       enum export_format_type type,
       export_event_handler handler,
       void *ctx) noexcept
@@ -344,7 +344,7 @@ namespace eunomia
     int err = 0;
     try
     {
-      err = enter_wait_and_export();
+      err = enter_wait_and_poll();
     }
     catch (const std::exception &e)
     {

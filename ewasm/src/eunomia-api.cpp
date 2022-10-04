@@ -45,13 +45,13 @@ handle_eunomia_event(void *ctx, const char *e)
 }
 
 int
-ewasm_program::wait_and_export_bpf_program(int id)
+ewasm_program::wait_and_poll_bpf_program(int id)
 {
     auto bpf_program = bpf_program_map.find(id);
     if (bpf_program == bpf_program_map.end()) {
         return -1;
     }
-    return bpf_program->second->wait_and_export_to_handler(
+    return bpf_program->second->wait_and_poll_to_handler(
         export_format_type::EXPORT_JSON, handle_eunomia_event, this);
 }
 
@@ -75,11 +75,11 @@ run_bpf(wasm_exec_env_t exec_env, int id)
 }
 
 int
-wait_and_export_bpf(wasm_exec_env_t exec_env, int id)
+wait_and_poll_bpf(wasm_exec_env_t exec_env, int id)
 {
     ewasm_program *program =
         (ewasm_program *)wasm_runtime_get_user_data(exec_env);
     assert("program is null" && program != nullptr);
-    return program->wait_and_export_bpf_program(id);
+    return program->wait_and_poll_bpf_program(id);
 }
 }

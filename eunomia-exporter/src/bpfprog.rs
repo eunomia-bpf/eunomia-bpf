@@ -92,7 +92,7 @@ impl<'a> BPFProgramState<'a> {
         let new_prog = program.clone();
         let handler = state
             .get_runtime()
-            .spawn_blocking(move || new_prog.wait_and_export());
+            .spawn_blocking(move || new_prog.wait_and_poll());
         let duration = start_time.elapsed();
         println!(
             "Running ebpf program {} takes {} ms",

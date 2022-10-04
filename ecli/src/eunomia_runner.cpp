@@ -25,7 +25,7 @@ void  eunomia_program::run_ebpf_program()
     spdlog::error("start ebpf program failed");
     return;
   }
-  if (program.wait_and_export_to_handler(current_config.export_format, nullptr) < 0)
+  if (program.wait_and_poll_to_handler(current_config.export_format, nullptr) < 0)
   {
     spdlog::error("wait and print ebpf program failed");
     return;

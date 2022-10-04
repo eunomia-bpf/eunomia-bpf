@@ -22,7 +22,7 @@ ewasm_program::start(std::vector<char> &buffer_vector, std::string &json_env)
     static NativeSymbol native_symbols[] = {
         EXPORT_WASM_API_WITH_SIG(create_bpf, "(*~)i"),
         EXPORT_WASM_API_WITH_SIG(run_bpf, "(i)i"),
-        EXPORT_WASM_API_WITH_SIG(wait_and_export_bpf, "(i)i")
+        EXPORT_WASM_API_WITH_SIG(wait_and_poll_bpf, "(i)i")
     };
 
     // Native symbols need below registration phase

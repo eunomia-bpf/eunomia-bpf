@@ -25,9 +25,9 @@ bpf_main(char *env_json, int str_len)
         printf("run_bpf failed %d\n", res);
         return -1;
     }
-    res = wait_and_export_bpf(res);
+    res = wait_and_poll_bpf(res);
     if (res < 0) {
-        printf("wait_and_export_bpf failed %d\n", res);
+        printf("wait_and_poll_bpf failed %d\n", res);
         return -1;
     }
     return 0;
@@ -42,6 +42,8 @@ process_event(int ctx, char *e, int str_len)
 ```
 
 Run `./build` to build the WASM module. Please install WASI SDK, download the [wasi-sdk](https://github.com/CraneStation/wasi-sdk/releases) release and extract the archive to default path `/opt/wasi-sdk`.
+
+For the kernel code, please refer to [../examples/bpftools/opensnoop](../examples/bpftools/opensnoop).
 
 ## compile
 

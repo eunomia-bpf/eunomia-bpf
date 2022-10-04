@@ -227,7 +227,7 @@ namespace eunomia
     return wait_for_no_export_program();
   }
 
-  int eunomia_ebpf_program::enter_wait_and_export(void)
+  int eunomia_ebpf_program::enter_wait_and_poll(void)
   {
     int err;
     exiting = false;
@@ -242,13 +242,13 @@ namespace eunomia
     return check_export_maps();
   }
 
-  int eunomia_ebpf_program::wait_and_export(void) noexcept
+  int eunomia_ebpf_program::wait_and_poll(void) noexcept
   {
     event_exporter.set_export_type(export_format_type::EXPORT_PLANT_TEXT, nullptr);
     int err = 0;
     try
     {
-      err = enter_wait_and_export();
+      err = enter_wait_and_poll();
     }
     catch (const std::exception &e)
     {
@@ -381,16 +381,16 @@ extern "C"
     return prog->program.run();
   }
 
-  int wait_and_export_ebpf_program(struct eunomia_bpf *prog)
+  int wait_and_poll_ebpf_program(struct eunomia_bpf *prog)
   {
     if (!prog)
     {
       return -1;
     }
-    return prog->program.wait_and_export();
+    return prog->program.wait_and_poll();
   }
 
-  int wait_and_export_ebpf_program_to_handler(
+  int wait_and_poll_ebpf_program_to_handler(
       struct eunomia_bpf *prog,
       enum export_format_type type,
       void (*handler)(void *, const char *),
@@ -400,7 +400,7 @@ extern "C"
     {
       return -1;
     }
-    return prog->program.wait_and_export_to_handler(type, handler, ctx);
+    return prog->program.wait_and_poll_to_handler(type, handler, ctx);
   }
 
   void stop_and_clean_ebpf_program(struct eunomia_bpf *prog)

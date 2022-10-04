@@ -61,7 +61,7 @@ namespace eunomia
     /// check and decide the map to export data from
     int check_export_maps(void);
     /// called after setting the export handler
-    int enter_wait_and_export(void);
+    int enter_wait_and_poll(void);
 
    private:
     /// The state of eunomia-bpf program
@@ -122,16 +122,16 @@ namespace eunomia
     /// @details the program has a ring buffer or perf event to export data
     /// to user space, the program will help load the map info and poll the
     /// events automatically.
-    [[nodiscard]] int wait_and_export(void) noexcept;
+    [[nodiscard]] int wait_and_poll(void) noexcept;
     /// @brief export the data as json string.
     /// @details The key of the value is the field name in the export json.
     [[nodiscard]] int
-    wait_and_export_to_handler(enum export_format_type type, export_event_handler handler, void *ctx = nullptr) noexcept;
+    wait_and_poll_to_handler(enum export_format_type type, export_event_handler handler, void *ctx = nullptr) noexcept;
 
     /// stop, detach, and clean up memory
 
-    /// This is thread safe with wait_and_export.
-    /// it will notify the wait_and_export to exit and
+    /// This is thread safe with wait_and_poll.
+    /// it will notify the wait_and_poll to exit and
     /// wait until it exits.
     void stop_and_clean(void) noexcept;
 

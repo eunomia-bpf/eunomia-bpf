@@ -23,16 +23,16 @@ bpf_main(char *env_json, int str_len)
         printf("run_bpf failed %d\n", res);
         return -1;
     }
-    res = wait_and_export_bpf(res);
+    res = wait_and_poll_bpf(res);
     if (res < 0) {
-        printf("wait_and_export_bpf failed %d\n", res);
+        printf("wait_and_poll_bpf failed %d\n", res);
         return -1;
     }
     return 0;
 }
 
 /// @brief handle the event output from the eBPF program, valid only when
-/// wait_and_export_ebpf_program is called
+/// wait_and_poll_ebpf_program is called
 /// @param ctx user defined context
 /// @param e json event message
 /// @return 0 on pass, -1 on block,
