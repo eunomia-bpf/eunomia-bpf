@@ -54,6 +54,8 @@ see the [eunomia-exporter/README.md](../eunomia-exporter/README.md) for how to u
 
 example with WASM module. This traces signals generated system wide.
 
+see [README.md](bpftools/sigsnoop/README.md) for more details.
+
 Generate WASM skel:
 
 > The skel is generated and commit, so you don't need to generate it again.
