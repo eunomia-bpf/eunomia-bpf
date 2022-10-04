@@ -2,7 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+
+extern "C" {
 #include "wasm-app/native-ewasm.h"
+#include "opensnoop.h"
 
 /// @brief init the eBPF program
 /// @param env_json the env config from input
@@ -11,13 +14,21 @@
 int
 bpf_main(char *env_json, int str_len)
 {
-    printf("calling into init: %s %d", env_json, str_len);
-    int res = create_bpf("hhhh", 3);
-    printf("create_bpf %d\n", res);
-    res = run_bpf(0);
-    printf("run_bpf %d\n", res);
-    res = wait_and_poll_bpf(0);
-    printf("wait_and_poll_bpf %d\n", res);
+    int res = create_bpf(program_data, strlen(program_data));
+    if (res < 0) {
+        printf("create_bpf failed %d", res);
+        return -1;
+    }
+    res = run_bpf(res);
+    if (res < 0) {
+        printf("run_bpf failed %d\n", res);
+        return -1;
+    }
+    res = wait_and_poll_bpf(res);
+    if (res < 0) {
+        printf("wait_and_poll_bpf failed %d\n", res);
+        return -1;
+    }
     return 0;
 }
 
@@ -25,12 +36,14 @@ bpf_main(char *env_json, int str_len)
 /// wait_and_poll_ebpf_program is called
 /// @param ctx user defined context
 /// @param e json event message
-/// @return 0 on success, -1 on failure,
+/// @return 0 on pass, -1 on block,
 /// the event will be send to next handler in chain on success, or dropped in
-/// failure
+/// block.
 int
 process_event(int ctx, char *e, int str_len)
 {
-    printf("event: %s %d ctx: %d\n", e, str_len, ctx);
-    return 0;
+    printf("%s\n", e);
+    return -1;
+}
+
 }

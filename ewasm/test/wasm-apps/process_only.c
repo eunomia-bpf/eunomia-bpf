@@ -2,9 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include "native-ewasm.h"
+#include "wasm-app/wasm-app.h"
 
 #include "opensnoop.h"
+
+int
+bpf_main(char *env_json, int str_len)
+{
+    return start_bpf_program(program_data);
+}
 
 /// @brief handle the event output from the eBPF program, valid only when
 /// wait_and_poll_ebpf_program is called

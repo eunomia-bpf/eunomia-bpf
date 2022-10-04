@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include "native-ewasm.h"
+#include "wasm-app/native-ewasm.h"
 
 #include "opensnoop.h"
 
