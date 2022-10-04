@@ -10,10 +10,6 @@
 
 using namespace eunomia;
 
-extern bool
-wasm_runtime_call_indirect(wasm_exec_env_t exec_env, uint32_t element_indices,
-                           uint32_t argc, uint32_t argv[]);
-
 int
 ewasm_program::create_bpf_program(char *ebpf_json)
 {

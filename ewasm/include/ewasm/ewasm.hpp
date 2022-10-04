@@ -25,6 +25,7 @@ class ewasm_program_base
                                         void *ctx) = 0;
 };
 
+/// @brief ewasm program runtime base on WSMR
 class ewasm_program : public ewasm_program_base
 {
   public:
@@ -62,18 +63,20 @@ class ewasm_program : public ewasm_program_base
     void *event_ctx = nullptr;
     void (*event_handler)(void *, const char *) = nullptr;
 
-    int call_wasm_init(std::string &json_env);
-    int call_wasm_process_event(const char *e);
-    int init_wasm_functions();
-
     int wasm_process_ctx;
 
     char *json_data_buffer = nullptr;
     uint32_t json_data_wasm_buffer = 0;
     char *event_data_buffer = nullptr;
     uint32_t event_wasm_buffer = 0;
-    const std::size_t PROGRAM_BUFFER_SIZE = 1024 * 1024;
-    const std::size_t EVENT_BUFFER_SIZE = 4096;
+    const uint32_t PROGRAM_BUFFER_SIZE = 1024 * 1024;
+    const uint32_t EVENT_BUFFER_SIZE = 4096;
+
+    int call_wasm_init(std::string &json_env);
+    int call_wasm_process_event(const char *e);
+    int init_wasm_functions();
+
+    int default_bpf_main();
 };
 
 #endif // EUNOMIA_EWASM

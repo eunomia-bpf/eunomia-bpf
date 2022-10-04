@@ -7,7 +7,7 @@
 #include <cstring>
 #include <cstdio>
 #include "wasm_export.h"
-#include "ewasm/native-ewasm.h"
+#include "wasm-app/native-ewasm.h"
 
 int
 ewasm_program::start(std::vector<char> &buffer_vector, std::string &json_env)
@@ -83,7 +83,8 @@ ewasm_program::init_wasm_functions()
     }
     if (!(wasm_init_func =
               wasm_runtime_lookup_function(module_inst, "bpf_main", NULL))) {
-        printf("The wasm function main wasm function is not found.\n");
+        printf("The wasm function main wasm function is not found. Use default "
+               "main function instead.\n");
         return -1;
     }
 
@@ -95,8 +96,9 @@ ewasm_program::init_wasm_functions()
     }
     if (!(wasm_process_event_func = wasm_runtime_lookup_function(
               module_inst, "process_event", NULL))) {
-        printf("The wasm function process_event wasm function is not found.\n");
-        return -1;
+        printf("The wasm function process_event wasm function is not found.  "
+               "Use default process function instead.\n");
+        return 0;
     }
     return 0;
 }
@@ -137,6 +139,10 @@ ewasm_program::process_event(const char *e)
 int
 ewasm_program::call_wasm_process_event(const char *e)
 {
+    if (!wasm_process_event_func) {
+        // ignore the process event and return.
+        return 0;
+    }
     strncpy(event_data_buffer, e, EVENT_BUFFER_SIZE);
     wasm_val_t arguments[3];
     arguments[0].kind = WASM_I32;
