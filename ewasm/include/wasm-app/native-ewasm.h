@@ -1,5 +1,5 @@
-#ifndef NATIVE_EWASM_H_
-#define NATIVE_EWASM_H_
+#ifndef EWASM_NATIVE_API_H_
+#define EWASM_NATIVE_API_H_
 
 /// c function interface to called from wasm
 #ifdef __cplusplus

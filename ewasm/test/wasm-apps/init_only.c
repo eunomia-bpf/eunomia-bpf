@@ -2,8 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include "native-ewasm.h"
-
+#include "wasm-app/wasm-app.h"
 #include "opensnoop.h"
 
 /// @brief init the eBPF program

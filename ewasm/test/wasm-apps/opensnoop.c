@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include "wasm-app/native-ewasm.h"
+#include "wasm-app/wasm-app.h"
 
 #include "opensnoop.h"
 
@@ -41,6 +41,7 @@ bpf_main(char *env_json, int str_len)
 int
 process_event(int ctx, char *e, int str_len)
 {
+    cJSON *json = cJSON_Parse(e);
     printf("%s\n", e);
     return -1;
 }
