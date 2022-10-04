@@ -25,19 +25,14 @@ int
 main(int argc, char *argv_main[])
 {
     std::vector<char> buffer_vector;
-    int opt;
-    char *wasm_path = NULL;
-
-    RuntimeInitArgs init_args;
-    memset(&init_args, 0, sizeof(RuntimeInitArgs));
     if (argc != 2) {
         print_usage();
     }
-    wasm_path = argv_main[1];
-    std::ifstream json_file(wasm_path);
+    std::ifstream json_file(argv_main[1]);
     buffer_vector =
         std::vector<char>((std::istreambuf_iterator<char>(json_file)),
                           std::istreambuf_iterator<char>());
+
     ewasm_program p;
     std::string json_env =  "{}";
     int res = p.start(buffer_vector, json_env);
