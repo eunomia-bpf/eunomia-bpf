@@ -50,6 +50,34 @@ see [README.md](bpftools/opensnoop/README.md) for more details.
 
 see the [eunomia-exporter/README.md](../eunomia-exporter/README.md) for how to use the exporter.
 
-## tcpstat example
+## sigsnoop example
 
-example with WASM module.
+example with WASM module. This traces signals generated system wide.
+
+Generate WASM skel:
+
+> The skel is generated and commit, so you don't need to generate it again.
+> skel includes:
+> - eunomia-include: include headers for WASM
+> - app.c: the WASM app. all library is header only.
+
+```shell
+docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest gen-wasm-skel
+```
+
+Build WASM module
+
+```shell
+docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest build-wasm
+```
+
+Run:
+
+```console
+$ sudo ./ewasm app.wasm                                                                        
+running and waiting for the ebpf events from perf event...
+
+{"pid":185539,"tpid":185538,"sig":17,"ret":0,"comm":"cat","sig_name":"SIGCHLD"}
+{"pid":185540,"tpid":185538,"sig":17,"ret":0,"comm":"grep","sig_name":"SIGCHLD"}
+```
+

@@ -18,7 +18,7 @@ void
 print_usage(void)
 {
     fprintf(stdout, "Options:\r\n");
-    fprintf(stdout, "  [path of wasm file] \n");
+    fprintf(stdout, "  [path of wasm file]  [-j <json env>]\n");
 }
 
 int
@@ -27,12 +27,12 @@ main(int argc, char *argv_main[])
     std::vector<char> buffer_vector;
     if (argc != 2) {
         print_usage();
+        return 1;
     }
     std::ifstream json_file(argv_main[1]);
     buffer_vector =
         std::vector<char>((std::istreambuf_iterator<char>(json_file)),
                           std::istreambuf_iterator<char>());
-
     ewasm_program p;
     std::string json_env =  "{}";
     int res = p.start(buffer_vector, json_env);
