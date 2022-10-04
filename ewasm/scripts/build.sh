@@ -6,9 +6,9 @@
 #!/bin/bash
 
 CURR_DIR=$PWD
-WAMR_DIR=${PWD}/../../../third_party/wasm-micro-runtime
+WAMR_DIR=${PWD}/../../third_party/wasm-micro-runtime
 OUT_DIR=${PWD}/out
-INCLUDE_DIR=${PWD}/../../include/
+INCLUDE_DIR=${PWD}/../include/
 
 for i in `ls *.c`
 do
