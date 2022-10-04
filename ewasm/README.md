@@ -3,6 +3,14 @@
 - build the user space and kernel space eBPF as a WASM module
 - load the WASM module dynamically and run with eunomia-bpf
 
+## How it works
+
+The library use the `eunomia-bpf` library to load `eBPF` program from a `WASM` module, you can write a WASM module to operate the eBPF program or process the data in user space `WASM` runtime. The idea is simple:
+
+1. compile the kernel eBPF code skeleton to the `JSON` format with `eunomia-cc` toolchain
+2. embed the `JSON` data in the `WASM` module, and provide some API for operating the eBPF program skeleton
+3. load the `JSON` data from the `WASM` module and run the eBPF program skeleton with `eunomia-bpf` library
+
 ## example: opensnoop
 
 - [test/wasm-apps/opensnoop.c](test/wasm-apps/opensnoop.c)
@@ -41,23 +49,27 @@ process_event(int ctx, char *e, int str_len)
 }
 ```
 
-Run `./build` to build the WASM module. Please install WASI SDK, download the [wasi-sdk](https://github.com/CraneStation/wasi-sdk/releases) release and extract the archive to default path `/opt/wasi-sdk`.
-
 For the kernel code, please refer to [../examples/bpftools/opensnoop](../examples/bpftools/opensnoop).
 
-## compile
+Run `./build` to build the WASM module. 
 
-```sh
-make build
-```
+> Please install WASI SDK, download the [wasi-sdk](https://github.com/CraneStation/wasi-sdk/releases) release and extract the archive to default path `/opt/wasi-sdk`.
 
-## run eBPF from WASM module
+You will get a `opensnoop.wasm` file, which contains the pre-compiled kernel eBPF code and user-space `WASM` code.
+
+### run eBPF from WASM module
 
 ```console
-$ sudo  build/bin/Release/ewasm test/wasm-apps/opensnoop.wasm
+$ sudo build/bin/Release/ewasm test/wasm-apps/opensnoop.wasm
 
 {"pid":1509,"uid":0,"ret":11,"flags":0,"comm":"YDService","fname":"/proc/self/stat"}
 {"pid":1509,"uid":0,"ret":3,"flags":0,"comm":"YDService","fname":"/home/ubuntu/.zsh_history"}
 {"pid":1509,"uid":0,"ret":3,"flags":0,"comm":"YDService","fname":"/proc/565169/cmdline"}
 {"pid":1509,"uid":0,"ret":3,"flags":0,"comm":"YDService","fname":"/proc/565170/cmdline"}
+```
+
+## compile
+
+```sh
+make build
 ```
