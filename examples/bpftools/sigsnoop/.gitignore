@@ -1,2 +1,5 @@
 .vscode
 package.json
+eunomia-include
+*.wasm
+ewasm-ebpf.h

@@ -45,6 +45,11 @@ test: ## run tests quickly with ctest
 	cmake --build build
 	cd build/ && sudo ctest -VV
 
+test-wasm:
+	wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-16/wasi-sdk-16.0-linux.tar.gz
+	tar -zxf wasi-sdk-16.0-linux.tar.gz && mkdir -p /opt/wasi-sdk/ && sudo mv wasi-sdk-16.0/* /opt/wasi-sdk/
+	make -C test/wasm-apps
+
 coverage: ## check code coverage quickly GCC
 	rm -rf build/
 	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -Deunomia_ENABLE_CODE_COVERAGE=1

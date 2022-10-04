@@ -1,6 +1,4 @@
-BUILD_DIR ?= ../../build/
+.PHONY: all
 
 all:
-	cp * ../../build
-	cp ../../scripts/build.sh ../../build
-	cd ../../build && ./build.sh
+	SOURCE_DIR=../test/wasm-apps make -C ../../scripts
