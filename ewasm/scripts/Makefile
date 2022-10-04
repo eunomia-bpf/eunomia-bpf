@@ -36,7 +36,7 @@ export GENERATE_HEADER_PYSCRIPT
 .PHONY: all build generate
 
 all: build
-build: $(BUILD_DIR)
+build:
 	@rm -rf $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)
 	@cp -r $(SOURCE_DIR)/* $(BUILD_DIR)
