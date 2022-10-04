@@ -54,7 +54,11 @@ $ make eunomia-exporter
 
 ## build wasm lib
 
-Please install WASI SDK, download the [wasi-sdk](https://github.com/CraneStation/wasi-sdk/releases) release and extract the archive to default path /opt/wasi-sdk.
+```shell
+$ make ewasm
+```
+
+Please install WASI SDK, download the [wasi-sdk](https://github.com/CraneStation/wasi-sdk/releases) release and extract the archive to default path /opt/wasi-sdk if you want to compile c code to wasm.
 
 ## more details
 

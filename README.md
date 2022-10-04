@@ -67,6 +67,10 @@ You can compile it or download from [release](https://github.com/eunomia-bpf/eun
 - LMP eBPF Hub: [github.com/linuxkerneltravel/lmp](https://github.com/linuxkerneltravel/lmp)
 - bolipi online compiler & runner: [https://bolipi.com/ebpf/home/online](https://bolipi.com/ebpf/home/online)
 
+## build the project
+
+see [build](documents/build.md) for details.
+
 ## Road-map
 
 - [X] refactor the code from project `Eunomia` and provide quick examples
@@ -77,6 +81,7 @@ You can compile it or download from [release](https://github.com/eunomia-bpf/eun
 - [X] use WASM for ebpf package load config and add more user space support
 - [ ] support more ebpf program types: uprobe, xdp etc.
 - [ ] add more possibilities and helper functions from `libbpf`
+- [ ] Android support
 - [ ] provide python, go and others sdk
 - [ ] add support of `etcd` and enhance server
 
