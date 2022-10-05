@@ -34,7 +34,6 @@ else
         echo "build ${OUT_FILE} fail"
 fi
 done
-echo "####################build wasm c apps done"
 
 
 for i in `ls *.cpp`
@@ -61,4 +60,3 @@ else
         echo "build ${OUT_FILE} fail"
 fi
 done
-echo "####################build wasm cpp apps done"

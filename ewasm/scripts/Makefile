@@ -14,6 +14,11 @@ ebpf_program_data = "package.json"
 ebpf_program_header = "ewasm-ebpf.h"
 
 import json
+from os.path import exists
+
+if not exists(ebpf_program_data):
+	# ignore for building without package.json
+	exit(0)
 
 d = {}
 
@@ -37,6 +42,7 @@ export GENERATE_HEADER_PYSCRIPT
 
 all: build
 build:
+	@cd $(SOURCE_DIR) && python -c "$$GENERATE_HEADER_PYSCRIPT"
 	@rm -rf $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)
 	@cp -r $(SOURCE_DIR)/* $(BUILD_DIR)
@@ -48,6 +54,6 @@ generate:
 	@cd $(SOURCE_DIR) && python -c "$$GENERATE_HEADER_PYSCRIPT"
 	@mkdir -p $(SOURCE_DIR)/eunomia-include
 	@cp -r ../include/wasm-app/* $(SOURCE_DIR)/eunomia-include
-	@cp template/* $(SOURCE_DIR)
+	@cp template/* $(SOURCE_DIR) && chmod -R 777 $(SOURCE_DIR)
 
 	
