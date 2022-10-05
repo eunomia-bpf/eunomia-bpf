@@ -15,7 +15,7 @@ static std::string get_file_contents(const std::string& path)
   return std::string((std::istreambuf_iterator<char>(json_file)), std::istreambuf_iterator<char>());
 }
 
-static bool try_download_with_wget(const std::string& url, tracker_config_data& config_data)
+static bool try_download_with_wget(const std::string& url, program_config_data& config_data)
 {
   std::string resource_name = url.substr(url.find_last_of("/") + 1);
   auto path = default_download_path + resource_name;
@@ -31,7 +31,7 @@ static bool try_download_with_wget(const std::string& url, tracker_config_data& 
   return false;
 }
 
-bool resolve_json_data(tracker_config_data& config_data)
+bool resolve_url_path(program_config_data& config_data)
 {
   if (config_data.url == "")
   {
@@ -41,7 +41,7 @@ bool resolve_json_data(tracker_config_data& config_data)
   }
   if (fs::is_regular_file(config_data.url))
   {
-    spdlog::debug("json data path is a file: {}", config_data.url);
+    spdlog::debug("data path is a file: {}", config_data.url);
     config_data.json_data = get_file_contents(config_data.url);
     return true;
   }
@@ -65,10 +65,10 @@ bool resolve_json_data(tracker_config_data& config_data)
       spdlog::debug("Not found.");
       return try_download_with_wget(config_data.url, config_data);
     }
-    spdlog::info("Get json data complete: {}", res->status);
+    spdlog::info("Get data complete: {}", res->status);
     config_data.json_data = res->body;
     return true;
   }
-  spdlog::error("json data path not exits: {}", config_data.url);
+  spdlog::error("data path not exits: {}", config_data.url);
   return false;
 }

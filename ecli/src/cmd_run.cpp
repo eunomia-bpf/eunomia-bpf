@@ -22,8 +22,8 @@ run_mode_operation(const std::string& path, const std::vector<std::string>& run_
   {
     type = export_format_type::EXPORT_PLANT_TEXT;
   }
-  auto base = tracker_config_data{ path, "", run_with_extra_args, type };
-  if (!resolve_json_data(base))
+  auto base = program_config_data{ path, "", run_with_extra_args, type };
+  if (!resolve_url_path(base))
   {
     std::cerr << "cannot resolve url data" << std::endl;
     return;

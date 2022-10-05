@@ -53,9 +53,9 @@ void client_start_operation(
     const std::string& url,
     const std::vector<std::string>& run_with_extra_args)
 {
-  tracker_config_data base{};
+  program_config_data base{};
   base.url = url;
-  if (!resolve_json_data(base))
+  if (!resolve_url_path(base))
   {
     return;
   }
@@ -83,7 +83,7 @@ void client_stop_operation(const std::string& endpoint, int stop_id)
   std::cout << req->status << " :" << req->body << std::endl;
 }
 
-void server_mode_operation(eunomia_config_data& core_config)
+void server_mode_operation(ecli_config_data& core_config)
 {
   spdlog::info("start server mode...");
   core_config.run_selected = "server";
@@ -93,7 +93,7 @@ void server_mode_operation(eunomia_config_data& core_config)
 
 int main(int argc, char* argv[])
 {
-  eunomia_config_data core_config;
+  ecli_config_data core_config;
 
   std::string config_file = "";
   eunomia_cmd_mode cmd_selected = eunomia_cmd_mode::help;
@@ -159,7 +159,7 @@ int main(int argc, char* argv[])
 
   if (config_file != "")
   {
-    core_config = eunomia_config_data::from_toml_file(config_file);
+    core_config = ecli_config_data::from_toml_file(config_file);
   }
 
   switch (cmd_selected)

@@ -17,11 +17,11 @@
 class eunomia_program
 {
   eunomia::eunomia_ebpf_program program;
-  tracker_config_data current_config;
+  program_config_data current_config;
   friend class eunomia_runner;
 
  public:
-  eunomia_program(const tracker_config_data& config) : current_config(config){};
+  eunomia_program(const program_config_data& config) : current_config(config){};
   void run_ebpf_program();
 };
 
@@ -34,12 +34,12 @@ class eunomia_runner
 
  public:
   /// create a tracker with deafult config
-  static std::unique_ptr<eunomia_runner> create_tracker_with_args(const tracker_config_data& config)
+  static std::unique_ptr<eunomia_runner> create_tracker_with_args(const program_config_data& config)
   {
     return std::make_unique<eunomia_runner>(config);
   }
 
-  eunomia_runner(const tracker_config_data& config) : ep(config){};
+  eunomia_runner(const program_config_data& config) : ep(config){};
   ~eunomia_runner()
   {
     stop_tracker();

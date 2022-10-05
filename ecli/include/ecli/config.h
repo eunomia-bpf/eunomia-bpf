@@ -13,7 +13,7 @@
 #include <eunomia/eunomia-bpf.h>
 
 /// tracker config data
-struct tracker_config_data
+struct program_config_data
 {
   std::string url;
   std::string json_data;
@@ -21,27 +21,27 @@ struct tracker_config_data
   /// export type format
   export_format_type export_format = export_format_type::EXPORT_PLANT_TEXT;
 
-  static tracker_config_data from_json_str(const std::string& json_str);
+  static program_config_data from_json_str(const std::string& json_str);
 };
 
 /// config for eunomia
 
 /// both config from toml and command line should be put here
-struct eunomia_config_data
+struct ecli_config_data
 {
   /// global run mode
   std::string run_selected = "server";
 
   /// config for all enabled tracker
-  std::vector<tracker_config_data> enabled_trackers = {
+  std::vector<program_config_data> enabled_trackers = {
   };
   /// auto exit mode
   int exit_after = 0;
 
   /// parse config from toml files
-  static eunomia_config_data from_toml_file(const std::string &file_path);
+  static ecli_config_data from_toml_file(const std::string &file_path);
   /// parse config from json files
-  static eunomia_config_data from_json_file(const std::string &file_path);
+  static ecli_config_data from_json_file(const std::string &file_path);
 
   /// eunomia_http_server_port
   int server_port = 8527;

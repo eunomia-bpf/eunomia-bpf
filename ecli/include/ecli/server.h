@@ -68,12 +68,12 @@ struct server_manager
 {
  private:
   /// eunomia config
-  eunomia_config_data core_config;
+  ecli_config_data core_config;
 
   /// manager for all tracker
   tracker_manager core_tracker_manager;
 
-  std::unique_ptr<eunomia_runner> create_default_tracker(tracker_config_data& base);
+  std::unique_ptr<eunomia_runner> create_default_tracker(program_config_data& base);
 
   /// start all trackers
   std::size_t start_trackers(void);
@@ -81,11 +81,11 @@ struct server_manager
   void check_auto_exit(std::size_t checker_count);
 
  public:
-  server_manager(eunomia_config_data& config);
+  server_manager(ecli_config_data& config);
   /// start the core
   int start_eunomia(void);
   /// start a single tracker base on config
-  std::size_t start_tracker(tracker_config_data& config);
+  std::size_t start_tracker(program_config_data& config);
   std::size_t start_tracker(const std::string& json_data);
   /// list all trackers
   std::vector<std::tuple<int, std::string>> list_all_trackers(void);
@@ -106,7 +106,7 @@ class eunomia_server
 
  public:
   /// create a server
-  eunomia_server(eunomia_config_data& config, int p);
+  eunomia_server(ecli_config_data& config, int p);
   ~eunomia_server() = default;
   /// start the server
   void serve(void);

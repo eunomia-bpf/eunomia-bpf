@@ -16,13 +16,13 @@
     spdlog::warn("{} use default value", #name); \
   }
 
-static void from_json(const nlohmann::json &j, tracker_config_data &data)
+static void from_json(const nlohmann::json &j, program_config_data &data)
 {
   get_from_json_at(url);
   get_from_json_at(args);
 }
 
-eunomia_server::eunomia_server(eunomia_config_data &config, int p) : core(config), port(p)
+eunomia_server::eunomia_server(ecli_config_data &config, int p) : core(config), port(p)
 {
 }
 
@@ -35,7 +35,7 @@ void eunomia_server::serve()
         spdlog::info("accept http start request");
         const std::lock_guard<std::mutex> lock(seq_mutex);
         std::string req_str;
-        tracker_config_data data;
+        program_config_data data;
         try
         {
           /// try to start tracker directly
@@ -112,11 +112,11 @@ void eunomia_server::serve()
 
 using json = nlohmann::json;
 
-server_manager::server_manager(eunomia_config_data& config) : core_config(config)
+server_manager::server_manager(ecli_config_data& config) : core_config(config)
 {
 }
 
-std::unique_ptr<eunomia_runner> server_manager::create_default_tracker(tracker_config_data& base)
+std::unique_ptr<eunomia_runner> server_manager::create_default_tracker(program_config_data& base)
 {
   return eunomia_runner::create_tracker_with_args(base);
 }
@@ -131,7 +131,7 @@ void server_manager::stop_tracker(std::size_t tracker_id)
   core_tracker_manager.remove_tracker(tracker_id);
 }
 
-std::size_t server_manager::start_tracker(tracker_config_data& config)
+std::size_t server_manager::start_tracker(program_config_data& config)
 {
   spdlog::debug("tracker is starting from {}...", config.url);
   auto tracker = create_default_tracker(config);
@@ -145,7 +145,7 @@ std::size_t server_manager::start_tracker(tracker_config_data& config)
 std::size_t server_manager::start_tracker(const std::string& json_data)
 {
   spdlog::debug("tracker is starting...");
-  auto config_data = tracker_config_data{ "", json_data, {}, {} };
+  auto config_data = program_config_data{ "", json_data, {}, {} };
   return start_tracker(config_data);
 }
 

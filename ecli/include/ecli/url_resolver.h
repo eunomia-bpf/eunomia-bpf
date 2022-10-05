@@ -5,6 +5,7 @@
 #include<optional>
 #include "config.h"
 
-bool resolve_json_data(tracker_config_data& config_data);
+// Resolve the url path and load the data into the config
+bool resolve_url_path(program_config_data& config_data);
 
 #endif
