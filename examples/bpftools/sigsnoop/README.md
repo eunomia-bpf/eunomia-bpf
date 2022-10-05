@@ -58,7 +58,12 @@ Run:
 ```console
 $ sudo ./ecli run app.wasm                                                                        
 running and waiting for the ebpf events from perf event...
-
 {"pid":185539,"tpid":185538,"sig":17,"ret":0,"comm":"cat","sig_name":"SIGCHLD"}
 {"pid":185540,"tpid":185538,"sig":17,"ret":0,"comm":"grep","sig_name":"SIGCHLD"}
+
+$ sudo ./ecli run ./app.wasm '{"pid":2344}'
+running and waiting for the ebpf events from perf event...
+{"pid":2344,"tpid":1907,"sig":0,"ret":0,"comm":"YDService","sig_name":"N/A"}
+{"pid":2344,"tpid":1804,"sig":0,"ret":0,"comm":"YDService","sig_name":"N/A"}
+{"pid":2344,"tpid":1794,"sig":0,"ret":0,"comm":"YDService","sig_name":"N/A"}
 ```

@@ -40,5 +40,8 @@ ewasm_program_runner::run_ebpf_program()
 {
     ewasm_program p;
     std::string json_env = "{}";
+    if (current_config.args.size() > 0) {
+        json_env = current_config.args[0];
+    }
     p.start(current_config.program_data_buffer, json_env);
 }

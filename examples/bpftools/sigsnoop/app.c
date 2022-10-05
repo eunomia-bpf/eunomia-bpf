@@ -44,11 +44,21 @@ static const char *sig_name[] = {
 /// @param env_json the env config from input
 /// @return 0 on success, -1 on failure, the eBPF program will be terminated in
 /// failure case
-int
-bpf_main(char *env_json, int str_len)
+int bpf_main(char *env_json, int str_len)
 {
-    start_bpf_program(program_data);
-    return 0;
+	cJSON *env = cJSON_Parse(env_json);
+	if (!env)
+	{
+		printf("cJSON_Parse failed for env_json.");
+	}
+	cJSON *program = cJSON_Parse(program_data);
+	// get pid config from env
+	cJSON *pid = cJSON_GetObjectItem(env, "pid");
+	if (pid)
+	{
+		program = add_runtime_arg_to_bpf_program(program, "filtered_pid", pid);
+	}
+	return start_bpf_program(cJSON_PrintUnformatted(program));
 }
 
 /// @brief handle the event output from the eBPF program, valid only when
@@ -58,16 +68,15 @@ bpf_main(char *env_json, int str_len)
 /// @return 0 on pass, -1 on block,
 /// the event will be send to next handler in chain on success, or dropped in
 /// block.
-int
-process_event(int ctx, char *e, int str_len)
+int process_event(int ctx, char *e, int str_len)
 {
-    cJSON *json = cJSON_Parse(e);
-    int sig = cJSON_GetObjectItem(json, "sig")->valueint;
-    const char *name = sig_name[sig];
-    cJSON_AddItemToObject(json, "sig_name", cJSON_CreateString(name));
-    char *out = cJSON_PrintUnformatted(json);
-    printf("%s\n", out);
-    strncpy(e, out, str_len);
-    cJSON_Delete(json);
-    return 0;
+	cJSON *json = cJSON_Parse(e);
+	int sig = cJSON_GetObjectItem(json, "sig")->valueint;
+	const char *name = sig_name[sig];
+	cJSON_AddItemToObject(json, "sig_name", cJSON_CreateString(name));
+	char *out = cJSON_PrintUnformatted(json);
+	printf("%s\n", out);
+	strncpy(e, out, str_len);
+	cJSON_Delete(json);
+	return 0;
 }
