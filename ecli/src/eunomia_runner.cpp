@@ -15,7 +15,7 @@
 using json = nlohmann::json;
 
 void
-eunomia_program::run_ebpf_program()
+eunomia_program_runner::run_ebpf_program()
 {
     if (program.load_json_config(current_config.program_data_buffer) < 0) {
         spdlog::error("load json config failed");
@@ -30,4 +30,12 @@ eunomia_program::run_ebpf_program()
         spdlog::error("wait and print ebpf program failed");
         return;
     }
+}
+
+void
+ewasm_program_runner::run_ebpf_program()
+{
+    ewasm_program p;
+    std::string json_env = "{}";
+    // p.start(current_config.program_data_buffer, json_env);
 }

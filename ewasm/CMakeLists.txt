@@ -179,7 +179,7 @@ include_directories(${EUNOMIA_DIR}/include)
 add_subdirectory(${EUNOMIA_DIR} ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
 add_dependencies(eunomia libbpf-build)
 add_dependencies(${PROJECT_NAME} eunomia)
-target_link_libraries(${PROJECT_NAME} PRIVATE eunomia)
+target_link_libraries(${PROJECT_NAME} PUBLIC eunomia)
 
 set (WAMR_BUILD_PLATFORM "linux")
 set (WAMR_BUILD_TARGET "X86_64")
@@ -253,6 +253,7 @@ include(GNUInstallDirs)
 install(
   TARGETS
   ${PROJECT_NAME}
+  vmlib
   EXPORT
   ${PROJECT_NAME}Targets
   LIBRARY DESTINATION

@@ -19,7 +19,7 @@ EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTUR
 
 set(third_party_headers
     ../third_party/includes/
-    ../third_party/libbpf/include/uapi
+    ../third_party/libbpf/include/uapi/
     ../third_party/libbpf/
 )
 

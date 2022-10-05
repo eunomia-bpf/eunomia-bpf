@@ -13,16 +13,30 @@
 
 #include "config.h"
 #include "eunomia/eunomia-bpf.hpp"
+#include "ewasm/ewasm.hpp"
 
-/// program
-class eunomia_program
+/// JSON eBPF program run in kernel
+class eunomia_program_runner
 {
     eunomia::eunomia_ebpf_program program;
     program_config_data current_config;
     friend class eunomia_runner;
 
   public:
-    eunomia_program(const program_config_data &config)
+    eunomia_program_runner(const program_config_data &config)
+      : current_config(config){};
+    void run_ebpf_program();
+};
+
+/// @brief  wasm program include kernel and user space
+class ewasm_program_runner
+{
+    ewasm_program program;
+    program_config_data current_config;
+    friend class eunomia_runner;
+
+  public:
+    ewasm_program_runner(const program_config_data &config)
       : current_config(config){};
     void run_ebpf_program();
 };
@@ -31,7 +45,7 @@ class eunomia_runner
 {
   private:
     friend class tracker_manager;
-    eunomia_program ep;
+    eunomia_program_runner ep;
 
   public:
     std::thread thread;

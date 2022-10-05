@@ -160,13 +160,17 @@ set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
 # Set the build/user include directories
 #
 set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../eunomia-bpf)
-set(EUNOMIA_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
+set(EWASM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../ewasm)
+set(WAMR_ROOT_DIR ../third_party/wasm-micro-runtime)
 include_directories(${EUNOMIA_DIR}/include)
-include_directories(SYSTEM INTERFACE ${third_party_headers})
+include_directories(${THIRD_PARTY_DIR}/includes/)
+include_directories(${WAMR_ROOT_DIR}/core/iwasm/include/)
+include_directories(${EWASM_DIR}/include)
 
-add_subdirectory(${EUNOMIA_DIR} ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
-add_dependencies(${PROJECT_NAME} eunomia)
-target_link_libraries(${PROJECT_NAME} PRIVATE eunomia -lpthread)
+add_subdirectory(${EWASM_DIR} ${CMAKE_CURRENT_BINARY_DIR}/ewasm)
+add_dependencies(ewasm libbpf-build)
+add_dependencies(${PROJECT_NAME} ewasm)
+target_link_libraries(${PROJECT_NAME} PUBLIC ewasm -lpthread)
 
 # Allow usage of header files in the `src` directory, but only for utilities
 if(${PROJECT_NAME}_BUILD_HEADERS_ONLY)
