@@ -17,7 +17,10 @@ using json = nlohmann::json;
 void
 eunomia_program_runner::run_ebpf_program()
 {
-    if (program.load_json_config(current_config.program_data_buffer) < 0) {
+    std::string program_data =
+        std::string(current_config.program_data_buffer.begin(),
+                    current_config.program_data_buffer.end());
+    if (program.load_json_config(program_data) < 0) {
         spdlog::error("load json config failed");
         return;
     }

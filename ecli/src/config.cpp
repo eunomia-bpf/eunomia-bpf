@@ -11,69 +11,65 @@
 #include "spdlog/spdlog.h"
 #include "toml.hpp"
 
-#define get_from_json_at(name)                   \
-  try                                            \
-  {                                              \
-    j.at(#name).get_to(data.name);               \
-  }                                              \
-  catch (...)                                    \
-  {                                              \
-    spdlog::warn("{} use default value", #name); \
-  }
+#define get_from_json_at(name)                       \
+    try {                                            \
+        j.at(#name).get_to(data.name);               \
+    } catch (...) {                                  \
+        spdlog::warn("{} use default value", #name); \
+    }
 
-static void from_json(const nlohmann::json& j, program_config_data& data)
+static void
+from_json(const nlohmann::json &j, program_config_data &data)
 {
-  get_from_json_at(url);
-  get_from_json_at(program_data_buffer);
-  get_from_json_at(args);
+    get_from_json_at(url);
+    get_from_json_at(program_data_buffer);
+    get_from_json_at(args);
 }
 
-static void from_json(const nlohmann::json& j, ecli_config_data& data)
+static void
+from_json(const nlohmann::json &j, ecli_config_data &data)
 {
-  get_from_json_at(run_selected);
-  get_from_json_at(enabled_trackers);
-  get_from_json_at(server_host);
-  get_from_json_at(server_port);
-  get_from_json_at(exit_after);
+    get_from_json_at(run_selected);
+    get_from_json_at(enabled_trackers);
+    get_from_json_at(server_host);
+    get_from_json_at(server_port);
+    get_from_json_at(exit_after);
 }
 
-ecli_config_data ecli_config_data::from_toml_file(const std::string& file_path)
+ecli_config_data
+ecli_config_data::from_toml_file(const std::string &file_path)
 {
-  toml::table data;
-  try
-  {
-    data = toml::parse_file(file_path);
-  }
-  catch (const toml::parse_error& err)
-  {
-    spdlog::error("parse toml file error: {}", err.description());
-    return ecli_config_data{};
-  }
-  auto json_data = toml::json_formatter{ data };
-  std::stringstream ss;
-  ss << json_data;
-  nlohmann::json j = ss.str();
-  return j.get<ecli_config_data>();
+    toml::table data;
+    try {
+        data = toml::parse_file(file_path);
+    } catch (const toml::parse_error &err) {
+        spdlog::error("parse toml file error: {}", err.description());
+        return ecli_config_data{};
+    }
+    auto json_data = toml::json_formatter{ data };
+    std::stringstream ss;
+    ss << json_data;
+    nlohmann::json j = ss.str();
+    return j.get<ecli_config_data>();
 }
 
-ecli_config_data ecli_config_data::from_json_file(const std::string& file_path)
+ecli_config_data
+ecli_config_data::from_json_file(const std::string &file_path)
 {
-  std::ifstream i(file_path);
-  nlohmann::json j;
-  i >> j;
-  return j.get<ecli_config_data>();
+    std::ifstream i(file_path);
+    nlohmann::json j;
+    i >> j;
+    return j.get<ecli_config_data>();
 }
 
-program_config_data program_config_data::from_json_str(const std::string& json_str)
+program_config_data
+program_config_data::from_json_str(const std::string &json_str)
 {
-  try
-  {
-    nlohmann::json j = nlohmann::json::parse(json_str);
-    return j.get<program_config_data>();
-  }
-  catch (...)
-  {
-    spdlog::error("json parse error for tracker_config_data! {}", json_str);
-  }
-  return program_config_data{};
+    try {
+        nlohmann::json j = nlohmann::json::parse(json_str);
+        return j.get<program_config_data>();
+    } catch (...) {
+        spdlog::error("json parse error for tracker_config_data! {}", json_str);
+    }
+    return program_config_data{};
 }

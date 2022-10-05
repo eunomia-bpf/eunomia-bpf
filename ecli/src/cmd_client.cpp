@@ -42,8 +42,13 @@ client_start_operation(const std::string &endpoint, const std::string &url,
     if (!resolve_url_path(base)) {
         return;
     }
+    if (base.prog_type != program_config_data::program_type::JSON_EUNOMIA) {
+        assert("unimplemented" && false);
+    }
+    std::string json_data = std::string(base.program_data_buffer.begin(),
+                                        base.program_data_buffer.end());
     httplib::Client cli(endpoint);
-    auto req = cli.Post("/start", base.program_data_buffer, "text/plain");
+    auto req = cli.Post("/start", json_data, "text/plain");
     if (!req) {
         spdlog::error("cannot connect to the server!");
         return;

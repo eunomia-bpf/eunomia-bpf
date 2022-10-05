@@ -23,7 +23,7 @@ run_mode_operation(const std::string &path,
         type = export_format_type::EXPORT_PLANT_TEXT;
     }
     auto base =
-        program_config_data{ path, "",
+        program_config_data{ path, {},
                              program_config_data::program_type::UNDEFINE,
                              run_with_extra_args, type };
     if (!resolve_url_path(base)) {

@@ -15,37 +15,61 @@
 #include "eunomia/eunomia-bpf.hpp"
 #include "ewasm/ewasm.hpp"
 
+class program_runner_base
+{
+  public:
+    program_config_data current_config;
+    program_runner_base(program_config_data config)
+      : current_config(config)
+    {
+    }
+    virtual ~program_runner_base() = default;
+    virtual void run_ebpf_program() = 0;
+    virtual std::string get_name() = 0;
+    virtual void stop() = 0;
+};
+
 /// JSON eBPF program run in kernel
-class eunomia_program_runner
+class eunomia_program_runner : public program_runner_base
 {
     eunomia::eunomia_ebpf_program program;
-    program_config_data current_config;
     friend class eunomia_runner;
 
   public:
     eunomia_program_runner(const program_config_data &config)
-      : current_config(config){};
+      : program_runner_base(config){};
     void run_ebpf_program();
+    std::string get_name() { return program.get_program_name(); }
+    void stop() { program.stop_and_clean(); }
+    virtual ~eunomia_program_runner() = default;
 };
 
 /// @brief  wasm program include kernel and user space
-class ewasm_program_runner
+class ewasm_program_runner : public program_runner_base
 {
     ewasm_program program;
-    program_config_data current_config;
     friend class eunomia_runner;
 
   public:
     ewasm_program_runner(const program_config_data &config)
-      : current_config(config){};
+      : program_runner_base(config){};
     void run_ebpf_program();
+    std::string get_name()
+    { // FIXME: get program name from wasm file
+        return "ewasm module";
+    }
+    void stop()
+    {
+        // FIXME: stop ewasm program
+    }
+    virtual ~ewasm_program_runner() = default;
 };
 
 class eunomia_runner
 {
   private:
     friend class tracker_manager;
-    eunomia_program_runner ep;
+    std::unique_ptr<program_runner_base> program_runner;
 
   public:
     std::thread thread;
@@ -57,20 +81,29 @@ class eunomia_runner
     }
 
     eunomia_runner(const program_config_data &config)
-      : ep(config){};
+    {
+        if (config.prog_type
+            == program_config_data::program_type::JSON_EUNOMIA) {
+            program_runner = std::make_unique<eunomia_program_runner>(config);
+        }
+        else if (config.prog_type
+                 == program_config_data::program_type::WASM_MODULE) {
+            program_runner = std::make_unique<ewasm_program_runner>(config);
+        }
+    };
     ~eunomia_runner() { stop_tracker(); }
 
     /// start process tracker
-    void start_tracker() { ep.run_ebpf_program(); }
+    void start_tracker() { program_runner->run_ebpf_program(); }
     const std::string get_name(void) const
     {
-        return ep.program.get_program_name();
+        return program_runner->get_name();
     }
 
     /// stop the tracker thread
     void stop_tracker()
     {
-        ep.program.stop_and_clean();
+        program_runner->stop();
         if (thread.joinable()) {
             thread.join();
         }

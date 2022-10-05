@@ -13,45 +13,41 @@
 #include <eunomia/eunomia-bpf.h>
 
 /// tracker config data
-struct program_config_data
-{
-  std::string url;
-  std::string program_data_buffer;
-  enum class program_type {
-    UNDEFINE,
-    JSON_EUNOMIA,
-    WASM_MODULE
-  } prog_type;
-  std::vector<std::string> args;
-  /// export type format
-  export_format_type export_format = export_format_type::EXPORT_PLANT_TEXT;
+struct program_config_data {
+    /// @brief  url of the program: path or http link
+    std::string url;
+    /// @brief program data buffer: wasm module or json
+    std::vector<char> program_data_buffer;
+    /// @brief  type of the program: wasm or json, of others
+    enum class program_type { UNDEFINE, JSON_EUNOMIA, WASM_MODULE } prog_type;
+    std::vector<std::string> args;
+    /// export type format
+    export_format_type export_format = export_format_type::EXPORT_PLANT_TEXT;
 
-  static program_config_data from_json_str(const std::string& json_str);
+    static program_config_data from_json_str(const std::string &json_str);
 };
 
 /// config for eunomia
 
 /// both config from toml and command line should be put here
-struct ecli_config_data
-{
-  /// global run mode
-  std::string run_selected = "server";
+struct ecli_config_data {
+    /// global run mode
+    std::string run_selected = "server";
 
-  /// config for all enabled tracker
-  std::vector<program_config_data> enabled_trackers = {
-  };
-  /// auto exit mode
-  int exit_after = 0;
+    /// config for all enabled tracker
+    std::vector<program_config_data> enabled_trackers = {};
+    /// auto exit mode
+    int exit_after = 0;
 
-  /// parse config from toml files
-  static ecli_config_data from_toml_file(const std::string &file_path);
-  /// parse config from json files
-  static ecli_config_data from_json_file(const std::string &file_path);
+    /// parse config from toml files
+    static ecli_config_data from_toml_file(const std::string &file_path);
+    /// parse config from json files
+    static ecli_config_data from_json_file(const std::string &file_path);
 
-  /// eunomia_http_server_port
-  int server_port = 8527;
-  /// eunomia_http_server_host
-  std::string server_host = "localhost";
+    /// eunomia_http_server_port
+    int server_port = 8527;
+    /// eunomia_http_server_host
+    std::string server_host = "localhost";
 };
 
 #endif
