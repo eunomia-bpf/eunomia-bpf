@@ -76,7 +76,7 @@ docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest build-wasm
 Run:
 
 ```console
-$ sudo ./ewasm app.wasm                                                                        
+$ sudo ./ecli run app.wasm                                                                       
 running and waiting for the ebpf events from perf event...
 
 {"pid":185539,"tpid":185538,"sig":17,"ret":0,"comm":"cat","sig_name":"SIGCHLD"}

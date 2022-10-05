@@ -40,5 +40,5 @@ ewasm_program_runner::run_ebpf_program()
 {
     ewasm_program p;
     std::string json_env = "{}";
-    // p.start(current_config.program_data_buffer, json_env);
+    p.start(current_config.program_data_buffer, json_env);
 }
