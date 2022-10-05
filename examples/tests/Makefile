@@ -1,5 +1,5 @@
 TEST_EXAMPLE_DIR ?= ../bpftools/
-TEST_TIME ?= 4
+TEST_TIME ?= 2
 ECLI_DIR ?= ../../ecli/
 
 # TODO: maybe use the compile docker to test?

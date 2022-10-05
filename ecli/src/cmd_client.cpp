@@ -43,7 +43,7 @@ client_start_operation(const std::string &endpoint, const std::string &url,
         return;
     }
     httplib::Client cli(endpoint);
-    auto req = cli.Post("/start", base.json_data, "text/plain");
+    auto req = cli.Post("/start", base.program_data_buffer, "text/plain");
     if (!req) {
         spdlog::error("cannot connect to the server!");
         return;

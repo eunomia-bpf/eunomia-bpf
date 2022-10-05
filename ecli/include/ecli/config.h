@@ -16,7 +16,12 @@
 struct program_config_data
 {
   std::string url;
-  std::string json_data;
+  std::string program_data_buffer;
+  enum class program_type {
+    UNDEFINE,
+    JSON_EUNOMIA,
+    WASM_MODULE
+  } prog_type;
   std::vector<std::string> args;
   /// export type format
   export_format_type export_format = export_format_type::EXPORT_PLANT_TEXT;

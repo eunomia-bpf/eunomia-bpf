@@ -24,7 +24,7 @@ static bool try_download_with_wget(const std::string& url, program_config_data& 
   int res = std::system(cmd.c_str());
   if (res >= 0 && fs::exists(path))
   {
-    config_data.json_data = get_file_contents(path);
+    config_data.program_data_buffer = get_file_contents(path);
     return true;
   }
   spdlog::error("failed to wget {}", url);
@@ -42,7 +42,7 @@ bool resolve_url_path(program_config_data& config_data)
   if (fs::is_regular_file(config_data.url))
   {
     spdlog::debug("data path is a file: {}", config_data.url);
-    config_data.json_data = get_file_contents(config_data.url);
+    config_data.program_data_buffer = get_file_contents(config_data.url);
     return true;
   }
   if (config_data.url.length() > 4 && std::strncmp(config_data.url.c_str(), "http", 4) == 0)
@@ -66,7 +66,7 @@ bool resolve_url_path(program_config_data& config_data)
       return try_download_with_wget(config_data.url, config_data);
     }
     spdlog::info("Get data complete: {}", res->status);
-    config_data.json_data = res->body;
+    config_data.program_data_buffer = res->body;
     return true;
   }
   spdlog::error("data path not exits: {}", config_data.url);

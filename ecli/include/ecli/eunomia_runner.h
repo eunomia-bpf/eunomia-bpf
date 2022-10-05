@@ -14,56 +14,53 @@
 #include "config.h"
 #include "eunomia/eunomia-bpf.hpp"
 
+/// program
 class eunomia_program
 {
-  eunomia::eunomia_ebpf_program program;
-  program_config_data current_config;
-  friend class eunomia_runner;
+    eunomia::eunomia_ebpf_program program;
+    program_config_data current_config;
+    friend class eunomia_runner;
 
- public:
-  eunomia_program(const program_config_data& config) : current_config(config){};
-  void run_ebpf_program();
+  public:
+    eunomia_program(const program_config_data &config)
+      : current_config(config){};
+    void run_ebpf_program();
 };
 
 class eunomia_runner
 {
- private:
-  std::thread thread;
-  friend class tracker_manager;
-  eunomia_program ep;
+  private:
+    friend class tracker_manager;
+    eunomia_program ep;
 
- public:
-  /// create a tracker with deafult config
-  static std::unique_ptr<eunomia_runner> create_tracker_with_args(const program_config_data& config)
-  {
-    return std::make_unique<eunomia_runner>(config);
-  }
-
-  eunomia_runner(const program_config_data& config) : ep(config){};
-  ~eunomia_runner()
-  {
-    stop_tracker();
-  }
-
-  /// start process tracker
-  void start_tracker()
-  {
-    ep.run_ebpf_program();
-  }
-  const std::string get_name(void) const
-  {
-    return ep.program.get_program_name();
-  }
-
-  /// stop the tracker thread
-  void stop_tracker()
-  {
-    ep.program.stop_and_clean();
-    if (thread.joinable())
+  public:
+    std::thread thread;
+    /// create a tracker with deafult config
+    static std::unique_ptr<eunomia_runner> create_tracker_with_args(
+        const program_config_data &config)
     {
-      thread.join();
+        return std::make_unique<eunomia_runner>(config);
     }
-  }
+
+    eunomia_runner(const program_config_data &config)
+      : ep(config){};
+    ~eunomia_runner() { stop_tracker(); }
+
+    /// start process tracker
+    void start_tracker() { ep.run_ebpf_program(); }
+    const std::string get_name(void) const
+    {
+        return ep.program.get_program_name();
+    }
+
+    /// stop the tracker thread
+    void stop_tracker()
+    {
+        ep.program.stop_and_clean();
+        if (thread.joinable()) {
+            thread.join();
+        }
+    }
 };
 
 #endif

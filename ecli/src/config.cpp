@@ -24,7 +24,7 @@
 static void from_json(const nlohmann::json& j, program_config_data& data)
 {
   get_from_json_at(url);
-  get_from_json_at(json_data);
+  get_from_json_at(program_data_buffer);
   get_from_json_at(args);
 }
 
