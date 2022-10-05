@@ -4,6 +4,7 @@ set(sources
     src/eunomia_runner.cpp
     src/url_resolver.cpp
     src/cmd_run.cpp
+    src/cmd_client.cpp
 )
 
 set(exe_sources
