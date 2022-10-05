@@ -1,5 +1,5 @@
-#ifndef URL_RESOLVER_H
-#define URL_RESOLVER_H
+#ifndef ECLI_URL_RESOLVER_H
+#define ECLI_URL_RESOLVER_H
 
 #include<string>
 #include<optional>

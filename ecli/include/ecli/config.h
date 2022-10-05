@@ -4,8 +4,8 @@
  * All rights reserved.
  */
 
-#ifndef EUNOMIA_CONFIG_H
-#define EUNOMIA_CONFIG_H
+#ifndef ECLI_CONFIG_H
+#define ECLI_CONFIG_H
 
 #include <set>
 #include <string>

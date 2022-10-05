@@ -4,8 +4,8 @@
  * All rights reserved.
  */
 
-#ifndef EUNOMIA_RUNNER_H
-#define EUNOMIA_RUNNER_H
+#ifndef ECLI_EUNOMIA_RUNNER_H
+#define ECLI_EUNOMIA_RUNNER_H
 
 #include <memory>
 #include <string>

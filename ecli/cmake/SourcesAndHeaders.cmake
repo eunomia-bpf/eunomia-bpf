@@ -3,6 +3,7 @@ set(sources
     src/server.cpp
     src/eunomia_runner.cpp
     src/url_resolver.cpp
+    src/cmd_run.cpp
 )
 
 set(exe_sources
@@ -19,7 +20,6 @@ set(third_party_headers
     ../third_party/includes/
     ../third_party/libbpf/include/uapi
     ../third_party/libbpf/
-    ../third_party/wasmtime/include
 )
 
 set(test_sources

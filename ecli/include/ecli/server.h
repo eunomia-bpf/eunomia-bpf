@@ -1,5 +1,5 @@
-#ifndef HTTP_EUNOMIA_H
-#define HTTP_EUNOMIA_H
+#ifndef ECLI_SERVER_H
+#define ECLI_SERVER_H
 
 #include "httplib.h"
 #include "eunomia_runner.h"

@@ -118,10 +118,6 @@ server_manager::server_manager(eunomia_config_data& config) : core_config(config
 
 std::unique_ptr<eunomia_runner> server_manager::create_default_tracker(tracker_config_data& base)
 {
-  if (!resolve_json_data(base))
-  {
-    return nullptr;
-  }
   return eunomia_runner::create_tracker_with_args(base);
 }
 
@@ -171,26 +167,6 @@ void server_manager::check_auto_exit(std::size_t checker_count)
     spdlog::info("set exit time...");
     std::this_thread::sleep_for(std::chrono::seconds(core_config.exit_after));
     // do nothing in server mode
-  }
-  else
-  {
-    if (core_config.run_selected != "server" && checker_count > 0)
-    {
-      spdlog::info("press 'Ctrl C' key to exit...");
-      static bool is_exiting = false;
-      signal(
-          SIGINT,
-          [](int x)
-          {
-            spdlog::info("Ctrl C exit...");
-            is_exiting = true;
-            signal(SIGINT, SIG_DFL);
-          });
-      while (!is_exiting)
-      {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-      }
-    }
   }
 }
 
