@@ -23,7 +23,7 @@
 
 
 ### 一个eunomia-bpf库
-
+这个库包含了libbpf地主要函数，提供了将eBPF代码动态加载到内核的能力，并使用简单的JSON和API运行它。
 
 
 ## Our function
