@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include "cjson/cJSON.h"
+#include "cJSON/cJSON.h"
 
 /// @brief start the eBPF program with JSON and wait for it to exit
 /// @param program_data the json data of eBPF program

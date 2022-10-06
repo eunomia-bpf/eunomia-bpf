@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "eunomia-include/wasm-app.h"
-#include "ewasm-ebpf.h"
+#include "ewasm-skel.h"
 
 static const char *sig_name[] = {
 	[0] = "N/A",

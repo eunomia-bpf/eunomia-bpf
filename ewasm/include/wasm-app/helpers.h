@@ -1,11 +1,12 @@
-#ifndef EWASM_APP_INIT_H
-#define EWASM_APP_INIT_H
+#ifndef EWASM_APP_HELPERS_H_
+#define EWASM_APP_HELPERS_H_
 
 #include "native-ewasm.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include "cJSON/cJSON.h"
 
 /// @brief start the eBPF program with JSON and wait for it to exit
 /// @param program_data the json data of eBPF program
@@ -29,6 +30,21 @@ start_bpf_program(char *program_data)
         return -1;
     }
     return 0;
+}
+
+
+cJSON *
+add_runtime_arg_to_bpf_program(cJSON *program, char *key, cJSON *value)
+{
+
+    cJSON *args = cJSON_GetObjectItem(program, "runtime_args");
+    if (args == NULL)
+    {
+        args = cJSON_CreateObject();
+        cJSON_AddItemToObject(program, "runtime_args", args);
+    }
+    cJSON_AddItemToObject(args, key, value);
+    return program;
 }
 
 #endif // EWASM_APP_INIT_H

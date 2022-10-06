@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "eunomia-include/wasm-app.h"
-#include "ewasm-ebpf.h"
+#include "ewasm-skel.h"
 
 /// @brief init the eBPF program
 /// @param env_json the env config from input

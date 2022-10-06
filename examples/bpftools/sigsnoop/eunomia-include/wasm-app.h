@@ -2,7 +2,7 @@
 #define EWASM_EWASM_APP_H
 
 // header only helpers for develop wasm app
-#include "cjson/cJSON.h"
+#include "cJSON/cJSON.h"
 #include "init.h"
 
 #endif // EWASM_EWASM_APP_H

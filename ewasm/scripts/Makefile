@@ -11,7 +11,7 @@ base = """;
 #endif
 """
 ebpf_program_data = "package.json"
-ebpf_program_header = "ewasm-ebpf.h"
+ebpf_program_header = "ewasm-skel.h"
 
 import json
 from os.path import exists

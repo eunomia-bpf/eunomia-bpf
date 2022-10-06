@@ -1,6 +1,6 @@
 .vscode
 package.json
 *.wasm
-ewasm-ebpf.h
+ewasm-skel.h
 ecli
 ewasm
