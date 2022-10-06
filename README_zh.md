@@ -6,105 +6,66 @@
 
 ## 我们的目标
 
-在eunomia-bpf中，你可以:
+在 `eunomia-bpf` 中，您可以:
 
-- 在不提供或管理基础设施的情况下运行CO-RE epf代码
+- 在没有提供和管理框架的情况下运行 `CO-RE` eBPF代码
 - 只编写eBPF内核代码并且将他编译为JSON，动态加载到另一台机器上而不需要重新编译
-- 将eBPF程序编译为WASM模块，就可以在用户空间WASM运行时时控制eBPF程序或处理数据
-- 拥有非常小和简单的可执行程序！库本身 `< 1MB` 且不依赖 `LLVM/Clang`，可以轻松嵌入到项目中
-- 以`< 100ms`的速度动态加载和运行任何eBPF程序，比bcc更迅速
+- 将eBPF程序编译为 `WASM` 模块，就可以在用户空间 `WASM` 运行时时控制eBPF程序或处理数据
+- 拥有非常小和简单的可执行程序, 库本身小于 `1MB` 且不依赖 `LLVM/Clang`，可以轻松嵌入到您的项目中
+- 以小于 `100ms` 的时间动态加载和运行任何eBPF程序，比 `bcc` 更迅速
 
-为了更普遍地应用，我们开发了一种编译、传输和运行大多数libbpf CO-RE对象的方法，其中包含一些用户空间配置元数据，以帮助您加载和操作eBPF字节代码。eBPF的编译和运行阶段是完全分离的，因此，在加载epf程序时，只需要eBPF字节码和数kB元数据。
+为了更普遍地应用，我们开发了一种编译、传输和运行大多数libbpf CO-RE对象的方法，其中包含一些用户空间配置元数据，以帮助您加载和操作eBPF字节代码。eBPF的编译和运行阶段是完全分离的，因此，在加载epf程序时，只需要eBPF字节码和数 `kB` 元数据。
 
 大多数时候，您需要做的唯一一件事就是专注于在内核中编写单个epf程序。如果您希望有一个用户空间程序来操作eBPF程序，那么您可以编写一个`WASM`模块来完成它。
 
 ## 项目架构
 我们有一个加载器库，一个编译工具链，以及一些额外的工具，如cli和一个自定义指标导出器。
 
-
 ### 一个eunomia-bpf库
 这个库包含了libbpf地主要函数，提供了将eBPF代码动态加载到内核的能力，并使用简单的JSON和API运行它。
 
+查看 [eunomia-bpf](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/ecli) 以获得更多细节信息
 
-## Our function
-
-eunomia-bpf 包含如下几个项目：
-
-- eunomia-bpf：一个基于 libbpf 的 CO-RE eBPF 运行时库，使用 C/C++ 语言。提供 Rust 等语言的 sdk；提供 ecli 作为命令行工具；
-- eunomia-cc：一个编译工具链；
-- eunomia-exporter：使用 Prometheus 或 OpenTelemetry 进行可观测性数据收集，使用 Rust 编写；
-- ebpm-template：使用 Github Action 进行远程编译，本地一键运行；
-
-### 一个eunomia-bpf库
-
-libbpf 主要功能的封装，一些用于用户开发的辅助功能。
-
-- 提供将 ebpf 代码加载到内核并运行它的能力。
-- 使用一些额外的数据来帮助加载和配置 eBPF 字节码。
-- 多语言绑定：参见 [eunomia-sdks](eunomia-sdks)。 我们现在有 Rust 的 API，将来会添加更多；
-
-#### 安装运行
-
-大多数时候安装时只需要下载对应的二进制即可：
-
-```bash
-$ # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
-$ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ecli
+我们提供了[一个简单的cli接口](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/ecli)使得您可以通过在命令行输入URL的方式启动任何eBPF程序。您可以从[release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)版本中下载样例:
 ```
-
-有关详细信息，请参见 [eunomia-bpf](eunomia-bpf) 文件夹。 借助该库，我们提供了[一个简单的 cli](https://github.com/eunomia-bpf/eunomia-bpf/releases/)，在支持 eBPF 的内核版本上，您可以简单地使用 url 或路径运行预编译 eBPF 数据：
-
-```bash
+# download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
+$ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
 $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url
 ```
 
-可以使用容器进行编译, 仅需要专注于编写[内核态代码](examples/bpftools/bootstrap/bootstrap.bpf.c):
+### 一个从WASM模块加载eBPF程序的库
+使用 `eunomia-bpf` 库从`WASM`模块加载eBPF程序，您可以编写`WASM`模块来操作eBPF程序或在用户空间`WASM`运行时处理数据。这个想法很简单:
 
-```bash
-$ docker run -it -v ./examples/bpftools/bootstrap:/src yunwei37/ebpm:latest
-$ sudo ./ecli run examples/bpftools/bootstrap/package.json              # run the compiled ebpf code
-```
+1. 使用 `eunomia-cc` 工具链将 `eBPF` 代码骨架编译成 `JSON` 格式
 
-更多的例子请参考 [examples/bpftools](examples/bpftools) 文件夹.
+2. 在 `WASM` 模块中嵌入 `JSON` 数据，并为操作eBPF程序框架提供一些API
 
-### 用于生成预编译 eBPF 数据的编译工具链
+3. 从 `WASM` 模块加载 `JSON` 数据，并使用 `eunomia-bpf` 库运行eBPF程序框架
 
-有关详细信息，请参阅编译工具链 [eunomia-cc](https://github.com/eunomia-bpf/eunomia-cc)。
+在单个WASM模块中可以有多个epf程序。
 
-您也可以简单地使用 [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) repo 作为 github 中的模板开始编写代码，只需推送后，Github Actions 即可以帮助您编译 CO-RE ebpf 代码！
+您可以在[ewasm](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/ewasm)中看到更多细节
 
-### 一个可观测性工具
+### 一个帮助您生成预编译eBPF数据的编译工具链
+该工具链可以和docker一样使用，在一个命令中生成预编译的epf数据:
 
-An prometheus and OpenTelemetry exporter for custom eBPF metrics, written in async rust: [eunomia-exporter](eunomia-exporter)
+详细信息请参见[eunomia-cc](https://github.com/eunomia-bpf/eunomia-cc)。
 
-You can compile it or download from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)
+您也可以简单地使用[ebpm-template](https://github.com/eunomia-bpf/ebpm-template)作为一个模板，将修改推送到这里后使用github action可以帮助您编译CO-RE ebpf代码!
 
-#### example
 
-This is an adapted version of opensnoop from [bcc/libbpf-tools](https://github.com/iovisor/bcc/blob/master/libbpf-tools/opensnoop.bpf.c), you can check our source code here: [examples/bpftools/opensnoop](examples/bpftools/opensnoop)
+### 一个观测工具
+我们提供了一个 `prometheus` 和 `OpenTelemetry` 的输出工具用于定制epf指标，它用异步rust编写:[eunomia-exporter](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/eunomia-exporter)
 
-After compile the eBPF code, you can define a config file like this:
+您可以编译它或从[releas](https://github.com/eunomia-bpf/eunomia-bpf/releases/)版本下载它
 
-```yml
-programs:
-- name: opensnoop
-  metrics:
-    counters:
-    - name: eunomia_file_open_counter
-      description: test
-      labels:
-      - name: pid
-      - name: comm
-      - name: filename
-        from: fname
-  compiled_ebpf_filename: examples/bpftools/opensnoop/package.json
-```
+### 其他相关项目
+- LMP eBPF Hub: [github.com/linuxkerneltravel/lmp](github.com/linuxkerneltravel/lmp)
+- bolipi online compiler & runner: [https://bolipi.com/ebpf/home/online](https://bolipi.com/ebpf/home/online)
 
-然后，您可以在任何地方使用 `config.yaml` 和预编译的 eBPF 数据 `package.json` 启动 Prometheus 导出器，您可以看到如下指标：
+## 工程构建
 
-![opensnoop_prometheus](documents/images/opensnoop_prometheus.png)
-
-您可以在任何内核版本上部署导出器，而无需依赖 `LLVM/Clang`。 有关详细信息，请参阅 [eunomia-exporter](eunomia-exporter/README.md)。
+查看[build](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/documents/build.md)以获得更多细节
 
 ## 计划路线图
 
@@ -120,7 +81,7 @@ programs:
 - [ ] 添加对 `etcd` 的支持并增强服务器
 - [ ] 修复 ci 和 docs
 
-## License
+## 证书
 
 MIT LICENSE
 
