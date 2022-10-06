@@ -33,10 +33,12 @@ see [eunomia-bpf](eunomia-bpf) for details.
 A [simple cli interface](ecli) is provided for eunomia-bpf library, which you can use it to start any eBPF program from a url in a command. You can download it from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/) for example:
 
 ```bash
-$ sudo ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url
+# download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
+$ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
+$ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url
 ```
 
-### An library to load eBPF program from a WASM module
+### A library to load eBPF program from a WASM module
 
 Use the `eunomia-bpf` library to load `eBPF` program from a `WASM` module, you can write a WASM module to operate the eBPF program or process the data in user space `WASM` runtime. The idea is simple:
 
