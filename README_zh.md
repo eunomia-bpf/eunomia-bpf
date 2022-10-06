@@ -42,12 +42,12 @@ $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # sim
 
 3. 从 `WASM` 模块加载 `JSON` 数据，并使用 `eunomia-bpf` 库运行eBPF程序框架
 
-在单个WASM模块中可以有多个epf程序。
+在单个WASM模块中可以有多个eBPF程序。
 
 您可以在[ewasm](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/ewasm)中看到更多细节
 
 ### 一个帮助您生成预编译eBPF数据的编译工具链
-该工具链可以和docker一样使用，在一个命令中生成预编译的epf数据:
+该工具链可以和docker一样使用，在一个命令中生成预编译的eBPF数据:
 
 详细信息请参见[eunomia-cc](https://github.com/eunomia-bpf/eunomia-cc)。
 
@@ -55,7 +55,7 @@ $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # sim
 
 
 ### 一个观测工具
-我们提供了一个 `prometheus` 和 `OpenTelemetry` 的输出工具用于定制epf指标，它用异步rust编写:[eunomia-exporter](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/eunomia-exporter)
+我们提供了一个 `prometheus` 和 `OpenTelemetry` 的输出工具用于定制eBPF指标，它用异步rust编写:[eunomia-exporter](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/eunomia-exporter)
 
 您可以编译它或从[releas](https://github.com/eunomia-bpf/eunomia-bpf/releases/)版本下载它
 
