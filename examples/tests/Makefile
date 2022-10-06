@@ -22,7 +22,13 @@ test: $(TEST_CASES_DIRS)
 # build the test cases
 $(TEST_CASES_DIRS):
 	SOURCE_DIR=../$(TEST_EXAMPLE_DIR)$@/ make -C eunomia-cc build
+	ls $(TEST_EXAMPLE_DIR)$@/app.c || SOURCE_DIR=../../examples/bpftools/$@/ make -C ../../ewasm/scripts generate
+	SOURCE_DIR=../../examples/bpftools/$@/ make -C ../../ewasm/scripts build
 	sudo timeout --preserve-status -s 2 $(TEST_TIME) ./ecli run $(TEST_EXAMPLE_DIR)$@/package.json
+
+install-wasm-clang: ## install clang for wasm
+	wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-16/wasi-sdk-16.0-linux.tar.gz
+	tar -zxf wasi-sdk-16.0-linux.tar.gz && mkdir /opt/wasi-sdk/ && mv wasi-sdk-16.0/* /opt/wasi-sdk/
 
 clean:
 	@make -C client clean

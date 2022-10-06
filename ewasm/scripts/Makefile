@@ -55,5 +55,3 @@ generate:
 	@mkdir -p $(SOURCE_DIR)/eunomia-include
 	@cp -r ../include/wasm-app/* $(SOURCE_DIR)/eunomia-include
 	@cp template/* $(SOURCE_DIR) && chmod -R 777 $(SOURCE_DIR)
-
-	

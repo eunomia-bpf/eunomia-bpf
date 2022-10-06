@@ -56,7 +56,7 @@ int bpf_main(char *env_json, int str_len)
 	cJSON *pid = cJSON_GetObjectItem(env, "pid");
 	if (pid)
 	{
-		program = add_runtime_arg_to_bpf_program(program, "filtered_pid", pid);
+		program = set_bpf_program_global_var(program, "filtered_pid", pid);
 	}
 	return start_bpf_program(cJSON_PrintUnformatted(program));
 }

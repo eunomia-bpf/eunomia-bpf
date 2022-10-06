@@ -37,9 +37,12 @@ jobs:
         run: |
              sudo make -C ecli install-deps
 
-      - name: build compile set
+      - name: install test deps
         run:  |
               make -C examples/tests clone_and_install_deps
+              make -C examples/tests install-wasm-clang
+      - name: test examples
+        run:  |
               make -C examples/tests test
 
       - name: Setup Pages

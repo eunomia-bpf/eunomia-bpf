@@ -32,9 +32,13 @@ start_bpf_program(char *program_data)
     return 0;
 }
 
-
+/// @brief set the global variable of bpf program to the value
+/// @param program the json program data
+/// @param key global
+/// @param value arg value
+/// @return new eBPF program
 cJSON *
-add_runtime_arg_to_bpf_program(cJSON *program, char *key, cJSON *value)
+set_bpf_program_global_var(cJSON *program, char *key, cJSON *value)
 {
 
     cJSON *args = cJSON_GetObjectItem(program, "runtime_args");
