@@ -1,4 +1,4 @@
-# eunomia-bpf: 一个基于WASM的CO-RE epf程序动态加载框架
+# eunomia-bpf: 一个基于WASM的CO-RE eBPF程序动态加载框架
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
@@ -14,9 +14,9 @@
 - 拥有非常小和简单的可执行程序, 库本身小于 `1MB` 且不依赖 `LLVM/Clang`，可以轻松嵌入到您的项目中
 - 以小于 `100ms` 的时间动态加载和运行任何eBPF程序，比 `bcc` 更迅速
 
-为了更普遍地应用，我们开发了一种编译、传输和运行大多数libbpf CO-RE对象的方法，其中包含一些用户空间配置元数据，以帮助您加载和操作eBPF字节代码。eBPF的编译和运行阶段是完全分离的，因此，在加载epf程序时，只需要eBPF字节码和数 `kB` 元数据。
+为了更普遍地应用，我们开发了一种编译、传输和运行大多数libbpf CO-RE对象的方法，其中包含一些用户空间配置元数据，以帮助您加载和操作eBPF字节代码。eBPF的编译和运行阶段是完全分离的，因此，在加载eBPF程序时，只需要eBPF字节码和数 `kB` 元数据。
 
-大多数时候，您需要做的唯一一件事就是专注于在内核中编写单个epf程序。如果您希望有一个用户空间程序来操作eBPF程序，那么您可以编写一个`WASM`模块来完成它。
+大多数时候，您需要做的唯一一件事就是专注于在内核中编写单个eBPF程序。如果您希望有一个用户空间程序来操作eBPF程序，那么您可以编写一个`WASM`模块来完成它。
 
 ## 项目架构
 我们有一个加载器库，一个编译工具链，以及一些额外的工具，如cli和一个自定义指标导出器。
