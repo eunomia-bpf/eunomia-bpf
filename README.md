@@ -8,11 +8,10 @@
 
 With eunomia-bpf, you can:
 
-- Run `CO-RE` eBPF code without provisioning or managing infrastructure
 - Write eBPF kernel code only and compile it to a `JSON`, you can dynamically load it on another machine without recompile
 - Compile eBPF program to a `WASM` module, and you can operate the eBPF program or process the data in user space `WASM` runtime
 - very small and simple! The library itself `<1MB` and no `LLVM/Clang` dependence, can be embedded easily in you project
-- as fast as `<100ms` to dynamically load and run any eBPF program, much more faster than `bcc`
+- as fast as `<100ms` to dynamically load and run any eBPF program
 
 In general, we develop an approach to compile, transmit, and run most libbpf CO-RE objects with some user space config meta data to help you load and operator the eBPF byte code. The compilation and runtime phases of eBPF is separated completely, so, when loading the eBPF program, only the eBPF byte code and a few kB of meta data is needed.
 
@@ -35,8 +34,16 @@ A [simple cli interface](ecli) is provided for eunomia-bpf library, which you ca
 ```bash
 # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
 $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
-$ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url
+$ sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json # simply run a pre-compiled ebpf code from a url
 ```
+
+Or you can write eBPF kernel code only and compile it to a `JSON`:
+
+```bash
+docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+```
+
+see [examples](examples) for more examples.
 
 ### A library to load eBPF program from a WASM module
 
@@ -48,7 +55,20 @@ Use the `eunomia-bpf` library to load `eBPF` program from a `WASM` module, you c
 
 You can have multiple `eBPF` program in a single `WASM` module.
 
-see [ewasm](ewasm) for details.
+See [ewasm](ewasm) for details. For example, you can run an eBPF program with a WASM module for an URL:
+
+```bash
+$ sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/app.wasm
+```
+
+You can also generate a WASM program template for eBPF or build WASM module with `eunomia-cc` container:
+
+```shell
+docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest gen-wasm-skel # generate WASM app template for eBPF
+docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest build-wasm    # Build WASM module
+```
+
+see [sigsnoop example](examples/bpftools/sigsnoop) for more detail.
 
 ### A compile toolchain to help you generate pre compiled eBPF data
 

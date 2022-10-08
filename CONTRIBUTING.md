@@ -1,7 +1,7 @@
-# Contributing to [INSERT PROJECT NAME]
+# Contributing to eunomia-bpd
 
-The [INSERT PROJECT NAME] team encourages community feedback and contributions.
-Thank you for your interest in making [INSERT PROJECT NAME] better! There are several
+The eunomia-bpd team encourages community feedback and contributions.
+Thank you for your interest in making eunomia-bpd better! There are several
 ways you can get involved.
 
 If you are looking for a good way to contribute to the project, please:
@@ -23,7 +23,7 @@ Should the template provided not suit your needs, feel free to make a
 [custom Bug Report](https://github.com/filipdutescu/modern-cpp-template/issues/new/choose),
 but please label it accordingly.
 
-We are happy to hear your ideas for how to further improve [INSERT PROJECT NAME],
+We are happy to hear your ideas for how to further improve eunomia-bpd,
 ensuring it suits your needs. Check the [Issues](https://github.com/filipdutescu/modern-cpp-template/issues)
 and see if others have submitted similar feedback. You can upvote existing feedback
 (using the thumbs up reaction/by commenting) or [submit a new suggestion](https://github.com/filipdutescu/modern-cpp-template/labels/feature).
