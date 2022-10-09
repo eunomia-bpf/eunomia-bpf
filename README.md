@@ -6,16 +6,14 @@
 
 ## Our target 
 
-With eunomia-bpf, you can:
+`eunomia-bpf` is a dynamic loading library base on `libbpf`, and a compile toolchain. With eunomia-bpf, you can:
 
-- Write eBPF kernel code only and compile it to a `JSON`, you can dynamically load it on another machine without recompile
+- Write eBPF kernel code only and automatically exposing your data from kernel
+- Compile eBPF kernel code to a `JSON`, you can dynamically load it on another machine without recompile
 - Compile eBPF program to a `WASM` module, and you can operate the eBPF program or process the data in user space `WASM` runtime
+- Package, distribute, and run user-space and kernel-space eBPF programs together in `WASM` module
 - very small and simple! The library itself `<1MB` and no `LLVM/Clang` dependence, can be embedded easily in you project
-- as fast as `<100ms` to dynamically load and run any eBPF program
-
-In general, we develop an approach to compile, transmit, and run most libbpf CO-RE objects with some user space config meta data to help you load and operator the eBPF byte code. The compilation and runtime phases of eBPF is separated completely, so, when loading the eBPF program, only the eBPF byte code and a few kB of meta data is needed.
-
-Most of the time, the only thing you need to do is focus on writing a single eBPF program in the kernel. If you want to have a user space program to operate the eBPF program, you can write a `WASM` module to do it.
+- as fast as `<100ms` and little resource need to dynamically load and run any eBPF program on another kernel version
 
 ## Project Arch
 
@@ -92,6 +90,14 @@ You can compile it or download from [release](https://github.com/eunomia-bpf/eun
 ## build the project
 
 see [build](documents/build.md) for details.
+
+## examples
+
+see [examples](examples) for details.
+
+## benchmark
+
+see [benchmark](documents/benchmark.md) for details.
 
 ## Road-map
 

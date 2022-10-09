@@ -93,3 +93,5 @@ if(${PROJECT_NAME}_ENABLE_ASAN)
     add_compile_options(-fsanitize=address)
     add_link_options(-fsanitize=address)
 endif()
+
+add_compile_options(-fPIE)
