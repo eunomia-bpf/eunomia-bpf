@@ -4,7 +4,7 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
 <!-- [![codecov](https://codecov.io/gh/eunomia-bpf/eunomia-bpf/branch/master/graph/badge.svg)](https://codecov.io/gh/filipdutescu/modern-cpp-template) -->
 
-## Our target 
+## Overview
 
 `eunomia-bpf` is a dynamic loading library base on `libbpf`, and a compile toolchain. With eunomia-bpf, you can:
 
@@ -84,8 +84,13 @@ You can compile it or download from [release](https://github.com/eunomia-bpf/eun
 
 ### other related projects
 
-- LMP eBPF Hub: [github.com/linuxkerneltravel/lmp](https://github.com/linuxkerneltravel/lmp)
+- LMP eBPF Hub: [github.com/linuxkerneltravel/lmp](https://github.com/linuxkerneltravel/lmp) 
+
+> a package manager for eBPF base on wasm modules
+
 - bolipi online compiler & runner: [https://bolipi.com/ebpf/home/online](https://bolipi.com/ebpf/home/online)
+
+> an online compiler and runner for eBPF program newbies
 
 ## build the project
 

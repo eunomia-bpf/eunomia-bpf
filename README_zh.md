@@ -1,10 +1,10 @@
-# eunomia-bpf: 一个基于WASM的CO-RE eBPF程序动态加载框架
+# eunomia-bpf: 一个基于 WASM 的 CO-RE eBPF 程序动态加载框架
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
 <!-- [![codecov](https://codecov.io/gh/eunomia-bpf/eunomia-bpf/branch/master/graph/badge.svg)](https://codecov.io/gh/filipdutescu/modern-cpp-template) -->
 
-## 我们的目标
+## 概况
 
 在 `eunomia-bpf` 中，您可以:
 
@@ -13,10 +13,6 @@
 - 将eBPF程序编译为 `WASM` 模块，就可以在用户空间 `WASM` 运行时时控制eBPF程序或处理数据
 - 拥有非常小和简单的可执行程序, 库本身小于 `1MB` 且不依赖 `LLVM/Clang`，可以轻松嵌入到您的项目中
 - 以小于 `100ms` 的时间动态加载和运行任何eBPF程序，比 `bcc` 更迅速
-
-为了更普遍地应用，我们开发了一种编译、传输和运行大多数libbpf CO-RE对象的方法，其中包含一些用户空间配置元数据，以帮助您加载和操作eBPF字节代码。eBPF的编译和运行阶段是完全分离的，因此，在加载eBPF程序时，只需要eBPF字节码和数 `kB` 元数据。
-
-大多数时候，您需要做的唯一一件事就是专注于在内核中编写单个eBPF程序。如果您希望有一个用户空间程序来操作eBPF程序，那么您可以编写一个`WASM`模块来完成它。
 
 ## 项目架构
 我们有一个加载器库，一个编译工具链，以及一些额外的工具，如cli和一个自定义指标导出器。
@@ -34,12 +30,11 @@ $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # sim
 ```
 
 ### 一个从WASM模块加载eBPF程序的库
+
 使用 `eunomia-bpf` 库从`WASM`模块加载eBPF程序，您可以编写`WASM`模块来操作eBPF程序或在用户空间`WASM`运行时处理数据。这个想法很简单:
 
 1. 使用 `eunomia-cc` 工具链将 `eBPF` 代码骨架编译成 `JSON` 格式
-
 2. 在 `WASM` 模块中嵌入 `JSON` 数据，并为操作eBPF程序框架提供一些API
-
 3. 从 `WASM` 模块加载 `JSON` 数据，并使用 `eunomia-bpf` 库运行eBPF程序框架
 
 在单个WASM模块中可以有多个eBPF程序。
@@ -47,19 +42,20 @@ $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # sim
 您可以在[ewasm](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/ewasm)中看到更多细节
 
 ### 一个帮助您生成预编译eBPF数据的编译工具链
+
 该工具链可以和docker一样使用，在一个命令中生成预编译的eBPF数据:
-
 详细信息请参见[eunomia-cc](https://github.com/eunomia-bpf/eunomia-cc)。
-
 您也可以简单地使用[ebpm-template](https://github.com/eunomia-bpf/ebpm-template)作为一个模板，将修改推送到这里后使用github action可以帮助您编译CO-RE ebpf代码!
 
 
-### 一个观测工具
+### 一个可观测性工具
+
 我们提供了一个 `prometheus` 和 `OpenTelemetry` 的输出工具用于定制eBPF指标，它用异步rust编写:[eunomia-exporter](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/eunomia-exporter)
 
 您可以编译它或从[releas](https://github.com/eunomia-bpf/eunomia-bpf/releases/)版本下载它
 
 ### 其他相关项目
+
 - LMP eBPF Hub: [github.com/linuxkerneltravel/lmp](github.com/linuxkerneltravel/lmp)
 - bolipi online compiler & runner: [https://bolipi.com/ebpf/home/online](https://bolipi.com/ebpf/home/online)
 
