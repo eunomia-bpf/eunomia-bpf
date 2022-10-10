@@ -35,13 +35,16 @@ run_mode_operation(const std::string &path,
     eunomia_runner r(base);
     r.thread = std::thread(&eunomia_runner::start_tracker, &r);
     spdlog::info("press 'Ctrl C' key to exit...");
-    static bool is_exiting = false;
+    static volatile bool is_exiting = false;
     signal(SIGINT, [](int x) {
         spdlog::info("Ctrl C exit...");
         is_exiting = true;
         signal(SIGINT, SIG_DFL);
     });
-    while (!is_exiting && r.is_running()) {
+    while (!is_exiting) {
+        if (!r.is_running()) {
+            is_exiting = true;
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }

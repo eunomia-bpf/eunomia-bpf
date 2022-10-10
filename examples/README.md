@@ -76,10 +76,25 @@ docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest build-wasm
 Run:
 
 ```console
+$ sudo ./ecli run app.wasm -h
+Usage: sigsnoop [-h] [-x] [-k] [-n] [-p PID] [-s SIGNAL]
+Trace standard and real-time signals.
+
+
+    -h, --help  show this help message and exit
+    -x, --failed  failed signals only
+    -k, --killed  kill only
+    -p, --pid=<int>  target pid
+    -s, --signal=<int>  target signal
+
 $ sudo ./ecli run app.wasm                                                                       
 running and waiting for the ebpf events from perf event...
-
 {"pid":185539,"tpid":185538,"sig":17,"ret":0,"comm":"cat","sig_name":"SIGCHLD"}
 {"pid":185540,"tpid":185538,"sig":17,"ret":0,"comm":"grep","sig_name":"SIGCHLD"}
+
+$ sudo ./ecli run app.wasm -p 1641
+running and waiting for the ebpf events from perf event...
+{"pid":1641,"tpid":2368,"sig":23,"ret":0,"comm":"YDLive","sig_name":"SIGURG"}
+{"pid":1641,"tpid":2368,"sig":23,"ret":0,"comm":"YDLive","sig_name":"SIGURG"}
 ```
 

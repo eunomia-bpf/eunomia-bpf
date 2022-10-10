@@ -86,11 +86,11 @@ You can compile it or download from [release](https://github.com/eunomia-bpf/eun
 
 - LMP eBPF Hub: [github.com/linuxkerneltravel/lmp](https://github.com/linuxkerneltravel/lmp) 
 
-> a package manager for eBPF base on wasm modules
+    > a package manager for eBPF based on wasm modules
 
 - bolipi online compiler & runner: [https://bolipi.com/ebpf/home/online](https://bolipi.com/ebpf/home/online)
 
-> an online compiler and runner for eBPF program newbies
+    > an online compiler and runner for eBPF program newbies
 
 ## build the project
 
@@ -98,7 +98,9 @@ see [build](documents/build.md) for details.
 
 ## examples
 
-see [examples](examples) for details.
+see [examples](examples) for details about eBPF tools and library usage.
+
+We also have a prove of concept video: [Writing eBPF programs in WASM](https://www.bilibili.com/video/BV1JN4y1A76k/).
 
 ## benchmark
 
