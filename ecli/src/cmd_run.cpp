@@ -23,9 +23,11 @@ run_mode_operation(const std::string &path,
         type = export_format_type::EXPORT_PLANT_TEXT;
     }
     auto base =
-        program_config_data{ path, {},
+        program_config_data{ path,
+                             {},
                              program_config_data::program_type::UNDEFINE,
-                             run_with_extra_args, type };
+                             run_with_extra_args,
+                             type };
     if (!resolve_url_path(base)) {
         std::cerr << "cannot resolve url data" << std::endl;
         return;
@@ -39,7 +41,7 @@ run_mode_operation(const std::string &path,
         is_exiting = true;
         signal(SIGINT, SIG_DFL);
     });
-    while (!is_exiting) {
+    while (!is_exiting && r.is_running()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }

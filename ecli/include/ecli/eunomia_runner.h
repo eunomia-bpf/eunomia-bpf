@@ -24,7 +24,7 @@ class program_runner_base
     {
     }
     virtual ~program_runner_base() = default;
-    virtual void run_ebpf_program() = 0;
+    virtual int run_ebpf_program() = 0;
     virtual std::string get_name() = 0;
     virtual void stop() = 0;
 };
@@ -38,7 +38,7 @@ class eunomia_program_runner : public program_runner_base
   public:
     eunomia_program_runner(const program_config_data &config)
       : program_runner_base(config){};
-    void run_ebpf_program();
+    int run_ebpf_program();
     std::string get_name() { return program.get_program_name(); }
     void stop() { program.stop_and_clean(); }
     virtual ~eunomia_program_runner() = default;
@@ -53,7 +53,7 @@ class ewasm_program_runner : public program_runner_base
   public:
     ewasm_program_runner(const program_config_data &config)
       : program_runner_base(config){};
-    void run_ebpf_program();
+    int run_ebpf_program();
     std::string get_name()
     { // FIXME: get program name from wasm file
         return "ewasm module";
@@ -70,6 +70,7 @@ class eunomia_runner
   private:
     friend class tracker_manager;
     std::unique_ptr<program_runner_base> program_runner;
+    bool _is_running = false;
 
   public:
     std::thread thread;
@@ -79,7 +80,7 @@ class eunomia_runner
     {
         return std::make_unique<eunomia_runner>(config);
     }
-
+    bool is_running() { return _is_running; }
     eunomia_runner(const program_config_data &config)
     {
         if (config.prog_type
@@ -94,7 +95,12 @@ class eunomia_runner
     ~eunomia_runner() { stop_tracker(); }
 
     /// start process tracker
-    void start_tracker() { program_runner->run_ebpf_program(); }
+    int start_tracker()
+    {
+        _is_running = true;
+        return program_runner->run_ebpf_program();
+        _is_running = false;
+    }
     const std::string get_name(void) const
     {
         return program_runner->get_name();

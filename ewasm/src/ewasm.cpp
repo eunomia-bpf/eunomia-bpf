@@ -115,6 +115,10 @@ ewasm_program::call_wasm_init(std::string &json_env)
 
     if (!wasm_runtime_call_wasm_a(exec_env, wasm_init_func, 1, results, 2,
                                   arguments)) {
+        if (strcmp(wasm_runtime_get_exception(module_inst), "Exception: env.exit(0)") ==
+            0) {
+            return 0;
+        }
         printf("call wasm function init failed. error: %s\n",
                wasm_runtime_get_exception(module_inst));
         return -1;
