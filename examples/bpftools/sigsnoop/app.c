@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "eunomia-include/wasm-app.h"
+#include "eunomia-include/entry.h"
 #include "ewasm-skel.h"
 
 static const char *sig_name[] = {
@@ -40,34 +42,40 @@ static const char *sig_name[] = {
 	[31] = "SIGSYS",
 };
 
-/// @brief init the eBPF program
-/// @param env_json the env config from input
-/// @return 0 on success, -1 on failure, the eBPF program will be terminated in
-/// failure case
-int bpf_main(char *env_json, int str_len)
+static const char *const usages[] = {
+    "sigsnoop [-h] [-x] [-k] [-n] [-p PID] [-s SIGNAL]",
+    NULL,
+};
+
+static int target_pid = 0;
+static int target_signal = 0;
+static bool failed_only = false;
+static bool kill_only = false;
+static bool signal_name = false;
+
+int main(int argc, const char** argv)
 {
-	cJSON *env = cJSON_Parse(env_json);
-	if (!env)
-	{
-		printf("cJSON_Parse failed for env_json.");
-	}
+	struct argparse_option options[] = {
+        OPT_HELP(),
+        OPT_BOOLEAN('x', "failed", &failed_only, "failed signals only", NULL, 0, 0),
+        OPT_BOOLEAN('k', "killed", &kill_only, "kill only", NULL, 0, 0),
+        OPT_INTEGER('p', "pid", &target_pid, "target pid", NULL, 0, 0),
+		OPT_INTEGER('s', "signal", &target_signal, "target signal", NULL, 0, 0),
+        OPT_END(),
+    };
+
+    struct argparse argparse;
+    argparse_init(&argparse, options, usages, 0);
+    argparse_describe(&argparse, "Trace standard and real-time signals.\n", "");
+    argc = argparse_parse(&argparse, argc, argv);
+    
 	cJSON *program = cJSON_Parse(program_data);
-	// get pid config from env
-	cJSON *pid = cJSON_GetObjectItem(env, "pid");
-	if (pid)
-	{
-		program = set_bpf_program_global_var(program, "filtered_pid", pid);
-	}
+	program = set_bpf_program_global_var(program, "filtered_pid", cJSON_CreateNumber(target_pid));
+	program = set_bpf_program_global_var(program, "target_signal", cJSON_CreateNumber(target_signal));
+	program = set_bpf_program_global_var(program, "failed_only", cJSON_CreateBool(failed_only));
 	return start_bpf_program(cJSON_PrintUnformatted(program));
 }
 
-/// @brief handle the event output from the eBPF program, valid only when
-/// wait_and_poll_ebpf_program is called
-/// @param ctx user defined context
-/// @param e json event message
-/// @return 0 on pass, -1 on block,
-/// the event will be send to next handler in chain on success, or dropped in
-/// block.
 int process_event(int ctx, char *e, int str_len)
 {
 	cJSON *json = cJSON_Parse(e);
