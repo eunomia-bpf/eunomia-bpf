@@ -1,4 +1,4 @@
-# eunomia-bpf: A Dynamic Loading Framework for CO-RE eBPF program with WASM
+# eunomia-bpf: An eBPF program Dynamic Loading Framework
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)

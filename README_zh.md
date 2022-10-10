@@ -15,15 +15,18 @@
 - 以小于 `100ms` 的时间动态加载和运行任何eBPF程序，比 `bcc` 更迅速
 
 ## 项目架构
+
 我们有一个加载器库，一个编译工具链，以及一些额外的工具，如cli和一个自定义指标导出器。
 
 ### 一个eunomia-bpf库
-这个库包含了libbpf地主要函数，提供了将eBPF代码动态加载到内核的能力，并使用简单的JSON和API运行它。
+
+这个库包含了 `libbpf` 的主要函数，提供了将 `eBPF` 代码动态加载到内核的能力，并使用 `JSON` 和简单的 `API` 运行它。
 
 查看 [eunomia-bpf](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/ecli) 以获得更多细节信息
 
-我们提供了[一个简单的cli接口](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/ecli)使得您可以通过在命令行输入URL的方式启动任何eBPF程序。您可以从[release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)版本中下载样例:
-```
+我们提供了[一个简单的cli接口](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/ecli), 使得您可以通过在命令行输入URL的方式启动任何eBPF程序。您可以从[release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)版本中下载样例:
+
+```bash
 # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
 $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
 $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url
@@ -37,22 +40,21 @@ $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # sim
 2. 在 `WASM` 模块中嵌入 `JSON` 数据，并为操作eBPF程序框架提供一些API
 3. 从 `WASM` 模块加载 `JSON` 数据，并使用 `eunomia-bpf` 库运行eBPF程序框架
 
-在单个WASM模块中可以有多个eBPF程序。
+在单个 `WASM` 模块中可以有多个 `eBPF` 程序。
 
-您可以在[ewasm](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/ewasm)中看到更多细节
+您可以在 [ewasm](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/ewasm) 中看到更多细节
 
 ### 一个帮助您生成预编译eBPF数据的编译工具链
 
 该工具链可以和docker一样使用，在一个命令中生成预编译的eBPF数据:
-详细信息请参见[eunomia-cc](https://github.com/eunomia-bpf/eunomia-cc)。
-您也可以简单地使用[ebpm-template](https://github.com/eunomia-bpf/ebpm-template)作为一个模板，将修改推送到这里后使用github action可以帮助您编译CO-RE ebpf代码!
-
+详细信息请参见 [eunomia-cc](https://github.com/eunomia-bpf/eunomia-cc)。
+您也可以简单地使用 [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) 作为一个模板，将修改推送到这里后使用github action可以帮助您编译CO-RE ebpf代码!
 
 ### 一个可观测性工具
 
 我们提供了一个 `prometheus` 和 `OpenTelemetry` 的输出工具用于定制eBPF指标，它用异步rust编写:[eunomia-exporter](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/eunomia-exporter)
 
-您可以编译它或从[releas](https://github.com/eunomia-bpf/eunomia-bpf/releases/)版本下载它
+您可以编译它或从[release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)版本下载它
 
 ### 其他相关项目
 
@@ -69,9 +71,9 @@ $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # sim
 - [X] 支持用户空间中的`tracepoints`、`fentry`、`kprobe`、`lsm`和`ring buffer`/`perf event`输出。
 - [X] 使编译更容易使用，更灵活，完全兼容其他 libbpf 程序；
 - [X] 添加可配置的可观测性导出器
-- [ ] 使用 lua 进行 ebpf 包加载配置，并添加更多 ebpf 程序类型支持
+- [X] 使用 WASM 进行 ebpf 包加载配置，并添加更多 ebpf 程序类型支持
 - [ ] 支持更多的 ebpf 程序类型：
-- [ ] 为 eunomia-bpf 添加简单的包管理器
+- [X] 为 eunomia-bpf 添加简单的包管理器: LMP
 - [ ] 从 `libbpf` 添加更多可能性
 - [ ] 提供 python、go 等 sdk
 - [ ] 添加对 `etcd` 的支持并增强服务器
