@@ -2,45 +2,42 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "eunomia-include/wasm-app.h"
+#include "eunomia-include/entry.h"
 #include "ewasm-skel.h"
 
-/// @brief init the eBPF program
-/// @param env_json the env config from input
-/// @return 0 on success, -1 on failure, the eBPF program will be terminated in
-/// failure case
+static const char *const usages[] = {
+    "app [-p PID]",
+    NULL,
+};
+
+static int target_pid = 0;
+
 int
-bpf_main(char *env_json, int str_len)
+main(int argc, const char **argv)
 {
-    int res = create_bpf(program_data, strlen(program_data));
-    if (res < 0) {
-        printf("create_bpf failed %d", res);
-        return -1;
-    }
-    res = run_bpf(res);
-    if (res < 0) {
-        printf("run_bpf failed %d\n", res);
-        return -1;
-    }
-    res = wait_and_poll_bpf(res);
-    if (res < 0) {
-        printf("wait_and_poll_bpf failed %d\n", res);
-        return -1;
-    }
-    return 0;
+    struct argparse_option options[] = {
+        OPT_HELP(),
+        OPT_INTEGER('p', "pid", &target_pid, "target pid", NULL, 0, 0),
+        OPT_END(),
+    };
+
+    struct argparse argparse;
+    argparse_init(&argparse, options, usages, 0);
+    argparse_describe(&argparse, "Template ebpf app.\n", "");
+    argc = argparse_parse(&argparse, argc, argv);
+
+    cJSON *program = cJSON_Parse(program_data);
+    // add your own arg processing here
+    return start_bpf_program(cJSON_PrintUnformatted(program));
 }
 
-/// @brief handle the event output from the eBPF program, valid only when
-/// wait_and_poll_ebpf_program is called
-/// @param ctx user defined context
-/// @param e json event message
-/// @return 0 on pass, -1 on block,
-/// the event will be send to next handler in chain on success, or dropped in
-/// block.
 int
 process_event(int ctx, char *e, int str_len)
 {
     cJSON *json = cJSON_Parse(e);
+    // add your own event processing here
     printf("%s\n", e);
     return -1;
 }
