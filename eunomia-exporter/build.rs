@@ -15,10 +15,10 @@ fn main() {
     println!("cargo:rustc-link-lib=dylib=stdc++");
 
     // Tell cargo to tell rustc to link
+    println!("cargo:rustc-link-lib=static=eunomia");
     println!("cargo:rustc-link-lib=static=bpf");
     println!("cargo:rustc-link-lib=static=elf");
     println!("cargo:rustc-link-lib=static=z");
-    println!("cargo:rustc-link-lib=static=eunomia");
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=wrapper.h");
