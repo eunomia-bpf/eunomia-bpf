@@ -19,13 +19,12 @@ get_file_contents(const std::string &path)
 }
 
 static bool
-try_download_with_wget(const std::string &url, program_config_data &config_data)
+try_download_with_curl(const std::string &url, program_config_data &config_data)
 {
     std::string resource_name = url.substr(url.find_last_of("/") + 1);
     auto path = default_download_path + resource_name;
     auto cmd =
-        std::string(
-            "mkdir -p /tmp/ebpm/ && wget --no-verbose --output-document=")
+        std::string("mkdir -p /tmp/ebpm/ && curl --no-progress-meter -o ")
         + path + " " + url;
     spdlog::info("{}", cmd);
     int res = std::system(cmd.c_str());
@@ -33,41 +32,43 @@ try_download_with_wget(const std::string &url, program_config_data &config_data)
         config_data.program_data_buffer = get_file_contents(path);
         return true;
     }
-    spdlog::error("failed to wget {}", url);
+    spdlog::warn("failed to curl {}", url);
     return false;
+}
+
+static bool
+resolve_package_type(program_config_data &config_data)
+{
+    if (str_ends_with(config_data.url, ".json")) {
+        config_data.prog_type = program_config_data::program_type::JSON_EUNOMIA;
+    }
+    else if (str_ends_with(config_data.url, ".wasm")) {
+        config_data.prog_type = program_config_data::program_type::WASM_MODULE;
+    }
+    else {
+        spdlog::error("unknown file type: {}", config_data.url);
+        return false;
+    }
+    return true;
 }
 
 bool
 resolve_url_path(program_config_data &config_data)
 {
-    bool res;
-    if (config_data.url == "") {
-        spdlog::debug("url is empty, use json_data directly");
-        res = false;
-    }
+    bool res = false;
+    // regular file
     if (fs::is_regular_file(config_data.url)) {
         spdlog::debug("data path is a file: {}", config_data.url);
         config_data.program_data_buffer = get_file_contents(config_data.url);
         res = true;
     }
+    // http links
     if (config_data.url.length() > 4
         && std::strncmp(config_data.url.c_str(), "http", 4) == 0) {
-        res = try_download_with_wget(config_data.url, config_data);
+        res = try_download_with_curl(config_data.url, config_data);
     }
     if (res) {
-        if (str_ends_with(config_data.url, ".json")) {
-            config_data.prog_type =
-                program_config_data::program_type::JSON_EUNOMIA;
-        }
-        else if (str_ends_with(config_data.url, ".wasm")) {
-            config_data.prog_type =
-                program_config_data::program_type::WASM_MODULE;
-        }
-        else {
-            spdlog::error("unknown file type: {}", config_data.url);
-            res = false;
-        }
-        return res;
+        return resolve_package_type(config_data);
     }
     spdlog::error("data path not exits: {}", config_data.url);
     return false;
