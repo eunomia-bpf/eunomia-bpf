@@ -12,9 +12,6 @@
 
 using namespace nlohmann;
 
-constexpr auto default_json_data_file_name = "package.json";
-constexpr auto default_endpoint = "localhost:8527";
-
 enum class eunomia_client_mode {
     list,
     start,

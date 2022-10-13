@@ -50,4 +50,10 @@ struct ecli_config_data {
     std::string server_host = "localhost";
 };
 
+constexpr auto default_endpoint = "localhost:8527";
+constexpr auto default_json_data_file_name = "package.json";
+constexpr auto default_repo_base_url =
+    "https://eunomia-bpf.github.io/eunomia-bpf/";
+constexpr auto repo_base_env_var_name = "EUNOMIA_REPOSITORY";
+
 #endif
