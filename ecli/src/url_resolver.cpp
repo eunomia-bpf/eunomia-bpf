@@ -37,7 +37,8 @@ get_local_home_path_from_env(void)
 }
 
 static fs::path
-get_url_local_path(const std::string &url) {
+get_url_local_path(const std::string &url)
+{
     // url: https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json
     std::size_t last_split = url.find_last_of("/");
     std::size_t last_next_split = url.find_last_of("/", last_split - 1);
@@ -58,22 +59,22 @@ get_url_local_path(const std::string &url) {
 }
 
 static bool
-try_download_with_curl(const std::string &url, program_config_data &config_data,
-                       bool use_cache)
+try_download_with_curl(const std::string &url, program_config_data &config_data)
 {
     auto path = get_url_local_path(url);
     // use cache instead
-    if (use_cache && fs::exists(path)) {
+    if (config_data.use_cache && fs::exists(path)) {
         std::cout << "use cache: " << path << std::endl;
         config_data.program_data_buffer = get_file_contents(path);
         return true;
     }
     // save the data to local repository
     auto cmd = std::string("mkdir -p ") + path.parent_path().string()
-               + " && curl --no-progress-meter -o " + path.string() + " " + url;
+               + " && curl --fail --no-progress-meter -o " + path.string() + " "
+               + url;
     std::cout << "download with curl: " << url << std::endl;
     int res = std::system(cmd.c_str());
-    if (res >= 0 && fs::exists(path)) {
+    if (res == 0 && fs::exists(path)) {
         config_data.program_data_buffer = get_file_contents(path);
         return true;
     }
@@ -101,7 +102,7 @@ resolve_package_type(program_config_data &config_data)
 // https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/app.wasm
 // ./sigsnoop/package.json
 static bool
-resolve_regular_url_path(program_config_data &config_data, bool use_cache = true)
+resolve_regular_url_path(program_config_data &config_data)
 {
     // regular file
     if (fs::is_regular_file(config_data.url)) {
@@ -112,7 +113,7 @@ resolve_regular_url_path(program_config_data &config_data, bool use_cache = true
     // http links
     if (config_data.url.length() > 4
         && std::strncmp(config_data.url.c_str(), "http", 4) == 0) {
-        if (try_download_with_curl(config_data.url, config_data, use_cache)) {
+        if (try_download_with_curl(config_data.url, config_data)) {
             return resolve_package_type(config_data);
         }
     }
@@ -121,11 +122,11 @@ resolve_regular_url_path(program_config_data &config_data, bool use_cache = true
 
 static bool
 get_content_in_new_config(program_config_data &config_data,
-                          const std::string &url, bool use_cache)
+                          const std::string &url)
 {
     program_config_data new_config_data = config_data;
     new_config_data.url = url;
-    int res = resolve_regular_url_path(new_config_data, use_cache);
+    int res = resolve_regular_url_path(new_config_data);
     if (res) {
         config_data = new_config_data;
         return true;
@@ -146,18 +147,17 @@ try_get_content_from_name(const std::string &name,
     auto program_name = match[1].str();
     // TODO: support tag
     auto tag = match[2].str();
-    bool use_cache = true;
     if (tag == "latest") {
-        use_cache = false;
+        config_data.use_cache = false;
     }
     // try get wasm module
     auto url = get_remote_repo_base_url_from_env() + name + "/app.wasm";
-    if (get_content_in_new_config(config_data, url, use_cache)) {
+    if (get_content_in_new_config(config_data, url)) {
         return true;
     }
     // try get json file
     url = get_remote_repo_base_url_from_env() + name + "/package.json";
-    if (get_content_in_new_config(config_data, url, use_cache)) {
+    if (get_content_in_new_config(config_data, url)) {
         return true;
     }
     return false;

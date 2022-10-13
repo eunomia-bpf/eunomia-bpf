@@ -11,7 +11,7 @@
 static void
 run_mode_operation(const std::string &path,
                    const std::vector<std::string> &run_with_extra_args,
-                   bool export_to_json)
+                   bool export_to_json, bool no_cache)
 {
     export_format_type type;
     if (export_to_json) {
@@ -22,6 +22,7 @@ run_mode_operation(const std::string &path,
     }
     auto base =
         program_config_data{ path,
+                             !no_cache,
                              {},
                              program_config_data::program_type::UNDEFINE,
                              run_with_extra_args,
@@ -52,7 +53,7 @@ cmd_run_main(int argc, char *argv[])
 {
     std::string ebpf_program_name = default_json_data_file_name;
     std::vector<std::string> run_with_extra_args;
-    bool export_as_json;
+    bool export_as_json = false, no_cache = false;
 
     auto run_url_value =
         clipp::value("url", ebpf_program_name)
@@ -62,13 +63,18 @@ cmd_run_main(int argc, char *argv[])
     auto export_json_opt = clipp::option("-j", "--json")
                                .set(export_as_json)
                                .doc("export the result as json");
+    auto no_cache_opt = clipp::option("-n", "--no-cache")
+                            .set(no_cache)
+                            .doc("export the result as json");
 
-    auto run_cmd = (export_json_opt, run_url_value, run_opt_cmd_args)
-                   % "run a ebpf program";
+    auto run_cmd =
+        (no_cache_opt, export_json_opt, run_url_value, run_opt_cmd_args)
+        % "run a ebpf program";
     if (!clipp::parse(argc, argv, run_cmd)) {
         std::cout << clipp::make_man_page(run_cmd, argv[0]);
         return 1;
     }
-    run_mode_operation(ebpf_program_name, run_with_extra_args, export_as_json);
+    run_mode_operation(ebpf_program_name, run_with_extra_args, export_as_json,
+                       no_cache);
     return 0;
 }
