@@ -5,6 +5,7 @@ set(sources
     src/url_resolver.cpp
     src/cmd_run.cpp
     src/cmd_client.cpp
+    src/cmd_server.cpp
 )
 
 set(exe_sources
