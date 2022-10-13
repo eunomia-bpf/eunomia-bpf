@@ -4,6 +4,7 @@ set(sources
     src/eunomia_runner.cpp
     src/url_resolver.cpp
     src/cmd_run.cpp
+    src/cmd_pull.cpp
     src/cmd_client.cpp
     src/cmd_server.cpp
 )

@@ -63,7 +63,8 @@ cmd_run_main(int argc, char *argv[])
                                .set(export_as_json)
                                .doc("export the result as json");
 
-    auto run_cmd = (run_url_value, run_opt_cmd_args) % "run a ebpf program";
+    auto run_cmd = (export_json_opt, run_url_value, run_opt_cmd_args)
+                   % "run a ebpf program";
     if (!clipp::parse(argc, argv, run_cmd)) {
         std::cout << clipp::make_man_page(run_cmd, argv[0]);
         return 1;

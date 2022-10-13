@@ -13,5 +13,8 @@ cmd_client_main(int argc, char *argv[]);
 // The server cmd of ecli
 int
 cmd_server_main(int argc, char *argv[]);
+// images cmd of ecli
+int
+cmd_images_main(int argc, char *argv[]);
 
 #endif
