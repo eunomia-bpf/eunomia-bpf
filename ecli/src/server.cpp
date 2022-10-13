@@ -136,6 +136,7 @@ server_manager::start_tracker(const std::string &json_data)
     spdlog::debug("tracker is starting...");
     auto config_data =
         program_config_data{ "",
+                             true,
                              std::vector<char>(json_data.begin(),
                                                json_data.end()),
                              program_config_data::program_type::JSON_EUNOMIA,

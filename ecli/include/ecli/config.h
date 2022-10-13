@@ -16,6 +16,8 @@
 struct program_config_data {
     /// @brief  url of the program: path or http link
     std::string url;
+    /// @brief  use cache or not
+    bool use_cache;
     /// @brief program data buffer: wasm module or json
     std::vector<char> program_data_buffer;
     /// @brief  type of the program: wasm or json, of others
@@ -54,7 +56,7 @@ constexpr auto default_endpoint = "localhost:8527";
 constexpr auto default_json_data_file_name = "package.json";
 constexpr auto default_repo_base_url =
     "https://eunomia-bpf.github.io/eunomia-bpf/";
-constexpr auto default_local_home_path = "~/.ebpm/";
+constexpr auto default_local_home_path = ".ebpm/";
 
 constexpr auto remote_repo_base_env_var_name = "EUNOMIA_REPOSITORY";
 constexpr auto local_home_env_var_name = "EUNOMIA_HOME";

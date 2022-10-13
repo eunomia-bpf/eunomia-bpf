@@ -20,14 +20,11 @@ save_to_file(const std::string &path, const program_config_data &base)
 }
 
 static void
-pull_mode_operation(const std::string &path)
+pull_mode_operation(const std::string &path, bool no_cache)
 {
-    auto base =
-        program_config_data{ path,
-                             {},
-                             program_config_data::program_type::UNDEFINE,
-                             {},
-                             {} };
+    auto base = program_config_data{
+        path, !no_cache, {}, program_config_data::program_type::UNDEFINE, {}, {}
+    };
     if (!resolve_url_path(base)) {
         std::cerr << "cannot resolve url data" << std::endl;
         return;
@@ -47,19 +44,20 @@ int
 cmd_pull_main(int argc, char *argv[])
 {
     std::string ebpf_program_name = default_json_data_file_name;
-    std::vector<std::string> run_with_extra_args;
+    bool no_cache = false;
+
     auto run_url_value =
         clipp::value("url", ebpf_program_name)
         % "The url to get the ebpf program, can be file path or url";
-    auto run_opt_cmd_args = clipp::opt_values("extra args", run_with_extra_args)
-                            % "Some extra args provided to the ebpf program";
-
-    auto pull_cmd =
-        (run_url_value, run_opt_cmd_args) % "pull a ebpf program from remote to local";
+    auto no_cache_opt = clipp::option("-n", "--no-cache")
+                            .set(no_cache)
+                            .doc("export the result as json");
+    auto pull_cmd = (run_url_value, no_cache_opt)
+                    % "pull a ebpf program from remote to local";
     if (!clipp::parse(argc, argv, pull_cmd)) {
         std::cout << clipp::make_man_page(pull_cmd, argv[0]);
         return 1;
     }
-    pull_mode_operation(ebpf_program_name);
+    pull_mode_operation(ebpf_program_name, no_cache);
     return 0;
 }
