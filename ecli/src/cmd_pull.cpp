@@ -9,7 +9,7 @@
 #include "ecli/url_resolver.h"
 
 static void
-run_mode_operation(const std::string &path,
+pull_mode_operation(const std::string &path,
                    const std::vector<std::string> &run_with_extra_args,
                    bool export_to_json)
 {
@@ -48,7 +48,7 @@ run_mode_operation(const std::string &path,
 }
 
 int
-cmd_run_main(int argc, char *argv[])
+cmd_pull_main(int argc, char *argv[])
 {
     std::string ebpf_program_name = default_json_data_file_name;
     std::vector<std::string> run_with_extra_args;
@@ -68,6 +68,6 @@ cmd_run_main(int argc, char *argv[])
         std::cout << clipp::make_man_page(run_cmd, argv[0]);
         return 1;
     }
-    run_mode_operation(ebpf_program_name, run_with_extra_args, export_as_json);
+    pull_mode_operation(ebpf_program_name, run_with_extra_args, export_as_json);
     return 0;
 }

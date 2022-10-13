@@ -9,9 +9,6 @@
 #include "ecli/url_resolver.h"
 #include "ecli/server.h"
 
-constexpr auto default_endpoint = "localhost:8527";
-constexpr auto default_json_data_file_name = "package.json";
-
 void
 server_mode_operation(ecli_config_data &core_config)
 {

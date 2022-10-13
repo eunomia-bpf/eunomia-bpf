@@ -38,7 +38,7 @@ main(int argc, char *argv[])
 
     auto cli =
         (log_level_opt,
-         (clipp::command("server").set(cmd_selected, eunomia_cmd_mode::client)
+         (clipp::command("server").set(cmd_selected, eunomia_cmd_mode::server)
           | clipp::command("run").set(cmd_selected, eunomia_cmd_mode::run)
           | clipp::command("server").set(cmd_selected, eunomia_cmd_mode::server)
           | clipp::command("help").set(cmd_selected, eunomia_cmd_mode::help)),
