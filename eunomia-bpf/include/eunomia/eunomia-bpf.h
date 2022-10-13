@@ -37,6 +37,9 @@ extern "C"
   /// it's not reenter-able, and you should not use the program after this function.
   void stop_and_clean_ebpf_program(struct eunomia_bpf* prog);
 
+  /// @brief get fd of ebpf program or map by name
+  int eunomia_get_fd(struct eunomia_bpf* prog, const char* name);
+
   /// @brief stop, detach, but not clean the memory
   void stop_ebpf_program(struct eunomia_bpf* prog);
   /// @brief free the memory of the program

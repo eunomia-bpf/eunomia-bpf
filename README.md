@@ -13,7 +13,9 @@
 - Compile eBPF program to a `WASM` module, and you can operate the eBPF program or process the data in user space `WASM` runtime
 - Package, distribute, and run user-space and kernel-space eBPF programs together in `WASM` module
 - very small and simple! The library itself `<1MB` and no `LLVM/Clang` dependence, can be embedded easily in you project
-- as fast as `<100ms` and little resource need to dynamically load and run any eBPF program on another kernel version
+- as fast as `<100ms` and little resource need to dynamically load and run eBPF program
+
+With `eunomia-bpf`, you can also get pre-compiled eBPF programs running from the cloud to the kernel in 1 line of bash, kernel version and architecture independent!
 
 ## Project Arch
 

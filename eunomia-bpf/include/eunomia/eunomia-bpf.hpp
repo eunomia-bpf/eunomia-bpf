@@ -142,6 +142,11 @@ namespace eunomia
     /// @details  for export call backs: ring buffer and perf events
     /// provide a common interface to print the event data
     void handler_export_events(const char *event) const;
+
+    // @brief get map or prog fd by name
+    // @details get map or prog fd by name, and basic libbpf API
+    // can be used to access the map or prog elements
+    [[nodiscard]] int get_fd(const char* name) const noexcept;
   };
 }  // namespace eunomia
 

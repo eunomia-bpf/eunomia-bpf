@@ -348,6 +348,25 @@ namespace eunomia
     return -1;
   }
 
+  int eunomia_ebpf_program::get_fd(const char *name) const noexcept
+  {
+    for (std::size_t i = 0; i < meta_data.maps.size(); i++)
+    {
+      if (meta_data.maps[i].name == name)
+      {
+        return bpf_map__fd(maps[i]);
+      }
+    }
+    for (std::size_t i = 0; i < meta_data.progs.size(); i++)
+    {
+      if (meta_data.progs[i].name == name)
+      {
+        return bpf_program__fd(progs[i]);
+      }
+    }
+    return -1;
+  }
+
 }  // namespace eunomia
 
 // simple wrappers for C API
@@ -430,5 +449,12 @@ extern "C"
       return;
     }
     delete prog;
+  }
+
+  int eunomia_get_fd(struct eunomia_bpf* prog, const char* name) {
+    if (!prog) {
+      return -1;
+    }
+    return prog->program.get_fd(name);
   }
 }
