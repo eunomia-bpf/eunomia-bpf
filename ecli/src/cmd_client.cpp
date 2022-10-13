@@ -1,4 +1,4 @@
-#include "ecli/cmd_client.h"
+#include "ecli/cmd_entry.h"
 
 #include <clipp.h>
 #include <spdlog/spdlog.h>
