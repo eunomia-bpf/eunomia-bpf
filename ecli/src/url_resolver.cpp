@@ -151,12 +151,12 @@ try_get_content_from_name(const std::string &name,
         config_data.use_cache = false;
     }
     // try get wasm module
-    auto url = get_remote_repo_base_url_from_env() + name + "/app.wasm";
+    auto url = get_remote_repo_base_url_from_env() + program_name + "/app.wasm";
     if (get_content_in_new_config(config_data, url)) {
         return true;
     }
     // try get json file
-    url = get_remote_repo_base_url_from_env() + name + "/package.json";
+    url = get_remote_repo_base_url_from_env() + program_name + "/package.json";
     if (get_content_in_new_config(config_data, url)) {
         return true;
     }

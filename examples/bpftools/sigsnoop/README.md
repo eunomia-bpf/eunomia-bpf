@@ -1,3 +1,14 @@
+---
+layout: post
+title: sigsnoop
+date: 2022-10-10 16:18
+category: bpftools
+author: yunwei37
+tags: [bpftools, syscall]
+summary: Trace signal syscalls.
+---
+
+
 # sigsnoop
 
 This traces signals generated system wide.

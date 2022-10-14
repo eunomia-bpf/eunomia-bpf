@@ -1,3 +1,13 @@
+---
+layout: post
+title: bootstrap
+date: 2022-10-10 16:18
+category: bpftools
+author: yunwei37
+tags: [bpftools, examples, tracepoint, ringbuf]
+summary: an example of a simple (but realistic) BPF application
+---
+
 ## Bootstrap
 
 `bootstrap` is an example of a simple (but realistic) BPF application. It

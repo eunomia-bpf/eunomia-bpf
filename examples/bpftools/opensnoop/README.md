@@ -1,3 +1,13 @@
+---
+layout: post
+title: opensnoop
+date: 2022-10-10 16:18
+category: bpftools
+author: yunwei37
+tags: [bpftools, syscall]
+summary: opensnoop traces the open() syscall system-wide, and prints various details.
+---
+
 ## opensnoop
 
 opensnoop traces the open() syscall system-wide, and prints various details.

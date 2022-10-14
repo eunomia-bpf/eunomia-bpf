@@ -1,5 +1,14 @@
-## mountsnoop
+---
+layout: post
+title: mountsnoop
+date: 2022-10-10 16:18
+category: bpftools
+author: yunwei37
+tags: [bpftools, syscall]
+summary: Trace mount syscalls.
+---
 
+## mountsnoop
 
 ## result
 

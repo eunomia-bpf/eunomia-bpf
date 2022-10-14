@@ -1,3 +1,13 @@
+---
+layout: post
+title: bindsnoop
+date: 2022-10-10 16:18
+category: bpftools
+author: yunwei37
+tags: [bpftools, syscall, kprobe, perf_event]
+summary: Trace bind syscalls.
+---
+
 # sigsnoop
 
 Trace bind syscalls.

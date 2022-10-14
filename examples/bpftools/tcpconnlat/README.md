@@ -1,3 +1,13 @@
+---
+layout: post
+title: tcpconnlat
+date: 2022-10-10 16:18
+category: bpftools
+author: yunwei37
+tags: [bpftools, syscall]
+summary: Trace TCP connects and show connection latency.
+---
+
 # tcpconnlat
 
 Trace TCP connects and show connection latency.

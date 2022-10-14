@@ -1,3 +1,13 @@
+---
+layout: post
+title: fentry-link
+date: 2022-10-10 16:18
+category: bpftools
+author: yunwei37
+tags: [bpftools, examples, fentry, no-output]
+summary: an example that uses fentry and fexit BPF programs for tracing
+---
+
 ## Fentry
 
 `fentry` is an example that uses fentry and fexit BPF programs for tracing. It

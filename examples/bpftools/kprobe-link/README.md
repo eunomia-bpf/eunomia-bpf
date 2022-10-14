@@ -1,3 +1,13 @@
+---
+layout: post
+title: kprobe-link
+date: 2022-10-10 16:18
+category: bpftools
+author: yunwei37
+tags: [bpftools, examples, kprobe, no-output]
+summary: an example of dealing with kernel-space entry and exit (return) probes
+---
+
 ## Kprobe
 
 `kprobe` is an example of dealing with kernel-space entry and exit (return)
