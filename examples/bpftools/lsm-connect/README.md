@@ -5,12 +5,9 @@ date: 2022-10-10 16:18
 category: bpftools
 author: yunwei37
 tags: [bpftools, examples, lsm, no-output]
-summary: BPF LSM program (on socket_connect hook) that prevents any connection towards 1.1.1.1 to happen
+summary: BPF LSM program (on socket_connect hook) that prevents any connection towards 1.1.1.1 to happen. Found in demo-cloud-native-ebpf-day
 ---
 
-
-
-BPF LSM program (on socket_connect hook) that prevents any connection towards 1.1.1.1 to happen
 
 ## run
 

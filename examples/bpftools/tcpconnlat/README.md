@@ -5,7 +5,7 @@ date: 2022-10-10 16:18
 category: bpftools
 author: yunwei37
 tags: [bpftools, syscall]
-summary: Trace TCP connects and show connection latency.
+summary: Traces the kernel function performing active TCP connections(eg, via a connect() syscall; accept() are passive connections).  and show connection latency.
 ---
 
 ## origin

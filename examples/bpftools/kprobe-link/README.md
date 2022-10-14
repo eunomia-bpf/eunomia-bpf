@@ -5,7 +5,7 @@ date: 2022-10-10 16:18
 category: bpftools
 author: yunwei37
 tags: [bpftools, examples, kprobe, no-output]
-summary: an example of dealing with kernel-space entry and exit (return) probes
+summary: an example of dealing with kernel-space entry and exit (return) probes, `kprobe` and `kretprobe` in libbpf lingo
 ---
 
 

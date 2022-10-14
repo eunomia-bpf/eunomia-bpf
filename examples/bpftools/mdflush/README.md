@@ -5,7 +5,7 @@ date: 2022-10-10 16:18
 category: bpftools
 author: yunwei37
 tags: [bpftools, fentry]
-summary: Trace md flush events.
+summary: The mdflush tool traces flushes at the md driver level, and prints details including the time of the flush.
 ---
 
 

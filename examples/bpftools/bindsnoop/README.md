@@ -5,7 +5,7 @@ date: 2022-10-10 16:18
 category: bpftools
 author: yunwei37
 tags: [bpftools, syscall, kprobe, perf-event]
-summary: Trace bind syscalls.
+summary: This tool traces the kernel function performing socket binding and print socket options set before the system call.
 ---
 
 ## origin

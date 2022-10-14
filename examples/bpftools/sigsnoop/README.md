@@ -4,8 +4,8 @@ title: sigsnoop
 date: 2022-10-10 16:18
 category: bpftools
 author: yunwei37
-tags: [bpftools, syscall]
-summary: Trace signal syscalls.
+tags: [bpftools, syscall, kprobe, tracepoint]
+summary: Trace signals generated system wide, from syscalls and others.
 ---
 
 

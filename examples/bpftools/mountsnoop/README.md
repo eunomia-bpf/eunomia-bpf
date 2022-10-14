@@ -5,7 +5,7 @@ date: 2022-10-10 16:18
 category: bpftools
 author: yunwei37
 tags: [bpftools, syscall, perf-event, tracepoint]
-summary: Trace mount syscalls.
+summary: mountsnoop traces the mount() and umount syscalls system-wide.
 ---
 
 
