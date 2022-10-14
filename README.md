@@ -15,7 +15,11 @@
 - very small and simple! The library itself `<1MB` and no `LLVM/Clang` dependence, can be embedded easily in you project
 - as fast as `<100ms` and little resource need to dynamically load and run eBPF program
 
-With `eunomia-bpf`, you can also get pre-compiled eBPF programs running from the cloud to the kernel in `1` line of bash, kernel version and architecture independent!
+With `eunomia-bpf`, you can also get pre-compiled eBPF programs running from the cloud to the kernel in `1` line of bash, kernel version and architecture independent! For example:
+
+```bash
+$ sudo ecli run sigsnoop
+```
 
 ## Project Arch
 
@@ -35,6 +39,7 @@ A [simple cli interface](ecli) is provided for eunomia-bpf library, which you ca
 # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
 $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
 $ sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json # simply run a pre-compiled ebpf code from a url
+$ sudo ./ecli run sigsnoop:latest # run with a name and download the latest version bpf tool from our repo
 ```
 
 Or you can write eBPF kernel code only and compile it to a `JSON`:
@@ -43,7 +48,7 @@ Or you can write eBPF kernel code only and compile it to a `JSON`:
 docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
 ```
 
-see [examples](examples) for more examples.
+see [examples](examples) for more examples. 
 
 ### A library to load eBPF program from a WASM module
 
