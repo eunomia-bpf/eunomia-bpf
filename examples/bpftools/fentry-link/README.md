@@ -45,7 +45,7 @@ $ sudo cat /sys/kernel/debug/tracing/trace_pipe
 
 ## Run
 
-(just replace the path as yours)
+ 
 
 Compile:
 

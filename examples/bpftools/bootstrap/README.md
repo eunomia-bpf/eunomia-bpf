@@ -8,7 +8,6 @@ tags: [bpftools, examples, tracepoint, ringbuf]
 summary: an example of a simple (but realistic) BPF application
 ---
 
-## Bootstrap
 
 `bootstrap` is an example of a simple (but realistic) BPF application. It
 tracks process starts (`exec()` family of syscalls, to be precise) and exits

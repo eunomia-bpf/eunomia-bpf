@@ -8,7 +8,6 @@ tags: [bpftools, examples, kprobe, no-output]
 summary: an example of dealing with kernel-space entry and exit (return) probes
 ---
 
-## Kprobe
 
 `kprobe` is an example of dealing with kernel-space entry and exit (return)
 probes, `kprobe` and `kretprobe` in libbpf lingo. It attaches `kprobe` and
@@ -36,7 +35,7 @@ $ sudo cat /sys/kernel/debug/tracing/trace_pipe
 
 ## Run
 
-(just replace the path as yours)
+ 
 
 Compile:
 

@@ -9,19 +9,13 @@ summary: Trace signal syscalls.
 ---
 
 
-# sigsnoop
-
-This traces signals generated system wide.
-
-## result
+## origin
 
 origin from:
 
 https://github.com/iovisor/bcc/blob/master/libbpf-tools/sigsnoop.bpf.c
 
-## Run
-
-(just replace the path as yours)
+## Compile and Run
 
 Compile:
 
@@ -88,3 +82,51 @@ running and waiting for the ebpf events from perf event...
 {"pid":1641,"tpid":2368,"sig":23,"ret":0,"comm":"YDLive","sig_name":"SIGURG"}
 {"pid":1641,"tpid":2368,"sig":23,"ret":0,"comm":"YDLive","sig_name":"SIGURG"}
 ```
+
+## details in bcc
+
+Demonstrations of sigsnoop.
+
+
+This traces signals generated system wide. For example:
+```console
+# ./sigsnoop -n
+TIME     PID     COMM             SIG       TPID    RESULT
+19:56:14 3204808 a.out            SIGSEGV   3204808 0
+19:56:14 3204808 a.out            SIGPIPE   3204808 0
+19:56:14 3204808 a.out            SIGCHLD   3204722 0
+```
+The first line showed that a.out (a test program) deliver a SIGSEGV signal.
+The result, 0, means success.
+
+The second and third lines showed that a.out also deliver SIGPIPE/SIGCHLD
+signals successively.
+
+USAGE message:
+```console
+# ./sigsnoop -h
+Usage: sigsnoop [OPTION...]
+Trace standard and real-time signals.
+
+USAGE: sigsnoop [-h] [-x] [-k] [-n] [-p PID] [-s SIGNAL]
+
+EXAMPLES:
+    sigsnoop             # trace signals system-wide
+    sigsnoop -k          # trace signals issued by kill syscall only
+    sigsnoop -x          # trace failed signals only
+    sigsnoop -p 1216     # only trace PID 1216
+    sigsnoop -s 9        # only trace signal 9
+
+  -k, --kill                 Trace signals issued by kill syscall only.
+  -n, --name                 Output signal name instead of signal number.
+  -p, --pid=PID              Process ID to trace
+  -s, --signal=SIGNAL        Signal to trace.
+  -x, --failed               Trace failed signals only.
+  -?, --help                 Give this help list
+      --usage                Give a short usage message
+  -V, --version              Print program version
+```
+Mandatory or optional arguments to long options are also mandatory or optional
+for any corresponding short options.
+
+Report bugs to https://github.com/iovisor/bcc/tree/master/libbpf-tools.

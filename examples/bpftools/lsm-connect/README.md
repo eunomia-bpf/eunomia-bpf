@@ -9,7 +9,6 @@ summary: BPF LSM program (on socket_connect hook) that prevents any connection t
 ---
 
 
-# LSM demo
 
 BPF LSM program (on socket_connect hook) that prevents any connection towards 1.1.1.1 to happen
 
