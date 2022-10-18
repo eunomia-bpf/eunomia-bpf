@@ -8,10 +8,9 @@
 
 `eunomia-bpf` is a dynamic loading library base on `libbpf`, and a compile toolchain. With eunomia-bpf, you can:
 
-- Write eBPF kernel code only and automatically exposing your data from kernel
+- Write eBPF kernel code only and No code generation, we will automatically exposing your data from kernel
 - Compile eBPF kernel code to a `JSON`, you can dynamically load it on another machine without recompile
-- Compile eBPF program to a `WASM` module, and you can operate the eBPF program or process the data in user space `WASM` runtime
-- Package, distribute, and run user-space and kernel-space eBPF programs together in `WASM` module
+- Package, distribute, and run user-space and kernel-space eBPF programs together in `OCI` compatible `WASM` module
 - very small and simple! The library itself `<1MB` and no `LLVM/Clang` dependence, can be embedded easily in you project
 - as fast as `<100ms` and little resource need to dynamically load and run eBPF program
 
@@ -117,13 +116,13 @@ see [benchmark](documents/benchmark.md) for details.
 
 - [X] refactor the code from project `Eunomia` and provide quick examples
 - [X] support `tracepoints`, `fentry`, `kprobe`, `lsm`, and `ring buffer` / `perf event` output in userspace.
-- [X] make the compile easier to use, and more flexible. Don't need any code modified to compile.
-- [X] add configurable exporter as an example
-- [X] add simple pacakage manager for eunomia-bpf: in [LMP](https://github.com/linuxkerneltravel/lmp) community
+- [X] add configurable exporter as a tool
+- [X] add simple pacakage manager in `OCI` `and` ORAS for eunomia-bpf: in [LMP](https://github.com/linuxkerneltravel/lmp) community
 - [X] use WASM for ebpf package load config and add more user space support
 - [ ] support more ebpf program types: uprobe, xdp etc.
-- [ ] add more possibilities and helper functions from `libbpf`
+- [ ] add more helper functions from `libbpf`
 - [ ] Android support
+- [ ] riscv support
 - [ ] provide python, go and others sdk
 - [ ] add support of `etcd` and enhance server
 
