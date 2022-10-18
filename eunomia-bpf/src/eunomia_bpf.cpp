@@ -43,7 +43,14 @@ namespace eunomia
       std::cerr << "failed to create skeleton from json" << std::endl;
       return -1;
     }
-    if (bpf_object__open_skeleton(skeleton, NULL))
+    auto btf_file = getenv("BTF_FILE_PATH");
+    struct bpf_object_open_opts openopts;
+    openopts.sz = sizeof(struct bpf_object_open_opts);
+    if (btf_file != NULL)
+    {
+      openopts.btf_custom_path = strdup(btf_file);
+    }
+    if (bpf_object__open_skeleton(skeleton, &openopts))
     {
       std::cerr << "failed to open skeleton" << std::endl;
       return -1;

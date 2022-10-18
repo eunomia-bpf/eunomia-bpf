@@ -4,9 +4,9 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
 <!-- [![codecov](https://codecov.io/gh/eunomia-bpf/eunomia-bpf/branch/master/graph/badge.svg)](https://codecov.io/gh/filipdutescu/modern-cpp-template) -->
 
-## Overview
+## Introduction
 
-`eunomia-bpf` is a dynamic loading library base on `libbpf`, and a compile toolchain. With eunomia-bpf, you can:
+`eunomia-bpf` is a dynamic loading library base on `CO-RE libbpf`, and a compile toolchain. With eunomia-bpf, you can:
 
 - Write eBPF kernel code only and No code generation, we will automatically exposing your data from kernel
 - Compile eBPF kernel code to a `JSON`, you can dynamically load it on another machine without recompile
@@ -19,6 +19,14 @@ With `eunomia-bpf`, you can also get pre-compiled eBPF programs running from the
 ```bash
 $ sudo ecli run sigsnoop
 ```
+
+Base on `eunomia-bpf`, we have an eBPF pacakge manager in [LMP](https://github.com/linuxkerneltravel/lmp) project, with OCI images and [ORAS](https://github.com/oras-project/oras). Powered by WASM, an eBPF program may be able to:
+
+- have isolation and protection for operating system resources, both user-space and kernel-space
+- safely execute user-defined or community-contributed eBPF code as plug-ins in a software product
+- Write eBPF programs with the language you favor, distribute and run the programs on another kernel or arch.
+
+We have tested on `x86` and `arm` platform, more Architecture tests will be added soon.
 
 ## Project Arch
 
@@ -59,7 +67,9 @@ Use the `eunomia-bpf` library to load `eBPF` program from a `WASM` module, you c
 
 You can have multiple `eBPF` program in a single `WASM` module.
 
-See [ewasm](ewasm) for details. For example, you can run an eBPF program with a WASM module for an URL:
+See [ewasm](ewasm) for details. In fact, `ewasm` library only exports a few functions from `eunomia-bpf` library to the `VM`, so you can replace the `WASM` runtime with your own easily.
+
+For example, you can run an eBPF program with a WASM module for an URL:
 
 ```bash
 $ sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/app.wasm
@@ -119,10 +129,11 @@ see [benchmark](documents/benchmark.md) for details.
 - [X] add configurable exporter as a tool
 - [X] add simple pacakage manager in `OCI` `and` ORAS for eunomia-bpf: in [LMP](https://github.com/linuxkerneltravel/lmp) community
 - [X] use WASM for ebpf package load config and add more user space support
+- [X] support running in `ARM` and `x86`
 - [ ] support more ebpf program types: uprobe, xdp etc.
 - [ ] add more helper functions from `libbpf`
 - [ ] Android support
-- [ ] riscv support
+- [ ] `riscv` support
 - [ ] provide python, go and others sdk
 - [ ] add support of `etcd` and enhance server
 

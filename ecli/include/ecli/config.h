@@ -54,7 +54,7 @@ constexpr auto default_endpoint = "localhost:8527";
 constexpr auto default_json_data_file_name = "package.json";
 constexpr auto default_repo_base_url =
     "https://eunomia-bpf.github.io/eunomia-bpf/";
-constexpr auto default_local_home_path = ".ebpm/";
+constexpr auto default_local_home_path = "/tmp/ebpm/";
 
 constexpr auto remote_repo_base_env_var_name = "EUNOMIA_REPOSITORY";
 constexpr auto local_home_env_var_name = "EUNOMIA_HOME";
