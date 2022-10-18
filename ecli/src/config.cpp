@@ -7,9 +7,9 @@
 #include "ecli/config.h"
 
 #include <json.hpp>
-
+#include <iostream>
+#include <fstream>
 #include "spdlog/spdlog.h"
-#include "toml.hpp"
 
 #define get_from_json_at(name)                       \
     try {                                            \
@@ -34,23 +34,6 @@ from_json(const nlohmann::json &j, ecli_config_data &data)
     get_from_json_at(server_host);
     get_from_json_at(server_port);
     get_from_json_at(exit_after);
-}
-
-ecli_config_data
-ecli_config_data::from_toml_file(const std::string &file_path)
-{
-    toml::table data;
-    try {
-        data = toml::parse_file(file_path);
-    } catch (const toml::parse_error &err) {
-        spdlog::error("parse toml file error: {}", err.description());
-        return ecli_config_data{};
-    }
-    auto json_data = toml::json_formatter{ data };
-    std::stringstream ss;
-    ss << json_data;
-    nlohmann::json j = ss.str();
-    return j.get<ecli_config_data>();
 }
 
 ecli_config_data

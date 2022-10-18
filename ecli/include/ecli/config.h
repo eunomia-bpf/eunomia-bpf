@@ -41,8 +41,6 @@ struct ecli_config_data {
     /// auto exit mode
     int exit_after = 0;
 
-    /// parse config from toml files
-    static ecli_config_data from_toml_file(const std::string &file_path);
     /// parse config from json files
     static ecli_config_data from_json_file(const std::string &file_path);
 

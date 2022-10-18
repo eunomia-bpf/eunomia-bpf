@@ -33,7 +33,7 @@ cmd_server_main(int argc, char *argv[])
         (clipp::option("--config") & clipp::value("config file", config_file))
         % "The json file stores the config data";
     if (config_file != "") {
-        core_config = ecli_config_data::from_toml_file(config_file);
+        core_config = ecli_config_data::from_json_file(config_file);
     }
     auto server_cmd =
         config_file_opt % "start a server to control the ebpf programs";
