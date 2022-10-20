@@ -32,7 +32,7 @@ apt install clang cmake libelf1 libelf-dev zlib1g-dev
 
 
 
- 步骤和在Android上类似
+
 
 1.确认内核BTF选项已经打开
 
