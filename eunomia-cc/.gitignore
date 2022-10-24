@@ -1,0 +1,9 @@
+.output
+.vscode
+build/
+client
+*.o
+libs/event.ll
+eunomia-bpf/
+wasi-sdk-16.0-linux.tar.gz
+wasi-sdk-16.0

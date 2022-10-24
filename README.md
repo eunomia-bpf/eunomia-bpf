@@ -88,7 +88,7 @@ see [sigsnoop example](examples/bpftools/sigsnoop) for more detail.
 
 The toolchain can be used as a docker to generate pre-compiled eBPF data in one command:
 
-see the compile toolchains [eunomia-cc](https://github.com/eunomia-bpf/eunomia-cc) for details.
+see the compile toolchains [eunomia-cc](eunomia-cc) for details.
 
 you can also simply use the [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) repo as a template in github, just push to it and github action can help you compile CO-RE ebpf code!
 

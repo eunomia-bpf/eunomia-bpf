@@ -13,7 +13,7 @@ eunomia-bpf: https://github.com/eunomia-bpf/eunomia-bpf
 
 In general, we develop an approach to compile, transmit, and run most libbpf CO-RE objects with some user space config meta data to help us load and operator the eBPF byte code.
 
-So, the only thing you need to do is focus on writing a single eBPF program in the kernel. We have a compiler here: [eunomia-cc](https://github.com/eunomia-bpf/eunomia-cc)
+So, the only thing you need to do is focus on writing a single eBPF program in the kernel. We have a compiler here: [eunomia-cc](../eunomia-cc)
 
 
 ## Build
