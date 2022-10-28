@@ -1,4 +1,4 @@
-# eunomia-bpf: An eBPF program Dynamic Loading Framework
+# eunomia-bpf: A library to help you build and distribute eBPF program easier
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
@@ -6,7 +6,7 @@
 
 ## Introduction
 
-`eunomia-bpf` is a dynamic loading library base on `CO-RE libbpf`, and a compile toolchain. With eunomia-bpf, you can:
+`eunomia-bpf` is a dynamic loading library and a compile toolchain. With eunomia-bpf, you can:
 
 - Write eBPF kernel code only and No code generation, we will automatically exposing your data from kernel
 - Compile eBPF kernel code to a `JSON`, you can dynamically load it on another machine without recompile
@@ -92,12 +92,6 @@ see the compile toolchains [eunomia-cc](eunomia-cc) for details.
 
 you can also simply use the [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) repo as a template in github, just push to it and github action can help you compile CO-RE ebpf code!
 
-### An Observability tool
-
-An prometheus and OpenTelemetry exporter for custom eBPF metrics, written in async rust: [eunomia-exporter](eunomia-exporter)
-
-You can compile it or download from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)
-
 ### other related projects
 
 - LMP eBPF Hub: [github.com/linuxkerneltravel/lmp](https://github.com/linuxkerneltravel/lmp) 
@@ -107,6 +101,10 @@ You can compile it or download from [release](https://github.com/eunomia-bpf/eun
 - bolipi online compiler & runner: [https://bolipi.com/ebpf/home/online](https://bolipi.com/ebpf/home/online)
 
     > an online compiler and runner for eBPF program newbies
+
+- An Observability tool
+
+    > An prometheus and OpenTelemetry exporter for custom eBPF metrics, written in async rust: [eunomia-exporter](eunomia-exporter). You can compile it or download from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)
 
 ## build the project
 
