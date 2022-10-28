@@ -44,8 +44,7 @@ namespace eunomia
       return -1;
     }
     auto btf_file = getenv("BTF_FILE_PATH");
-    struct bpf_object_open_opts openopts;
-    openopts.sz = sizeof(struct bpf_object_open_opts);
+    DECLARE_LIBBPF_OPTS(bpf_object_open_opts, openopts);
     if (btf_file != NULL)
     {
       openopts.btf_custom_path = strdup(btf_file);
