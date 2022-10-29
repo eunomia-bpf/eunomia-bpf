@@ -11,11 +11,14 @@ use clap::Parser;
     about = "eunomia compiler",
     long_about = "see https://github.com/eunomia-bpf/eunomia-bpf for more information"
 )]
-
 pub struct Args {
     /// path of the bpf.c file to compile
     #[arg()]
     pub source_path: String,
+
+    /// path of the bpf.h header for defining event struct
+    #[arg()]
+    pub export_event_header: String,
 
     /// path of output bpf object
     #[arg(short, long, default_value_t = ("output").to_string())]
@@ -62,3 +65,7 @@ pub fn get_output_object_path(output_path: &str) -> String {
     let output_object_path = output_path.with_extension("bpf.o");
     output_object_path.to_str().unwrap().to_string()
 }
+
+pub const TEMP_EUNOMIA_DIR: &str = "/tmp/eunomia";
+pub const EXPORT_DEFINE_C_FILE: &str = "export_events_define.bpf.c";
+pub const EXPORT_DEFINE_BPF_OBJECT: &str = "export_events_define.bpf.o";

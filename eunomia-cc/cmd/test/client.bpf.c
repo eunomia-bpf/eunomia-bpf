@@ -5,6 +5,7 @@
 #include <bpf/bpf_tracing.h>
 #include <bpf/bpf_core_read.h>
 #include "event.h"
+#include "other_header.h"
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
 
