@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::Parser;
 
 /// The eunomia-bpf compile tool
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Default, Clone)]
 #[command(
     author,
     version,
@@ -21,7 +21,7 @@ pub struct Args {
     pub export_event_header: String,
 
     /// path of output bpf object
-    #[arg(short, long, default_value_t = ("output").to_string())]
+    #[arg(short, long, default_value_t = ("").to_string())]
     pub output_path: String,
 
     /// include path of compile btf object
@@ -35,6 +35,10 @@ pub struct Args {
     /// path of llvm strip binary
     #[arg(short, long, default_value_t = ("llvm-strip").to_string())]
     pub llvm_strip_bin: String,
+
+    /// pack object in JSON format
+    #[arg(short, long, default_value_t = false)]
+    pub pack_object: bool,
 }
 
 /// Get home directory from env
@@ -53,15 +57,23 @@ pub fn get_eunomia_home() -> Result<String> {
 }
 
 /// Get output path for json: output.meta.json
-pub fn get_output_json_path(output_path: &str) -> String {
-    let output_path = path::Path::new(output_path);
+pub fn get_output_json_path(args: &Args) -> String {
+    let output_path = if args.output_path == "" {
+        path::Path::new(&args.source_path).with_extension("")
+    } else {
+        path::Path::new(&args.output_path).to_path_buf()
+    };
     let output_json_path = output_path.with_extension("skel.json");
     output_json_path.to_str().unwrap().to_string()
 }
 
 /// Get output path for bpf object: output.bpf.o  
-pub fn get_output_object_path(output_path: &str) -> String {
-    let output_path = path::Path::new(output_path);
+pub fn get_output_object_path(args: &Args) -> String {
+    let output_path = if args.output_path == "" {
+        path::Path::new(&args.source_path).with_extension("")
+    } else {
+        path::Path::new(&args.output_path).to_path_buf()
+    };
     let output_object_path = output_path.with_extension("bpf.o");
     output_object_path.to_str().unwrap().to_string()
 }
