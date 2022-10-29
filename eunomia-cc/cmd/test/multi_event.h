@@ -14,7 +14,14 @@
 #define TASK_COMM_LEN 16
 #define MAX_FILENAME_LEN 127
 
-struct event1 {
+struct event2 {
+	int pid;
+	int ppid;
+	unsigned exit_code;
+	unsigned long long duration_ns;
+};
+
+struct event {
 	int pid;
 	int ppid;
 	unsigned exit_code;
@@ -22,13 +29,7 @@ struct event1 {
 	char comm[TASK_COMM_LEN];
 	char filename[MAX_FILENAME_LEN];
 	bool exit_event;
-};
-
-struct event2 {
-	int pid;
-	int ppid;
-	unsigned exit_code;
-	unsigned long long duration_ns;
+	struct event2 e3;
 };
 
 typedef struct event3 {
