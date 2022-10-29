@@ -176,36 +176,16 @@ resolve_url_path(program_config_data &config_data)
 
     // from pip stdin
     if (config_data.url == "--") {
-        namespace ct = std::chrono;
         using namespace std;
-        if(isatty(fileno(stdin))) {
-            std::cout << "please input a file by pipe.\n";
-            return false;
-        } else {
-            std::cout << "-- mode\n";
-        }
-        ct::system_clock::duration d = ct::system_clock::now().time_since_epoch();
-        ct::seconds sec = ct::duration_cast<ct::seconds>(d);
-        std::string tmpname = "tmp" + std::to_string(sec.count()) + ".json";
-
-        std::ofstream out(tmpname);
-        if(!out.is_open()) {
-            std::cout << "create file failure! please check the permission.\n";
+        if(isatty(fileno(stdin))) { // if not using pipe
+            cout << "please input a file by pipe.\n";
             return false;
         }
-
-        std::streambuf *stdcout = std::cout.rdbuf();
-        std::cout.rdbuf(out.rdbuf());
-        std::string buf;
-        while(std::cin >> buf) {
-            std::cout << buf << ' ';
+        config_data.prog_type = program_config_data::program_type::JSON_EUNOMIA;
+        for(char c = cin.get(); c != EOF; c = cin.get()) {
+            config_data.program_data_buffer.push_back(c);
         }
-        out.close();
-        std::cout.rdbuf(stdcout);
-        config_data.url = tmpname;
-        if (resolve_regular_url_path(config_data)) {
-            return true;
-        }
+        return true;
     }
 
     spdlog::error("unknown file type: {}", config_data.url);
