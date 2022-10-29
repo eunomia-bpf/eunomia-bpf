@@ -173,15 +173,16 @@ mod test {
 
     #[test]
     fn test_compile_bpf() {
+        let _ = fs::remove_dir_all(TEMP_EUNOMIA_DIR);
         let test_bpf = include_str!("../test/client.bpf.c");
         let test_event = include_str!("../test/event.h");
         let tmp_dir = path::Path::new(TEMP_EUNOMIA_DIR);
+        fs::create_dir_all(tmp_dir).unwrap();
         fs::write(
             tmp_dir.join("other_header.h"),
             include_str!("../test/other_header.h"),
         )
         .unwrap();
-        fs::create_dir_all(tmp_dir).unwrap();
         let source_path = tmp_dir.join("client.bpf.c");
         fs::write(&source_path, test_bpf).unwrap();
         let event_path = tmp_dir.join("event.h");
@@ -199,15 +200,16 @@ mod test {
 
     #[test]
     fn test_compile_export_multi_struct() {
+        let _ = fs::remove_dir_all(TEMP_EUNOMIA_DIR);
         let test_bpf = include_str!("../test/client.bpf.c");
         let test_event = include_str!("../test/multi_event.h");
         let tmp_dir = path::Path::new(TEMP_EUNOMIA_DIR);
+        fs::create_dir_all(tmp_dir).unwrap();
         fs::write(
             tmp_dir.join("other_header.h"),
             include_str!("../test/other_header.h"),
         )
         .unwrap();
-        fs::create_dir_all(tmp_dir).unwrap();
         let source_path = tmp_dir.join("export_multi_struct.bpf.c");
         fs::write(&source_path, test_bpf).unwrap();
         let event_path = tmp_dir.join("event.h");
