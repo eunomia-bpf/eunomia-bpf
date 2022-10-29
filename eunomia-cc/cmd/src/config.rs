@@ -36,7 +36,7 @@ pub struct Args {
     #[arg(short, long, default_value_t = ("llvm-strip").to_string())]
     pub llvm_strip_bin: String,
 
-    /// pack object in JSON format
+    /// pack bpf object in JSON format with zlib compression and base64 encoding
     #[arg(short, long, default_value_t = false)]
     pub pack_object: bool,
 }

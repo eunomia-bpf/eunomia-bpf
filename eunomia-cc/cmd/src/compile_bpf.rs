@@ -1,6 +1,9 @@
 use crate::{config::*, export_types::create_tmp_export_c_file};
 use anyhow::Result;
-use serde_json::json;
+use flate2::write::ZlibEncoder;
+use flate2::Compression;
+use serde_json::{json, Value};
+use std::io::prelude::*;
 use std::{
     fs,
     path::{self, Path},
@@ -149,8 +152,27 @@ pub fn compile_bpf(args: &Args) -> Result<()> {
     Ok(())
 }
 
+/// pack the object file into a package.json
 pub fn pack_object_in_json(args: &Args) -> Result<()> {
-    compile_bpf(args)?;
+    let output_bpf_object_path = get_output_object_path(args);
+    let bpf_object = fs::read(output_bpf_object_path)?;
+
+    let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
+    e.write_all(&bpf_object)?;
+    let compressed_bytes = e.finish()?;
+    let encode_bpf_object = base64::encode(&compressed_bytes);
+    let output_json_path = get_output_json_path(args);
+    let meta_json_str = fs::read_to_string(&output_json_path)?;
+    let meta_json: Value = serde_json::from_str(&meta_json_str)?;
+    let package_json = json!({
+        "bpf_object": encode_bpf_object,
+        "meta": meta_json,
+    });
+    let output_package_json_path = Path::new(&output_json_path)
+        .parent()
+        .unwrap()
+        .join("package.json");
+    fs::write(output_package_json_path, package_json.to_string())?;
     Ok(())
 }
 
@@ -206,7 +228,7 @@ mod test {
     }
 
     #[test]
-    fn test_compile_export_multi_struct() {
+    fn test_export_multi_and_pack() {
         let _ = fs::remove_dir_all(TEMP_EUNOMIA_DIR);
         let test_bpf = include_str!("../test/client.bpf.c");
         let test_event = include_str!("../test/multi_event.h");
@@ -231,5 +253,6 @@ mod test {
             pack_object: false,
         };
         compile_bpf(&args).unwrap();
+        pack_object_in_json(&args).unwrap();
     }
 }

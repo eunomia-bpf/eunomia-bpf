@@ -3,22 +3,22 @@
 OUTPUT ?= .output
 CLANG ?= clang
 LLVM_STRIP ?= llvm-strip
-BPFTOOL := $(abspath libs/bpftools/src/bpftool)
-LIBBPF_SRC := $(abspath libs/libbpf/src)
+BPFTOOL_SRC := $(abspath ../third_party/bpftool)
+BPFTOOL := $(BPFTOOL_SRC)/src/bpftool
+LIBBPF_SRC := $(abspath ../third_party/libbpf/src)
 LIBBPF_OBJ := $(abspath $(OUTPUT)/libbpf.a)
 ARCH := $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
-VMLINUX := libs/vmlinux/$(ARCH)/vmlinux.h
+VMLINUX := ../third_party/vmlinux/$(ARCH)/vmlinux.h
 # Use our own libbpf API headers and Linux UAPI headers distributed with
 # libbpf to avoid dependency on system-wide headers, which could be missing or
 # outdated
 SOURCE_DIR ?= /src/
 SOURCE_FILE_INCLUDES ?= 
-INCLUDES := -I$(SOURCE_DIR) $(SOURCE_FILE_INCLUDES) -I$(OUTPUT) -Ilibs/libbpf/include/uapi -I$(dir $(VMLINUX))
+INCLUDES := -I$(SOURCE_DIR) $(SOURCE_FILE_INCLUDES) -I$(OUTPUT) -I$(LIBBPF_SRC)/../include/uapi -I$(dir $(VMLINUX))
 PYTHON_SCRIPTS := $(abspath libs/scripts)
 CFLAGS := -g -Wall -Wno-unused-function #-fsanitize=address
 
 PACKAGE_NAME := client
-APPS = client
 
 # Get Clang's default includes on this system. We'll explicitly add these dirs
 # to the includes list when compiling with `-target bpf` because otherwise some
@@ -44,7 +44,7 @@ else
 endif
 
 .PHONY: all
-all: $(APPS)
+all: create_eunomia-home
 
 wasi-sdk-16.0-linux.tar.gz:
 	wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-16/wasi-sdk-16.0-linux.tar.gz
@@ -68,7 +68,7 @@ $(LIBBPF_OBJ): $(wildcard $(LIBBPF_SRC)/*.[ch] $(LIBBPF_SRC)/Makefile) | $(OUTPU
 		    install
 
 $(BPFTOOL):
-	$(MAKE) -C libs/bpftools/src
+	$(MAKE) -C $(BPFTOOL_SRC)/src
 
 # Build BPF code
 $(OUTPUT)/%.bpf.o: %.bpf.c $(LIBBPF_OBJ) $(wildcard %.h) $(VMLINUX) | $(OUTPUT)
@@ -76,69 +76,29 @@ $(OUTPUT)/%.bpf.o: %.bpf.c $(LIBBPF_OBJ) $(wildcard %.h) $(VMLINUX) | $(OUTPUT)
 	$(Q)$(CLANG) -g -O2 -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) -c $(filter %.c,$^) -o $@
 	$(Q)$(LLVM_STRIP) -g $@ # strip useless DWARF info
 
-# Generate BPF skeletons
-$(OUTPUT)/%.skel.h: $(OUTPUT)/%.bpf.o | $(OUTPUT) $(BPFTOOL)
-	$(call msg,GEN-SKEL,$@)
-	$(Q)$(BPFTOOL) gen skeleton $< > $@
-
-$(OUTPUT)/cJSON.o: libs/cJSON.c
-	$(call msg,CC,$@)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
-
-$(OUTPUT)/create_skel_json.o: libs/create_skel_json.c $(OUTPUT)/secgen
-	$(call msg,CC,$@)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
-
-$(OUTPUT)/secgen: libs/gen.c
-	$(call msg,CC,$@)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -Ilibs/libbpf/src -Ilibs/libbpf/include $(filter %.c,$^) $(LIBBPF_OBJ) -lelf -lz -o $@
-
-# Build user-space code
-$(patsubst %,$(OUTPUT)/%.o,$(APPS)): %.o: %.skel.h
-
-$(OUTPUT)/%.o: %.c $(wildcard %.h) | $(OUTPUT)
-	$(call msg,CC,$@)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
-
-# Build application binary
-$(APPS): %: $(OUTPUT)/%.o $(OUTPUT)/cJSON.o $(OUTPUT)/create_skel_json.o $(LIBBPF_OBJ) | $(OUTPUT)
-	$(call msg,BINARY,$@)
-	$(Q)$(CC) $(CFLAGS) $^ -lelf -lz -o $@
-
 # Get Preprocessor ebpf code
 $(OUTPUT)/prep_ebpf.c: client.bpf.c $(LIBBPF_OBJ) $(wildcard %.h) $(VMLINUX) | $(OUTPUT)
 	$(call msg,PREPROCESSOR_EBPF,$@)
 	$(Q)$(CLANG) -E -P -g -O2 -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) client.bpf.c > $(OUTPUT)/prep_ebpf.c
 
-# generate AST dump of ebpf data
-$(OUTPUT)/ebpf_ast.json: client.bpf.c event.h
-	$(call msg,DUMP_AST)
-	$(Q)$(CLANG) -Xclang -ast-dump=json -I$(OUTPUT) -fsyntax-only client.bpf.c > $(OUTPUT)/event_ast.json
+# generate BTF dump of export data
+$(OUTPUT)/export_btf.json: $(OUTPUT)/client.bpf.o | $(OUTPUT)
+	$(call msg,GEN-BTF-EXPORT,$@)
+	$(Q)$(BPFTOOL) btf dump file $< format c -j > $@
 
-# generate AST dump of ebpf data
-$(OUTPUT)/ebpf_btf.json: $(OUTPUT)/client.bpf.o | $(OUTPUT)
-	$(call msg,GEN-BTF-DATA,$@)
-	$(Q)$(BPFTOOL) btf dump file $< -j > $@
+# generate BTF dump of export data
+$(OUTPUT)/skel.json: $(OUTPUT)/client.bpf.o | $(OUTPUT)
+	$(call msg,GEN-BTF-SKEL,$@)
+	$(Q)$(BPFTOOL) gen skeleton $< -j > $@
 
-# dump the ebpf program data from build binaries and source
-# dump memory layout of ebpf export ring buffer
-# add the type info for maps and progs in ebpf program data from source
-# generate the final package.json file and check
-.PHONY: compile
-compile:
-	make
-	$(call msg,DUMP_LLVM_MEMORY_LAYOUT)
-	$(Q) python $(PYTHON_SCRIPTS)/event_mem_layout.py fix_event_c
-	$(Q)$(CLANG) -cc1 -fdump-record-layouts-simple $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) -emit-llvm -D__TARGET_ARCH_$(ARCH) $(OUTPUT)/rb_export_event.c > $(OUTPUT)/event_layout.txt
-	$(Q) python $(PYTHON_SCRIPTS)/event_mem_layout.py > $(OUTPUT)/event_layout.json
-	$(call msg,DUMP_EBPF_PROGRAM)
-	$(Q)./client $(PACKAGE_NAME) > $(OUTPUT)/ebpf_program_without_type.json
-	$(Q)$(OUTPUT)/secgen $(OUTPUT)/client.bpf.o > $(OUTPUT)/ebpf_secdata.json
-	$(call msg,FIX_TYPE_INFO_IN_EBPF)
-	$(Q) python $(PYTHON_SCRIPTS)/fix_ebpf_program_types.py > $(OUTPUT)/ebpf_program.json
-	$(call msg,GENERATE_PACKAGE_JSON)
-	$(Q)python $(PYTHON_SCRIPTS)/merge_json_results.py > $(OUTPUT)/package.json
-	$(Q)python $(PYTHON_SCRIPTS)/check_is_valid_eunomia_ebpf.py
+create_eunomia-home: $(LIBBPF_OBJ) $(BPFTOOL)
+	rm -rf workspace && mkdir -p workspace/bin workspace/include
+	cd cmd && cargo build --release
+	cp cmd/target/release/ecc workspace/bin/ecc
+	cp $(BPFTOOL) workspace/bin/bpftool
+	cp -r .output/bpf workspace/include/bpf
+	cp -r ../third_party/vmlinux workspace/include/vmlinux
+	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia
 
 EWASM_DIR ?= eunomia-bpf/ewasm
 EWASM_BUILD_DIR ?= $(EWASM_DIR)/build
@@ -153,19 +113,12 @@ gen-wasm-skel: build
 	$(call msg,GEN-WASM-SKEL)
 	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C eunomia-bpf/ewasm/scripts generate
 
-.PHONY: clean_cache
-clean_cache:
-	$(Q)rm -f $(APPS) $(OUTPUT)/*.json $(OUTPUT)/*.o $(OUTPUT)/*.c $(OUTPUT)/*.h ./*.h ./client.bpf.c
-	$(Q)touch ./event.h
-
 .PHONY: build
 build:
-	$(Q)python ecc.py -d $(SOURCE_DIR) -i $(SOURCE_DIR) $(shell ls $(SOURCE_DIR)*.bpf.c)
+	$(Q)workspace/bin/ecc $(shell ls $(SOURCE_DIR)*.bpf.c) $(shell ls $(SOURCE_DIR)*.bpf.h) -p
 
 .PHONY: docker
 docker: wasi-sdk-16.0-linux.tar.gz
-	rm -rf eunomia-bpf
-	git clone https://github.com/eunomia-bpf/eunomia-bpf  --recursive --depth=1 --shallow-submodules
 	docker build -t yunwei37/ebpm:latest .
 
 .PHONY: docker-push
