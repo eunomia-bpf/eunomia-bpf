@@ -57,7 +57,8 @@ cmd_run_main(int argc, char *argv[])
 
     auto run_url_value =
         clipp::value("url", ebpf_program_name)
-        % "The url to get the ebpf program, can be file path or url";
+        % "The url to get the ebpf program, can be file path or url.\n"
+          "Or being \"--\" for receiving a json program from pipe.";
     auto run_opt_cmd_args = clipp::opt_values("extra args", run_with_extra_args)
                             % "Some extra args provided to the ebpf program";
     auto export_json_opt = clipp::option("-j", "--json")
