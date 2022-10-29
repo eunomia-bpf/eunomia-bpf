@@ -8,4 +8,5 @@ wasi-sdk-16.0-linux.tar.gz
 wasi-sdk-16.0
 cmd/target
 workspace
-output.skel.json
+*.skel.json
+package.json
