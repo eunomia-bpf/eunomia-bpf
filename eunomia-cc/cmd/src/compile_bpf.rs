@@ -131,8 +131,8 @@ fn get_export_types_json(args: &Args) -> Result<String> {
 
 /// compile JSON file
 pub fn compile_bpf(args: &Args) -> Result<()> {
-    let output_bpf_object_path = get_output_object_path(&args.output_path);
-    let output_json_path = get_output_json_path(&args.output_path);
+    let output_bpf_object_path = get_output_object_path(args);
+    let output_json_path = get_output_json_path(args);
     let mut meta_json = json!({});
 
     compile_bpf_object(args, &args.source_path, &output_bpf_object_path)?;
@@ -149,6 +149,11 @@ pub fn compile_bpf(args: &Args) -> Result<()> {
     Ok(())
 }
 
+pub fn pack_object_in_json(args: &Args) -> Result<()> {
+    compile_bpf(args)?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -162,6 +167,7 @@ mod test {
             output_path: "".to_string(),
             include_path: "".to_string(),
             export_event_header: "".to_string(),
+            pack_object: false,
         };
         let sys_include = get_bpf_sys_include(&args).unwrap();
         println!("{}", sys_include);
@@ -194,6 +200,7 @@ mod test {
             output_path: "/tmp/eunomia/test".to_string(),
             include_path: "".to_string(),
             export_event_header: event_path.to_str().unwrap().to_string(),
+            pack_object: false,
         };
         compile_bpf(&args).unwrap();
     }
@@ -221,6 +228,7 @@ mod test {
             output_path: "/tmp/eunomia/export_multi_struct_test".to_string(),
             include_path: "".to_string(),
             export_event_header: event_path.to_str().unwrap().to_string(),
+            pack_object: false,
         };
         compile_bpf(&args).unwrap();
     }
