@@ -19,11 +19,14 @@ fn get_bpf_sys_include(args: &Args) -> Result<String> {
         println!("$ {}\n {}", command, error);
         return Err(anyhow::anyhow!("failed to get bpf sys include"));
     }
+    if args.verbose {
+        println!("$ {}\n{}", command, output);
+    }
     Ok(output.replace("\n", " "))
 }
 
 /// Get target arch: x86 or arm, etc
-fn get_target_arch() -> Result<String> {
+fn get_target_arch(args: &Args) -> Result<String> {
     let command = r#" uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/'
      "#;
     let (code, output, error) = run_script::run_script!(command).unwrap();
@@ -31,17 +34,20 @@ fn get_target_arch() -> Result<String> {
         println!("$ {}\n {}", command, error);
         return Err(anyhow::anyhow!("failed to get target arch"));
     }
+    if args.verbose {
+        println!("$ {}\n{}", command, output);
+    }
     Ok(output.replace("\n", ""))
 }
 
 /// Get eunomia home include dirs
-fn get_eunomia_include() -> Result<String> {
+fn get_eunomia_include(args: &Args) -> Result<String> {
     let eunomia_home = get_eunomia_home()?;
     let eunomia_include = path::Path::new(&eunomia_home);
     let eunomia_include = fs::canonicalize(eunomia_include)?;
     let eunomia_include = eunomia_include.join("include");
     let vmlinux_include = eunomia_include.join("vmlinux");
-    let vmlinux_include = vmlinux_include.join(get_target_arch()?);
+    let vmlinux_include = vmlinux_include.join(get_target_arch(args)?);
     Ok(format!(
         "-I{} -I{}",
         eunomia_include.to_str().unwrap(),
@@ -61,7 +67,7 @@ fn get_bpftool_path() -> Result<String> {
 /// compile bpf object
 fn compile_bpf_object(args: &Args, source_path: &str, output_path: &str) -> Result<()> {
     let bpf_sys_include = get_bpf_sys_include(args)?;
-    let target_arch = get_target_arch()?;
+    let target_arch = get_target_arch(args)?;
     // add base dir as include path
     let base_dir = path::Path::new(source_path).parent().unwrap();
     let base_include = format!("-I{}", base_dir.to_str().unwrap());
@@ -70,16 +76,19 @@ fn compile_bpf_object(args: &Args, source_path: &str, output_path: &str) -> Resu
         args.clang_bin,
         target_arch,
         bpf_sys_include,
-        get_eunomia_include()?,
-        args.include_path,
+        get_eunomia_include(args)?,
+        args.additional_cflags,
         base_include,
         source_path,
         output_path
     );
-    let (code, _output, error) = run_script::run_script!(command).unwrap();
+    let (code, output, error) = run_script::run_script!(command).unwrap();
     if code != 0 {
         println!("$ {}\n {}", command, error);
         return Err(anyhow::anyhow!("failed to compile bpf object"));
+    }
+    if args.verbose {
+        println!("$ {}\n{}", command, output);
     }
     let command = format!("{} -g {}", args.llvm_strip_bin, output_path);
     let (code, _output, error) = run_script::run_script!(command).unwrap();
@@ -91,13 +100,16 @@ fn compile_bpf_object(args: &Args, source_path: &str, output_path: &str) -> Resu
 }
 
 /// get the skel as json object
-fn get_bpf_skel_json(object_path: &String) -> Result<String> {
+fn get_bpf_skel_json(object_path: &String, args: &Args) -> Result<String> {
     let bpftool_bin = get_bpftool_path()?;
     let command = format!("{} gen skeleton {} -j", bpftool_bin, object_path);
     let (code, output, error) = run_script::run_script!(command).unwrap();
     if code != 0 {
         println!("$ {}\n {}", command, error);
         return Err(anyhow::anyhow!("failed to get bpf skel json"));
+    }
+    if args.verbose {
+        println!("$ {}\n{}", command, output);
     }
     Ok(output)
 }
@@ -129,6 +141,9 @@ fn get_export_types_json(args: &Args) -> Result<String> {
         println!("$ {}\n {}", command, error);
         return Err(anyhow::anyhow!("failed to get export types json"));
     }
+    if args.verbose {
+        println!("$ {}\n{}", command, output);
+    }
     Ok(output)
 }
 
@@ -139,13 +154,15 @@ pub fn compile_bpf(args: &Args) -> Result<()> {
     let mut meta_json = json!({});
 
     compile_bpf_object(args, &args.source_path, &output_bpf_object_path)?;
-    let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_path)?;
+    let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_path, args)?;
     let bpf_skel_json = serde_json::from_str(&bpf_skel_json)?;
     meta_json["bpf_skel"] = bpf_skel_json;
 
-    let export_types_json = get_export_types_json(args)?;
-    let export_types_json = serde_json::from_str(&export_types_json)?;
-    meta_json["export_types"] = export_types_json;
+    if args.export_event_header != "" {
+        let export_types_json = get_export_types_json(args)?;
+        let export_types_json = serde_json::from_str(&export_types_json)?;
+        meta_json["export_types"] = export_types_json;
+    }
 
     let meta_json_str = serde_json::to_string(&meta_json)?;
     fs::write(output_json_path, meta_json_str)?;
@@ -187,15 +204,16 @@ mod test {
             clang_bin: "clang".to_string(),
             llvm_strip_bin: "llvm-strip".to_string(),
             output_path: "".to_string(),
-            include_path: "".to_string(),
+            additional_cflags: "".to_string(),
             export_event_header: "".to_string(),
             pack_object: false,
+            verbose: false,
         };
         let sys_include = get_bpf_sys_include(&args).unwrap();
         println!("{}", sys_include);
-        let target_arch = get_target_arch().unwrap();
+        let target_arch = get_target_arch(&args).unwrap();
         println!("{}", target_arch);
-        let eunomia_include = get_eunomia_include().unwrap();
+        let eunomia_include = get_eunomia_include(&args).unwrap();
         println!("{}", eunomia_include);
     }
 
@@ -220,9 +238,10 @@ mod test {
             clang_bin: "clang".to_string(),
             llvm_strip_bin: "llvm-strip".to_string(),
             output_path: "/tmp/eunomia/test".to_string(),
-            include_path: "".to_string(),
+            additional_cflags: "".to_string(),
             export_event_header: event_path.to_str().unwrap().to_string(),
             pack_object: false,
+            verbose: false,
         };
         compile_bpf(&args).unwrap();
     }
@@ -248,9 +267,10 @@ mod test {
             clang_bin: "clang".to_string(),
             llvm_strip_bin: "llvm-strip".to_string(),
             output_path: "/tmp/eunomia/export_multi_struct_test".to_string(),
-            include_path: "".to_string(),
+            additional_cflags: "".to_string(),
             export_event_header: event_path.to_str().unwrap().to_string(),
             pack_object: false,
+            verbose: false,
         };
         compile_bpf(&args).unwrap();
         pack_object_in_json(&args).unwrap();

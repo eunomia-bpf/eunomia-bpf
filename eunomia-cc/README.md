@@ -21,14 +21,15 @@ This serves as a cross reference for folks coming from different backgrounds.
 You will need `clang`, `libelf` and `zlib` to build the examples, package names may vary across distros.
 
 On Ubuntu/Debian, you need:
+
 ```shell
-$ apt install clang libelf1 libelf-dev zlib1g-dev llvm python
+apt install clang libelf1 libelf-dev zlib1g-dev llvm python
 ```
 
 On CentOS/Fedora, you need:
 
 ```shell
-$ dnf install clang elfutils-libelf elfutils-libelf-devel zlib-devel
+dnf install clang elfutils-libelf elfutils-libelf-devel zlib-devel
 ```
 
 ### Build locally
@@ -36,14 +37,15 @@ $ dnf install clang elfutils-libelf elfutils-libelf-devel zlib-devel
 Makefile build the toolchain:
 
 ```shell
-$ git submodule update --init --recursive       # check out libbpf
-$ make
+git submodule update --init --recursive       # check out libbpf
+make
+export PATH=$PATH:~/.eunomia/bin
 ```
 
 After the toolchain has been build, run:
 
 ```shell
-$ python ecc.py [you file to compile]
+ecc cmd/test/client.bpf.c cmd/test/event.h
 ```
 
 or

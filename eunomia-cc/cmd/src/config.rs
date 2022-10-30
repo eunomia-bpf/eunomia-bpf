@@ -8,7 +8,7 @@ use clap::Parser;
 #[command(
     author,
     version,
-    about = "eunomia compiler",
+    about = "eunomia-bpf compiler",
     long_about = "see https://github.com/eunomia-bpf/eunomia-bpf for more information"
 )]
 pub struct Args {
@@ -17,16 +17,16 @@ pub struct Args {
     pub source_path: String,
 
     /// path of the bpf.h header for defining event struct
-    #[arg()]
+    #[arg(default_value_t = ("").to_string())]
     pub export_event_header: String,
 
     /// path of output bpf object
     #[arg(short, long, default_value_t = ("").to_string())]
     pub output_path: String,
 
-    /// include path of compile btf object
+    /// additional c flags for clang
     #[arg(short, long, default_value_t = ("").to_string())]
-    pub include_path: String,
+    pub additional_cflags: String,
 
     /// path of clang binary
     #[arg(short, long, default_value_t = ("clang").to_string())]
@@ -39,6 +39,10 @@ pub struct Args {
     /// pack bpf object in JSON format with zlib compression and base64 encoding
     #[arg(short, long, default_value_t = false)]
     pub pack_object: bool,
+
+    /// print the command execution
+    #[arg(short, long, default_value_t = false)]
+    pub verbose: bool,
 }
 
 /// Get home directory from env
