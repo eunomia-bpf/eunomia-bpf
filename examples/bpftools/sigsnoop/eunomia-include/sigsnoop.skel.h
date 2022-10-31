@@ -150,7 +150,7 @@ int perf_buffer__poll(struct perf_buffer *pb, int timeout_ms) {
 int bpf_program__set_autoload(struct bpf_program *prog, bool autoload) {
     return 0;
 }
-const char* strerror(int errnum) {
+char* strerror(int errnum) {
     return "error";
 }
 int bpf_map__fd(const struct bpf_map *map) {
@@ -162,6 +162,7 @@ typedef void (*perf_buffer_lost_fn)(void *ctx, int cpu, unsigned long long cnt);
 struct perf_buffer;
 
 perf_buffer_sample_fn global_cb;
+struct perf_buffer_opts;
 
 struct perf_buffer *
 perf_buffer__new(int map_fd, size_t page_cnt,
@@ -180,8 +181,15 @@ int process_event(int ctx, char *e, int str_len)
     strcpy(eve.comm, cJSON_GetObjectItem(json, "comm")->valuestring);
     eve.tpid = cJSON_GetObjectItem(json, "tpid")->valueint;
     eve.ret = cJSON_GetObjectItem(json, "ret")->valueint;
-	global_cb(ctx, 0, &eve, str_len);
+	global_cb((void*)ctx, 0, &eve, str_len);
 	return 0;
+}
+
+extern const char argp_program_doc[];
+
+void argp_state_help(const struct argp_state *__state, int flag) {
+    printf("%s", argp_program_doc);
+    exit(0);
 }
 
 #endif /* __SIGSNOOP_BPF_SKEL_H__ */
