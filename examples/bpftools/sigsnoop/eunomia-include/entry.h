@@ -3,14 +3,11 @@
 
 // header only helpers for develop wasm app
 #include "cJSON/cJSON.c"
-#include "argparse/argparse.c"
 #include "helpers.h"
 
 #define MAX_ARGS 32
 
-// main function entry for ebpf wasm app
-int main(int argc, const char** argv);
-
+int main(int argc, char **argv);
 int bpf_main(char *env_json, int str_len)
 {
 	cJSON *env = cJSON_Parse(env_json);
@@ -37,7 +34,7 @@ int bpf_main(char *env_json, int str_len)
         }
         argv[i] = item->valuestring;
     }
-	return main(argc, (const char **)argv);
+	return main(argc, argv);
 }
 
 #endif
