@@ -70,6 +70,8 @@ fn compile_bpf_object(args: &Args, source_path: &str, output_path: &str) -> Resu
     let target_arch = get_target_arch(args)?;
     // add base dir as include path
     let base_dir = path::Path::new(source_path).parent().unwrap();
+    let base_dir = if base_dir == path::Path::new("") { path::Path::new("./") } else { base_dir };
+    let base_dir = fs::canonicalize(base_dir)?;
     let base_include = format!("-I{}", base_dir.to_str().unwrap());
     let command = format!(
         "{} -g -O2 -target bpf -D__TARGET_ARCH_{} {} {} {} {} -c {} -o {}",
