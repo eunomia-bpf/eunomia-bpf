@@ -1,4 +1,4 @@
-# Build on  ARM
+# supporting external BTF
 
 1.确认内核BTF选项已经打开
 
@@ -33,9 +33,9 @@ $ cd btfhub ; ls
 $ rsync -avz ../btfhub-archive/ --exclude=.git* --exclude=README.md ./archive/
 ```
 
-整个btfhub-archive目录相当庞大，可以单独下载某个BTF归档文件放入btfhub 目录
+ 整个btfhub-archive目录相当庞大，可以单独下载某个BTF归档文件放入btfhub 目录
 
-```
+```sh
 $ rsync -avz ../5.11.0-1027-azure.btf.tar.xz --exclude=.git* --exclude=README.md ./archive/
 sending incremental file list
 
@@ -46,7 +46,7 @@ total size is 144,419  speedup is 1,622.69
 之后就可以根据某个对应的eBPF 对象生成定制的BTF 文件
 
 ```
-//生成定制的 eBPF 对象的 BTF 文件:
+#生成定制的 eBPF 对象的 BTF 文件:
 $ ./tools/btfgen.sh -a AARCH64 -o $HOME/****.bpf.core.o
 ```
 
