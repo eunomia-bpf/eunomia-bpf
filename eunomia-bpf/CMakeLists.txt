@@ -168,7 +168,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(ExternalProject)
 ExternalProject_Add(libbpf
   PREFIX libbpf
-  SOURCE_DIR ${THIRD_PARTY_DIR}/libbpf/src
+  SOURCE_DIR ${THIRD_PARTY_DIR}/bpftool/libbpf/src
   CONFIGURE_COMMAND ""
   BUILD_COMMAND make
     BUILD_STATIC_ONLY=1
