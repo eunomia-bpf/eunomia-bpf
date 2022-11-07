@@ -17,7 +17,7 @@
 With `eunomia-bpf`, you can also get pre-compiled eBPF programs running from the cloud to the kernel in `1` line of bash, kernel version and architecture independent! For example:
 
 ```bash
-$ sudo ecli run sigsnoop
+sudo ecli run sigsnoop
 ```
 
 Base on `eunomia-bpf`, we have an eBPF pacakge manager in [LMP](https://github.com/linuxkerneltravel/lmp) project, with OCI images and [ORAS](https://github.com/oras-project/oras). Powered by WASM, an eBPF program may be able to:
@@ -55,7 +55,7 @@ Or you can write eBPF kernel code only and compile it to a `JSON`:
 docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
 ```
 
-see [examples](examples) for more examples. 
+see [examples](examples) for more examples.
 
 ### A library to load eBPF program from a WASM module
 
@@ -72,7 +72,7 @@ See [ewasm](ewasm) for details. In fact, `ewasm` library only exports a few func
 For example, you can run an eBPF program with a WASM module for an URL:
 
 ```bash
-$ sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/app.wasm
+sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/app.wasm
 ```
 
 You can also generate a WASM program template for eBPF or build WASM module with `eunomia-cc` container:
@@ -94,7 +94,7 @@ you can also simply use the [ebpm-template](https://github.com/eunomia-bpf/ebpm-
 
 ### other related projects
 
-- LMP eBPF Hub: [github.com/linuxkerneltravel/lmp](https://github.com/linuxkerneltravel/lmp) 
+- LMP eBPF Hub: [github.com/linuxkerneltravel/lmp](https://github.com/linuxkerneltravel/lmp)
 
     > a package manager for eBPF based on wasm modules
 
