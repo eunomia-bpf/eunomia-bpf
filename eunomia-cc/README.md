@@ -44,17 +44,25 @@ export PATH=$PATH:~/.eunomia/bin
 
 After the toolchain has been build, run:
 
-```shell
+```console
+$ ecc -h
+eunomia-bpf compiler
+
+Usage: ecc [OPTIONS] <SOURCE_PATH> [EXPORT_EVENT_HEADER]
+```
+
+For example, to compile `cmd/test/client.bpf.c` and export the event header with `cmd/test/client.bpf.h`:
+
+```console
 ecc cmd/test/client.bpf.c cmd/test/event.h
 ```
 
-or
+Or you may use the make file:
 
 ```shell
 SOURCE_DIR=[target dir] make build
 ```
 
-to compile it.
 
 ### build docker image
 

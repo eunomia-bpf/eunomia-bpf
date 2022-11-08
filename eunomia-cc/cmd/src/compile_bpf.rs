@@ -8,6 +8,7 @@ use std::{
     fs,
     path::{self, Path},
 };
+use temp_dir::TempDir;
 
 /// Get include paths from clang
 fn get_bpf_sys_include(args: &Args) -> Result<String> {
@@ -70,7 +71,11 @@ fn compile_bpf_object(args: &Args, source_path: &str, output_path: &str) -> Resu
     let target_arch = get_target_arch(args)?;
     // add base dir as include path
     let base_dir = path::Path::new(source_path).parent().unwrap();
-    let base_dir = if base_dir == path::Path::new("") { path::Path::new("./") } else { base_dir };
+    let base_dir = if base_dir == path::Path::new("") {
+        path::Path::new("./")
+    } else {
+        base_dir
+    };
     let base_dir = fs::canonicalize(base_dir)?;
     let base_include = format!("-I{}", base_dir.to_str().unwrap());
     let command = format!(
@@ -117,10 +122,8 @@ fn get_bpf_skel_json(object_path: &String, args: &Args) -> Result<String> {
 }
 
 /// get the export typs as json object
-fn get_export_types_json(args: &Args) -> Result<String> {
+fn get_export_types_json(args: &Args, tmp_dir: &Path) -> Result<String> {
     // create tmp export c file
-    let tmp_dir = Path::new(TEMP_EUNOMIA_DIR);
-    fs::create_dir_all(tmp_dir).unwrap();
     let temp_file = tmp_dir.join(EXPORT_DEFINE_C_FILE);
     create_tmp_export_c_file(args, temp_file.to_str().unwrap())?;
 
@@ -146,7 +149,16 @@ fn get_export_types_json(args: &Args) -> Result<String> {
     if args.verbose {
         println!("$ {}\n{}", command, output);
     }
-    Ok(output)
+    let mut export_types_json: Value = serde_json::from_str(&output)?;
+    let encoded_btf: Value = export_types_json["raw_btf"].clone();
+    let encoded_btf = encoded_btf.as_str().unwrap();
+    let raw_btf = base64::decode(encoded_btf)?;
+    let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
+    e.write_all(&raw_btf)?;
+    let compressed_bytes = e.finish()?;
+    let encode_raw_btf = base64::encode(&compressed_bytes);
+    export_types_json["raw_btf"] = json!(encode_raw_btf);
+    Ok(serde_json::to_string(&export_types_json)?)
 }
 
 /// compile JSON file
@@ -155,14 +167,19 @@ pub fn compile_bpf(args: &Args) -> Result<()> {
     let output_json_path = get_output_json_path(args);
     let mut meta_json = json!({});
 
+    // compile bpf object
+    println!("Compiling bpf object...");
     compile_bpf_object(args, &args.source_path, &output_bpf_object_path)?;
     let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_path, args)?;
     let bpf_skel_json = serde_json::from_str(&bpf_skel_json)?;
     meta_json["bpf_skel"] = bpf_skel_json;
 
+    // compile export types
     if args.export_event_header != "" {
-        let export_types_json = get_export_types_json(args)?;
-        let export_types_json = serde_json::from_str(&export_types_json)?;
+        println!("Generating export types...");
+        let temp_eunomia_dir = TempDir::with_prefix("eunomia").unwrap();
+        let export_types_json = get_export_types_json(args, temp_eunomia_dir.path())?;
+        let export_types_json: Value = serde_json::from_str(&export_types_json)?;
         meta_json["export_types"] = export_types_json;
     }
 
@@ -197,6 +214,7 @@ pub fn pack_object_in_json(args: &Args) -> Result<()> {
 
 #[cfg(test)]
 mod test {
+    const TEMP_EUNOMIA_DIR: &str = "/tmp/eunomia";
     use super::*;
 
     #[test]
@@ -232,6 +250,7 @@ mod test {
         )
         .unwrap();
         let source_path = tmp_dir.join("client.bpf.c");
+        println!("source_path: {}", source_path.to_str().unwrap());
         fs::write(&source_path, test_bpf).unwrap();
         let event_path = tmp_dir.join("event.h");
         fs::write(&event_path, test_event).unwrap();
