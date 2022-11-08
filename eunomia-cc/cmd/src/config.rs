@@ -82,6 +82,5 @@ pub fn get_output_object_path(args: &Args) -> String {
     output_object_path.to_str().unwrap().to_string()
 }
 
-pub const TEMP_EUNOMIA_DIR: &str = "/tmp/eunomia";
 pub const EXPORT_DEFINE_C_FILE: &str = "export_events_define.bpf.c";
 pub const EXPORT_DEFINE_BPF_OBJECT: &str = "export_events_define.bpf.o";

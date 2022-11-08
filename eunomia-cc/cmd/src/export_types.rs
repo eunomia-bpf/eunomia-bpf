@@ -29,7 +29,10 @@ pub fn create_tmp_export_c_file(args: &Args, path: &str) -> Result<()> {
 
     for cap in re.captures_iter(&export_struct_header) {
         let struct_name = &cap[1];
-        export_struct_file += &format!("struct {} * {}_ptr;\n", struct_name, struct_name);
+        export_struct_file += &format!(
+            "const volatile struct {} * __eunomia_dummy_{}_ptr;\n",
+            struct_name, struct_name
+        );
     }
     fs::write(path, export_struct_file.as_bytes())?;
     Ok(())

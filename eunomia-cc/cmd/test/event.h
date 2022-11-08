@@ -14,6 +14,11 @@
 #define TASK_COMM_LEN 16
 #define MAX_FILENAME_LEN 127
 
+enum event_type {
+	EVENT_TYPE__ENTER,
+	EVENT_TYPE__EXIT,
+};
+
 struct event {
 	int pid;
 	int ppid;
@@ -22,6 +27,7 @@ struct event {
 	char comm[TASK_COMM_LEN];
 	char filename[MAX_FILENAME_LEN];
 	bool exit_event;
+	enum event_type et;
 };
 
 #endif /* __BOOTSTRAP_H */
