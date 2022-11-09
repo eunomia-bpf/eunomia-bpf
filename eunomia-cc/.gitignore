@@ -9,4 +9,6 @@ wasi-sdk-16.0
 cmd/target
 workspace
 *.skel.json
+*.skel.yaml
 package.json
+

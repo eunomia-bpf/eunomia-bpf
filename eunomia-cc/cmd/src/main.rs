@@ -10,7 +10,7 @@ fn main() -> Result<()> {
     let args = Args::parse();
     compile_bpf(&args)?;
     if args.pack_object {
-        pack_object_in_json(&args)?;
+        pack_object_in_config(&args)?;
     }
     Ok(())
 }
