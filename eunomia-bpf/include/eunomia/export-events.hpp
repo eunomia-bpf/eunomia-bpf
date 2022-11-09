@@ -48,7 +48,7 @@ namespace eunomia
     /// @brief check a single type in export map and insert into the checked_export_types array
     /// @param field field meta data
     /// @param width the width of the type in bytes
-    void check_and_add_export_type(ebpf_rb_export_field_meta_data &field, std::size_t width);
+    void check_and_add_export_type(export_types_member_meta_data &field, std::size_t width);
     /// print the export header meta if needed
     void print_export_types_header(void);
 

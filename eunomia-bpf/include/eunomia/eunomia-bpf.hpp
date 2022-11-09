@@ -72,12 +72,12 @@ namespace eunomia
     /// @brief  data storage
     /// @details meta data control the behavior of ebpf program:
     /// eg. types of the eBPF maps and prog, export data types
-    eunomia_ebpf_meta_data meta_data;
+    bpf_skel_meta_data meta_data;
     /// @brief  config of eunomia own
     /// @details config of eunomia own,
     /// for how we creating, loading and interacting with the eBPF program
     /// eg. poll maps timeout in ms
-    eunomia_config config_data;
+    runner_config config_data;
 
     /// @brief  controler of the export event to user space
     event_exporter exporter;
@@ -87,7 +87,7 @@ namespace eunomia
 
     /// buffer to base 64 decode
     bpf_object *obj = nullptr;
-    std::vector<char> base64_decode_buffer = {};
+    std::vector<char> __bpf_object_buffer = {};
     std::vector<bpf_map *> maps = {};
     std::vector<bpf_program *> progs = {};
     std::vector<bpf_link *> links = {};
@@ -102,9 +102,9 @@ namespace eunomia
 
    public:
     /// create a ebpf program from json config str
-    bpf_skeleton(const std::string &json_str);
+    bpf_skeleton(const std::string &json_str, std::vector<char> bpf_object_buffer);
     bpf_skeleton() = default;
-    [[nodiscard]] int open_from_json_config(const std::string &json_str) noexcept;
+    [[nodiscard]] int open_from_json_config(const std::string &json_str, std::vector<char> bpf_object_buffer) noexcept;
     bpf_skeleton(const bpf_skeleton &) = delete;
     bpf_skeleton(bpf_skeleton &&);
     ~bpf_skeleton()

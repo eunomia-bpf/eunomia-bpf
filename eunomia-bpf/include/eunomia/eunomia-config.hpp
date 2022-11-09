@@ -5,7 +5,7 @@
 
 /// Global config to control the behavior of eunomia-bpf
 /// TODO: load config from json or config files
-struct eunomia_config {
+struct runner_config {
     /// perf buffer related config
     std::size_t perf_buffer_pages = 64;
     std::size_t perf_buffer_time_ms = 10;

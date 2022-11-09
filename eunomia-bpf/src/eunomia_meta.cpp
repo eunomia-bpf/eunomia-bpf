@@ -40,7 +40,7 @@ namespace eunomia
     j.at(#name).get_to(data.name); \
   }
 
-  static void from_json(const nlohmann::json &j, ebpf_rb_export_field_meta_data &data)
+  static void from_json(const nlohmann::json &j, export_types_member_meta_data &data)
   {
     j.at("Name").get_to(data.name);
     j.at("Type").get_to(data.type);
@@ -95,7 +95,7 @@ namespace eunomia
     return str_ends_with(name, ".bss");
   }
 
-  void eunomia_ebpf_meta_data::from_json_str(const std::string &j_str)
+  void bpf_skel_meta_data::from_json_str(const std::string &j_str)
   {
     json jj = json::parse(j_str);
     ebpf_name = jj["name"];
@@ -105,7 +105,7 @@ namespace eunomia
     ebpf_data = jj["data"];
   }
 
-  int bpf_skeleton::open_from_json_config(const std::string &json_str) noexcept
+  int bpf_skeleton::open_from_json_config(const std::string &json_str, std::vector<char> bpf_object_buffer) noexcept
   {
     try
     {
@@ -122,9 +122,9 @@ namespace eunomia
   }
 
   /// create a ebpf program from json str
-  bpf_skeleton::bpf_skeleton(const std::string &json_str)
+  bpf_skeleton::bpf_skeleton(const std::string &json_str, std::vector<char> bpf_object_buffer)
   {
-    int res = open_from_json_config(json_str);
+    int res = open_from_json_config(json_str, std::move(bpf_object_buffer));
     if (res != 0)
     {
       std::cerr << "failed to load json config" << std::endl;

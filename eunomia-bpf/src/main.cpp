@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
     json_str = std::string((std::istreambuf_iterator<char>(std::cin)), std::istreambuf_iterator<char>());
   }
   std::cout << json_str << std::endl;
-  bpf_skeleton ebpf_program{ json_str };
+  bpf_skeleton ebpf_program{ json_str, {} };
   if (ebpf_program.load_and_attach())
   {
     std::cerr << "Failed to run ebpf program" << std::endl;

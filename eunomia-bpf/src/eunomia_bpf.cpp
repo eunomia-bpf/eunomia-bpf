@@ -29,6 +29,7 @@ namespace eunomia
       return 0;
     return vfprintf(stderr, format, args);
   }
+
   int bpf_skeleton::load_and_attach_prog(void)
   {
     int err = 0;
@@ -72,6 +73,7 @@ namespace eunomia
     }
     return 0;
   }
+
   /// load and attach the eBPF program to the kernel
   int bpf_skeleton::load_and_attach(void) noexcept
   {
@@ -343,8 +345,8 @@ namespace eunomia
     }
 
     s->data_sz = meta_data.data_sz;
-    base64_decode_buffer = base64_decode((const unsigned char *)meta_data.ebpf_data.c_str(), meta_data.ebpf_data.size());
-    s->data = (void *)base64_decode_buffer.data();
+    __bpf_object_buffer = base64_decode((const unsigned char *)meta_data.ebpf_data.c_str(), meta_data.ebpf_data.size());
+    s->data = (void *)__bpf_object_buffer.data();
 
     s->obj = &obj;
     skeleton = s;
@@ -382,14 +384,15 @@ extern "C"
   {
     eunomia::bpf_skeleton program;
   };
-  struct eunomia_bpf *open_eunomia_skel_from_json(const char *json_data)
+  struct eunomia_bpf *open_eunomia_skel_from_json(const char *json_data, const char *bpf_object_buffer, size_t object_size)
   {
     struct eunomia_bpf *bpf = new eunomia_bpf{ eunomia::bpf_skeleton() };
     if (!bpf)
     {
       return nullptr;
     }
-    if (bpf->program.open_from_json_config(json_data) < 0)
+    if (bpf->program.open_from_json_config(
+            json_data, std::vector<char>{ bpf_object_buffer, bpf_object_buffer + object_size }) < 0)
     {
       delete bpf;
       return nullptr;
@@ -457,8 +460,10 @@ extern "C"
     delete prog;
   }
 
-  int get_bpf_fd(struct eunomia_bpf* prog, const char* name) {
-    if (!prog) {
+  int get_bpf_fd(struct eunomia_bpf *prog, const char *name)
+  {
+    if (!prog)
+    {
       return -1;
     }
     return prog->program.get_fd(name);
