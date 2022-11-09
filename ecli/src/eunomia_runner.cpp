@@ -15,12 +15,12 @@
 using json = nlohmann::json;
 
 int
-eunomia_program_runner::run_ebpf_program()
+eunomia_program_runner::load_and_attach_eunomia_skel()
 {
     std::string program_data =
         std::string(current_config.program_data_buffer.begin(),
                     current_config.program_data_buffer.end());
-    if (program.load_json_config(program_data) < 0) {
+    if (program.open_from_json_config(program_data) < 0) {
         spdlog::error("load json config failed");
         return -1;
     }
@@ -37,7 +37,7 @@ eunomia_program_runner::run_ebpf_program()
 }
 
 int
-ewasm_program_runner::run_ebpf_program()
+ewasm_program_runner::load_and_attach_eunomia_skel()
 {
     ewasm_program p;
     std::string json_env = "[\"app\"]";

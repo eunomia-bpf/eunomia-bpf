@@ -46,7 +46,7 @@ class ewasm_program : public ewasm_program_base
     void process_event(const char *e) override;
 
   private:
-    std::map<int, std::unique_ptr<eunomia::eunomia_ebpf_program>> bpf_program_map;
+    std::map<int, std::unique_ptr<eunomia::bpf_skeleton>> bpf_program_map;
     wasm_module_t module = nullptr;
     wasm_module_inst_t module_inst = nullptr;
     wasm_exec_env_t exec_env = nullptr;

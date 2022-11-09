@@ -67,7 +67,7 @@ void json_cmp_handler(void* ctx, const char* event)
 
 int check_event_output(test_case& t_case)
 {
-  eunomia_event_exporter exporter;
+  event_exporter exporter;
   ebpf_export_types_meta_data meta;
   int res;
 

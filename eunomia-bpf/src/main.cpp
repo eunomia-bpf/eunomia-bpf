@@ -26,8 +26,8 @@ int main(int argc, char *argv[])
     json_str = std::string((std::istreambuf_iterator<char>(std::cin)), std::istreambuf_iterator<char>());
   }
   std::cout << json_str << std::endl;
-  eunomia_ebpf_program ebpf_program{ json_str };
-  if (ebpf_program.run())
+  bpf_skeleton ebpf_program{ json_str };
+  if (ebpf_program.load_and_attach())
   {
     std::cerr << "Failed to run ebpf program" << std::endl;
     return -1;
@@ -37,6 +37,6 @@ int main(int argc, char *argv[])
     std::cerr << "Failed to wait and print rb" << std::endl;
     return -1;
   }
-  ebpf_program.stop_and_clean();
+  ebpf_program.destory();
   return 0;
 }

@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
         std::cout << "usage: " << argv[0] << " <json config file>" << std::endl;
         exit(1);
     }
-    eunomia_ebpf_program ebpf_program{json_str};
+    bpf_skeleton ebpf_program{json_str};
     if (ebpf_program.run() < 0)
     {
         std::cerr << "Failed to run ebpf program" << std::endl;

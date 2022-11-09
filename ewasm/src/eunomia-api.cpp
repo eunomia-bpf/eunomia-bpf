@@ -14,8 +14,8 @@ int
 ewasm_program::create_bpf_program(char *ebpf_json)
 {
     int id = (int)bpf_program_map.size();
-    bpf_program_map.emplace(id, std::make_unique<eunomia_ebpf_program>());
-    int res = bpf_program_map[id]->load_json_config(ebpf_json);
+    bpf_program_map.emplace(id, std::make_unique<bpf_skeleton>());
+    int res = bpf_program_map[id]->open_from_json_config(ebpf_json);
     if (res < 0) {
         return res;
     }

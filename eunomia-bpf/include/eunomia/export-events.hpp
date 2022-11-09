@@ -25,7 +25,7 @@ namespace eunomia
   using export_event_handler = std::function<void(void* ctx, const char *event)>;
 
   /// @brief eunomia-bpf exporter for events in user space
-  class eunomia_event_exporter
+  class event_exporter
   {
    private:
     std::size_t EXPORT_BUFFER_SIZE = 2048;
@@ -63,9 +63,9 @@ namespace eunomia
     void export_event_to_json(const char *event);
 
    public:
-    eunomia_event_exporter(const eunomia_event_exporter &) = delete;
-    eunomia_event_exporter() = default;
-    eunomia_event_exporter(std::size_t max_buffer_size) : EXPORT_BUFFER_SIZE(max_buffer_size) {}
+    event_exporter(const event_exporter &) = delete;
+    event_exporter() = default;
+    event_exporter(std::size_t max_buffer_size) : EXPORT_BUFFER_SIZE(max_buffer_size) {}
 
     /// print event with meta data;
     /// used for export call backs: ring buffer and perf events
