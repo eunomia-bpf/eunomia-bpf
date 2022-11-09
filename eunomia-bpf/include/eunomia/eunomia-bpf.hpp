@@ -42,9 +42,9 @@ namespace eunomia
   /// @brief eunomia-bpf program class
 
   /// @details Used for managing the life span of eBPF program
-  class eunomia_ebpf_program
+  class bpf_skeleton
   {
-   friend class eunomia_raw_processor;
+   friend class data_section_processor;
    private:
     /// create an ebpf skeleton
     int create_prog_skeleton(void);
@@ -80,10 +80,10 @@ namespace eunomia
     eunomia_config config_data;
 
     /// @brief  controler of the export event to user space
-    eunomia_event_exporter event_exporter;
+    event_exporter exporter;
 
     // help process the eBPF program with json config
-    eunomia_raw_processor processor = {};
+    data_section_processor processor = {};
 
     /// buffer to base 64 decode
     bpf_object *obj = nullptr;
@@ -102,21 +102,21 @@ namespace eunomia
 
    public:
     /// create a ebpf program from json config str
-    eunomia_ebpf_program(const std::string &json_str);
-    eunomia_ebpf_program() = default;
-    [[nodiscard]] int load_json_config(const std::string &json_str) noexcept;
-    eunomia_ebpf_program(const eunomia_ebpf_program &) = delete;
-    eunomia_ebpf_program(eunomia_ebpf_program &&);
-    ~eunomia_ebpf_program()
+    bpf_skeleton(const std::string &json_str);
+    bpf_skeleton() = default;
+    [[nodiscard]] int open_from_json_config(const std::string &json_str) noexcept;
+    bpf_skeleton(const bpf_skeleton &) = delete;
+    bpf_skeleton(bpf_skeleton &&);
+    ~bpf_skeleton()
     {
-      stop_and_clean();
+      destory();
     }
     /// start running the ebpf program
 
     /// load and attach the ebpf program to the kernel to run the ebpf program
     /// if the ebpf program has maps to export to user space, you need to call
     /// the wait and export.
-    [[nodiscard]] int run(void) noexcept;
+    [[nodiscard]] int load_and_attach(void) noexcept;
 
     /// @brief wait for the program to exit
     /// @details the program has a ring buffer or perf event to export data
@@ -133,7 +133,7 @@ namespace eunomia
     /// This is thread safe with wait_and_poll.
     /// it will notify the wait_and_poll to exit and
     /// wait until it exits.
-    void stop_and_clean(void) noexcept;
+    void destory(void) noexcept;
 
     /// get the name id of the ebpf program
     const std::string &get_program_name(void) const;

@@ -7,7 +7,7 @@ using nlohmann::json;
 
 namespace eunomia
 {
-  eunomia_ebpf_meta_data eunomia_raw_processor::create_meta_from_json(const std::string& json_str)
+  eunomia_ebpf_meta_data data_section_processor::create_meta_from_json(const std::string& json_str)
   {
     eunomia_ebpf_meta_data meta_data;
     meta_data.from_json_str(json_str);
@@ -34,7 +34,7 @@ namespace eunomia
     memcpy(buffer + offset, &value, sizeof(T));
   }
 
-  void eunomia_raw_processor::load_section_data(std::size_t index, const ebpf_maps_meta_data& map, char* buffer)
+  void data_section_processor::load_section_data(std::size_t index, const ebpf_maps_meta_data& map, char* buffer)
   {
     if (!buffer || runtime_args.empty())
     {
@@ -84,7 +84,7 @@ namespace eunomia
     }
   }
 
-  void eunomia_raw_processor::load_map_data(eunomia_ebpf_program& prog)
+  void data_section_processor::load_map_data(bpf_skeleton& prog)
   {
     if (runtime_args.length() == 0)
     {

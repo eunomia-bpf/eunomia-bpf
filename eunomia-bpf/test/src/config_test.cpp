@@ -22,7 +22,7 @@ int main(int argc, char **argv)
   }
   std::string json_str((std::istreambuf_iterator<char>(fs)), std::istreambuf_iterator<char>());
   fs.close();
-  eunomia::eunomia_ebpf_program program;
-  assert(program.load_json_config(json_str) == 0);
+  eunomia::bpf_skeleton program;
+  assert(program.open_from_json_config(json_str) == 0);
   return 0;
 }

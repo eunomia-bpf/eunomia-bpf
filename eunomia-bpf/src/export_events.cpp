@@ -35,7 +35,7 @@ namespace eunomia
     // Support more types?
   };
 
-  void eunomia_event_exporter::add_export_type_with_fmt(export_type_info f)
+  void event_exporter::add_export_type_with_fmt(export_type_info f)
   {
     auto info = f;
     switch (format_type)
@@ -59,7 +59,7 @@ namespace eunomia
     checked_export_types.emplace_back(info);
   }
 
-  void eunomia_event_exporter::check_and_add_export_type(ebpf_rb_export_field_meta_data &field, std::size_t width)
+  void event_exporter::check_and_add_export_type(ebpf_rb_export_field_meta_data &field, std::size_t width)
   {
     bool is_vaild_type = false;
     // use the lookup table to determine format
@@ -90,7 +90,7 @@ namespace eunomia
     }
   }
 
-  void eunomia_event_exporter::print_export_types_header(void)
+  void event_exporter::print_export_types_header(void)
   {
     // print the time header
     std::cout << "time ";
@@ -102,7 +102,7 @@ namespace eunomia
     std::cout << std::endl;
   }
 
-  int eunomia_event_exporter::check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types)
+  int event_exporter::check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types)
   {
     auto fields = types.fields;
     // clean the last fields
@@ -205,7 +205,7 @@ namespace eunomia
                                     { "i32", print_export_field<uint32_t> },     { "i64", print_export_field<uint64_t> },
                                     { "i128", print_export_field<__uint128_t> }, { "cstring", print_export_cstring } };
 
-  void eunomia_event_exporter::print_export_event_to_json(const char *event)
+  void event_exporter::print_export_event_to_json(const char *event)
   {
     sprintf_printer printer{ export_event_buffer, EXPORT_BUFFER_SIZE };
 
@@ -243,7 +243,7 @@ namespace eunomia
     printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
   }
 
-  void eunomia_event_exporter::raw_event_handler(const char *event)
+  void event_exporter::raw_event_handler(const char *event)
   {
     if (user_export_event_handler)
     {
@@ -251,7 +251,7 @@ namespace eunomia
     }
   }
 
-  void eunomia_event_exporter::print_plant_text_event_with_time(const char *event)
+  void event_exporter::print_plant_text_event_with_time(const char *event)
   {
     struct tm *tm;
     char ts[32];
@@ -288,7 +288,7 @@ namespace eunomia
   }
 
   /// FIXME: output config with lua
-  void eunomia_event_exporter::handler_export_events(const char *event) const
+  void event_exporter::handler_export_events(const char *event) const
   {
     if (!event)
     {
@@ -305,7 +305,7 @@ namespace eunomia
     }
   }
 
-  void eunomia_event_exporter::set_export_type(export_format_type type, export_event_handler handler, void *ctx)
+  void event_exporter::set_export_type(export_format_type type, export_event_handler handler, void *ctx)
   {
     format_type = type;
     /// preserve the user defined handler
@@ -316,31 +316,31 @@ namespace eunomia
       case export_format_type::EXPORT_JSON:
       {
         internal_event_processor =
-            std::bind(&eunomia_event_exporter::print_export_event_to_json, this, std::placeholders::_1);
+            std::bind(&event_exporter::print_export_event_to_json, this, std::placeholders::_1);
       }
       break;
       case export_format_type::EXPORT_RAW_EVENT:
-        internal_event_processor = std::bind(&eunomia_event_exporter::raw_event_handler, this, std::placeholders::_1);
+        internal_event_processor = std::bind(&event_exporter::raw_event_handler, this, std::placeholders::_1);
         break;
       case export_format_type::EXPORT_PLANT_TEXT: [[fallthrough]];
       default:
         internal_event_processor =
-            std::bind(&eunomia_event_exporter::print_plant_text_event_with_time, this, std::placeholders::_1);
+            std::bind(&event_exporter::print_plant_text_event_with_time, this, std::placeholders::_1);
         break;
     }
   }
 
-  void eunomia_ebpf_program::handler_export_events(const char *event) const
+  void bpf_skeleton::handler_export_events(const char *event) const
   {
-    event_exporter.handler_export_events(event);
+    exporter.handler_export_events(event);
   }
 
-  int eunomia_ebpf_program::wait_and_poll_to_handler(
+  int bpf_skeleton::wait_and_poll_to_handler(
       enum export_format_type type,
       export_event_handler handler,
       void *ctx) noexcept
   {
-    event_exporter.set_export_type(type, handler, ctx);
+    exporter.set_export_type(type, handler, ctx);
     int err = 0;
     try
     {

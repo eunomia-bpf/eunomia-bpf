@@ -29,7 +29,7 @@ namespace eunomia
       return 0;
     return vfprintf(stderr, format, args);
   }
-  int eunomia_ebpf_program::load_and_attach_prog(void)
+  int bpf_skeleton::load_and_attach_prog(void)
   {
     int err = 0;
 
@@ -73,7 +73,7 @@ namespace eunomia
     return 0;
   }
   /// load and attach the eBPF program to the kernel
-  int eunomia_ebpf_program::run(void) noexcept
+  int bpf_skeleton::load_and_attach(void) noexcept
   {
     // check the state of the program
     if (state == ebpf_program_state::INVALID)
@@ -99,7 +99,7 @@ namespace eunomia
     return err;
   }
 
-  const std::string &eunomia_ebpf_program::get_program_name(void) const
+  const std::string &bpf_skeleton::get_program_name(void) const
   {
     return meta_data.ebpf_name;
   }
@@ -107,7 +107,7 @@ namespace eunomia
   static int handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
   {
     const char *e = (const char *)(const void *)data;
-    const eunomia_ebpf_program *p = (const eunomia_ebpf_program *)ctx;
+    const bpf_skeleton *p = (const bpf_skeleton *)ctx;
     if (!p || !e)
     {
       std::cerr << "empty ctx or events" << std::endl;
@@ -117,12 +117,12 @@ namespace eunomia
     return 0;
   }
 
-  int eunomia_ebpf_program::wait_and_poll_from_rb(std::size_t rb_map_id)
+  int bpf_skeleton::wait_and_poll_from_rb(std::size_t rb_map_id)
   {
     int err = 0;
 
     std::cout << "running and waiting for the ebpf events from ring buffer..." << std::endl;
-    if (event_exporter.check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
+    if (exporter.check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
     {
       std::cerr << "Failed to create print format" << std::endl;
       return -1;
@@ -156,7 +156,7 @@ namespace eunomia
   static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
   {
     const char *e = (const char *)(const void *)data;
-    const eunomia_ebpf_program *p = (const eunomia_ebpf_program *)ctx;
+    const bpf_skeleton *p = (const bpf_skeleton *)ctx;
     if (!p || !e)
     {
       std::cerr << "empty ctx or events" << std::endl;
@@ -170,12 +170,12 @@ namespace eunomia
     fprintf(stderr, "Lost %llu events on CPU #%d!\n", lost_cnt, cpu);
   }
 
-  int eunomia_ebpf_program::wait_and_poll_from_perf_event(std::size_t rb_map_id)
+  int bpf_skeleton::wait_and_poll_from_perf_event(std::size_t rb_map_id)
   {
     int err = 0;
 
     std::cout << "running and waiting for the ebpf events from perf event..." << std::endl;
-    if (event_exporter.check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
+    if (exporter.check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
     {
       std::cerr << "Failed to create print format" << std::endl;
       return -1;
@@ -205,7 +205,7 @@ namespace eunomia
     return 0;
   }
 
-  int eunomia_ebpf_program::wait_for_no_export_program(void)
+  int bpf_skeleton::wait_for_no_export_program(void)
   {
     std::cout << "running and waiting for the ebpf program..." << std::endl;
     // if we don't have a ring buffer, just wait for the program to exit
@@ -216,7 +216,7 @@ namespace eunomia
     return 0;
   }
 
-  int eunomia_ebpf_program::check_export_maps(void)
+  int bpf_skeleton::check_export_maps(void)
   {
     for (std::size_t i = 0; i < meta_data.maps.size(); i++)
     {
@@ -233,7 +233,7 @@ namespace eunomia
     return wait_for_no_export_program();
   }
 
-  int eunomia_ebpf_program::enter_wait_and_poll(void)
+  int bpf_skeleton::enter_wait_and_poll(void)
   {
     int err;
     exiting = false;
@@ -248,9 +248,9 @@ namespace eunomia
     return check_export_maps();
   }
 
-  int eunomia_ebpf_program::wait_and_poll(void) noexcept
+  int bpf_skeleton::wait_and_poll(void) noexcept
   {
-    event_exporter.set_export_type(export_format_type::EXPORT_PLANT_TEXT, nullptr);
+    exporter.set_export_type(export_format_type::EXPORT_PLANT_TEXT, nullptr);
     int err = 0;
     try
     {
@@ -264,7 +264,7 @@ namespace eunomia
     return err;
   }
 
-  void eunomia_ebpf_program::stop_and_clean() noexcept
+  void bpf_skeleton::destory() noexcept
   {
     if (state != ebpf_program_state::RUNNING)
     {
@@ -283,7 +283,7 @@ namespace eunomia
     state = ebpf_program_state::STOPPED;
   }
 
-  int eunomia_ebpf_program::create_prog_skeleton(void)
+  int bpf_skeleton::create_prog_skeleton(void)
   {
     struct bpf_object_skeleton *s;
     skeleton = nullptr;
@@ -354,7 +354,7 @@ namespace eunomia
     return -1;
   }
 
-  int eunomia_ebpf_program::get_fd(const char *name) const noexcept
+  int bpf_skeleton::get_fd(const char *name) const noexcept
   {
     for (std::size_t i = 0; i < meta_data.maps.size(); i++)
     {
@@ -380,16 +380,16 @@ extern "C"
 {
   struct eunomia_bpf
   {
-    eunomia::eunomia_ebpf_program program;
+    eunomia::bpf_skeleton program;
   };
-  struct eunomia_bpf *create_ebpf_program_from_json(const char *json_data)
+  struct eunomia_bpf *open_eunomia_skel_from_json(const char *json_data)
   {
-    struct eunomia_bpf *bpf = new eunomia_bpf{ eunomia::eunomia_ebpf_program() };
+    struct eunomia_bpf *bpf = new eunomia_bpf{ eunomia::bpf_skeleton() };
     if (!bpf)
     {
       return nullptr;
     }
-    if (bpf->program.load_json_config(json_data) < 0)
+    if (bpf->program.open_from_json_config(json_data) < 0)
     {
       delete bpf;
       return nullptr;
@@ -397,16 +397,16 @@ extern "C"
     return bpf;
   }
 
-  int run_ebpf_program(struct eunomia_bpf *prog)
+  int load_and_attach_eunomia_skel(struct eunomia_bpf *prog)
   {
     if (!prog)
     {
       return -1;
     }
-    return prog->program.run();
+    return prog->program.load_and_attach();
   }
 
-  int wait_and_poll_ebpf_program(struct eunomia_bpf *prog)
+  int wait_and_poll_events(struct eunomia_bpf *prog)
   {
     if (!prog)
     {
@@ -415,7 +415,7 @@ extern "C"
     return prog->program.wait_and_poll();
   }
 
-  int wait_and_poll_ebpf_program_to_handler(
+  int wait_and_poll_events_to_handler(
       struct eunomia_bpf *prog,
       enum export_format_type type,
       void (*handler)(void *, const char *),
@@ -428,13 +428,13 @@ extern "C"
     return prog->program.wait_and_poll_to_handler(type, handler, ctx);
   }
 
-  void stop_and_clean_ebpf_program(struct eunomia_bpf *prog)
+  void destroy_eunomia_skel(struct eunomia_bpf *prog)
   {
     if (!prog)
     {
       return;
     }
-    prog->program.stop_and_clean();
+    prog->program.destory();
     delete prog;
   }
 
@@ -445,10 +445,10 @@ extern "C"
     {
       return;
     }
-    prog->program.stop_and_clean();
+    prog->program.destory();
   }
   /// @brief free the memory of the program
-  void free_ebpf_program(struct eunomia_bpf *prog)
+  void free_bpf_skel(struct eunomia_bpf *prog)
   {
     if (!prog)
     {
@@ -457,7 +457,7 @@ extern "C"
     delete prog;
   }
 
-  int eunomia_get_fd(struct eunomia_bpf* prog, const char* name) {
+  int get_bpf_fd(struct eunomia_bpf* prog, const char* name) {
     if (!prog) {
       return -1;
     }

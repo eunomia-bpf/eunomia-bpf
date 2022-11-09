@@ -105,7 +105,7 @@ namespace eunomia
     ebpf_data = jj["data"];
   }
 
-  int eunomia_ebpf_program::load_json_config(const std::string &json_str) noexcept
+  int bpf_skeleton::open_from_json_config(const std::string &json_str) noexcept
   {
     try
     {
@@ -122,9 +122,9 @@ namespace eunomia
   }
 
   /// create a ebpf program from json str
-  eunomia_ebpf_program::eunomia_ebpf_program(const std::string &json_str)
+  bpf_skeleton::bpf_skeleton(const std::string &json_str)
   {
-    int res = load_json_config(json_str);
+    int res = open_from_json_config(json_str);
     if (res != 0)
     {
       std::cerr << "failed to load json config" << std::endl;

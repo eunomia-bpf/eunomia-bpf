@@ -24,7 +24,7 @@ class program_runner_base
     {
     }
     virtual ~program_runner_base() = default;
-    virtual int run_ebpf_program() = 0;
+    virtual int load_and_attach_eunomia_skel() = 0;
     virtual std::string get_name() = 0;
     virtual void stop() = 0;
 };
@@ -32,13 +32,13 @@ class program_runner_base
 /// JSON eBPF program run in kernel
 class eunomia_program_runner : public program_runner_base
 {
-    eunomia::eunomia_ebpf_program program;
+    eunomia::bpf_skeleton program;
     friend class eunomia_runner;
 
   public:
     eunomia_program_runner(const program_config_data &config)
       : program_runner_base(config){};
-    int run_ebpf_program();
+    int load_and_attach_eunomia_skel();
     std::string get_name() { return program.get_program_name(); }
     void stop() { program.stop_and_clean(); }
     virtual ~eunomia_program_runner() = default;
@@ -53,7 +53,7 @@ class ewasm_program_runner : public program_runner_base
   public:
     ewasm_program_runner(const program_config_data &config)
       : program_runner_base(config){};
-    int run_ebpf_program();
+    int load_and_attach_eunomia_skel();
     std::string get_name()
     { // FIXME: get program name from wasm file
         return "ewasm module";
@@ -98,7 +98,7 @@ class eunomia_runner
     int start_tracker()
     {
         _is_running = true;
-        return program_runner->run_ebpf_program();
+        return program_runner->load_and_attach_eunomia_skel();
         _is_running = false;
     }
     const std::string get_name(void) const
