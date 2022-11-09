@@ -2,8 +2,9 @@ use std::fs;
 
 use crate::config::*;
 use anyhow::Result;
+use regex::Captures;
 use regex::Regex;
-const EXPORT_C_TEMPLATE: &'static str = r#"
+const _EXPORT_C_TEMPLATE: &'static str = r#"
 // do not use this file: auto generated
 #include "vmlinux.h"
 
@@ -14,11 +15,9 @@ const EXPORT_C_TEMPLATE: &'static str = r#"
 
 const REGEX_STRUCT_PATTREN: &'static str = r#"struct\s+(\w+)\s*\{"#;
 
-pub fn create_tmp_export_c_file(args: &Args, path: &str) -> Result<()> {
+pub fn _create_tmp_export_c_file(args: &Args, path: &str) -> Result<()> {
     // use the struct in event.h to generate the export c file
-    let mut export_struct_file: String = EXPORT_C_TEMPLATE.into();
-    let export_struct_header = fs::read_to_string(&args.export_event_header)?;
-    let re = Regex::new(REGEX_STRUCT_PATTREN).unwrap();
+    let mut export_struct_file: String = _EXPORT_C_TEMPLATE.into();
 
     export_struct_file += &format!(
         "#include \"{}\"\n\n",
@@ -26,9 +25,9 @@ pub fn create_tmp_export_c_file(args: &Args, path: &str) -> Result<()> {
             .to_str()
             .unwrap()
     );
+    let export_struct_names = find_all_export_structs(args)?;
 
-    for cap in re.captures_iter(&export_struct_header) {
-        let struct_name = &cap[1];
+    for struct_name in export_struct_names {
         export_struct_file += &format!(
             "const volatile struct {} * __eunomia_dummy_{}_ptr  __attribute__((unused));\n",
             struct_name, struct_name
@@ -36,6 +35,32 @@ pub fn create_tmp_export_c_file(args: &Args, path: &str) -> Result<()> {
     }
     fs::write(path, export_struct_file.as_bytes())?;
     Ok(())
+}
+
+// find all structs in event header
+pub fn find_all_export_structs(args: &Args) -> Result<Vec<String>> {
+    let mut export_structs: Vec<String> = Vec::new();
+    let export_struct_header = fs::read_to_string(&args.export_event_header)?;
+    let re = Regex::new(REGEX_STRUCT_PATTREN).unwrap();
+
+    for cap in re.captures_iter(&export_struct_header) {
+        let struct_name = &cap[1];
+        export_structs.push(struct_name.to_string());
+    }
+    Ok(export_structs)
+}
+
+// add  __attribute__((preserve_access_index)) for structs to preserve BTF info
+pub fn add_preserve_access_index(args: &Args) -> Result<String> {
+    let export_struct_header = fs::read_to_string(&args.export_event_header)?;
+    // skip enum
+    let re = Regex::new(r"(enum\s+\w+\s*\{[^\}]*\});").unwrap();
+    let result = re.replace_all(&export_struct_header, |caps: &Captures| {
+        format!("{} ;", &caps[1])
+    });
+    let re = Regex::new(r"\};").unwrap();
+    let result = re.replace_all(&result, "} __attribute__((preserve_access_index));");
+    Ok(result.to_string())
 }
 
 #[cfg(test)]
