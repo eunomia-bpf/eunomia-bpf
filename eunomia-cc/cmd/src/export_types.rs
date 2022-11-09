@@ -30,7 +30,7 @@ pub fn create_tmp_export_c_file(args: &Args, path: &str) -> Result<()> {
     for cap in re.captures_iter(&export_struct_header) {
         let struct_name = &cap[1];
         export_struct_file += &format!(
-            "const volatile struct {} * __eunomia_dummy_{}_ptr;\n",
+            "const volatile struct {} * __eunomia_dummy_{}_ptr  __attribute__((unused));\n",
             struct_name, struct_name
         );
     }

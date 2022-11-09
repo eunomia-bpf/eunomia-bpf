@@ -121,6 +121,36 @@ fn get_bpf_skel_json(object_path: &String, args: &Args) -> Result<String> {
     Ok(output)
 }
 
+fn _link_bpf_object_with_export(
+    args: &Args,
+    tmp_dir: &Path,
+    output_bpf_object_path: &String,
+) -> Result<()> {
+    // compile export c file
+    let export_object_path = tmp_dir.join(EXPORT_DEFINE_BPF_OBJECT);
+    let temp_path = output_bpf_object_path.to_owned() + ".temp";
+
+    let bpftool_bin = get_bpftool_path()?;
+    let command = format!(
+        "{} gen object {} {} {}",
+        bpftool_bin,
+        temp_path,
+        export_object_path.to_str().unwrap(),
+        output_bpf_object_path,
+    );
+    let (code, output, error) = run_script::run_script!(command).unwrap();
+    if code != 0 {
+        println!("$ {}\n {}", command, error);
+        return Err(anyhow::anyhow!("failed to get export types json"));
+    }
+    if args.verbose {
+        println!("$ {}\n{}", command, output);
+    }
+    fs::copy(&temp_path, output_bpf_object_path)?;
+    fs::remove_file(temp_path)?;
+    Ok(())
+}
+
 /// get the export typs as json object
 fn get_export_types_json(args: &Args, tmp_dir: &Path) -> Result<String> {
     // create tmp export c file
@@ -149,16 +179,7 @@ fn get_export_types_json(args: &Args, tmp_dir: &Path) -> Result<String> {
     if args.verbose {
         println!("$ {}\n{}", command, output);
     }
-    let mut export_types_json: Value = serde_json::from_str(&output)?;
-    let encoded_btf: Value = export_types_json["raw_btf"].clone();
-    let encoded_btf = encoded_btf.as_str().unwrap();
-    let raw_btf = base64::decode(encoded_btf)?;
-    let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
-    e.write_all(&raw_btf)?;
-    let compressed_bytes = e.finish()?;
-    let encode_raw_btf = base64::encode(&compressed_bytes);
-    export_types_json["raw_btf"] = json!(encode_raw_btf);
-    Ok(serde_json::to_string(&export_types_json)?)
+    Ok(output)
 }
 
 /// compile JSON file
