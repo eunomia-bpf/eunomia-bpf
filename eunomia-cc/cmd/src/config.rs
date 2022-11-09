@@ -43,6 +43,10 @@ pub struct Args {
     /// print the command execution
     #[arg(short, long, default_value_t = false)]
     pub verbose: bool,
+
+    /// output config skel file in yaml
+    #[arg(short, long, default_value_t = false)]
+    pub yaml: bool,
 }
 
 /// Get home directory from env
@@ -61,13 +65,17 @@ pub fn get_eunomia_home() -> Result<String> {
 }
 
 /// Get output path for json: output.meta.json
-pub fn get_output_json_path(args: &Args) -> String {
+pub fn get_output_config_path(args: &Args) -> String {
     let output_path = if args.output_path == "" {
         path::Path::new(&args.source_path).with_extension("")
     } else {
         path::Path::new(&args.output_path).to_path_buf()
     };
-    let output_json_path = output_path.with_extension("skel.json");
+    let output_json_path = if args.yaml {
+        output_path.with_extension("skel.yaml")
+    } else {
+        output_path.with_extension("skel.json")
+    };
     output_json_path.to_str().unwrap().to_string()
 }
 

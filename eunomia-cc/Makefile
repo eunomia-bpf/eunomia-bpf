@@ -5,8 +5,6 @@ CLANG ?= clang
 LLVM_STRIP ?= llvm-strip
 BPFTOOL_SRC := $(abspath ../third_party/bpftool)
 BPFTOOL := $(BPFTOOL_SRC)/src/bpftool
-LIBBPF_SRC := $(abspath ../third_party/libbpf/src)
-LIBBPF_OBJ := $(abspath $(OUTPUT)/libbpf.a)
 ARCH := $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
 VMLINUX := ../third_party/vmlinux/$(ARCH)/vmlinux.h
 # Use our own libbpf API headers and Linux UAPI headers distributed with
@@ -59,44 +57,15 @@ $(OUTPUT) $(OUTPUT)/libbpf:
 	$(call msg,MKDIR,$@)
 	$(Q)mkdir -p $@
 
-# Build libbpf
-$(LIBBPF_OBJ): $(wildcard $(LIBBPF_SRC)/*.[ch] $(LIBBPF_SRC)/Makefile) | $(OUTPUT)/libbpf
-	$(call msg,LIB,$@)
-	$(Q)$(MAKE) -C $(LIBBPF_SRC) BUILD_STATIC_ONLY=1		      \
-		    OBJDIR=$(dir $@)/libbpf DESTDIR=$(dir $@)		      \
-		    INCLUDEDIR= LIBDIR= UAPIDIR=			      \
-		    install
-
 $(BPFTOOL):
 	$(MAKE) -C $(BPFTOOL_SRC)/src
 
-# Build BPF code
-$(OUTPUT)/%.bpf.o: %.bpf.c $(LIBBPF_OBJ) $(wildcard %.h) $(VMLINUX) | $(OUTPUT)
-	$(call msg,BPF,$@)
-	$(Q)$(CLANG) -g -O2 -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) -c $(filter %.c,$^) -o $@
-	$(Q)$(LLVM_STRIP) -g $@ # strip useless DWARF info
-
-# Get Preprocessor ebpf code
-$(OUTPUT)/prep_ebpf.c: client.bpf.c $(LIBBPF_OBJ) $(wildcard %.h) $(VMLINUX) | $(OUTPUT)
-	$(call msg,PREPROCESSOR_EBPF,$@)
-	$(Q)$(CLANG) -E -P -g -O2 -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) client.bpf.c > $(OUTPUT)/prep_ebpf.c
-
-# generate BTF dump of export data
-$(OUTPUT)/export_btf.json: $(OUTPUT)/client.bpf.o | $(OUTPUT)
-	$(call msg,GEN-BTF-EXPORT,$@)
-	$(Q)$(BPFTOOL) btf dump file $< format c -j > $@
-
-# generate BTF dump of export data
-$(OUTPUT)/skel.json: $(OUTPUT)/client.bpf.o | $(OUTPUT)
-	$(call msg,GEN-BTF-SKEL,$@)
-	$(Q)$(BPFTOOL) gen skeleton $< -j > $@
-
-create_eunomia-home: $(LIBBPF_OBJ) $(BPFTOOL)
+create_eunomia-home: $(BPFTOOL)
 	rm -rf workspace && mkdir -p workspace/bin workspace/include
 	cd cmd && cargo build --release
 	cp cmd/target/release/ecc workspace/bin/ecc
 	cp $(BPFTOOL) workspace/bin/bpftool
-	cp -r .output/bpf workspace/include/bpf
+	cp -r $(BPFTOOL_SRC)/src/libbpf/include/bpf workspace/include/bpf
 	cp -r ../third_party/vmlinux workspace/include/vmlinux
 	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia
 

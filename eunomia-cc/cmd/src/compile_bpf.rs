@@ -164,7 +164,7 @@ fn get_export_types_json(args: &Args, tmp_dir: &Path) -> Result<String> {
 /// compile JSON file
 pub fn compile_bpf(args: &Args) -> Result<()> {
     let output_bpf_object_path = get_output_object_path(args);
-    let output_json_path = get_output_json_path(args);
+    let output_json_path = get_output_config_path(args);
     let mut meta_json = json!({});
 
     // compile bpf object
@@ -183,13 +183,17 @@ pub fn compile_bpf(args: &Args) -> Result<()> {
         meta_json["export_types"] = export_types_json;
     }
 
-    let meta_json_str = serde_json::to_string(&meta_json)?;
-    fs::write(output_json_path, meta_json_str)?;
+    let meta_config_str = if args.yaml {
+        serde_yaml::to_string(&meta_json)?
+    } else {
+        serde_json::to_string(&meta_json)?
+    };
+    fs::write(output_json_path, meta_config_str)?;
     Ok(())
 }
 
 /// pack the object file into a package.json
-pub fn pack_object_in_json(args: &Args) -> Result<()> {
+pub fn pack_object_in_config(args: &Args) -> Result<()> {
     let output_bpf_object_path = get_output_object_path(args);
     let bpf_object = fs::read(output_bpf_object_path)?;
 
@@ -197,18 +201,28 @@ pub fn pack_object_in_json(args: &Args) -> Result<()> {
     e.write_all(&bpf_object)?;
     let compressed_bytes = e.finish()?;
     let encode_bpf_object = base64::encode(&compressed_bytes);
-    let output_json_path = get_output_json_path(args);
+    let output_json_path = get_output_config_path(args);
     let meta_json_str = fs::read_to_string(&output_json_path)?;
     let meta_json: Value = serde_json::from_str(&meta_json_str)?;
-    let package_json = json!({
+    let package_config = json!({
         "bpf_object": encode_bpf_object,
         "meta": meta_json,
     });
-    let output_package_json_path = Path::new(&output_json_path)
-        .parent()
-        .unwrap()
-        .join("package.json");
-    fs::write(output_package_json_path, package_json.to_string())?;
+    if args.yaml {
+        let output_package_config_path = Path::new(&output_json_path)
+            .parent()
+            .unwrap()
+            .join("package.yaml");
+        let package_config_str = serde_yaml::to_string(&package_config)?;
+        fs::write(output_package_config_path, package_config_str)?;
+    } else {
+        let output_package_config_path = Path::new(&output_json_path)
+            .parent()
+            .unwrap()
+            .join("package.json");
+        let package_config_str = serde_json::to_string(&package_config)?;
+        fs::write(output_package_config_path, package_config_str)?;
+    };
     Ok(())
 }
 
@@ -228,6 +242,7 @@ mod test {
             export_event_header: "".to_string(),
             pack_object: false,
             verbose: false,
+            yaml: false,
         };
         let sys_include = get_bpf_sys_include(&args).unwrap();
         println!("{}", sys_include);
@@ -263,6 +278,7 @@ mod test {
             export_event_header: event_path.to_str().unwrap().to_string(),
             pack_object: false,
             verbose: false,
+            yaml: false,
         };
         compile_bpf(&args).unwrap();
     }
@@ -292,8 +308,9 @@ mod test {
             export_event_header: event_path.to_str().unwrap().to_string(),
             pack_object: false,
             verbose: false,
+            yaml: false,
         };
         compile_bpf(&args).unwrap();
-        pack_object_in_json(&args).unwrap();
+        pack_object_in_config(&args).unwrap();
     }
 }
