@@ -59,7 +59,7 @@ namespace eunomia
     checked_export_types.emplace_back(info);
   }
 
-  void event_exporter::check_and_add_export_type(ebpf_rb_export_field_meta_data &field, std::size_t width)
+  void event_exporter::check_and_add_export_type(export_types_member_meta_data &field, std::size_t width)
   {
     bool is_vaild_type = false;
     // use the lookup table to determine format

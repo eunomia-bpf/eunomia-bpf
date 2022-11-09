@@ -16,7 +16,7 @@ namespace eunomia
     void load_section_data(std::size_t index, const ebpf_maps_meta_data& map, char* buffer);
 
    public:
-    eunomia_ebpf_meta_data create_meta_from_json(const std::string& json_str);
+    bpf_skel_meta_data create_meta_from_json(const std::string& json_str);
     void load_map_data(bpf_skeleton& prog);
    ~data_section_processor() = default;
   };

@@ -7,7 +7,7 @@
 namespace eunomia
 {
 
-  struct ebpf_rb_export_field_meta_data
+  struct export_types_member_meta_data
   {
     std::string name;
     std::string type;
@@ -17,7 +17,7 @@ namespace eunomia
 
   struct ebpf_export_types_meta_data
   {
-    std::vector<ebpf_rb_export_field_meta_data> fields;
+    std::vector<export_types_member_meta_data> fields;
     std::string struct_name;
     uint32_t size;
     uint32_t data_size;
@@ -51,7 +51,7 @@ namespace eunomia
   };
 
   /// meta data
-  struct eunomia_ebpf_meta_data
+  struct bpf_skel_meta_data
   {
     // ebpf name
     std::string ebpf_name;
