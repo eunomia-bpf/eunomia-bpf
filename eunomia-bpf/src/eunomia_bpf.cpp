@@ -103,7 +103,7 @@ namespace eunomia
 
   const std::string &bpf_skeleton::get_program_name(void) const
   {
-    return meta_data.ebpf_name;
+    return meta_data.bpf_skel.obj_name;
   }
 
   static int handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
@@ -124,7 +124,7 @@ namespace eunomia
     int err = 0;
 
     std::cout << "running and waiting for the ebpf events from ring buffer..." << std::endl;
-    if (exporter.check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
+    if (exporter.check_for_meta_types_and_create_export_format(meta_data.bpf_skel.maps[rb_map_id].export_data_types) < 0)
     {
       std::cerr << "Failed to create print format" << std::endl;
       return -1;
@@ -177,7 +177,7 @@ namespace eunomia
     int err = 0;
 
     std::cout << "running and waiting for the ebpf events from perf event..." << std::endl;
-    if (exporter.check_for_meta_types_and_create_export_format(meta_data.maps[rb_map_id].export_data_types) < 0)
+    if (exporter.check_for_meta_types_and_create_export_format(meta_data.bpf_skel.maps[rb_map_id].export_data_types) < 0)
     {
       std::cerr << "Failed to create print format" << std::endl;
       return -1;
@@ -220,9 +220,9 @@ namespace eunomia
 
   int bpf_skeleton::check_export_maps(void)
   {
-    for (std::size_t i = 0; i < meta_data.maps.size(); i++)
+    for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++)
     {
-      auto &map = meta_data.maps[i];
+      auto &map = meta_data.bpf_skel.maps[i];
       if (map.type == "BPF_MAP_TYPE_RINGBUF")
       {
         return wait_and_poll_from_rb(i);
@@ -300,52 +300,43 @@ namespace eunomia
     /* maps */
     s->map_cnt = 0;
     s->map_skel_sz = sizeof(*s->maps);
-    s->maps = (struct bpf_map_skeleton *)calloc(meta_data.maps.size(), (size_t)s->map_skel_sz);
+    s->maps = (struct bpf_map_skeleton *)calloc(meta_data.bpf_skel.maps.size(), (size_t)s->map_skel_sz);
     if (!s->maps)
       goto err;
 
-    maps.resize(meta_data.maps.size());
-    for (std::size_t i = 0; i < meta_data.maps.size(); i++)
+    maps.resize(meta_data.bpf_skel.maps.size());
+    for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++)
     {
-      if (meta_data.maps[i].type == "BPF_MAP_TYPE_UNSPEC")
-      {
-        if (meta_data.maps[i].is_rodata())
+        if (meta_data.bpf_skel.maps[i].is_rodata())
         {
           s->maps[s->map_cnt].mmaped = (void **)&rodata_buffer;
         }
-        else if (meta_data.maps[i].is_bss())
+        else if (meta_data.bpf_skel.maps[i].is_bss())
         {
           s->maps[s->map_cnt].mmaped = (void **)&bss_buffer;
         }
-        else
-        {
-          // skip unrecognized maps
-          continue;
-        }
-      }
-      s->maps[s->map_cnt].name = meta_data.maps[i].name.c_str();
+      s->maps[s->map_cnt].name = meta_data.bpf_skel.maps[i].name.c_str();
       s->maps[s->map_cnt].map = &maps[i];
       s->map_cnt++;
     }
 
     /* programs */
     s->prog_skel_sz = sizeof(*s->progs);
-    s->progs = (struct bpf_prog_skeleton *)calloc(meta_data.progs.size(), (size_t)s->prog_skel_sz);
+    s->progs = (struct bpf_prog_skeleton *)calloc(meta_data.bpf_skel.progs.size(), (size_t)s->prog_skel_sz);
     if (!s->progs)
       goto err;
-    progs.resize(meta_data.progs.size());
-    links.resize(meta_data.progs.size());
+    progs.resize(meta_data.bpf_skel.progs.size());
+    links.resize(meta_data.bpf_skel.progs.size());
     s->prog_cnt = 0;
-    for (std::size_t i = 0; i < meta_data.progs.size(); i++)
+    for (std::size_t i = 0; i < meta_data.bpf_skel.progs.size(); i++)
     {
-      s->progs[s->prog_cnt].name = meta_data.progs[i].name.c_str();
+      s->progs[s->prog_cnt].name = meta_data.bpf_skel.progs[i].name.c_str();
       s->progs[s->prog_cnt].prog = &progs[i];
       s->progs[s->prog_cnt].link = &links[i];
       s->prog_cnt++;
     }
 
-    s->data_sz = meta_data.data_sz;
-    __bpf_object_buffer = base64_decode((const unsigned char *)meta_data.ebpf_data.c_str(), meta_data.ebpf_data.size());
+    s->data_sz = __bpf_object_buffer.size();
     s->data = (void *)__bpf_object_buffer.data();
 
     s->obj = &obj;
@@ -358,16 +349,16 @@ namespace eunomia
 
   int bpf_skeleton::get_fd(const char *name) const noexcept
   {
-    for (std::size_t i = 0; i < meta_data.maps.size(); i++)
+    for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++)
     {
-      if (meta_data.maps[i].name == name)
+      if (meta_data.bpf_skel.maps[i].name == name)
       {
         return bpf_map__fd(maps[i]);
       }
     }
-    for (std::size_t i = 0; i < meta_data.progs.size(); i++)
+    for (std::size_t i = 0; i < meta_data.bpf_skel.progs.size(); i++)
     {
-      if (meta_data.progs[i].name == name)
+      if (meta_data.bpf_skel.progs[i].name == name)
       {
         return bpf_program__fd(progs[i]);
       }

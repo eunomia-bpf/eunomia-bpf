@@ -59,7 +59,7 @@ namespace eunomia
     checked_export_types.emplace_back(info);
   }
 
-  void event_exporter::check_and_add_export_type(export_types_member_meta_data &field, std::size_t width)
+  void event_exporter::check_and_add_export_type(export_types_struct_member_meta &field, std::size_t width)
   {
     bool is_vaild_type = false;
     // use the lookup table to determine format
@@ -102,7 +102,7 @@ namespace eunomia
     std::cout << std::endl;
   }
 
-  int event_exporter::check_for_meta_types_and_create_export_format(ebpf_export_types_meta_data &types)
+  int event_exporter::check_for_meta_types_and_create_export_format(export_types_struct_meta &types)
   {
     auto fields = types.fields;
     // clean the last fields
