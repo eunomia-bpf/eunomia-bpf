@@ -40,7 +40,7 @@ namespace eunomia
     j.at(#name).get_to(data.name); \
   }
 
-  static void from_json(const nlohmann::json &j, export_types_member_meta_data &data)
+  static void from_json(const nlohmann::json &j, export_types_struct_member_meta &data)
   {
     j.at("Name").get_to(data.name);
     j.at("Type").get_to(data.type);
@@ -48,7 +48,7 @@ namespace eunomia
     j.at("LLVMType").get_to(data.llvm_type);
   }
 
-  static void from_json(const nlohmann::json &j, ebpf_export_types_meta_data &data)
+  static void from_json(const nlohmann::json &j, export_types_struct_meta &data)
   {
     j.at("Alignment").get_to(data.alignment);
     j.at("DataSize").get_to(data.data_size);
@@ -57,28 +57,28 @@ namespace eunomia
     j.at("Fields").get_to(data.fields);
   }
 
-  void ebpf_export_types_meta_data::from_json_str(const std::string &j_str)
+  void export_types_struct_meta::from_json_str(const std::string &j_str)
   {
     json j = json::parse(j_str);
-    ebpf_export_types_meta_data meta = j.get<ebpf_export_types_meta_data>();
+    export_types_struct_meta meta = j.get<export_types_struct_meta>();
     *this = meta;
     return;
   }
 
-  static void from_json(const nlohmann::json &j, ebpf_progs_meta_data &data)
+  static void from_json(const nlohmann::json &j, prog_meta &data)
   {
     get_from_json_at(name);
     get_opt_from_json_at(type);
   }
 
-  static void from_json(const nlohmann::json &j, ebpf_btf_type_meta_data &data)
+  static void from_json(const nlohmann::json &j, export_types_meta &data)
   {
     get_from_json_at(name);
     get_from_json_at(type);
     get_from_json_at(size);
   }
 
-  static void from_json(const nlohmann::json &j, ebpf_maps_meta_data &data)
+  static void from_json(const nlohmann::json &j, map_meta &data)
   {
     get_from_json_at(name);
     get_from_json_at(type);
@@ -86,16 +86,16 @@ namespace eunomia
     get_opt_from_json_at(sec_data);
   }
 
-  bool ebpf_maps_meta_data::is_rodata(void) const
+  bool map_meta::is_rodata(void) const
   {
     return str_ends_with(name, ".rodata");
   }
-  bool ebpf_maps_meta_data::is_bss(void) const
+  bool map_meta::is_bss(void) const
   {
     return str_ends_with(name, ".bss");
   }
 
-  void bpf_skel_meta_data::from_json_str(const std::string &j_str)
+  void eunomia_object_meta::from_json_str(const std::string &j_str)
   {
     json jj = json::parse(j_str);
     ebpf_name = jj["name"];

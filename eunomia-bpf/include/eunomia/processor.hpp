@@ -13,10 +13,10 @@ namespace eunomia
    protected:
     /// @brief preserve the meta data json for further use
     std::string runtime_args;
-    void load_section_data(std::size_t index, const ebpf_maps_meta_data& map, char* buffer);
+    void load_section_data(std::size_t index, const map_meta& map, char* buffer);
 
    public:
-    bpf_skel_meta_data create_meta_from_json(const std::string& json_str);
+    eunomia_object_meta create_meta_from_json(const std::string& json_str);
     void load_map_data(bpf_skeleton& prog);
    ~data_section_processor() = default;
   };

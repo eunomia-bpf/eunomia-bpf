@@ -25,10 +25,8 @@ struct ring_buffer;
 struct bpf_object;
 struct perf_buffer;
 
-namespace eunomia
-{
-  enum class ebpf_program_state
-  {
+namespace eunomia {
+enum class ebpf_program_state {
     /// @brief The config is set but the program is not loaded
     INIT,
     /// @brief The program is loaded and attached to the kernel
@@ -37,15 +35,16 @@ namespace eunomia
     STOPPED,
     /// @brief invalid format or cannot be load
     INVALID
-  };
+};
 
-  /// @brief eunomia-bpf program class
+/// @brief eunomia-bpf program class
 
-  /// @details Used for managing the life span of eBPF program
-  class bpf_skeleton
-  {
-   friend class data_section_processor;
-   private:
+/// @details Used for managing the life span of eBPF program
+class bpf_skeleton
+{
+    friend class data_section_processor;
+
+  private:
     /// create an ebpf skeleton
     int create_prog_skeleton(void);
 
@@ -63,7 +62,7 @@ namespace eunomia
     /// called after setting the export handler
     int enter_wait_and_poll(void);
 
-   private:
+  private:
     /// The state of eunomia-bpf program
     ebpf_program_state state = ebpf_program_state::INVALID;
     /// is the polling ring buffer loop exiting?
@@ -72,7 +71,7 @@ namespace eunomia
     /// @brief  data storage
     /// @details meta data control the behavior of ebpf program:
     /// eg. types of the eBPF maps and prog, export data types
-    bpf_skel_meta_data meta_data;
+    eunomia_object_meta meta_data;
     /// @brief  config of eunomia own
     /// @details config of eunomia own,
     /// for how we creating, loading and interacting with the eBPF program
@@ -91,8 +90,8 @@ namespace eunomia
     std::vector<bpf_map *> maps = {};
     std::vector<bpf_program *> progs = {};
     std::vector<bpf_link *> links = {};
-    char* bss_buffer = nullptr;
-    char* rodata_buffer = nullptr;
+    char *bss_buffer = nullptr;
+    char *rodata_buffer = nullptr;
     bpf_object_skeleton *skeleton = nullptr;
 
     /// used for processing maps and free them
@@ -100,17 +99,17 @@ namespace eunomia
     ring_buffer *ring_buffer_map = nullptr;
     perf_buffer *perf_buffer_map = nullptr;
 
-   public:
+  public:
     /// create a ebpf program from json config str
-    bpf_skeleton(const std::string &json_str, std::vector<char> bpf_object_buffer);
+    bpf_skeleton(const std::string &json_str,
+                 std::vector<char> bpf_object_buffer);
     bpf_skeleton() = default;
-    [[nodiscard]] int open_from_json_config(const std::string &json_str, std::vector<char> bpf_object_buffer) noexcept;
+    [[nodiscard]] int open_from_json_config(
+        const std::string &json_str,
+        std::vector<char> bpf_object_buffer) noexcept;
     bpf_skeleton(const bpf_skeleton &) = delete;
     bpf_skeleton(bpf_skeleton &&);
-    ~bpf_skeleton()
-    {
-      destory();
-    }
+    ~bpf_skeleton() { destory(); }
     /// start running the ebpf program
 
     /// load and attach the ebpf program to the kernel to run the ebpf program
@@ -125,8 +124,9 @@ namespace eunomia
     [[nodiscard]] int wait_and_poll(void) noexcept;
     /// @brief export the data as json string.
     /// @details The key of the value is the field name in the export json.
-    [[nodiscard]] int
-    wait_and_poll_to_handler(enum export_format_type type, export_event_handler handler, void *ctx = nullptr) noexcept;
+    [[nodiscard]] int wait_and_poll_to_handler(enum export_format_type type,
+                                               export_event_handler handler,
+                                               void *ctx = nullptr) noexcept;
 
     /// stop, detach, and clean up memory
 
@@ -146,8 +146,8 @@ namespace eunomia
     // @brief get map or prog fd by name
     // @details get map or prog fd by name, and basic libbpf API
     // can be used to access the map or prog elements
-    [[nodiscard]] int get_fd(const char* name) const noexcept;
-  };
-}  // namespace eunomia
+    [[nodiscard]] int get_fd(const char *name) const noexcept;
+};
+} // namespace eunomia
 
 #endif

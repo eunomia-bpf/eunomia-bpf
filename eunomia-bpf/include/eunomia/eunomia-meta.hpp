@@ -4,66 +4,68 @@
 #include <string>
 #include <vector>
 
-namespace eunomia
-{
+namespace eunomia {
 
-  struct export_types_member_meta_data
-  {
+struct export_types_struct_member_meta {
     std::string name;
     std::string type;
-    std::string llvm_type;
-    uint32_t field_offset;
-  };
-
-  struct ebpf_export_types_meta_data
-  {
-    std::vector<export_types_member_meta_data> fields;
-    std::string struct_name;
     uint32_t size;
-    uint32_t data_size;
-    uint32_t alignment;
+    uint32_t bit_offset;
+    uint32_t bit_size;
+};
+
+struct export_types_struct_meta {
+    std::vector<export_types_struct_member_meta> members;
+    std::string name;
+    uint32_t size;
+    uint32_t type_id;
     void from_json_str(const std::string &j_str);
-  };
+};
 
-  struct ebpf_btf_type_meta_data
-  {
+struct map_meta {
     std::string name;
-    std::string type;
-    std::size_t size;
-  };
-
-  struct ebpf_maps_meta_data
-  {
-    std::string name;
-    std::string type;
-    ebpf_export_types_meta_data export_data_types;
-    std::vector<ebpf_btf_type_meta_data> sec_data;
+    std::string ident;
+    bool mmaped;
 
     bool is_rodata(void) const;
     bool is_bss(void) const;
-  };
+};
 
+struct prog_meta {
+    std::string name;
+    std::string attach;
+    bool link;
+};
 
-  struct ebpf_progs_meta_data
-  {
+struct data_section_variable_meta {
     std::string name;
     std::string type;
-  };
+    uint32_t size;
+    uint32_t offset;
+    uint32_t type_id;
+};
 
-  /// meta data
-  struct bpf_skel_meta_data
-  {
-    // ebpf name
-    std::string ebpf_name;
-    std::vector<ebpf_maps_meta_data> maps;
-    std::vector<ebpf_progs_meta_data> progs;
-    size_t data_sz;
-    std::string ebpf_data;
+struct data_section_meta {
+    std::string name;
+    std::vector<data_section_variable_meta> variables;
+};
+
+struct bpf_skel_meta {
+    std::vector<data_section_meta> data_sections;
+    std::vector<map_meta> maps;
+    std::vector<prog_meta> progs;
+    std::string obj_name;
+};
+
+/// meta data
+struct eunomia_object_meta {
+    bpf_skel_meta bpf_skel;
+    std::vector<export_types_struct_meta> export_types;
 
     std::string to_json_str();
     void from_json_str(const std::string &j_str);
-  };
+};
 
-}  // namespace eunomia
+} // namespace eunomia
 
 #endif

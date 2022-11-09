@@ -7,9 +7,9 @@ using nlohmann::json;
 
 namespace eunomia
 {
-  bpf_skel_meta_data data_section_processor::create_meta_from_json(const std::string& json_str)
+  eunomia_object_meta data_section_processor::create_meta_from_json(const std::string& json_str)
   {
-    bpf_skel_meta_data meta_data;
+    eunomia_object_meta meta_data;
     meta_data.from_json_str(json_str);
     try
     {
@@ -34,7 +34,7 @@ namespace eunomia
     memcpy(buffer + offset, &value, sizeof(T));
   }
 
-  void data_section_processor::load_section_data(std::size_t index, const ebpf_maps_meta_data& map, char* buffer)
+  void data_section_processor::load_section_data(std::size_t index, const map_meta& map, char* buffer)
   {
     if (!buffer || runtime_args.empty())
     {
