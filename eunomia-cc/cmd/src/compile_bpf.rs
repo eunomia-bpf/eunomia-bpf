@@ -1,4 +1,7 @@
-use crate::{config::*, export_types::create_tmp_export_c_file};
+use crate::{
+    config::*,
+    export_types::*,
+};
 use anyhow::Result;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
@@ -8,7 +11,6 @@ use std::{
     fs,
     path::{self, Path},
 };
-use temp_dir::TempDir;
 
 /// Get include paths from clang
 fn get_bpf_sys_include(args: &Args) -> Result<String> {
@@ -126,6 +128,7 @@ fn _link_bpf_object_with_export(
     tmp_dir: &Path,
     output_bpf_object_path: &String,
 ) -> Result<()> {
+    const EXPORT_DEFINE_BPF_OBJECT: &str = "export_events_define.bpf.o";
     // compile export c file
     let export_object_path = tmp_dir.join(EXPORT_DEFINE_BPF_OBJECT);
     let temp_path = output_bpf_object_path.to_owned() + ".temp";
@@ -152,42 +155,48 @@ fn _link_bpf_object_with_export(
 }
 
 /// get the export typs as json object
-fn get_export_types_json(args: &Args, tmp_dir: &Path) -> Result<String> {
-    // create tmp export c file
-    let temp_file = tmp_dir.join(EXPORT_DEFINE_C_FILE);
-    create_tmp_export_c_file(args, temp_file.to_str().unwrap())?;
-
-    // compile export c file
-    let export_object_path = tmp_dir.join(EXPORT_DEFINE_BPF_OBJECT);
-    compile_bpf_object(
-        args,
-        temp_file.to_str().unwrap(),
-        export_object_path.to_str().unwrap(),
-    )?;
-
+fn get_export_types_json(args: &Args, output_bpf_object_path: &String) -> Result<String> {
     let bpftool_bin = get_bpftool_path()?;
     let command = format!(
         "{} btf dump file {} format c -j",
-        bpftool_bin,
-        export_object_path.to_str().unwrap()
+        bpftool_bin, output_bpf_object_path
     );
     let (code, output, error) = run_script::run_script!(command).unwrap();
     if code != 0 {
         println!("$ {}\n {}", command, error);
         return Err(anyhow::anyhow!("failed to get export types json"));
     }
+    // fiter the output to get the export types json
+    let export_structs = find_all_export_structs(args)?;
+    let export_types_json: Value = serde_json::from_str(&output).unwrap();
+    let export_types_json = export_types_json["structs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|x| {
+            let name = x["name"].as_str().unwrap();
+            export_structs.contains(&name.to_string())
+        })
+        .map(|x| x.to_owned())
+        .collect::<Vec<Value>>();
     if args.verbose {
         println!("$ {}\n{}", command, output);
     }
-    Ok(output)
+    Ok(serde_json::to_string(&export_types_json).unwrap())
 }
 
 /// compile JSON file
 pub fn compile_bpf(args: &Args) -> Result<()> {
     let output_bpf_object_path = get_output_object_path(args);
     let output_json_path = get_output_config_path(args);
+    // backup old files
+    let export_struct_header = fs::read_to_string(&args.export_event_header)?;
     let mut meta_json = json!({});
 
+    if args.export_event_header != "" {
+        let export_types_with_preserve = add_preserve_access_index(args)?;
+        fs::write(&args.export_event_header, export_types_with_preserve)?;
+    }
     // compile bpf object
     println!("Compiling bpf object...");
     compile_bpf_object(args, &args.source_path, &output_bpf_object_path)?;
@@ -198,10 +207,11 @@ pub fn compile_bpf(args: &Args) -> Result<()> {
     // compile export types
     if args.export_event_header != "" {
         println!("Generating export types...");
-        let temp_eunomia_dir = TempDir::with_prefix("eunomia").unwrap();
-        let export_types_json = get_export_types_json(args, temp_eunomia_dir.path())?;
+        let export_types_json = get_export_types_json(args, &output_bpf_object_path)?;
         let export_types_json: Value = serde_json::from_str(&export_types_json)?;
         meta_json["export_types"] = export_types_json;
+        // restore export struct header
+        fs::write(&args.export_event_header, export_struct_header)?;
     }
 
     let meta_config_str = if args.yaml {
