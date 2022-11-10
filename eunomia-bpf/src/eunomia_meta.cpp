@@ -125,6 +125,8 @@ bpf_skeleton::open_from_json_config(
 {
     try {
         state = ebpf_program_state::INIT;
+        meta_data.from_json_str(json_str);
+        __bpf_object_buffer = bpf_object_buffer;
         return 0;
     } catch (...) {
         std::cerr << "failed to parse json" << std::endl;
