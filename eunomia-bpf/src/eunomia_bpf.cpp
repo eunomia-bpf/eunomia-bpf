@@ -301,7 +301,7 @@ bpf_skeleton::create_prog_skeleton(void)
         return -1;
 
     s->sz = sizeof(*s);
-    s->name = "client_bpf"; // FIXME: use ebpf_name in meta data
+    s->name = meta_data.bpf_skel.obj_name.c_str();
 
     /* maps */
     s->map_cnt = 0;
@@ -334,9 +334,12 @@ bpf_skeleton::create_prog_skeleton(void)
     links.resize(meta_data.bpf_skel.progs.size());
     s->prog_cnt = 0;
     for (std::size_t i = 0; i < meta_data.bpf_skel.progs.size(); i++) {
-        s->progs[s->prog_cnt].name = meta_data.bpf_skel.progs[i].name.c_str();
+        auto &prog = meta_data.bpf_skel.progs[i];
+        s->progs[s->prog_cnt].name = prog.name.c_str();
         s->progs[s->prog_cnt].prog = &progs[i];
-        s->progs[s->prog_cnt].link = &links[i];
+        if (prog.link) {
+            s->progs[s->prog_cnt].link = &links[i];
+        }
         s->prog_cnt++;
     }
 

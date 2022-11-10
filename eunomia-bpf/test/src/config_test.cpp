@@ -9,20 +9,22 @@
 #include <iostream>
 #include <string>
 
-#include "eunomia/eunomia-bpf.hpp"
+#include "eunomia/eunomia-meta.hpp"
 
-int main(int argc, char **argv)
+using namespace eunomia;
+
+int
+main(int argc, char **argv)
 {
-  std::ifstream condig_file("../../test/asserts/client.skel.json");
-  
-  if (!condig_file.is_open())
-  {
-    std::cerr << "Failed to open json file" << std::endl;
-    return -1;
-  }
-  std::string json_str((std::istreambuf_iterator<char>(condig_file)), std::istreambuf_iterator<char>());
-  condig_file.close();
-  eunomia::bpf_skeleton program;
-  assert(program.open_from_json_config(json_str) == 0);
-  return 0;
+    std::ifstream condig_file("../../test/asserts/client.skel.json");
+
+    if (!condig_file.is_open()) {
+        std::cerr << "Failed to open json file" << std::endl;
+        return -1;
+    }
+    std::string json_str((std::istreambuf_iterator<char>(condig_file)),
+                         std::istreambuf_iterator<char>());
+    eunomia_object_meta meta;
+    meta.from_json_str(json_str);
+    return 0;
 }

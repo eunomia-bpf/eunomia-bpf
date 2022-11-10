@@ -190,7 +190,11 @@ pub fn compile_bpf(args: &Args) -> Result<()> {
     let output_bpf_object_path = get_output_object_path(args);
     let output_json_path = get_output_config_path(args);
     // backup old files
-    let export_struct_header = fs::read_to_string(&args.export_event_header)?;
+    let export_struct_header = if args.export_event_header != "" {
+        fs::read_to_string(&args.export_event_header)?
+    } else {
+        "".to_string()
+    };
     let mut meta_json = json!({});
 
     if args.export_event_header != "" {
