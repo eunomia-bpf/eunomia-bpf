@@ -29,6 +29,7 @@ struct map_meta {
     std::string ident;
     bool mmaped = false;
 
+    std::string __raw_json_data;
     bool is_rodata(void) const;
     bool is_bss(void) const;
 };
@@ -37,6 +38,8 @@ struct prog_meta {
     std::string name;
     std::string attach;
     bool link;
+
+    std::string __raw_json_data;
 };
 
 struct data_section_variable_meta {
@@ -45,6 +48,8 @@ struct data_section_variable_meta {
     uint32_t size;
     uint32_t offset;
     uint32_t type_id;
+
+    std::string __raw_json_data;
 };
 
 struct data_section_meta {

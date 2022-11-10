@@ -53,14 +53,13 @@ bpf_skeleton::load_and_attach_prog(void)
         std::cerr << "failed to open skeleton" << std::endl;
         return -1;
     }
-    processor.load_map_data(*this);
+    load_section_data();
     /* Load & verify BPF programs */
     err = bpf_object__load_skeleton(skeleton);
     if (err) {
         std::cerr << "failed to load skeleton" << std::endl;
         return -1;
     }
-
     /* Attach tracepoints */
     err = bpf_object__attach_skeleton(skeleton);
     if (err) {
@@ -120,7 +119,7 @@ bpf_skeleton::wait_and_poll_from_rb(std::size_t rb_map_id)
     std::cout << "running and waiting for the ebpf events from ring buffer..."
               << std::endl;
     if (exporter.check_for_meta_types_and_create_export_format(
-            meta_data.export_types, resolve_raw_btf())
+            meta_data.export_types, get_btf_data())
         < 0) {
         std::cerr << "Failed to create print format" << std::endl;
         return -1;
@@ -166,8 +165,8 @@ handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
     fprintf(stderr, "Lost %llu events on CPU #%d!\n", lost_cnt, cpu);
 }
 
-btf*
-bpf_skeleton::resolve_raw_btf(void)
+btf *
+bpf_skeleton::get_btf_data(void)
 {
     if (!obj) {
         fprintf(stderr, "no BPF object load\n");
@@ -187,7 +186,7 @@ bpf_skeleton::wait_and_poll_from_perf_event(std::size_t rb_map_id)
     int err = 0;
 
     if (exporter.check_for_meta_types_and_create_export_format(
-            meta_data.export_types, resolve_raw_btf())
+            meta_data.export_types, get_btf_data())
         < 0) {
         std::cerr << "Failed to create print format" << std::endl;
         return -1;
