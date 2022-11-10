@@ -8,7 +8,6 @@
 
 #include "base64.h"
 #include "eunomia/eunomia-bpf.hpp"
-#include "eunomia/utils.hpp"
 #include "json.hpp"
 
 extern "C" {
@@ -314,10 +313,10 @@ bpf_skeleton::create_prog_skeleton(void)
 
     maps.resize(meta_data.bpf_skel.maps.size());
     for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++) {
-        if (meta_data.bpf_skel.maps[i].is_rodata()) {
+        if (meta_data.bpf_skel.maps[i].ident == "rodata") {
             s->maps[s->map_cnt].mmaped = (void **)&rodata_buffer;
         }
-        else if (meta_data.bpf_skel.maps[i].is_bss()) {
+        else if (meta_data.bpf_skel.maps[i].ident == "bss") {
             s->maps[s->map_cnt].mmaped = (void **)&bss_buffer;
         }
         s->maps[s->map_cnt].name = meta_data.bpf_skel.maps[i].name.c_str();

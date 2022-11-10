@@ -63,6 +63,11 @@ install: ## install the package to the `INSTALL_LOCATION`
 	cmake --build build --config Release
 	cmake --build build --target install --config Release
 
+build-cmd:
+	rm -rf build/
+	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -DCMAKE_BUILD_TYPE=Release -Deunomia_BUILD_EXECUTABLE=1
+	cmake --build build --config Release
+
 format: ## format the project sources
 	cmake -Bbuild
 	cmake --build build --target clang-format

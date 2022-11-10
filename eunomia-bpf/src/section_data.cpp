@@ -1,5 +1,3 @@
-#include "eunomia/processor.hpp"
-
 #include "eunomia/eunomia-bpf.hpp"
 #include "json.hpp"
 

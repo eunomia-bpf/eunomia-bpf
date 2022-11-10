@@ -30,8 +30,6 @@ struct map_meta {
     bool mmaped = false;
 
     std::string __raw_json_data;
-    bool is_rodata(void) const;
-    bool is_bss(void) const;
 };
 
 struct prog_meta {

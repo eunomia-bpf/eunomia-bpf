@@ -29,12 +29,12 @@ int main(int argc, char *argv[])
   bpf_skeleton ebpf_program{ json_str, {} };
   if (ebpf_program.load_and_attach())
   {
-    std::cerr << "Failed to run ebpf program" << std::endl;
+    std::cerr << "failed to run ebpf program" << std::endl;
     return -1;
   }
   if (ebpf_program.wait_and_poll())
   {
-    std::cerr << "Failed to wait and print rb" << std::endl;
+    std::cerr << "failed to wait and print rb" << std::endl;
     return -1;
   }
   ebpf_program.destory();
