@@ -38,7 +38,6 @@ enum class ebpf_program_state {
 };
 
 /// @brief eunomia-bpf program class
-
 /// @details Used for managing the life span of eBPF program
 class bpf_skeleton
 {
@@ -62,7 +61,7 @@ class bpf_skeleton
     /// called after setting the export handler
     int enter_wait_and_poll(void);
     /// @brief get raw btf data from object
-    std::vector<char> resolve_raw_btf(void);
+    btf* resolve_raw_btf(void);
 
   private:
     /// The state of eunomia-bpf program

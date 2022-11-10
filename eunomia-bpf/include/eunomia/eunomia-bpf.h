@@ -1,6 +1,8 @@
 #ifndef EUNOMIA_C_H_
 #define EUNOMIA_C_H_
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C"
 {
