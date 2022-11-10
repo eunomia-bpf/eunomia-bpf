@@ -5,102 +5,84 @@
 
 using nlohmann::json;
 
-namespace eunomia
+extern "C" {
+#include <bpf/libbpf.h>
+#include <bpf/btf.h>
+}
+
+namespace eunomia {
+
+template<typename T>
+void
+load_data(const json &json_obj, char *buffer, size_t offset, size_t size)
 {
-  eunomia_object_meta data_section_processor::create_meta_from_json(const std::string& json_str)
-  {
-    eunomia_object_meta meta_data;
-    meta_data.from_json_str(json_str);
-    try
-    {
-      auto json_obj = json::parse(json_str);
-      this->runtime_args = json_obj["runtime_args"].dump();
+    if (!json_obj.contains("value")) {
+        return;
     }
-    catch (...)
-    {
-    }
-    return meta_data;
-  }
+    T value = json_obj["value"];
+    std::cout << "load runtime arg: " << value << std::endl;
+    memcpy(buffer + offset, &value, size);
+}
 
-  template<typename T>
-  void load_data(const json& json_obj, const std::string& name, char* buffer, size_t offset)
-  {
-    if (!json_obj.contains(name))
-    {
-      return;
+void
+load_string_data(const json &json_obj, char *buffer, size_t offset, size_t size)
+{
+    if (!json_obj.contains("value")) {
+        return;
     }
-    T value = json_obj[name];
-    std::cout << "load runtime arg: " << name << " " << value << std::endl;
-    memcpy(buffer + offset, &value, sizeof(T));
-  }
+    std::string value = json_obj["value"];
+    std::cout << "load string arg: " << value << std::endl;
+    memcpy(buffer + offset, &value, size);
+}
 
-  void data_section_processor::load_section_data(std::size_t index, const map_meta& map, char* buffer)
-  {
-    if (!buffer || runtime_args.empty())
-    {
-      return;
-    }
-    json json_obj;
-    try
-    {
-      json_obj = json::parse(runtime_args);
-    }
-    catch (...)
-    {
-      return;
-    }
-    std::size_t offset = 0;
-    for (auto& sec : map.sec_data)
-    {
-      switch (sec.size)
-      {
-        case 1: load_data<std::uint8_t>(json_obj, sec.name, buffer, offset); break;
-        case 2: load_data<std::uint16_t>(json_obj, sec.name, buffer, offset); break;
-        case 4: load_data<std::uint32_t>(json_obj, sec.name, buffer, offset); break;
-        case 8: load_data<std::uint64_t>(json_obj, sec.name, buffer, offset); break;
-        default:
-          // string or other type
-          if (std::strncmp(sec.type.c_str(), "char[", 5) == 0)
-          {
-            std::string len_str = sec.type.substr(5, sec.type.size() - 6);
-            std::size_t len = std::stoul(len_str);
-            auto obj = json_obj[sec.name];
-            if (obj.is_null())
-            {
-              break;
+void
+bpf_skeleton::load_section_data_to_buffer(const data_section_meta &sec,
+                                          char *mmap_buffer)
+{
+    auto btf = get_btf_data();
+
+    for (auto &variable : sec.variables) {
+        auto btf_type = btf__type_by_id(btf, variable.type_id);
+        if (btf_is_array(btf_type)) {
+            if (strncmp(variable.type.c_str(), "char", 4) == 0) {
+                load_string_data(variable.__raw_json_data, mmap_buffer,
+                                 variable.offset, variable.size);
             }
-            std::string value = obj;
-            std::cout << "load runtime arg: " << sec.name << " " << value << std::endl;
-            memcpy(buffer + offset, value.c_str(), value.size() > len ? len : value.size());
-            offset += len;
-            continue;
-          }
-          else
-          {
-            std::cerr << "unsupported type: " << sec.type << std::endl;
-          }
-      }
-      offset += sec.size;
+        }
+        switch (variable.size) {
+            case 1:
+                load_data<std::uint8_t>(variable.__raw_json_data, mmap_buffer,
+                                        variable.offset, variable.size);
+                break;
+            case 2:
+                load_data<std::uint16_t>(variable.__raw_json_data, mmap_buffer,
+                                         variable.offset, variable.size);
+                break;
+            case 4:
+                load_data<std::uint32_t>(variable.__raw_json_data, mmap_buffer,
+                                         variable.offset, variable.size);
+                break;
+            case 8:
+                load_data<std::uint64_t>(variable.__raw_json_data, mmap_buffer,
+                                         variable.offset, variable.size);
+                break;
+        }
     }
-  }
+}
 
-  void data_section_processor::load_map_data(bpf_skeleton& prog)
-  {
-    if (runtime_args.length() == 0)
-    {
-      return;
+void
+bpf_skeleton::load_section_data()
+{
+    for (auto &sec : meta_data.bpf_skel.data_sections) {
+        if (sec.name == ".rodata") {
+            load_section_data_to_buffer(sec, rodata_buffer);
+        }
+        else if (sec.name == ".bss") {
+            load_section_data_to_buffer(sec, bss_buffer);
+        }
+        else {
+            std::cerr << "unsupported section: " << sec.name << std::endl;
+        }
     }
-    for (size_t i = 0; i < prog.meta_data.maps.size(); i++)
-    {
-      auto& map = prog.meta_data.maps[i];
-      if (map.is_rodata())
-      {
-        load_section_data(i, map, prog.rodata_buffer);
-      }
-      else if (map.is_bss())
-      {
-        load_section_data(i, map, prog.rodata_buffer);
-      }
-    }
-  }
-}  // namespace eunomia
+}
+} // namespace eunomia

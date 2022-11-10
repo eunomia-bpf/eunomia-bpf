@@ -15,7 +15,6 @@
 #include "eunomia-config.hpp"
 #include "eunomia-meta.hpp"
 #include "export-events.hpp"
-#include "processor.hpp"
 
 struct bpf_map;
 struct bpf_program;
@@ -41,7 +40,6 @@ enum class ebpf_program_state {
 /// @details Used for managing the life span of eBPF program
 class bpf_skeleton
 {
-    friend class data_section_processor;
 
   private:
     /// create an ebpf skeleton
@@ -61,7 +59,7 @@ class bpf_skeleton
     /// called after setting the export handler
     int enter_wait_and_poll(void);
     /// @brief get raw btf data from object
-    btf* resolve_raw_btf(void);
+    btf *get_btf_data(void);
 
   private:
     /// The state of eunomia-bpf program
@@ -82,8 +80,10 @@ class bpf_skeleton
     /// @brief  controler of the export event to user space
     event_exporter exporter;
 
-    // help process the eBPF program with json config
-    data_section_processor processor = {};
+    /// load the map and section data
+    void load_section_data_to_buffer(const data_section_meta &sec,
+                                     char *mmap_buffer);
+    void load_section_data();
 
     /// buffer to base 64 decode
     bpf_object *obj = nullptr;
