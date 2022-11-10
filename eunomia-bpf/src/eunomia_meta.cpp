@@ -3,7 +3,6 @@
 
 #include "base64.h"
 #include "eunomia/eunomia-bpf.hpp"
-#include "eunomia/utils.hpp"
 #include "json.hpp"
 
 extern "C" {
@@ -72,17 +71,6 @@ from_json(const nlohmann::json &j, map_meta &data)
     get_opt_from_json_at(mmaped);
 
     data.__raw_json_data = j.dump();
-}
-
-bool
-map_meta::is_rodata(void) const
-{
-    return str_ends_with(name, ".rodata");
-}
-bool
-map_meta::is_bss(void) const
-{
-    return str_ends_with(name, ".bss");
 }
 
 static void

@@ -28,7 +28,7 @@ event_exporter::check_export_type_btf(export_types_struct_meta &struct_meta)
     }
     btf_member *m = btf_members(t);
     __u16 vlen = BTF_INFO_VLEN(t->info);
-    for (int i = 0; i < vlen; i++) {
+    for (size_t i = 0; i < vlen; i++) {
         auto member = struct_meta.members[i];
         if (!member.type_id) {
             // found btf type id
