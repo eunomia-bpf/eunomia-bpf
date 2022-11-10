@@ -166,7 +166,7 @@ handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
     fprintf(stderr, "Lost %llu events on CPU #%d!\n", lost_cnt, cpu);
 }
 
-std::vector<char>
+btf*
 bpf_skeleton::resolve_raw_btf(void)
 {
     if (!obj) {
@@ -178,14 +178,7 @@ bpf_skeleton::resolve_raw_btf(void)
         fprintf(stderr, "no BTF data load\n");
         return {};
     }
-    unsigned int btf_size;
-    const char *buffer;
-    buffer = (const char *)btf__get_raw_data(btf_data, &btf_size);
-    if (!buffer) {
-        fprintf(stderr, "get raw data failed\n");
-        return {};
-    }
-    return std::vector<char>(buffer, buffer + btf_size);
+    return btf_data;
 }
 
 int

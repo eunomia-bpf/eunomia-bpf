@@ -7,6 +7,15 @@
 
 #include "eunomia-meta.hpp"
 #include "eunomia-bpf.h"
+#include <cstdio>
+#include <cstdlib>
+
+extern "C" {
+struct btf;
+struct btf_type;
+void
+btf__free(struct btf *btf);
+}
 
 namespace eunomia {
 using internal_event_handler = std::function<void(const char *event)>;
@@ -16,6 +25,12 @@ using export_event_handler = std::function<void(void *ctx, const char *event)>;
 class event_exporter
 {
   private:
+    class checked_export_member
+    {
+      public:
+        export_types_struct_member_meta meta;
+        const btf_type *type = nullptr;
+    };
     std::size_t EXPORT_BUFFER_SIZE = 2048;
     std::vector<char> export_event_buffer;
     /// @brief export format type
@@ -25,9 +40,9 @@ class event_exporter
     /// internal handler to process export data to a given format
     internal_event_handler internal_event_processor = nullptr;
     /// export types meta data
-    export_types_struct_meta checked_export_type;
+    std::vector<checked_export_member> checked_export_member_types;
     /// @brief  raw btf data
-    std::vector<char> __raw_btf_data;
+    std::unique_ptr<btf, void (*)(btf *btf)> exported_btf{ nullptr, btf__free };
 
     /// user defined export ctx pointer
     void *user_ctx = nullptr;
@@ -35,8 +50,7 @@ class event_exporter
     /// @brief check a single type in exported struct and found btf id
     /// @param field field meta data
     /// @param width the width of the type in bytes
-    void check_export_type_member(export_types_struct_member_meta &field,
-                                  std::size_t width);
+    int check_export_type_btf(export_types_struct_meta &member);
     /// print the export header meta if needed
     void print_export_types_header(void);
 
@@ -51,6 +65,20 @@ class event_exporter
     void export_event_to_json(const char *event);
 
   public:
+    class sprintf_printer
+    {
+      public:
+        char *output_buffer_pointer = nullptr;
+        std::size_t output_buffer_left = 0;
+        char *buffer_base = nullptr;
+        sprintf_printer(std::vector<char> &buffer, std::size_t max_size);
+        int update_buffer(int res);
+        int snprintf_event(const char *fmt, ...);
+        int vsnprintf_event(const char *fmt, va_list args);
+        void export_to_handler_or_print(
+            void *user_ctx, export_event_handler &user_export_event_handler);
+    };
+
     event_exporter(const event_exporter &) = delete;
     event_exporter() = default;
     event_exporter(std::size_t max_buffer_size)
@@ -68,7 +96,8 @@ class event_exporter
     /// create export formats for correctly print the data,
     /// and used by user space.
     int check_for_meta_types_and_create_export_format(
-        std::vector<export_types_struct_meta> &export_types, std::vector<char> raw_btf_data);
+        std::vector<export_types_struct_meta> &export_types,
+        struct btf *btf_data);
 
     /// @brief set user export event handler to type
     void set_export_type(export_format_type type, export_event_handler handler,
