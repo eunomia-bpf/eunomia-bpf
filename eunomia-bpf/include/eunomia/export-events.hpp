@@ -8,26 +8,14 @@
 #include "eunomia-meta.hpp"
 #include "eunomia-bpf.h"
 
-namespace eunomia
+namespace eunomia {
+using internal_event_handler = std::function<void(const char *event)>;
+using export_event_handler = std::function<void(void *ctx, const char *event)>;
+
+/// @brief eunomia-bpf exporter for events in user space
+class event_exporter
 {
-
-  /// format data
-  struct export_type_info
-  {
-    std::string print_fmt;
-    std::size_t field_offset;
-    std::size_t width;
-    std::string name;
-    std::string llvm_type;
-  };
-
-  using internal_event_handler = std::function<void(const char *event)>;
-  using export_event_handler = std::function<void(void* ctx, const char *event)>;
-
-  /// @brief eunomia-bpf exporter for events in user space
-  class event_exporter
-  {
-   private:
+  private:
     std::size_t EXPORT_BUFFER_SIZE = 2048;
     std::vector<char> export_event_buffer;
     /// @brief export format type
@@ -37,18 +25,18 @@ namespace eunomia
     /// internal handler to process export data to a given format
     internal_event_handler internal_event_processor = nullptr;
     /// export types meta data
-    std::vector<export_type_info> checked_export_types;
+    export_types_struct_meta checked_export_type;
+    /// @brief  raw btf data
+    std::vector<char> __raw_btf_data;
 
     /// user defined export ctx pointer
-    void* user_ctx = nullptr;
+    void *user_ctx = nullptr;
 
-    /// @brief add the type to checked_export_types base on export_format_type
-    /// @param f export_type_info data
-    void add_export_type_with_fmt(export_type_info f);
-    /// @brief check a single type in export map and insert into the checked_export_types array
+    /// @brief check a single type in exported struct and found btf id
     /// @param field field meta data
     /// @param width the width of the type in bytes
-    void check_and_add_export_type(export_types_member_meta &field, std::size_t width);
+    void check_export_type_member(export_types_struct_member_meta &field,
+                                  std::size_t width);
     /// print the export header meta if needed
     void print_export_types_header(void);
 
@@ -62,10 +50,13 @@ namespace eunomia
     /// export event to json format
     void export_event_to_json(const char *event);
 
-   public:
+  public:
     event_exporter(const event_exporter &) = delete;
     event_exporter() = default;
-    event_exporter(std::size_t max_buffer_size) : EXPORT_BUFFER_SIZE(max_buffer_size) {}
+    event_exporter(std::size_t max_buffer_size)
+      : EXPORT_BUFFER_SIZE(max_buffer_size)
+    {
+    }
 
     /// print event with meta data;
     /// used for export call backs: ring buffer and perf events
@@ -76,12 +67,14 @@ namespace eunomia
     /// @details  the types from ebpf source code and export header
     /// create export formats for correctly print the data,
     /// and used by user space.
-    int check_for_meta_types_and_create_export_format(export_types_struct_meta_data &types);
+    int check_for_meta_types_and_create_export_format(
+        std::vector<export_types_struct_meta> &export_types, std::vector<char> raw_btf_data);
 
     /// @brief set user export event handler to type
-    void set_export_type(export_format_type type, export_event_handler handler, void* ctx = nullptr);
-  };
+    void set_export_type(export_format_type type, export_event_handler handler,
+                         void *ctx = nullptr);
+};
 
-}  // namespace eunomia
+} // namespace eunomia
 
-#endif  // EUNOMIA_EXPORT_EVENTS_HPP_
+#endif // EUNOMIA_EXPORT_EVENTS_HPP_
