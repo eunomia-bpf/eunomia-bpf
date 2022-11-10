@@ -42,48 +42,34 @@ namespace eunomia
 
   static void from_json(const nlohmann::json &j, export_types_struct_member_meta &data)
   {
-    j.at("Name").get_to(data.name);
-    j.at("Type").get_to(data.type);
-    j.at("FieldOffset").get_to(data.field_offset);
-    j.at("LLVMType").get_to(data.llvm_type);
+    get_from_json_at(name);
+    get_from_json_at(type);
+    get_from_json_at(size);
+    get_from_json_at(bit_offset);
+    get_opt_from_json_at(bit_size);
+    get_opt_from_json_at(type_id);
   }
 
   static void from_json(const nlohmann::json &j, export_types_struct_meta &data)
   {
-    j.at("Alignment").get_to(data.alignment);
-    j.at("DataSize").get_to(data.data_size);
-    j.at("Size").get_to(data.size);
-    j.at("Struct Name").get_to(data.struct_name);
-    j.at("Fields").get_to(data.fields);
-  }
-
-  void export_types_struct_meta::from_json_str(const std::string &j_str)
-  {
-    json j = json::parse(j_str);
-    export_types_struct_meta meta = j.get<export_types_struct_meta>();
-    *this = meta;
-    return;
+    get_from_json_at(name);
+    get_from_json_at(size);
+    get_from_json_at(type_id);
+    get_from_json_at(members);
   }
 
   static void from_json(const nlohmann::json &j, prog_meta &data)
   {
     get_from_json_at(name);
-    get_opt_from_json_at(type);
-  }
-
-  static void from_json(const nlohmann::json &j, export_types_meta &data)
-  {
-    get_from_json_at(name);
-    get_from_json_at(type);
-    get_from_json_at(size);
+    get_from_json_at(attach);
+    get_from_json_at(link);
   }
 
   static void from_json(const nlohmann::json &j, map_meta &data)
   {
     get_from_json_at(name);
-    get_from_json_at(type);
-    get_opt_from_json_at(export_data_types);
-    get_opt_from_json_at(sec_data);
+    get_from_json_at(ident);
+    get_opt_from_json_at(mmaped);
   }
 
   bool map_meta::is_rodata(void) const
@@ -95,14 +81,43 @@ namespace eunomia
     return str_ends_with(name, ".bss");
   }
 
+  static void from_json(const nlohmann::json &j, data_section_variable_meta &data)
+  {
+    get_from_json_at(name);
+    get_from_json_at(type);
+    get_from_json_at(size);
+    get_from_json_at(offset);
+    get_from_json_at(type_id);
+  }
+
+  static void from_json(const nlohmann::json &j, data_section_meta &data)
+  {
+    get_from_json_at(name);
+    get_from_json_at(variables);
+  }
+
+  static void from_json(const nlohmann::json &j, bpf_skel_meta &data)
+  {
+    get_from_json_at(obj_name);
+    get_from_json_at(maps);
+    get_from_json_at(progs);
+    get_from_json_at(data_sections);
+  }
+
+  static void from_json(const nlohmann::json &j, eunomia_object_meta &data)
+  {
+    get_opt_from_json_at(export_types);
+    get_from_json_at(bpf_skel);
+    get_opt_from_json_at(perf_buffer_pages);
+    get_opt_from_json_at(perf_buffer_time_ms);
+    get_opt_from_json_at(poll_timeout_ms);
+    get_opt_from_json_at(print_header);
+  }
+
   void eunomia_object_meta::from_json_str(const std::string &j_str)
   {
     json jj = json::parse(j_str);
-    ebpf_name = jj["name"];
-    maps = jj["maps"];
-    progs = jj["progs"];
-    data_sz = jj["data_sz"];
-    ebpf_data = jj["data"];
+    from_json(jj, *this); 
   }
 
   int bpf_skeleton::open_from_json_config(const std::string &json_str, std::vector<char> bpf_object_buffer) noexcept

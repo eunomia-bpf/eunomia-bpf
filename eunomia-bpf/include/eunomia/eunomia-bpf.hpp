@@ -61,6 +61,8 @@ class bpf_skeleton
     int check_export_maps(void);
     /// called after setting the export handler
     int enter_wait_and_poll(void);
+    /// @brief get raw btf data from object
+    std::vector<char> resolve_raw_btf(void);
 
   private:
     /// The state of eunomia-bpf program

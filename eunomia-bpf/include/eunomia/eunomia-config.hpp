@@ -6,17 +6,6 @@
 /// Global config to control the behavior of eunomia-bpf
 /// TODO: load config from json or config files
 struct runner_config {
-    /// perf buffer related config
-    std::size_t perf_buffer_pages = 64;
-    std::size_t perf_buffer_time_ms = 10;
-
-    /// poll config
-    int poll_timeout_ms = 100;
-
-    /// print config
-    /// print the types and names of export headers
-    bool print_header = true;
-
     /// Whether libbpf should print debug info
     /// This will only be apply to libbpf when start running
     bool libbpf_debug_verbose = false;

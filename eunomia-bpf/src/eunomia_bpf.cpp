@@ -11,27 +11,28 @@
 #include "eunomia/utils.hpp"
 #include "json.hpp"
 
-extern "C"
-{
+extern "C" {
 #include <bpf/libbpf.h>
+#include <bpf/btf.h>
 #include <stdio.h>
 #include <stdlib.h>
 }
 
 using json = nlohmann::json;
-namespace eunomia
+namespace eunomia {
+// control the debug info callback from libbpf
+static thread_local bool verbose_local = false;
+static int
+libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
 {
-  // control the debug info callback from libbpf
-  static thread_local bool verbose_local = false;
-  static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
-  {
     if (level == LIBBPF_DEBUG && !verbose_local)
-      return 0;
+        return 0;
     return vfprintf(stderr, format, args);
-  }
+}
 
-  int bpf_skeleton::load_and_attach_prog(void)
-  {
+int
+bpf_skeleton::load_and_attach_prog(void)
+{
     int err = 0;
 
     verbose_local = config_data.libbpf_debug_verbose;
@@ -39,238 +40,251 @@ namespace eunomia
     /* Set up libbpf errors and debug info callback */
     libbpf_set_print(libbpf_print_fn);
 
-    if (create_prog_skeleton())
-    {
-      std::cerr << "failed to create skeleton from json" << std::endl;
-      return -1;
+    if (create_prog_skeleton()) {
+        std::cerr << "failed to create skeleton from json" << std::endl;
+        return -1;
     }
-    auto btf_file = getenv("BTF_FILE_PATH");
+    auto additional_btf_file = getenv("BTF_FILE_PATH");
     DECLARE_LIBBPF_OPTS(bpf_object_open_opts, openopts);
-    if (btf_file != NULL)
-    {
-      openopts.btf_custom_path = strdup(btf_file);
+    if (additional_btf_file != NULL) {
+        openopts.btf_custom_path = strdup(additional_btf_file);
     }
-    if (bpf_object__open_skeleton(skeleton, &openopts))
-    {
-      std::cerr << "failed to open skeleton" << std::endl;
-      return -1;
+    if (bpf_object__open_skeleton(skeleton, &openopts)) {
+        std::cerr << "failed to open skeleton" << std::endl;
+        return -1;
     }
     processor.load_map_data(*this);
     /* Load & verify BPF programs */
     err = bpf_object__load_skeleton(skeleton);
-    if (err)
-    {
-      std::cerr << "failed to load skeleton" << std::endl;
-      return -1;
+    if (err) {
+        std::cerr << "failed to load skeleton" << std::endl;
+        return -1;
     }
 
     /* Attach tracepoints */
     err = bpf_object__attach_skeleton(skeleton);
-    if (err)
-    {
-      std::cerr << "failed to attach skeleton" << std::endl;
-      return -1;
+    if (err) {
+        std::cerr << "failed to attach skeleton" << std::endl;
+        return -1;
     }
     return 0;
-  }
+}
 
-  /// load and attach the eBPF program to the kernel
-  int bpf_skeleton::load_and_attach(void) noexcept
-  {
+/// load and attach the eBPF program to the kernel
+int
+bpf_skeleton::load_and_attach(void) noexcept
+{
     // check the state of the program
-    if (state == ebpf_program_state::INVALID)
-    {
-      std::cerr << "invalid program state" << std::endl;
-      return -1;
+    if (state == ebpf_program_state::INVALID) {
+        std::cerr << "invalid program state" << std::endl;
+        return -1;
     }
-    else if (state == ebpf_program_state::RUNNING)
-    {
-      return 0;
+    else if (state == ebpf_program_state::RUNNING) {
+        return 0;
     }
     int err = 0;
-    try
-    {
-      err = load_and_attach_prog();
-    }
-    catch (const std::exception &e)
-    {
-      std::cerr << "Failed to run eBPF program: " << e.what() << std::endl;
-      state = ebpf_program_state::INVALID;
+    try {
+        err = load_and_attach_prog();
+    } catch (const std::exception &e) {
+        std::cerr << "Failed to run eBPF program: " << e.what() << std::endl;
+        state = ebpf_program_state::INVALID;
     }
     state = ebpf_program_state::RUNNING;
     return err;
-  }
+}
 
-  const std::string &bpf_skeleton::get_program_name(void) const
-  {
+const std::string &
+bpf_skeleton::get_program_name(void) const
+{
     return meta_data.bpf_skel.obj_name;
-  }
+}
 
-  static int handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
-  {
+static int
+handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
+{
     const char *e = (const char *)(const void *)data;
     const bpf_skeleton *p = (const bpf_skeleton *)ctx;
-    if (!p || !e)
-    {
-      std::cerr << "empty ctx or events" << std::endl;
-      return -1;
+    if (!p || !e) {
+        std::cerr << "empty ctx or events" << std::endl;
+        return -1;
     }
     p->handler_export_events(e);
     return 0;
-  }
+}
 
-  int bpf_skeleton::wait_and_poll_from_rb(std::size_t rb_map_id)
-  {
+int
+bpf_skeleton::wait_and_poll_from_rb(std::size_t rb_map_id)
+{
     int err = 0;
 
-    std::cout << "running and waiting for the ebpf events from ring buffer..." << std::endl;
-    if (exporter.check_for_meta_types_and_create_export_format(meta_data.bpf_skel.maps[rb_map_id].export_data_types) < 0)
-    {
-      std::cerr << "Failed to create print format" << std::endl;
-      return -1;
+    std::cout << "running and waiting for the ebpf events from ring buffer..."
+              << std::endl;
+    if (exporter.check_for_meta_types_and_create_export_format(
+            meta_data.export_types, resolve_raw_btf())
+        < 0) {
+        std::cerr << "Failed to create print format" << std::endl;
+        return -1;
     }
-    ring_buffer_map = ring_buffer__new(bpf_map__fd(maps[rb_map_id]), handle_print_ringbuf_event, this, NULL);
-    if (!ring_buffer_map)
-    {
-      fprintf(stderr, "Failed to create ring buffer\n");
-      return 0;
+    ring_buffer_map = ring_buffer__new(bpf_map__fd(maps[rb_map_id]),
+                                       handle_print_ringbuf_event, this, NULL);
+    if (!ring_buffer_map) {
+        fprintf(stderr, "Failed to create ring buffer\n");
+        return 0;
     }
 
     /* Process events */
-    while (!exiting)
-    {
-      err = ring_buffer__poll(ring_buffer_map, config_data.poll_timeout_ms);
-      /* Ctrl-C will cause -EINTR */
-      if (err == -EINTR)
-      {
-        err = 0;
-        break;
-      }
-      if (err < 0)
-      {
-        printf("Error polling perf buffer: %d\n", err);
-        return -1;
-      }
+    while (!exiting) {
+        err = ring_buffer__poll(ring_buffer_map, meta_data.poll_timeout_ms);
+        /* Ctrl-C will cause -EINTR */
+        if (err == -EINTR) {
+            err = 0;
+            break;
+        }
+        if (err < 0) {
+            printf("Error polling perf buffer: %d\n", err);
+            return -1;
+        }
     }
     return 0;
-  }
+}
 
-  static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
-  {
+static void
+handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
+{
     const char *e = (const char *)(const void *)data;
     const bpf_skeleton *p = (const bpf_skeleton *)ctx;
-    if (!p || !e)
-    {
-      std::cerr << "empty ctx or events" << std::endl;
-      return;
+    if (!p || !e) {
+        std::cerr << "empty ctx or events" << std::endl;
+        return;
     }
     p->handler_export_events(e);
-  }
+}
 
-  static void handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
-  {
+static void
+handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
+{
     fprintf(stderr, "Lost %llu events on CPU #%d!\n", lost_cnt, cpu);
-  }
+}
 
-  int bpf_skeleton::wait_and_poll_from_perf_event(std::size_t rb_map_id)
-  {
+std::vector<char>
+bpf_skeleton::resolve_raw_btf(void)
+{
+    if (!obj) {
+        fprintf(stderr, "no BPF object load\n");
+        return {};
+    }
+    auto btf_data = bpf_object__btf(obj);
+    if (!btf_data) {
+        fprintf(stderr, "no BTF data load\n");
+        return {};
+    }
+    unsigned int btf_size;
+    const char *buffer;
+    buffer = (const char *)btf__get_raw_data(btf_data, &btf_size);
+    if (!buffer) {
+        fprintf(stderr, "get raw data failed\n");
+        return {};
+    }
+    return std::vector<char>(buffer, buffer + btf_size);
+}
+
+int
+bpf_skeleton::wait_and_poll_from_perf_event(std::size_t rb_map_id)
+{
     int err = 0;
 
-    std::cout << "running and waiting for the ebpf events from perf event..." << std::endl;
-    if (exporter.check_for_meta_types_and_create_export_format(meta_data.bpf_skel.maps[rb_map_id].export_data_types) < 0)
-    {
-      std::cerr << "Failed to create print format" << std::endl;
-      return -1;
+    if (exporter.check_for_meta_types_and_create_export_format(
+            meta_data.export_types, resolve_raw_btf())
+        < 0) {
+        std::cerr << "Failed to create print format" << std::endl;
+        return -1;
     }
     /* setup event callbacks */
     perf_buffer_map = perf_buffer__new(
-        bpf_map__fd(maps[rb_map_id]), config_data.perf_buffer_pages, handle_event, handle_lost_events, this, NULL);
-    if (!perf_buffer_map)
-    {
-      err = -errno;
-      fprintf(stderr, "failed to open perf buffer: %d\n", err);
-      return err;
+        bpf_map__fd(maps[rb_map_id]), meta_data.perf_buffer_pages, handle_event,
+        handle_lost_events, this, NULL);
+    if (!perf_buffer_map) {
+        err = -errno;
+        fprintf(stderr, "failed to open perf buffer: %d\n", err);
+        return err;
     }
 
     /* main: poll */
-    while (!exiting)
-    {
-      err = perf_buffer__poll(perf_buffer_map, config_data.poll_timeout_ms);
-      if (err < 0 && err != -EINTR)
-      {
-        fprintf(stderr, "error polling perf buffer: %s\n", strerror(-err));
-        return err;
-      }
-      /* reset err to return 0 if exiting */
-      err = 0;
+    while (!exiting) {
+        err = perf_buffer__poll(perf_buffer_map, meta_data.poll_timeout_ms);
+        if (err < 0 && err != -EINTR) {
+            fprintf(stderr, "error polling perf buffer: %s\n", strerror(-err));
+            return err;
+        }
+        /* reset err to return 0 if exiting */
+        err = 0;
     }
     return 0;
-  }
+}
 
-  int bpf_skeleton::wait_for_no_export_program(void)
-  {
+int
+bpf_skeleton::wait_for_no_export_program(void)
+{
     std::cout << "running and waiting for the ebpf program..." << std::endl;
     // if we don't have a ring buffer, just wait for the program to exit
-    while (!exiting)
-    {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    while (!exiting) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     return 0;
-  }
+}
 
-  int bpf_skeleton::check_export_maps(void)
-  {
-    for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++)
-    {
-      auto &map = meta_data.bpf_skel.maps[i];
-      if (map.type == "BPF_MAP_TYPE_RINGBUF")
-      {
-        return wait_and_poll_from_rb(i);
-      }
-      else if (map.type == "BPF_MAP_TYPE_PERF_EVENT_ARRAY")
-      {
-        return wait_and_poll_from_perf_event(i);
-      }
+int
+bpf_skeleton::check_export_maps(void)
+{
+    if (meta_data.export_types.empty()) {
+        return wait_for_no_export_program();
     }
-    return wait_for_no_export_program();
-  }
+    for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++) {
+        auto map = maps[i];
+        if (bpf_map__type(map) == BPF_MAP_TYPE_RINGBUF) {
+            return wait_and_poll_from_rb(i);
+        }
+        else if (bpf_map__type(map) == BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
+            return wait_and_poll_from_perf_event(i);
+        }
+    }
+    return -1;
+}
 
-  int bpf_skeleton::enter_wait_and_poll(void)
-  {
+int
+bpf_skeleton::enter_wait_and_poll(void)
+{
     int err;
     exiting = false;
     // check the state
-    if (state != ebpf_program_state::RUNNING)
-    {
-      std::cerr << "ebpf program is not running" << std::endl;
-      return -1;
+    if (state != ebpf_program_state::RUNNING) {
+        std::cerr << "ebpf program is not running" << std::endl;
+        return -1;
     }
     // help the wait_and_print work with stop correctly in multi-thread
     std::lock_guard<std::mutex> guard(exit_mutex);
     return check_export_maps();
-  }
+}
 
-  int bpf_skeleton::wait_and_poll(void) noexcept
-  {
+int
+bpf_skeleton::wait_and_poll(void) noexcept
+{
     exporter.set_export_type(export_format_type::EXPORT_PLANT_TEXT, nullptr);
     int err = 0;
-    try
-    {
-      err = enter_wait_and_poll();
-    }
-    catch (const std::exception &e)
-    {
-      std::cerr << "Exception: " << e.what() << std::endl;
-      err = -1;
+    try {
+        err = enter_wait_and_poll();
+    } catch (const std::exception &e) {
+        std::cerr << "Exception: " << e.what() << std::endl;
+        err = -1;
     }
     return err;
-  }
+}
 
-  void bpf_skeleton::destory() noexcept
-  {
-    if (state != ebpf_program_state::RUNNING)
-    {
-      return;
+void
+bpf_skeleton::destory() noexcept
+{
+    if (state != ebpf_program_state::RUNNING) {
+        return;
     }
     exiting = true;
     /// wait until poll has exit
@@ -283,57 +297,56 @@ namespace eunomia
     perf_buffer__free(perf_buffer_map);
     perf_buffer_map = nullptr;
     state = ebpf_program_state::STOPPED;
-  }
+}
 
-  int bpf_skeleton::create_prog_skeleton(void)
-  {
+int
+bpf_skeleton::create_prog_skeleton(void)
+{
     struct bpf_object_skeleton *s;
     skeleton = nullptr;
 
     s = (struct bpf_object_skeleton *)calloc(1, sizeof(*s));
     if (!s)
-      return -1;
+        return -1;
 
     s->sz = sizeof(*s);
-    s->name = "client_bpf";  // FIXME: use ebpf_name in meta data
+    s->name = "client_bpf"; // FIXME: use ebpf_name in meta data
 
     /* maps */
     s->map_cnt = 0;
     s->map_skel_sz = sizeof(*s->maps);
-    s->maps = (struct bpf_map_skeleton *)calloc(meta_data.bpf_skel.maps.size(), (size_t)s->map_skel_sz);
+    s->maps = (struct bpf_map_skeleton *)calloc(meta_data.bpf_skel.maps.size(),
+                                                (size_t)s->map_skel_sz);
     if (!s->maps)
-      goto err;
+        goto err;
 
     maps.resize(meta_data.bpf_skel.maps.size());
-    for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++)
-    {
-        if (meta_data.bpf_skel.maps[i].is_rodata())
-        {
-          s->maps[s->map_cnt].mmaped = (void **)&rodata_buffer;
+    for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++) {
+        if (meta_data.bpf_skel.maps[i].is_rodata()) {
+            s->maps[s->map_cnt].mmaped = (void **)&rodata_buffer;
         }
-        else if (meta_data.bpf_skel.maps[i].is_bss())
-        {
-          s->maps[s->map_cnt].mmaped = (void **)&bss_buffer;
+        else if (meta_data.bpf_skel.maps[i].is_bss()) {
+            s->maps[s->map_cnt].mmaped = (void **)&bss_buffer;
         }
-      s->maps[s->map_cnt].name = meta_data.bpf_skel.maps[i].name.c_str();
-      s->maps[s->map_cnt].map = &maps[i];
-      s->map_cnt++;
+        s->maps[s->map_cnt].name = meta_data.bpf_skel.maps[i].name.c_str();
+        s->maps[s->map_cnt].map = &maps[i];
+        s->map_cnt++;
     }
 
     /* programs */
     s->prog_skel_sz = sizeof(*s->progs);
-    s->progs = (struct bpf_prog_skeleton *)calloc(meta_data.bpf_skel.progs.size(), (size_t)s->prog_skel_sz);
+    s->progs = (struct bpf_prog_skeleton *)calloc(
+        meta_data.bpf_skel.progs.size(), (size_t)s->prog_skel_sz);
     if (!s->progs)
-      goto err;
+        goto err;
     progs.resize(meta_data.bpf_skel.progs.size());
     links.resize(meta_data.bpf_skel.progs.size());
     s->prog_cnt = 0;
-    for (std::size_t i = 0; i < meta_data.bpf_skel.progs.size(); i++)
-    {
-      s->progs[s->prog_cnt].name = meta_data.bpf_skel.progs[i].name.c_str();
-      s->progs[s->prog_cnt].prog = &progs[i];
-      s->progs[s->prog_cnt].link = &links[i];
-      s->prog_cnt++;
+    for (std::size_t i = 0; i < meta_data.bpf_skel.progs.size(); i++) {
+        s->progs[s->prog_cnt].name = meta_data.bpf_skel.progs[i].name.c_str();
+        s->progs[s->prog_cnt].prog = &progs[i];
+        s->progs[s->prog_cnt].link = &links[i];
+        s->prog_cnt++;
     }
 
     s->data_sz = __bpf_object_buffer.size();
@@ -342,121 +355,117 @@ namespace eunomia
     s->obj = &obj;
     skeleton = s;
     return 0;
-  err:
+err:
     bpf_object__destroy_skeleton(s);
     return -1;
-  }
+}
 
-  int bpf_skeleton::get_fd(const char *name) const noexcept
-  {
-    for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++)
-    {
-      if (meta_data.bpf_skel.maps[i].name == name)
-      {
-        return bpf_map__fd(maps[i]);
-      }
+int
+bpf_skeleton::get_fd(const char *name) const noexcept
+{
+    for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++) {
+        if (meta_data.bpf_skel.maps[i].name == name) {
+            return bpf_map__fd(maps[i]);
+        }
     }
-    for (std::size_t i = 0; i < meta_data.bpf_skel.progs.size(); i++)
-    {
-      if (meta_data.bpf_skel.progs[i].name == name)
-      {
-        return bpf_program__fd(progs[i]);
-      }
+    for (std::size_t i = 0; i < meta_data.bpf_skel.progs.size(); i++) {
+        if (meta_data.bpf_skel.progs[i].name == name) {
+            return bpf_program__fd(progs[i]);
+        }
     }
     return -1;
-  }
+}
 
-}  // namespace eunomia
+} // namespace eunomia
 
 // simple wrappers for C API
-extern "C"
-{
-  struct eunomia_bpf
-  {
+extern "C" {
+struct eunomia_bpf {
     eunomia::bpf_skeleton program;
-  };
-  struct eunomia_bpf *open_eunomia_skel_from_json(const char *json_data, const char *bpf_object_buffer, size_t object_size)
-  {
+};
+struct eunomia_bpf *
+open_eunomia_skel_from_json(const char *json_data,
+                            const char *bpf_object_buffer, size_t object_size)
+{
     struct eunomia_bpf *bpf = new eunomia_bpf{ eunomia::bpf_skeleton() };
-    if (!bpf)
-    {
-      return nullptr;
+    if (!bpf) {
+        return nullptr;
     }
     if (bpf->program.open_from_json_config(
-            json_data, std::vector<char>{ bpf_object_buffer, bpf_object_buffer + object_size }) < 0)
-    {
-      delete bpf;
-      return nullptr;
+            json_data, std::vector<char>{ bpf_object_buffer,
+                                          bpf_object_buffer + object_size })
+        < 0) {
+        delete bpf;
+        return nullptr;
     }
     return bpf;
-  }
+}
 
-  int load_and_attach_eunomia_skel(struct eunomia_bpf *prog)
-  {
-    if (!prog)
-    {
-      return -1;
+int
+load_and_attach_eunomia_skel(struct eunomia_bpf *prog)
+{
+    if (!prog) {
+        return -1;
     }
     return prog->program.load_and_attach();
-  }
+}
 
-  int wait_and_poll_events(struct eunomia_bpf *prog)
-  {
-    if (!prog)
-    {
-      return -1;
+int
+wait_and_poll_events(struct eunomia_bpf *prog)
+{
+    if (!prog) {
+        return -1;
     }
     return prog->program.wait_and_poll();
-  }
+}
 
-  int wait_and_poll_events_to_handler(
-      struct eunomia_bpf *prog,
-      enum export_format_type type,
-      void (*handler)(void *, const char *),
-      void *ctx)
-  {
-    if (!prog || !handler)
-    {
-      return -1;
+int
+wait_and_poll_events_to_handler(struct eunomia_bpf *prog,
+                                enum export_format_type type,
+                                void (*handler)(void *, const char *),
+                                void *ctx)
+{
+    if (!prog || !handler) {
+        return -1;
     }
     return prog->program.wait_and_poll_to_handler(type, handler, ctx);
-  }
+}
 
-  void destroy_eunomia_skel(struct eunomia_bpf *prog)
-  {
-    if (!prog)
-    {
-      return;
+void
+destroy_eunomia_skel(struct eunomia_bpf *prog)
+{
+    if (!prog) {
+        return;
     }
     prog->program.destory();
     delete prog;
-  }
+}
 
-  /// @brief stop the ebpf program
-  void stop_ebpf_program(struct eunomia_bpf *prog)
-  {
-    if (!prog)
-    {
-      return;
+/// @brief stop the ebpf program
+void
+stop_ebpf_program(struct eunomia_bpf *prog)
+{
+    if (!prog) {
+        return;
     }
     prog->program.destory();
-  }
-  /// @brief free the memory of the program
-  void free_bpf_skel(struct eunomia_bpf *prog)
-  {
-    if (!prog)
-    {
-      return;
+}
+/// @brief free the memory of the program
+void
+free_bpf_skel(struct eunomia_bpf *prog)
+{
+    if (!prog) {
+        return;
     }
     delete prog;
-  }
+}
 
-  int get_bpf_fd(struct eunomia_bpf *prog, const char *name)
-  {
-    if (!prog)
-    {
-      return -1;
+int
+get_bpf_fd(struct eunomia_bpf *prog, const char *name)
+{
+    if (!prog) {
+        return -1;
     }
     return prog->program.get_fd(name);
-  }
+}
 }
