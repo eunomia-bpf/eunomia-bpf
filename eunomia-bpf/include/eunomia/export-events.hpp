@@ -13,8 +13,11 @@
 extern "C" {
 struct btf;
 struct btf_type;
+struct btf_dump;
 void
 btf__free(struct btf *btf);
+void
+btf_dump__free(struct btf_dump *d);
 }
 
 namespace eunomia {
@@ -24,6 +27,24 @@ using export_event_handler = std::function<void(void *ctx, const char *event)>;
 /// @brief eunomia-bpf exporter for events in user space
 class event_exporter
 {
+  public:
+    class sprintf_printer
+    {
+      public:
+        static const std::size_t EVENT_SIZE = 512;
+        std::string buffer;
+        void reset(std::size_t size = 2048)
+        {
+            buffer.reserve(size);
+            buffer.clear();
+        }
+        int sprintf_event(const char *fmt, ...);
+        int snprintf_event(size_t __maxlen, const char *fmt, ...);
+        int vsprintf_event(const char *fmt, va_list args);
+        void export_to_handler_or_print(
+            void *user_ctx, export_event_handler &user_export_event_handler);
+    };
+
   private:
     class checked_export_member
     {
@@ -32,8 +53,6 @@ class event_exporter
         const btf_type *type = nullptr;
         std::size_t output_header_offset;
     };
-    std::size_t EXPORT_BUFFER_SIZE = 2048;
-    std::vector<char> export_event_buffer;
     /// @brief export format type
     export_format_type format_type;
     /// user define handler to process export data
@@ -65,31 +84,15 @@ class event_exporter
     /// export event to json format
     void export_event_to_json(const char *event);
 
-  public:
-    class sprintf_printer
-    {
-        char *output_buffer_pointer = nullptr;
-        std::size_t output_buffer_left = 0;
-        char *buffer_base = nullptr;
-
-      public:
-        std::size_t get_current_size() const;
-        sprintf_printer(std::vector<char> &buffer, std::size_t max_size);
-        int update_buffer(int res);
-        int sprintf_event(const char *fmt, ...);
-        int snprintf_event(size_t __maxlen, const char *fmt, ...);
-        int vsprintf_event(const char *fmt, va_list args);
-        void export_to_handler_or_print(
-            void *user_ctx, export_event_handler &user_export_event_handler);
+    sprintf_printer printer;
+    std::unique_ptr<btf_dump, void (*)(btf_dump *)> btf_dumper{
+        nullptr, btf_dump__free
     };
+    void setup_event_exporter(void);
+    int print_export_member(const char *event, std::size_t offset,
+                            const checked_export_member &member, bool is_json);
 
-    event_exporter(const event_exporter &) = delete;
-    event_exporter() = default;
-    event_exporter(std::size_t max_buffer_size)
-      : EXPORT_BUFFER_SIZE(max_buffer_size)
-    {
-    }
-
+  public:
     /// print event with meta data;
     /// used for export call backs: ring buffer and perf events
     /// provide a common interface to print the event data
