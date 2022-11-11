@@ -30,6 +30,7 @@ class event_exporter
       public:
         export_types_struct_member_meta meta;
         const btf_type *type = nullptr;
+        std::size_t output_header_offset;
     };
     std::size_t EXPORT_BUFFER_SIZE = 2048;
     std::vector<char> export_event_buffer;
@@ -67,14 +68,17 @@ class event_exporter
   public:
     class sprintf_printer
     {
-      public:
         char *output_buffer_pointer = nullptr;
         std::size_t output_buffer_left = 0;
         char *buffer_base = nullptr;
+
+      public:
+        std::size_t get_current_size() const;
         sprintf_printer(std::vector<char> &buffer, std::size_t max_size);
         int update_buffer(int res);
-        int snprintf_event(const char *fmt, ...);
-        int vsnprintf_event(const char *fmt, va_list args);
+        int sprintf_event(const char *fmt, ...);
+        int snprintf_event(size_t __maxlen, const char *fmt, ...);
+        int vsprintf_event(const char *fmt, va_list args);
         void export_to_handler_or_print(
             void *user_ctx, export_event_handler &user_export_event_handler);
     };

@@ -90,3 +90,8 @@ pub fn get_output_object_path(args: &Args) -> String {
     output_object_path.to_str().unwrap().to_string()
 }
 
+pub fn get_source_file_temp_path(args: &Args) -> String {
+    let source_path = path::Path::new(&args.source_path);
+    let source_file_temp_path = source_path.with_extension("temp.c");
+    source_file_temp_path.to_str().unwrap().to_string()
+}

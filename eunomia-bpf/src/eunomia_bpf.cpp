@@ -115,8 +115,6 @@ bpf_skeleton::wait_and_poll_from_rb(std::size_t rb_map_id)
 {
     int err = 0;
 
-    std::cout << "running and waiting for the ebpf events from ring buffer..."
-              << std::endl;
     if (exporter.check_for_meta_types_and_create_export_format(
             meta_data.export_types, get_btf_data())
         < 0) {
@@ -216,7 +214,6 @@ bpf_skeleton::wait_and_poll_from_perf_event(std::size_t rb_map_id)
 int
 bpf_skeleton::wait_for_no_export_program(void)
 {
-    std::cout << "running and waiting for the ebpf program..." << std::endl;
     // if we don't have a ring buffer, just wait for the program to exit
     while (!exiting) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
