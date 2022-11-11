@@ -1,7 +1,4 @@
-use crate::{
-    config::*,
-    export_types::*,
-};
+use crate::{config::*, export_types::*};
 use anyhow::Result;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
@@ -185,25 +182,15 @@ fn get_export_types_json(args: &Args, output_bpf_object_path: &String) -> Result
     Ok(serde_json::to_string(&export_types_json).unwrap())
 }
 
-/// compile JSON file
-pub fn compile_bpf(args: &Args) -> Result<()> {
+/// do actual work for compiling
+fn do_compile(args: &Args, temp_source_file: &str) -> Result<()> {
     let output_bpf_object_path = get_output_object_path(args);
     let output_json_path = get_output_config_path(args);
-    // backup old files
-    let export_struct_header = if args.export_event_header != "" {
-        fs::read_to_string(&args.export_event_header)?
-    } else {
-        "".to_string()
-    };
     let mut meta_json = json!({});
 
-    if args.export_event_header != "" {
-        let export_types_with_preserve = add_preserve_access_index(args)?;
-        fs::write(&args.export_event_header, export_types_with_preserve)?;
-    }
     // compile bpf object
     println!("Compiling bpf object...");
-    compile_bpf_object(args, &args.source_path, &output_bpf_object_path)?;
+    compile_bpf_object(args, temp_source_file, &output_bpf_object_path)?;
     let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_path, args)?;
     let bpf_skel_json = serde_json::from_str(&bpf_skel_json)?;
     meta_json["bpf_skel"] = bpf_skel_json;
@@ -214,8 +201,6 @@ pub fn compile_bpf(args: &Args) -> Result<()> {
         let export_types_json = get_export_types_json(args, &output_bpf_object_path)?;
         let export_types_json: Value = serde_json::from_str(&export_types_json)?;
         meta_json["export_types"] = export_types_json;
-        // restore export struct header
-        fs::write(&args.export_event_header, export_struct_header)?;
     }
 
     let meta_config_str = if args.yaml {
@@ -225,6 +210,24 @@ pub fn compile_bpf(args: &Args) -> Result<()> {
     };
     fs::write(output_json_path, meta_config_str)?;
     Ok(())
+}
+
+/// compile JSON file
+pub fn compile_bpf(args: &Args) -> Result<()> {
+    // backup old files
+    let source_file_content = fs::read_to_string(&args.source_path)?;
+    let temp_source_file = get_source_file_temp_path(args);
+
+    if args.export_event_header != "" {
+        // create temp source file
+        fs::write(&temp_source_file, source_file_content)?;
+        add_unused_ptr_for_structs(args, &temp_source_file)?;
+    }
+    let res = do_compile(args, &temp_source_file);
+    if args.export_event_header != "" {
+        fs::remove_file(temp_source_file)?;
+    }
+    res
 }
 
 /// pack the object file into a package.json

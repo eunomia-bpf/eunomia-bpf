@@ -18,6 +18,18 @@ struct print_type_format_map {
     const char *type_str;
 };
 
+static bool
+is_string_type(const char *type_str)
+{
+    return strncmp(type_str, "char[", 5) == 0;
+}
+
+static bool
+is_bool_type(const char *type_str)
+{
+    return strncmp(type_str, "bool", 4) == 0;
+}
+
 int
 event_exporter::check_export_type_btf(export_types_struct_meta &struct_meta)
 {
@@ -35,11 +47,9 @@ event_exporter::check_export_type_btf(export_types_struct_meta &struct_meta)
             member.type_id = m->type;
         }
         auto member_type = btf__type_by_id(exported_btf.get(), member.type_id);
-        if (member_type->name_off != m[i].name_off) {
-            std::cerr << "member name mismatch: "
-                      << btf__name_by_offset(exported_btf.get(),
-                                             member_type->name_off)
-                      << " != "
+        if (member.name
+            != btf__name_by_offset(exported_btf.get(), m[i].name_off)) {
+            std::cerr << "member name mismatch: " << member.name << " != "
                       << btf__name_by_offset(exported_btf.get(), m[i].name_off)
                       << std::endl;
             return -1;
@@ -54,14 +64,17 @@ void
 event_exporter::print_export_types_header(void)
 {
     // print the time header
-    std::cout << "TIME    ";
+    constexpr const char *time_header = "TIME     ";
+    std::string header = time_header;
     for (auto &type : checked_export_member_types) {
+        type.output_header_offset = header.size();
         auto str = type.meta.name;
         std::transform(str.begin(), str.end(), str.begin(), ::toupper);
-        std::cout << str << '\t';
+        header += str;
+        header += "  ";
     }
     // print the field name endline
-    std::cout << std::endl;
+    std::cout << header << std::endl;
 }
 
 int
@@ -99,6 +112,12 @@ event_exporter::sprintf_printer::sprintf_printer(std::vector<char> &buffer,
     buffer_base = buffer.data();
 }
 
+std::size_t
+event_exporter::sprintf_printer::get_current_size() const
+{
+    return output_buffer_pointer - buffer_base;
+}
+
 int
 event_exporter::sprintf_printer::update_buffer(int res)
 {
@@ -116,14 +135,29 @@ event_exporter::sprintf_printer::update_buffer(int res)
 }
 
 int
-event_exporter::sprintf_printer::vsnprintf_event(const char *fmt, va_list args)
+event_exporter::sprintf_printer::vsprintf_event(const char *fmt, va_list args)
 {
     int res = vsnprintf(output_buffer_pointer, output_buffer_left, fmt, args);
     return update_buffer(res);
 }
 
 int
-event_exporter::sprintf_printer::snprintf_event(const char *fmt, ...)
+event_exporter::sprintf_printer::snprintf_event(size_t __maxlen,
+                                                const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    std::size_t max_len_output = __maxlen;
+    if (__maxlen > output_buffer_left) {
+        max_len_output = output_buffer_left;
+    }
+    int res = vsnprintf(output_buffer_pointer, max_len_output, fmt, args);
+    va_end(args);
+    return update_buffer(res);
+}
+
+int
+event_exporter::sprintf_printer::sprintf_event(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -149,7 +183,7 @@ static void
 btf_dump_event_printf(void *ctx, const char *fmt, va_list args)
 {
     auto printer = static_cast<event_exporter::sprintf_printer *>(ctx);
-    printer->vsnprintf_event(fmt, args);
+    printer->vsprintf_event(fmt, args);
 }
 
 void
@@ -165,7 +199,7 @@ event_exporter::print_export_event_to_json(const char *event)
         std::cerr << "Failed to create btf dump" << std::endl;
         return;
     }
-    int res = printer.snprintf_event("{");
+    int res = printer.sprintf_event("{");
     if (res < 0) {
         return;
     }
@@ -177,20 +211,40 @@ event_exporter::print_export_event_to_json(const char *event)
             std::cerr << "bit offset not supported" << std::endl;
             return;
         }
-        res = printer.snprintf_event("\"%s\":", member.meta.name);
+        res = printer.sprintf_event("\"%s\":", member.meta.name);
         if (res < 0) {
             return;
         }
-        res = btf_dump__dump_type_data(d, member.meta.type_id, event + offset,
-                                       member.meta.size, &opts);
+        if (is_string_type(member.meta.type.c_str())) {
+            res =
+                printer.snprintf_event(member.meta.size, "%s", event + offset);
+            if (res < 0) {
+                return;
+            }
+        }
+        else if (is_bool_type(member.meta.type.c_str())) {
+            res = printer.sprintf_event("%s",
+                                        *(event + offset) ? "true" : "false");
+            if (res < 0) {
+                return;
+            }
+        }
+        else {
+            res =
+                btf_dump__dump_type_data(d, member.meta.type_id, event + offset,
+                                         member.meta.size, &opts);
+            if (res < 0) {
+                printer.sprintf_event("<unknown>");
+            }
+        }
         if (i < checked_export_member_types.size() - 1) {
-            res = printer.snprintf_event(",");
+            res = printer.sprintf_event(",");
             if (res < 0) {
                 return;
             }
         }
     }
-    res = printer.snprintf_event("}");
+    res = printer.sprintf_event("}");
     if (res < 0) {
         return;
     }
@@ -212,8 +266,8 @@ event_exporter::print_plant_text_event_with_time(const char *event)
     char ts[32];
     time_t t;
     sprintf_printer printer{ export_event_buffer, EXPORT_BUFFER_SIZE };
-    DECLARE_LIBBPF_OPTS(btf_dump_type_data_opts, opts, .skip_names = true,
-                        .emit_zeroes = true, );
+    DECLARE_LIBBPF_OPTS(btf_dump_type_data_opts, opts, .compact = true,
+                        .skip_names = true, .emit_zeroes = true, );
     DECLARE_LIBBPF_OPTS(btf_dump_opts, dump_opts);
     struct btf_dump *d = btf_dump__new(
         exported_btf.get(), btf_dump_event_printf, &printer, &dump_opts);
@@ -225,7 +279,7 @@ event_exporter::print_plant_text_event_with_time(const char *event)
     time(&t);
     tm = localtime(&t);
     strftime(ts, sizeof(ts), "%H:%M:%S", tm);
-    int res = printer.snprintf_event("%-8s ", ts);
+    int res = printer.sprintf_event("%-8s ", ts);
     if (res < 0) {
         return;
     }
@@ -237,13 +291,44 @@ event_exporter::print_plant_text_event_with_time(const char *event)
             std::cerr << "bit offset not supported" << std::endl;
             return;
         }
-        res = btf_dump__dump_type_data(d, member.meta.type_id, event + offset,
-                                       member.meta.size, &opts);
-        if (res < 0) {
-            std::cerr << "Failed to dump type data" << std::endl;
-            return;
+        if (is_string_type(member.meta.type.c_str())) {
+            res =
+                printer.snprintf_event(member.meta.size, "%s", event + offset);
+            if (res < 0) {
+                return;
+            }
         }
-        res = printer.snprintf_event("\t");
+        else if (is_bool_type(member.meta.type.c_str())) {
+            res = printer.sprintf_event("%s",
+                                        *(event + offset) ? "true" : "false");
+            if (res < 0) {
+                return;
+            }
+        }
+        else {
+            res =
+                btf_dump__dump_type_data(d, member.meta.type_id, event + offset,
+                                         member.meta.size, &opts);
+            if (res < 0) {
+                printer.sprintf_event("<unknown>");
+            }
+        }
+        if (member.output_header_offset > printer.get_current_size()) {
+            for (int i = 0;
+                 i < member.output_header_offset - printer.get_current_size();
+                 ++i) {
+                res = printer.sprintf_event(" ");
+                if (res < 0) {
+                    return;
+                }
+            }
+        }
+        else {
+            res = printer.sprintf_event(" ");
+            if (res < 0) {
+                return;
+            }
+        }
     }
     printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
 }

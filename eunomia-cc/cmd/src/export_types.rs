@@ -51,7 +51,7 @@ pub fn find_all_export_structs(args: &Args) -> Result<Vec<String>> {
 }
 
 // add  __attribute__((preserve_access_index)) for structs to preserve BTF info
-pub fn add_preserve_access_index(args: &Args) -> Result<String> {
+pub fn _add_preserve_access_index(args: &Args) -> Result<String> {
     let export_struct_header = fs::read_to_string(&args.export_event_header)?;
     // skip enum
     let re = Regex::new(r"(enum\s+\w+\s*\{[^\}]*\});").unwrap();
@@ -61,6 +61,20 @@ pub fn add_preserve_access_index(args: &Args) -> Result<String> {
     let re = Regex::new(r"\};").unwrap();
     let result = re.replace_all(&result, "} __attribute__((preserve_access_index));");
     Ok(result.to_string())
+}
+
+pub fn add_unused_ptr_for_structs(args: &Args, file_path: &str) -> Result<()> {
+    let export_struct_names = find_all_export_structs(args)?;
+    let mut content = fs::read_to_string(file_path)?;
+
+    for struct_name in export_struct_names {
+        content += &format!(
+            "const volatile struct {} * __eunomia_dummy_{}_ptr  __attribute__((unused));\n",
+            struct_name, struct_name
+        );
+    }
+    fs::write(file_path, content)?;
+    Ok(())
 }
 
 #[cfg(test)]
