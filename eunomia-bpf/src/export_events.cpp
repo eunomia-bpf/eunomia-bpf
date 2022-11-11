@@ -71,6 +71,11 @@ event_exporter::print_export_types_header(void)
         auto str = type.meta.name;
         std::transform(str.begin(), str.end(), str.begin(), ::toupper);
         header += str;
+        if (str.size() < 6) {
+            for (size_t i = 0; i < 6 - str.size(); i++) {
+                header += " ";
+            }
+        }
         header += "  ";
     }
     // print the field name endline
@@ -100,60 +105,39 @@ event_exporter::check_for_meta_types_and_create_export_format(
         && format_type == export_format_type::EXPORT_PLANT_TEXT) {
         print_export_types_header();
     }
+    setup_event_exporter();
     return 0;
-}
-
-event_exporter::sprintf_printer::sprintf_printer(std::vector<char> &buffer,
-                                                 std::size_t max_size)
-{
-    buffer.resize(max_size, 0);
-    output_buffer_pointer = buffer.data();
-    output_buffer_left = buffer.size();
-    buffer_base = buffer.data();
-}
-
-std::size_t
-event_exporter::sprintf_printer::get_current_size() const
-{
-    return output_buffer_pointer - buffer_base;
-}
-
-int
-event_exporter::sprintf_printer::update_buffer(int res)
-{
-    if (res < 0) {
-        std::cerr << "Failed to sprint event" << std::endl;
-        return res;
-    }
-    output_buffer_pointer += res;
-    output_buffer_left -= static_cast<std::size_t>(res);
-    if (output_buffer_left <= 1) {
-        std::cerr << "Failed to sprint event, buffer size limited" << std::endl;
-        return -1;
-    }
-    return res;
 }
 
 int
 event_exporter::sprintf_printer::vsprintf_event(const char *fmt, va_list args)
 {
-    int res = vsnprintf(output_buffer_pointer, output_buffer_left, fmt, args);
-    return update_buffer(res);
+    char output_buffer_pointer[EVENT_SIZE];
+    int res = vsnprintf(output_buffer_pointer, EVENT_SIZE, fmt, args);
+    if (res < 0) {
+        return res;
+    }
+    buffer.append(output_buffer_pointer);
+    return res;
 }
 
 int
 event_exporter::sprintf_printer::snprintf_event(size_t __maxlen,
                                                 const char *fmt, ...)
 {
+    char output_buffer_pointer[EVENT_SIZE];
+    if (__maxlen > EVENT_SIZE) {
+        __maxlen = EVENT_SIZE;
+    }
     va_list args;
     va_start(args, fmt);
-    std::size_t max_len_output = __maxlen;
-    if (__maxlen > output_buffer_left) {
-        max_len_output = output_buffer_left;
-    }
-    int res = vsnprintf(output_buffer_pointer, max_len_output, fmt, args);
+    int res = vsnprintf(output_buffer_pointer, __maxlen, fmt, args);
     va_end(args);
-    return update_buffer(res);
+    if (res < 0) {
+        return res;
+    }
+    buffer.append(output_buffer_pointer);
+    return res;
 }
 
 int
@@ -161,21 +145,20 @@ event_exporter::sprintf_printer::sprintf_event(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    int res = vsnprintf(output_buffer_pointer, output_buffer_left, fmt, args);
+    int res = vsprintf_event(fmt, args);
     va_end(args);
-    return update_buffer(res);
+    return res;
 }
 
 void
 event_exporter::sprintf_printer::export_to_handler_or_print(
     void *user_ctx, export_event_handler &user_export_event_handler)
 {
-    *output_buffer_pointer = 0;
     if (user_export_event_handler != nullptr) {
-        user_export_event_handler(user_ctx, buffer_base);
+        user_export_event_handler(user_ctx, buffer.data());
     }
     else {
-        printf("%s\n", buffer_base);
+        std::cout << buffer << std::endl;
     }
 }
 
@@ -187,18 +170,53 @@ btf_dump_event_printf(void *ctx, const char *fmt, va_list args)
 }
 
 void
-event_exporter::print_export_event_to_json(const char *event)
+event_exporter::setup_event_exporter(void)
 {
-    sprintf_printer printer{ export_event_buffer, EXPORT_BUFFER_SIZE };
-    DECLARE_LIBBPF_OPTS(btf_dump_type_data_opts, opts, .skip_names = true,
-                        .emit_zeroes = true, );
-    DECLARE_LIBBPF_OPTS(btf_dump_opts, dump_opts);
+    if (exported_btf == nullptr) {
+        std::cerr << "Failed to create btf dump" << std::endl;
+        return;
+    }
     struct btf_dump *d = btf_dump__new(
-        exported_btf.get(), btf_dump_event_printf, &printer, &dump_opts);
+        exported_btf.get(), btf_dump_event_printf, &printer, nullptr);
     if (!d) {
         std::cerr << "Failed to create btf dump" << std::endl;
         return;
     }
+    btf_dumper.reset(d);
+}
+
+int
+event_exporter::print_export_member(const char *event, std::size_t offset,
+                                    const checked_export_member &member,
+                                    bool is_json)
+{
+    int res = 0;
+    DECLARE_LIBBPF_OPTS(btf_dump_type_data_opts, opts, .compact = true,
+                        .skip_names = true, .emit_zeroes = true, );
+    if (is_string_type(member.meta.type.c_str())) {
+        const char *fmt = "%s";
+        if (is_json) {
+            fmt = "\"%s\"";
+        }
+        res = printer.snprintf_event(member.meta.size, fmt, event + offset);
+    }
+    else if (is_bool_type(member.meta.type.c_str())) {
+        res = printer.sprintf_event("%s", *(event + offset) ? "true" : "false");
+    }
+    else {
+        res = btf_dump__dump_type_data(btf_dumper.get(), member.meta.type_id,
+                                       event + offset, member.meta.size, &opts);
+        if (res < 0) {
+            printer.sprintf_event("<unknown>");
+        }
+    }
+    return res;
+}
+
+void
+event_exporter::print_export_event_to_json(const char *event)
+{
+    printer.reset();
     int res = printer.sprintf_event("{");
     if (res < 0) {
         return;
@@ -211,32 +229,11 @@ event_exporter::print_export_event_to_json(const char *event)
             std::cerr << "bit offset not supported" << std::endl;
             return;
         }
-        res = printer.sprintf_event("\"%s\":", member.meta.name);
+        res = printer.sprintf_event("\"%s\":", member.meta.name.c_str());
         if (res < 0) {
             return;
         }
-        if (is_string_type(member.meta.type.c_str())) {
-            res =
-                printer.snprintf_event(member.meta.size, "%s", event + offset);
-            if (res < 0) {
-                return;
-            }
-        }
-        else if (is_bool_type(member.meta.type.c_str())) {
-            res = printer.sprintf_event("%s",
-                                        *(event + offset) ? "true" : "false");
-            if (res < 0) {
-                return;
-            }
-        }
-        else {
-            res =
-                btf_dump__dump_type_data(d, member.meta.type_id, event + offset,
-                                         member.meta.size, &opts);
-            if (res < 0) {
-                printer.sprintf_event("<unknown>");
-            }
-        }
+        print_export_member(event, offset, member, true);
         if (i < checked_export_member_types.size() - 1) {
             res = printer.sprintf_event(",");
             if (res < 0) {
@@ -244,10 +241,7 @@ event_exporter::print_export_event_to_json(const char *event)
             }
         }
     }
-    res = printer.sprintf_event("}");
-    if (res < 0) {
-        return;
-    }
+    printer.sprintf_event("}");
     printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
 }
 
@@ -265,70 +259,35 @@ event_exporter::print_plant_text_event_with_time(const char *event)
     struct tm *tm;
     char ts[32];
     time_t t;
-    sprintf_printer printer{ export_event_buffer, EXPORT_BUFFER_SIZE };
-    DECLARE_LIBBPF_OPTS(btf_dump_type_data_opts, opts, .compact = true,
-                        .skip_names = true, .emit_zeroes = true, );
-    DECLARE_LIBBPF_OPTS(btf_dump_opts, dump_opts);
-    struct btf_dump *d = btf_dump__new(
-        exported_btf.get(), btf_dump_event_printf, &printer, &dump_opts);
-    if (!d) {
-        std::cerr << "Failed to create btf dump" << std::endl;
-        return;
-    }
+    int res;
+
+    printer.reset();
 
     time(&t);
     tm = localtime(&t);
     strftime(ts, sizeof(ts), "%H:%M:%S", tm);
-    int res = printer.sprintf_event("%-8s ", ts);
+    res = printer.sprintf_event("%-8s ", ts);
     if (res < 0) {
         return;
     }
 
     for (const auto &member : checked_export_member_types) {
+        if (member.output_header_offset > printer.buffer.size()) {
+            for (std::size_t i = printer.buffer.size();
+                 i < member.output_header_offset; ++i) {
+                printer.sprintf_event(" ");
+            }
+        }
+        else {
+            printer.sprintf_event(" ");
+        }
         auto offset = member.meta.bit_offset / 8;
 
         if (member.meta.bit_offset % 8) {
             std::cerr << "bit offset not supported" << std::endl;
             return;
         }
-        if (is_string_type(member.meta.type.c_str())) {
-            res =
-                printer.snprintf_event(member.meta.size, "%s", event + offset);
-            if (res < 0) {
-                return;
-            }
-        }
-        else if (is_bool_type(member.meta.type.c_str())) {
-            res = printer.sprintf_event("%s",
-                                        *(event + offset) ? "true" : "false");
-            if (res < 0) {
-                return;
-            }
-        }
-        else {
-            res =
-                btf_dump__dump_type_data(d, member.meta.type_id, event + offset,
-                                         member.meta.size, &opts);
-            if (res < 0) {
-                printer.sprintf_event("<unknown>");
-            }
-        }
-        if (member.output_header_offset > printer.get_current_size()) {
-            for (int i = 0;
-                 i < member.output_header_offset - printer.get_current_size();
-                 ++i) {
-                res = printer.sprintf_event(" ");
-                if (res < 0) {
-                    return;
-                }
-            }
-        }
-        else {
-            res = printer.sprintf_event(" ");
-            if (res < 0) {
-                return;
-            }
-        }
+        print_export_member(event, offset, member, false);
     }
     printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
 }
