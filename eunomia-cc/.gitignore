@@ -11,4 +11,4 @@ workspace
 *.skel.json
 *.skel.yaml
 package.json
-
+package.yaml

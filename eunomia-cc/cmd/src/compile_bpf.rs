@@ -237,28 +237,37 @@ pub fn pack_object_in_config(args: &Args) -> Result<()> {
 
     let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
     e.write_all(&bpf_object)?;
-    let compressed_bytes = e.finish()?;
+    let compressed_bytes = e.finish().unwrap();
     let encode_bpf_object = base64::encode(&compressed_bytes);
     let output_json_path = get_output_config_path(args);
-    let meta_json_str = fs::read_to_string(&output_json_path)?;
-    let meta_json: Value = serde_json::from_str(&meta_json_str)?;
+    let meta_json_str = fs::read_to_string(&output_json_path).unwrap();
+    let meta_json: Value = if let Ok(json) = serde_json::from_str(&meta_json_str) {
+        json
+    } else {
+        serde_yaml::from_str(&meta_json_str).unwrap()
+    };
     let package_config = json!({
         "bpf_object": encode_bpf_object,
+        "bpf_object_size": bpf_object.len(),
         "meta": meta_json,
     });
+    println!(
+        "Packing oebpf object and config into {}...",
+        output_json_path
+    );
     if args.yaml {
         let output_package_config_path = Path::new(&output_json_path)
             .parent()
             .unwrap()
             .join("package.yaml");
-        let package_config_str = serde_yaml::to_string(&package_config)?;
+        let package_config_str = serde_yaml::to_string(&package_config).unwrap();
         fs::write(output_package_config_path, package_config_str)?;
     } else {
         let output_package_config_path = Path::new(&output_json_path)
             .parent()
             .unwrap()
             .join("package.json");
-        let package_config_str = serde_json::to_string(&package_config)?;
+        let package_config_str = serde_json::to_string(&package_config).unwrap();
         fs::write(output_package_config_path, package_config_str)?;
     };
     Ok(())
@@ -350,5 +359,18 @@ mod test {
         };
         compile_bpf(&args).unwrap();
         pack_object_in_config(&args).unwrap();
+    }
+
+    #[test]
+    fn test_compress_and_pack() {
+        let bpf_object = "hello world hello world hello world".as_bytes();
+        let encode_bpf_object = base64::encode(&bpf_object);
+        println!("{}", encode_bpf_object);
+        let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
+        e.write_all(&bpf_object).unwrap();
+        let compressed_bytes = e.finish().unwrap();
+        println!("{:?}", compressed_bytes);
+        let encode_bpf_object = base64::encode(&compressed_bytes);
+        println!("{}", encode_bpf_object);
     }
 }

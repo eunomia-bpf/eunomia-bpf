@@ -4,6 +4,7 @@
 #include "base64.h"
 #include "eunomia/eunomia-bpf.hpp"
 #include "json.hpp"
+#include "zlib.h"
 
 extern "C" {
 #include <bpf/libbpf.h>
@@ -133,6 +134,37 @@ bpf_skeleton::open_from_json_config(
         state = ebpf_program_state::INVALID;
         return -1;
     }
+}
+
+int
+bpf_skeleton::open_from_json_config(const std::string &json_package) noexcept
+{
+    std::vector<char> bpf_object_buffer;
+    std::string json_str;
+    try {
+        json j = json::parse(json_package);
+        std::string base64_bpf_object = j.at("bpf_object");
+        std::size_t bpf_object_size = j.at("bpf_object_size");
+        json_str = j.at("meta").dump();
+        std::vector<unsigned char> compress_obj =
+            base64_decode((const unsigned char *)base64_bpf_object.data(),
+                          base64_bpf_object.size());
+        bpf_object_buffer.resize(bpf_object_size + 256);
+        unsigned long size = bpf_object_size + 256;
+        int res = uncompress((Bytef *)bpf_object_buffer.data(), &size,
+                             (Bytef *)compress_obj.data(), compress_obj.size());
+        if (res != Z_OK) {
+            std::cerr << "failed to uncompress bpf object: " << res << " size "
+                      << size << " bpf_object_size: " << bpf_object_size << " "
+                      << compress_obj.size() << std::endl;
+            return -1;
+        }
+    } catch (...) {
+        std::cerr << "failed to parse json" << std::endl;
+        state = ebpf_program_state::INVALID;
+        return -1;
+    }
+    return open_from_json_config(json_str, bpf_object_buffer);
 }
 
 /// create a ebpf program from json str

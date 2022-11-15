@@ -68,7 +68,6 @@ static std::string base64_encode(const unsigned char *src, size_t len)
 		in += 3;
 		line_len += 4;
 		if (line_len >= 72) {
-			*pos++ = '\n';
 			line_len = 0;
 		}
 	}
@@ -77,18 +76,13 @@ static std::string base64_encode(const unsigned char *src, size_t len)
 		*pos++ = base64_table[in[0] >> 2];
 		if (end - in == 1) {
 			*pos++ = base64_table[(in[0] & 0x03) << 4];
-			*pos++ = '=';
 		} else {
 			*pos++ = base64_table[((in[0] & 0x03) << 4) |
 					      (in[1] >> 4)];
 			*pos++ = base64_table[(in[1] & 0x0f) << 2];
 		}
-		*pos++ = '=';
 		line_len += 4;
 	}
-
-	if (line_len)
-		*pos++ = '\n';
 
 	*pos = '\0';
 	auto out_len = pos - out;
@@ -108,9 +102,9 @@ static std::string base64_encode(const unsigned char *src, size_t len)
  *
  * Caller is responsible for freeing the returned buffer.
  */
-static std::vector<char> base64_decode(const unsigned char *src, size_t len)
+static std::vector<unsigned char> base64_decode(const unsigned char *src, size_t len)
 {
-	std::vector<char> str = {};
+	std::vector< unsigned char> str = {};
 	unsigned char dtable[256], *out, *pos, block[4], tmp;
 	size_t i, count, olen;
 	int pad = 0;
@@ -165,7 +159,7 @@ static std::vector<char> base64_decode(const unsigned char *src, size_t len)
 	}
 
 	auto out_len = pos - out;
-	str = std::vector<char>(out, out + out_len);
+	str = std::vector<unsigned char>(out, out + out_len);
 	free(out);
 	return str;
 }

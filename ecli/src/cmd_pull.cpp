@@ -1,6 +1,6 @@
 #include "ecli/cmd_entry.h"
 #include <signal.h>
-
+#include <clipp.h>
 #include <iostream>
 #include <fstream>
 

@@ -6,8 +6,6 @@
 
 #include "ecli/eunomia_runner.h"
 
-#include <spdlog/spdlog.h>
-
 #include <json.hpp>
 
 #include "eunomia/eunomia-bpf.h"
@@ -21,16 +19,16 @@ eunomia_program_runner::load_and_attach_eunomia_skel()
         std::string(current_config.program_data_buffer.begin(),
                     current_config.program_data_buffer.end());
     if (program.open_from_json_config(program_data) < 0) {
-        spdlog::error("load json config failed");
+        std::cerr << "load json config failed" << std::endl;
         return -1;
     }
     if (program.load_and_attach() < 0) {
-        spdlog::error("start ebpf program failed");
+        std::cerr << "load and attach ebpf program failed" << std::endl;
         return -1;
     }
     if (program.wait_and_poll_to_handler(current_config.export_format, nullptr)
         < 0) {
-        spdlog::error("wait and print ebpf program failed");
+        std::cerr << "wait and poll to handler failed" << std::endl;
         return -1;
     }
     return 0;

@@ -1,10 +1,25 @@
 #include "ecli/url_resolver.h"
-
+#include <unistd.h>
 #include <filesystem>
 #include <regex>
-#include "httplib.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <cstring>
 
 namespace fs = std::filesystem;
+
+static bool
+str_ends_with(const std::string &str, const std::string &suffix)
+{
+    std::string::size_type totalSize = str.size();
+    std::string::size_type suffixSize = suffix.size();
+
+    if (totalSize < suffixSize) {
+        return false;
+    }
+    return str.compare(totalSize - suffixSize, suffixSize, suffix) == 0;
+}
 
 static std::vector<char>
 get_file_contents(const std::string &path)
@@ -173,12 +188,12 @@ resolve_url_path(program_config_data &config_data)
     // from pip stdin
     if (config_data.url == "--") {
         using namespace std;
-        if(isatty(fileno(stdin))) { // if not using pipe
+        if (isatty(fileno(stdin))) { // if not using pipe
             cout << "please input a file by pipe.\n";
             return false;
         }
         config_data.prog_type = program_config_data::program_type::JSON_EUNOMIA;
-        for(char c = cin.get(); c != EOF; c = cin.get()) {
+        for (char c = cin.get(); c != EOF; c = cin.get()) {
             config_data.program_data_buffer.push_back(c);
         }
         return true;
