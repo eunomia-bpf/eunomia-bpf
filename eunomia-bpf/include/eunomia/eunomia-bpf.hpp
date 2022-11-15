@@ -110,7 +110,7 @@ class bpf_skeleton
         std::vector<char> bpf_object_buffer) noexcept;
     bpf_skeleton(const bpf_skeleton &) = delete;
     bpf_skeleton(bpf_skeleton &&);
-    ~bpf_skeleton() { destory(); }
+    ~bpf_skeleton() { destroy(); }
     /// start running the ebpf program
 
     /// load and attach the ebpf program to the kernel to run the ebpf program
@@ -134,7 +134,7 @@ class bpf_skeleton
     /// This is thread safe with wait_and_poll.
     /// it will notify the wait_and_poll to exit and
     /// wait until it exits.
-    void destory(void) noexcept;
+    void destroy(void) noexcept;
 
     /// get the name id of the ebpf program
     const std::string &get_program_name(void) const;

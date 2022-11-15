@@ -4,7 +4,6 @@
 #include <regex>
 #include "httplib.h"
 #include "spdlog/spdlog.h"
-#include "eunomia/utils.hpp"
 
 namespace fs = std::filesystem;
 

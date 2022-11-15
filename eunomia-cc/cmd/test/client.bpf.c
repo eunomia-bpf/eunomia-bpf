@@ -21,6 +21,7 @@ struct {
 	__uint(max_entries, 256 * 1024);
 } rb SEC(".maps");
 
+/// min duration for a process to be considered
 const volatile unsigned long long min_duration_ns = 0;
 
 SEC("tp/sched/sched_process_exec")

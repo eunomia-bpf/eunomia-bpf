@@ -269,7 +269,7 @@ bpf_skeleton::wait_and_poll(void) noexcept
 }
 
 void
-bpf_skeleton::destory() noexcept
+bpf_skeleton::destroy() noexcept
 {
     if (state != ebpf_program_state::RUNNING) {
         return;
@@ -428,7 +428,7 @@ destroy_eunomia_skel(struct eunomia_bpf *prog)
     if (!prog) {
         return;
     }
-    prog->program.destory();
+    prog->program.destroy();
     delete prog;
 }
 
@@ -439,7 +439,7 @@ stop_ebpf_program(struct eunomia_bpf *prog)
     if (!prog) {
         return;
     }
-    prog->program.destory();
+    prog->program.destroy();
 }
 /// @brief free the memory of the program
 void

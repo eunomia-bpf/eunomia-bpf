@@ -25,11 +25,11 @@ main(int argc, char *argv[])
         std::cerr << "failed to run ebpf program" << std::endl;
         return -1;
     }
-    if (ebpf_program.wait_and_poll_to_handler(export_format_type::EXPORT_PLANT_TEXT,
+    if (ebpf_program.wait_and_poll_to_handler(export_format_type::EXPORT_JSON,
                                               nullptr, nullptr)) {
         std::cerr << "failed to wait and print rb" << std::endl;
         return -1;
     }
-    ebpf_program.destory();
+    ebpf_program.destroy();
     return 0;
 }

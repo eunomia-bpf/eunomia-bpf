@@ -24,7 +24,7 @@ eunomia_program_runner::load_and_attach_eunomia_skel()
         spdlog::error("load json config failed");
         return -1;
     }
-    if (program.run() < 0) {
+    if (program.load_and_attach() < 0) {
         spdlog::error("start ebpf program failed");
         return -1;
     }
