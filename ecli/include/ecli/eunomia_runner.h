@@ -40,7 +40,7 @@ class eunomia_program_runner : public program_runner_base
       : program_runner_base(config){};
     int load_and_attach_eunomia_skel();
     std::string get_name() { return program.get_program_name(); }
-    void stop() { program.stop_and_clean(); }
+    void stop() { program.destroy(); }
     virtual ~eunomia_program_runner() = default;
 };
 

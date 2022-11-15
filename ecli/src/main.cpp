@@ -38,12 +38,8 @@ main(int argc, char *argv[])
 
     auto cli =
         (log_level_opt,
-         (clipp::command("server").set(cmd_selected, eunomia_cmd_mode::server)
-              % "start a server to control the ebpf programs"
-          | clipp::command("run").set(cmd_selected, eunomia_cmd_mode::run)
+         (clipp::command("run").set(cmd_selected, eunomia_cmd_mode::run)
                 % "run a ebpf program"
-          | clipp::command("client").set(cmd_selected, eunomia_cmd_mode::client)
-                % "use client to control the ebpf programs in remote server"
           | clipp::command("pull").set(cmd_selected, eunomia_cmd_mode::pull)
                 % "pull a ebpf program from remote to local"
           | clipp::command("help").set(cmd_selected, eunomia_cmd_mode::help)),
@@ -70,10 +66,6 @@ main(int argc, char *argv[])
     switch (cmd_selected) {
         case eunomia_cmd_mode::run:
             return cmd_run_main(argc - 1, argv + 1);
-        case eunomia_cmd_mode::server:
-            return cmd_server_main(argc - 1, argv + 1);
-        case eunomia_cmd_mode::client:
-            return cmd_client_main(argc - 1, argv + 1);
         case eunomia_cmd_mode::pull:
             return cmd_pull_main(argc - 1, argv + 1);
         case eunomia_cmd_mode::help:
