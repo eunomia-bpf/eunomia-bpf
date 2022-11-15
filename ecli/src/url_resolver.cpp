@@ -3,7 +3,6 @@
 #include <filesystem>
 #include <regex>
 #include "httplib.h"
-#include "spdlog/spdlog.h"
 
 namespace fs = std::filesystem;
 
@@ -77,7 +76,6 @@ try_download_with_curl(const std::string &url, program_config_data &config_data)
         config_data.program_data_buffer = get_file_contents(path);
         return true;
     }
-    spdlog::debug("failed to curl {}", url);
     return false;
 }
 
@@ -105,7 +103,6 @@ resolve_regular_url_path(program_config_data &config_data)
 {
     // regular file
     if (fs::is_regular_file(config_data.url)) {
-        spdlog::debug("data path is a file: {}", config_data.url);
         config_data.program_data_buffer = get_file_contents(config_data.url);
         return resolve_package_type(config_data);
     }
@@ -186,7 +183,6 @@ resolve_url_path(program_config_data &config_data)
         }
         return true;
     }
-
-    spdlog::error("unknown file type: {}", config_data.url);
+    std::cerr << "invalid url: " << config_data.url << std::endl;
     return false;
 }

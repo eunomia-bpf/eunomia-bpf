@@ -9,13 +9,12 @@
 #include <json.hpp>
 #include <iostream>
 #include <fstream>
-#include "spdlog/spdlog.h"
 
-#define get_from_json_at(name)                       \
-    try {                                            \
-        j.at(#name).get_to(data.name);               \
-    } catch (...) {                                  \
-        spdlog::warn("{} use default value", #name); \
+#define get_from_json_at(name)                                   \
+    try {                                                        \
+        j.at(#name).get_to(data.name);                           \
+    } catch (...) {                                              \
+        std::cerr << #name << " use default value" << std::endl; \
     }
 
 static void
@@ -52,7 +51,8 @@ program_config_data::from_json_str(const std::string &json_str)
         nlohmann::json j = nlohmann::json::parse(json_str);
         return j.get<program_config_data>();
     } catch (...) {
-        spdlog::error("json parse error for tracker_config_data! {}", json_str);
+        std::cerr << "json parse error for tracker_config_data! " << json_str
+                  << std::endl;
     }
     return program_config_data{};
 }
