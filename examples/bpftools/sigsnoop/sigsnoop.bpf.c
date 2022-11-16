@@ -2,7 +2,7 @@
 /* Copyright (c) 2021~2022 Hengqi Chen */
 #include <vmlinux.h>
 #include <bpf/bpf_helpers.h>
-#include "sigsnoop.bpf.h"
+#include "sigsnoop.h"
 
 #define MAX_ENTRIES	10240
 

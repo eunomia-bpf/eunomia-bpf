@@ -4,7 +4,7 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_tracing.h>
-#include "tcpconnlat.bpf.h"
+#include "tcpconnlat.h"
 
 #define AF_INET    2
 #define AF_INET6   10

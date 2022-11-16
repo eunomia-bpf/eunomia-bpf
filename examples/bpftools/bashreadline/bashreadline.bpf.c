@@ -3,7 +3,7 @@
 #include <vmlinux.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
-#include "bashreadline.bpf.h"
+#include "bashreadline.h"
 
 #define TASK_COMM_LEN 16
 
