@@ -4,7 +4,7 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_tracing.h>
-#include "mountsnoop.bpf.h"
+#include "mountsnoop.h"
 
 struct arg {
 	__u64 ts;

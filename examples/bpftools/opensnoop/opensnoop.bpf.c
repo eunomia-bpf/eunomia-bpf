@@ -3,7 +3,7 @@
 // Copyright (c) 2020 Netflix
 #include <vmlinux.h>
 #include <bpf/bpf_helpers.h>
-#include "opensnoop.bpf.h"
+#include "opensnoop.h"
 
 struct args_t {
 	const char *fname;
