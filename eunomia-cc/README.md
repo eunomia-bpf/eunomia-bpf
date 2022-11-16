@@ -58,12 +58,17 @@ For example, to compile `cmd/test/client.bpf.c` and export the event header with
 ecc cmd/test/client.bpf.c cmd/test/event.h
 ```
 
+create `package.json` for packing the object and config file:
+
+```console
+ecc cmd/test/client.bpf.c cmd/test/event.h -p
+```
+
 Or you may use the make file:
 
 ```shell
 SOURCE_DIR=[target dir] make build
 ```
-
 
 ### build docker image
 

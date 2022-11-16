@@ -70,7 +70,7 @@ install: $(BPFTOOL) $(ECC)
 	cp $(BPFTOOL) workspace/bin/bpftool
 	cp -r $(BPFTOOL_SRC)/src/libbpf/include/bpf workspace/include/bpf
 	cp -r ../third_party/vmlinux workspace/include/vmlinux
-	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia && rm -rf workspace
+	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia
 
 EWASM_DIR ?= eunomia-bpf/ewasm
 EWASM_BUILD_DIR ?= $(EWASM_DIR)/build

@@ -51,3 +51,9 @@ clean: ## clean all build projects
 eunomia-exporter: ## build the exporter for custom metric
 	make -C eunomia-bpf
 	cd eunomia-exporter && cargo build --release
+
+release:
+	make -C ecli install
+	make -C eunomia-cc install
+	cp -R ~/.eunomia eunomia
+	tar -czvf eunomia.tar.gz eunomia
