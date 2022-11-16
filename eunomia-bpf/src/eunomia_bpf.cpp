@@ -392,6 +392,20 @@ open_eunomia_skel_from_json(const char *json_data,
     return bpf;
 }
 
+struct eunomia_bpf *
+open_eunomia_skel_from_json_package(const char *json_data)
+{
+    struct eunomia_bpf *bpf = new eunomia_bpf{ eunomia::bpf_skeleton() };
+    if (!bpf) {
+        return nullptr;
+    }
+    if (bpf->program.open_from_json_config(json_data) < 0) {
+        delete bpf;
+        return nullptr;
+    }
+    return bpf;
+}
+
 int
 load_and_attach_eunomia_skel(struct eunomia_bpf *prog)
 {
