@@ -57,7 +57,7 @@ docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
 
 see [examples](examples) for more examples.
 
-### A library to load eBPF program from a WASM module
+### A library to load and operate eBPF program from a WASM module
 
 Use the `eunomia-bpf` library to load `eBPF` program from a `WASM` module, you can write a WASM module to operate the eBPF program or process the data in user space `WASM` runtime. The idea is simple:
 

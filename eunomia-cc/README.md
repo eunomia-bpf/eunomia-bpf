@@ -18,12 +18,12 @@ This serves as a cross reference for folks coming from different backgrounds.
 
 ### Install Dependencies
 
-You will need `clang`, `libelf` and `zlib` to build the examples, package names may vary across distros.
+You will need `clang`, `libelf` and `zlib` to build the examples, package names may vary across distros. `Rust` and `Cargo` are also required.
 
 On Ubuntu/Debian, you need:
 
 ```shell
-apt install clang libelf1 libelf-dev zlib1g-dev llvm python
+apt install clang libelf1 libelf-dev zlib1g-dev llvm
 ```
 
 On CentOS/Fedora, you need:

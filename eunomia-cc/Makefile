@@ -53,6 +53,7 @@ wasi-sdk-16.0-linux.tar.gz:
 clean:
 	$(call msg,CLEAN)
 	$(Q)rm -rf $(OUTPUT) $(APPS) *.o
+	cd cmd && cargo clean
 
 $(OUTPUT) $(OUTPUT)/libbpf:
 	$(call msg,MKDIR,$@)

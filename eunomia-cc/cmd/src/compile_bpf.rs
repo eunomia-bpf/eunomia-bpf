@@ -25,6 +25,17 @@ fn get_bpf_sys_include(args: &Args) -> Result<String> {
     Ok(output.replace("\n", " "))
 }
 
+fn parse_json_output(output: &str) -> Result<Value> {
+    match serde_json::from_str(output) {
+        Ok(v) => Ok(v),
+        Err(e) => {
+            println!("cannot parse json output: {}", e);
+            println!("{}", output);
+            Err(anyhow::anyhow!("failed to parse json output"))
+        }
+    }
+}
+
 /// Get target arch: x86 or arm, etc
 fn get_target_arch(args: &Args) -> Result<String> {
     let command = r#" uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/'
@@ -165,7 +176,7 @@ fn get_export_types_json(args: &Args, output_bpf_object_path: &String) -> Result
     }
     // fiter the output to get the export types json
     let export_structs = find_all_export_structs(args)?;
-    let export_types_json: Value = serde_json::from_str(&output).unwrap();
+    let export_types_json: Value = parse_json_output(&output).unwrap();
     let export_types_json = export_types_json["structs"]
         .as_array()
         .unwrap()
@@ -192,14 +203,14 @@ fn do_compile(args: &Args, temp_source_file: &str) -> Result<()> {
     println!("Compiling bpf object...");
     compile_bpf_object(args, temp_source_file, &output_bpf_object_path)?;
     let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_path, args)?;
-    let bpf_skel_json = serde_json::from_str(&bpf_skel_json)?;
+    let bpf_skel_json = parse_json_output(&bpf_skel_json)?;
     meta_json["bpf_skel"] = bpf_skel_json;
 
     // compile export types
     if args.export_event_header != "" {
         println!("Generating export types...");
         let export_types_json = get_export_types_json(args, &output_bpf_object_path)?;
-        let export_types_json: Value = serde_json::from_str(&export_types_json)?;
+        let export_types_json: Value = parse_json_output(&export_types_json)?;
         meta_json["export_types"] = export_types_json;
     }
 
@@ -216,9 +227,10 @@ fn do_compile(args: &Args, temp_source_file: &str) -> Result<()> {
 pub fn compile_bpf(args: &Args) -> Result<()> {
     // backup old files
     let source_file_content = fs::read_to_string(&args.source_path)?;
-    let temp_source_file = get_source_file_temp_path(args);
+    let mut temp_source_file = args.source_path.clone();
 
     if args.export_event_header != "" {
+        temp_source_file = get_source_file_temp_path(args);
         // create temp source file
         fs::write(&temp_source_file, source_file_content)?;
         add_unused_ptr_for_structs(args, &temp_source_file)?;
@@ -241,7 +253,7 @@ pub fn pack_object_in_config(args: &Args) -> Result<()> {
     let encode_bpf_object = base64::encode(&compressed_bytes);
     let output_json_path = get_output_config_path(args);
     let meta_json_str = fs::read_to_string(&output_json_path).unwrap();
-    let meta_json: Value = if let Ok(json) = serde_json::from_str(&meta_json_str) {
+    let meta_json: Value = if let Ok(json) = parse_json_output(&meta_json_str) {
         json
     } else {
         serde_yaml::from_str(&meta_json_str).unwrap()
