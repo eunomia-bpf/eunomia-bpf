@@ -32,10 +32,9 @@ run_mode_operation(const std::string &path,
     }
     eunomia_runner r(base);
     r.thread = std::thread(&eunomia_runner::start_tracker, &r);
-    printf("press 'Ctrl C' key to exit...");
     static volatile bool is_exiting = false;
     signal(SIGINT, [](int x) {
-        printf("Ctrl C exit...");
+        fprintf(stderr, "Ctrl C exit...\n");
         is_exiting = true;
         signal(SIGINT, SIG_DFL);
     });

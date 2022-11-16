@@ -67,6 +67,7 @@ install: ## install the package to the `INSTALL_LOCATION`
 	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -DCMAKE_BUILD_TYPE=Release  -Deunomia_ENABLE_UNIT_TESTING=0 -Deunomia_USE_GTEST=0
 	cmake --build build --config Release
 	cmake --build build --target install --config Release
+	mkdir -p ~/.eunomia/bin
 	cp build/bin/Release/ecli ~/.eunomia/bin/ecli
 
 format: ## format the project sources
