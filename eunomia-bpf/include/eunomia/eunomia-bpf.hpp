@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 
-#include "eunomia-config.hpp"
 #include "eunomia-meta.hpp"
 #include "export-events.hpp"
 
@@ -101,9 +100,6 @@ class bpf_skeleton
     perf_buffer *perf_buffer_map = nullptr;
 
   public:
-    /// create a ebpf program from json config str
-    bpf_skeleton(const std::string &json_str,
-                 std::vector<char> bpf_object_buffer);
     bpf_skeleton() = default;
     [[nodiscard]] int open_from_json_config(
         const std::string &json_str,
