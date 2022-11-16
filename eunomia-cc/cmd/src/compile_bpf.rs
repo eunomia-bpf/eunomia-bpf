@@ -301,11 +301,11 @@ mod test {
 
     #[test]
     fn test_compile_bpf() {
-        let _ = fs::remove_dir_all(TEMP_EUNOMIA_DIR);
         let test_bpf = include_str!("../test/client.bpf.c");
         let test_event = include_str!("../test/event.h");
         let tmp_dir = path::Path::new(TEMP_EUNOMIA_DIR);
-        fs::create_dir_all(tmp_dir).unwrap();
+        let tmp_dir = tmp_dir.join("test_compile_bpf");
+        fs::create_dir_all(&tmp_dir).unwrap();
         fs::write(
             tmp_dir.join("other_header.h"),
             include_str!("../test/other_header.h"),
@@ -328,15 +328,16 @@ mod test {
             yaml: false,
         };
         compile_bpf(&args).unwrap();
+        let _ = fs::remove_dir_all(tmp_dir);
     }
 
     #[test]
     fn test_export_multi_and_pack() {
-        let _ = fs::remove_dir_all(TEMP_EUNOMIA_DIR);
         let test_bpf = include_str!("../test/client.bpf.c");
         let test_event = include_str!("../test/multi_event.h");
         let tmp_dir = path::Path::new(TEMP_EUNOMIA_DIR);
-        fs::create_dir_all(tmp_dir).unwrap();
+        let tmp_dir = tmp_dir.join("test_export_multi_and_pack");
+        fs::create_dir_all(&tmp_dir).unwrap();
         fs::write(
             tmp_dir.join("other_header.h"),
             include_str!("../test/other_header.h"),
@@ -359,18 +360,16 @@ mod test {
         };
         compile_bpf(&args).unwrap();
         pack_object_in_config(&args).unwrap();
+        let _ = fs::remove_dir_all(tmp_dir);
     }
 
     #[test]
     fn test_compress_and_pack() {
         let bpf_object = "hello world hello world hello world".as_bytes();
         let encode_bpf_object = base64::encode(&bpf_object);
-        println!("{}", encode_bpf_object);
         let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
         e.write_all(&bpf_object).unwrap();
         let compressed_bytes = e.finish().unwrap();
-        println!("{:?}", compressed_bytes);
         let encode_bpf_object = base64::encode(&compressed_bytes);
-        println!("{}", encode_bpf_object);
     }
 }
