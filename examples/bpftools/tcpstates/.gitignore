@@ -2,4 +2,7 @@
 package.json
 eunomia-exporter
 ecli
- 
+ *.o
+*.skel.json
+*.skel.yaml
+package.yaml
