@@ -5,6 +5,7 @@ CLANG ?= clang
 LLVM_STRIP ?= llvm-strip
 BPFTOOL_SRC := $(abspath ../third_party/bpftool)
 BPFTOOL := $(BPFTOOL_SRC)/src/bpftool
+ECC := cmd/target/release/ecc
 ARCH := $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
 VMLINUX := ../third_party/vmlinux/$(ARCH)/vmlinux.h
 # Use our own libbpf API headers and Linux UAPI headers distributed with
@@ -41,8 +42,8 @@ else
 	MAKEFLAGS += --no-print-directory
 endif
 
-.PHONY: all
-all: create_eunomia-home
+.PHONY: all install
+all: $(ECC)
 
 wasi-sdk-16.0-linux.tar.gz:
 	wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-16/wasi-sdk-16.0-linux.tar.gz
@@ -60,14 +61,16 @@ $(OUTPUT) $(OUTPUT)/libbpf:
 $(BPFTOOL):
 	$(MAKE) -C $(BPFTOOL_SRC)/src
 
-create_eunomia-home: $(BPFTOOL)
-	rm -rf workspace && mkdir -p workspace/bin workspace/include
+$(ECC):
 	cd cmd && cargo build --release
-	cp cmd/target/release/ecc workspace/bin/ecc
+
+install: $(BPFTOOL) $(ECC)
+	mkdir -p workspace/bin workspace/include
+	cp $(ECC) workspace/bin/ecc
 	cp $(BPFTOOL) workspace/bin/bpftool
 	cp -r $(BPFTOOL_SRC)/src/libbpf/include/bpf workspace/include/bpf
 	cp -r ../third_party/vmlinux workspace/include/vmlinux
-	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia
+	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia && rm -rf workspace
 
 EWASM_DIR ?= eunomia-bpf/ewasm
 EWASM_BUILD_DIR ?= $(EWASM_DIR)/build

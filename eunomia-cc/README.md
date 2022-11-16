@@ -39,6 +39,7 @@ Makefile build the toolchain:
 ```shell
 git submodule update --init --recursive       # check out libbpf
 make
+make install
 export PATH=$PATH:~/.eunomia/bin
 ```
 

@@ -1,4 +1,4 @@
-name: Build and test exporter on Ubuntu
+name: Build and test eunomia-cc on Ubuntu
 
 on:
   push:
@@ -33,8 +33,11 @@ jobs:
         path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
         key: ${{ runner.os }}-dependencies
 
-    - name: build exporter
-      run:  make eunomia-exporter 
+    - name: build ecc
+      run:  cd eunomia-cc && make && make install
+
+    - name: test ecc
+      run:  cd eunomia-cc/cmd && cargo test
 
     - name: Code coverage using Codecov
       run: bash <(curl -s https://codecov.io/bash)
