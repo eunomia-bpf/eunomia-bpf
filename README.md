@@ -122,18 +122,14 @@ see [benchmark](documents/benchmark.md) for details.
 
 ## Road-map
 
-- [X] refactor the code from project `Eunomia` and provide quick examples
-- [X] support `tracepoints`, `fentry`, `kprobe`, `lsm`, and `ring buffer` / `perf event` output in userspace.
-- [X] add configurable exporter as a tool
+- [X] support `tracepoints`, `fentry`, `kprobe`, `uprobe`, `lsm` etc, and `ring buffer` / `perf event` output in userspace.
 - [X] add simple pacakage manager in `OCI` `and` ORAS for eunomia-bpf: in [LMP](https://github.com/linuxkerneltravel/lmp) community
 - [X] use WASM for ebpf package load config and add more user space support
 - [X] support running in `ARM` and `x86`
-- [ ] support more ebpf program types: uprobe, xdp etc.
 - [ ] add more helper functions from `libbpf`
 - [ ] Android support
 - [ ] `riscv` support
 - [ ] provide python, go and others sdk
-- [ ] add support of `etcd` and enhance server
 
 ## License
 

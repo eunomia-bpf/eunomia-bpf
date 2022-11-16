@@ -3,7 +3,7 @@
 ## prepare
 
 ```sh
-make clone_and_install_deps
+make install_deps
 ```
 
 ## start all tests:
