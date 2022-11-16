@@ -51,6 +51,10 @@ class event_exporter
       public:
         export_types_struct_member_meta meta;
         const btf_type *type = nullptr;
+        std::uint32_t type_id;
+        std::uint32_t bit_offset;
+        std::size_t size;
+        std::uint32_t bit_size;
         std::size_t output_header_offset;
     };
     /// @brief export format type

@@ -20,7 +20,11 @@ main(int argc, char *argv[])
     std::vector<char> bpf_object_buffer(
         (std::istreambuf_iterator<char>(bpf_file)),
         std::istreambuf_iterator<char>());
-    bpf_skeleton ebpf_program{ json_str, bpf_object_buffer };
+    bpf_skeleton ebpf_program;
+    if (ebpf_program.open_from_json_config(json_str, bpf_object_buffer) != 0) {
+        std::cerr << "failed to load json config" << std::endl;
+        return -1;
+    }
     if (ebpf_program.load_and_attach()) {
         std::cerr << "failed to run ebpf program" << std::endl;
         return -1;

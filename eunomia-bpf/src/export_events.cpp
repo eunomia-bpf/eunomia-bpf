@@ -35,27 +35,39 @@ event_exporter::check_export_type_btf(export_types_struct_meta &struct_meta)
 {
     auto t = btf__type_by_id(exported_btf.get(), struct_meta.type_id);
     if (!t || !btf_is_struct(t)) {
-        std::cerr << "type id " << struct_meta.type_id << " is not a struct"
+        std::cerr << "type id " << struct_meta.type_id << " is not valid"
+                  << std::endl;
+    }
+    if (struct_meta.name
+        != btf__name_by_offset(exported_btf.get(), t->name_off)) {
+        std::cerr << "type name " << struct_meta.name << " is not matched "
+                  << btf__name_by_offset(exported_btf.get(), t->name_off)
                   << std::endl;
     }
     btf_member *m = btf_members(t);
     __u16 vlen = BTF_INFO_VLEN(t->info);
-    for (size_t i = 0; i < vlen; i++) {
+    for (size_t i = 0; i < vlen; i++, m++) {
         auto member = struct_meta.members[i];
-        if (!member.type_id) {
-            // found btf type id
-            member.type_id = m->type;
-        }
-        auto member_type = btf__type_by_id(exported_btf.get(), member.type_id);
         if (member.name
-            != btf__name_by_offset(exported_btf.get(), m[i].name_off)) {
-            std::cerr << "member name mismatch: " << member.name << " != "
-                      << btf__name_by_offset(exported_btf.get(), m[i].name_off)
-                      << std::endl;
-            return -1;
+            != btf__name_by_offset(exported_btf.get(), m->name_off)) {
+            continue;
         }
-        checked_export_member_types.push_back(
-            checked_export_member{ member, member_type });
+        // found btf type id
+        auto type_id = m->type;
+        uint32_t bit_off = 0, bit_sz = 0;
+        size_t size;
+        if (BTF_INFO_KFLAG(t->info)) {
+            bit_off = BTF_MEMBER_BIT_OFFSET(m->offset);
+            bit_sz = BTF_MEMBER_BITFIELD_SIZE(m->offset);
+        }
+        else {
+            bit_off = m->offset;
+            bit_sz = 0;
+        }
+        size = (size_t)btf__resolve_size(exported_btf.get(), m->type);
+        auto member_type = btf__type_by_id(exported_btf.get(), type_id);
+        checked_export_member_types.push_back(checked_export_member{
+            member, member_type, type_id, bit_off, size, bit_sz });
     }
     return 0;
 }
@@ -198,14 +210,14 @@ event_exporter::print_export_member(const char *event, std::size_t offset,
         if (is_json) {
             fmt = "\"%s\"";
         }
-        res = printer.snprintf_event(member.meta.size, fmt, event + offset);
+        res = printer.snprintf_event(member.size, fmt, event + offset);
     }
     else if (is_bool_type(member.meta.type.c_str())) {
         res = printer.sprintf_event("%s", *(event + offset) ? "true" : "false");
     }
     else {
-        res = btf_dump__dump_type_data(btf_dumper.get(), member.meta.type_id,
-                                       event + offset, member.meta.size, &opts);
+        res = btf_dump__dump_type_data(btf_dumper.get(), member.type_id,
+                                       event + offset, member.size, &opts);
         if (res < 0) {
             printer.sprintf_event("<unknown>");
         }
@@ -223,9 +235,9 @@ event_exporter::print_export_event_to_json(const char *event)
     }
     for (std::size_t i = 0; i < checked_export_member_types.size(); ++i) {
         auto &member = checked_export_member_types[i];
-        auto offset = member.meta.bit_offset / 8;
+        auto offset = member.bit_offset / 8;
 
-        if (member.meta.bit_offset % 8) {
+        if (member.bit_offset % 8) {
             std::cerr << "bit offset not supported" << std::endl;
             return;
         }
@@ -281,9 +293,9 @@ event_exporter::print_plant_text_event_with_time(const char *event)
         else {
             printer.sprintf_event(" ");
         }
-        auto offset = member.meta.bit_offset / 8;
+        auto offset = member.bit_offset / 8;
 
-        if (member.meta.bit_offset % 8) {
+        if (member.bit_offset % 8) {
             std::cerr << "bit offset not supported" << std::endl;
             return;
         }

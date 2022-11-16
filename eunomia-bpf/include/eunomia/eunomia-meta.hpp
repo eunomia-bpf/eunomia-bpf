@@ -9,10 +9,6 @@ namespace eunomia {
 struct export_types_struct_member_meta {
     std::string name;
     std::string type;
-    uint32_t size;
-    uint32_t bit_offset;
-    uint32_t bit_size = 0;
-    uint32_t type_id = 0;
 };
 
 struct export_types_struct_meta {
@@ -43,9 +39,6 @@ struct prog_meta {
 struct data_section_variable_meta {
     std::string name;
     std::string type;
-    uint32_t size;
-    uint32_t offset;
-    uint32_t type_id;
 
     std::string __raw_json_data;
 };
@@ -80,6 +73,18 @@ struct eunomia_object_meta {
 
     std::string to_json_str();
     void from_json_str(const std::string &j_str);
+};
+
+/// Global config to control the behavior of eunomia-bpf
+/// TODO: load config from json or config files
+struct runner_config {
+    /// Whether libbpf should print debug info
+    /// This will only be apply to libbpf when start running
+    bool libbpf_debug_verbose = false;
+
+    /// @brief whether we should print the bpf_printk
+    /// from /sys/kernel/debug/tracing/trace_pipe
+    bool print_kernel_debug = false;
 };
 
 } // namespace eunomia

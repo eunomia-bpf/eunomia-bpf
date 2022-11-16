@@ -29,20 +29,24 @@ namespace eunomia {
 
 /// get from json
 /// throw an error if get failed.
-#define get_from_json_at(name)         \
-    {                                  \
-        j.at(#name).get_to(data.name); \
-    }
+#define get_from_json_at(name)                                             \
+    do {                                                                   \
+        json res;                                                          \
+        try {                                                              \
+            res = j.at(#name);                                             \
+        } catch (...) {                                                    \
+            std::cerr << "error: get " << #name << " failed" << std::endl; \
+            throw std::runtime_error("json parse error: " #name);          \
+            break;                                                         \
+        }                                                                  \
+        res.get_to(data.name);                                             \
+    } while (0);
 
 static void
 from_json(const nlohmann::json &j, export_types_struct_member_meta &data)
 {
     get_from_json_at(name);
     get_from_json_at(type);
-    get_from_json_at(size);
-    get_from_json_at(bit_offset);
-    get_opt_from_json_at(bit_size);
-    get_opt_from_json_at(type_id);
 }
 
 static void
@@ -79,9 +83,6 @@ from_json(const nlohmann::json &j, data_section_variable_meta &data)
 {
     get_from_json_at(name);
     get_from_json_at(type);
-    get_from_json_at(size);
-    get_from_json_at(offset);
-    get_from_json_at(type_id);
 
     data.__raw_json_data = j.dump();
 }
@@ -129,8 +130,8 @@ bpf_skeleton::open_from_json_config(
         meta_data.from_json_str(json_str);
         __bpf_object_buffer = bpf_object_buffer;
         return 0;
-    } catch (...) {
-        std::cerr << "failed to parse json" << std::endl;
+    } catch (std::runtime_error &e) {
+        std::cerr << "failed to parse json " << e.what() << std::endl;
         state = ebpf_program_state::INVALID;
         return -1;
     }
@@ -159,21 +160,11 @@ bpf_skeleton::open_from_json_config(const std::string &json_package) noexcept
                       << compress_obj.size() << std::endl;
             return -1;
         }
-    } catch (...) {
-        std::cerr << "failed to parse json" << std::endl;
+    } catch (std::runtime_error &e) {
+        std::cerr << "failed to parse json " << e.what() << std::endl;
         state = ebpf_program_state::INVALID;
         return -1;
     }
     return open_from_json_config(json_str, bpf_object_buffer);
-}
-
-/// create a ebpf program from json str
-bpf_skeleton::bpf_skeleton(const std::string &json_str,
-                           std::vector<char> bpf_object_buffer)
-{
-    int res = open_from_json_config(json_str, std::move(bpf_object_buffer));
-    if (res != 0) {
-        std::cerr << "failed to load json config" << std::endl;
-    }
 }
 } // namespace eunomia
