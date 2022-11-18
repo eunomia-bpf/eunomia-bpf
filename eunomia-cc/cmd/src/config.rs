@@ -164,3 +164,22 @@ pub fn get_bpftool_path() -> Result<String> {
     };
     Ok(bpftool.to_str().unwrap().to_string())
 }
+
+/// Get base dir of source path as include args
+pub fn get_base_dir_include(source_path: &str) -> Result<String> {
+    // add base dir as include path
+    let base_dir = path::Path::new(source_path).parent().unwrap();
+    let base_dir = if base_dir == path::Path::new("") {
+        path::Path::new("./")
+    } else {
+        base_dir
+    };
+    let base_dir = match fs::canonicalize(base_dir) {
+        Ok(p) => p,
+        Err(e) => {
+            println!("cannot find compile dir: {}", e);
+            return Err(anyhow::anyhow!(e.to_string()));
+        }
+    };
+    Ok(format!("-I{}", base_dir.to_str().unwrap()))
+}

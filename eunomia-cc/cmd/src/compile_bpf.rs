@@ -24,21 +24,7 @@ fn parse_json_output(output: &str) -> Result<Value> {
 fn compile_bpf_object(args: &Args, source_path: &str, output_path: &str) -> Result<()> {
     let bpf_sys_include = get_bpf_sys_include(args)?;
     let target_arch = get_target_arch(args)?;
-    // add base dir as include path
-    let base_dir = path::Path::new(source_path).parent().unwrap();
-    let base_dir = if base_dir == path::Path::new("") {
-        path::Path::new("./")
-    } else {
-        base_dir
-    };
-    let base_dir = match fs::canonicalize(base_dir) {
-        Ok(p) => p,
-        Err(e) => {
-            println!("cannot find compile dir: {}", e);
-            return Err(anyhow::anyhow!(e.to_string()));
-        }
-    };
-    let base_include = format!("-I{}", base_dir.to_str().unwrap());
+
     let command = format!(
         "{} -g -O2 -target bpf -D__TARGET_ARCH_{} {} {} {} {} -c {} -o {}",
         args.clang_bin,
@@ -46,7 +32,7 @@ fn compile_bpf_object(args: &Args, source_path: &str, output_path: &str) -> Resu
         bpf_sys_include,
         get_eunomia_include(args)?,
         args.additional_cflags,
-        base_include,
+        get_base_dir_include(source_path)?,
         source_path,
         output_path
     );
@@ -80,37 +66,6 @@ fn get_bpf_skel_json(object_path: &String, args: &Args) -> Result<String> {
         println!("$ {}\n{}", command, output);
     }
     Ok(output)
-}
-
-fn _link_bpf_object_with_export(
-    args: &Args,
-    tmp_dir: &Path,
-    output_bpf_object_path: &String,
-) -> Result<()> {
-    const EXPORT_DEFINE_BPF_OBJECT: &str = "export_events_define.bpf.o";
-    // compile export c file
-    let export_object_path = tmp_dir.join(EXPORT_DEFINE_BPF_OBJECT);
-    let temp_path = output_bpf_object_path.to_owned() + ".temp";
-
-    let bpftool_bin = get_bpftool_path()?;
-    let command = format!(
-        "{} gen object {} {} {}",
-        bpftool_bin,
-        temp_path,
-        export_object_path.to_str().unwrap(),
-        output_bpf_object_path,
-    );
-    let (code, output, error) = run_script::run_script!(command).unwrap();
-    if code != 0 {
-        println!("$ {}\n {}", command, error);
-        return Err(anyhow::anyhow!("failed to get export types json"));
-    }
-    if args.verbose {
-        println!("$ {}\n{}", command, output);
-    }
-    fs::copy(&temp_path, output_bpf_object_path)?;
-    fs::remove_file(temp_path)?;
-    Ok(())
 }
 
 /// get the export typs as json object

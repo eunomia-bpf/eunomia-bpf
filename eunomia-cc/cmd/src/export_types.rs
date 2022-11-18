@@ -15,28 +15,6 @@ const _EXPORT_C_TEMPLATE: &'static str = r#"
 
 const REGEX_STRUCT_PATTREN: &'static str = r#"struct\s+(\w+)\s*\{"#;
 
-pub fn _create_tmp_export_c_file(args: &Args, path: &str) -> Result<()> {
-    // use the struct in event.h to generate the export c file
-    let mut export_struct_file: String = _EXPORT_C_TEMPLATE.into();
-
-    export_struct_file += &format!(
-        "#include \"{}\"\n\n",
-        fs::canonicalize(&args.export_event_header)?
-            .to_str()
-            .unwrap()
-    );
-    let export_struct_names = find_all_export_structs(args)?;
-
-    for struct_name in export_struct_names {
-        export_struct_file += &format!(
-            "const volatile struct {} * __eunomia_dummy_{}_ptr  __attribute__((unused));\n",
-            struct_name, struct_name
-        );
-    }
-    fs::write(path, export_struct_file.as_bytes())?;
-    Ok(())
-}
-
 // find all structs in event header
 pub fn find_all_export_structs(args: &Args) -> Result<Vec<String>> {
     let mut export_structs: Vec<String> = Vec::new();
