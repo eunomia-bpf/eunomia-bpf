@@ -12,3 +12,4 @@ workspace
 *.skel.yaml
 package.json
 package.yaml
+cmd/Cargo.lock
