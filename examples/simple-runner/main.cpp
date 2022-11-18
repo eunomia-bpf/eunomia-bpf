@@ -23,8 +23,13 @@ int main(int argc, char *argv[])
         std::cout << "usage: " << argv[0] << " <json config file>" << std::endl;
         exit(1);
     }
-    bpf_skeleton ebpf_program{json_str};
-    if (ebpf_program.run() < 0)
+    bpf_skeleton ebpf_program;
+    if (ebpf_program.open_from_json_config(json_str) < 0)
+    {
+        std::cerr << "load json config failed" << std::endl;
+        return -1;
+    }
+    if (ebpf_program.load_and_attach() < 0)
     {
         std::cerr << "Failed to run ebpf program" << std::endl;
         exit(1);
@@ -34,6 +39,6 @@ int main(int argc, char *argv[])
         std::cerr << "Failed to wait and print rb" << std::endl;
         exit(1);
     }
-    ebpf_program.stop_and_clean();
+    ebpf_program.destroy();
     return 0;
 }

@@ -13,12 +13,17 @@ struct {
 	__uint(value_size, sizeof(__u32));
 } events SEC(".maps");
 
-/**
- * bashreadline probe
- * 
- * @attach {"type":"uprobe", "path":"/bin/bash", "function":"readline"}
+/* Format of u[ret]probe section definition supporting auto-attach:
+ * u[ret]probe/binary:function[+offset]
+ *
+ * binary can be an absolute/relative path or a filename; the latter is resolved to a
+ * full binary path via bpf_program__attach_uprobe_opts.
+ *
+ * Specifying uprobe+ ensures we carry out strict matching; either "uprobe" must be
+ * specified (and auto-attach is not possible) or the above format is specified for
+ * auto-attach.
  */
-SEC("uprobe/readline")
+SEC("uprobe//bin/bash:readline")
 int BPF_KRETPROBE(printret, const void *ret) {
 	struct str_t data;
 	char comm[TASK_COMM_LEN];
