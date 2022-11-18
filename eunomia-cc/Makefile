@@ -42,8 +42,8 @@ else
 	MAKEFLAGS += --no-print-directory
 endif
 
-.PHONY: all install
-all: $(ECC)
+.PHONY: all install build-ecc
+all: build-ecc
 
 wasi-sdk-16.0-linux.tar.gz:
 	wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-16/wasi-sdk-16.0-linux.tar.gz
@@ -61,6 +61,9 @@ $(OUTPUT) $(OUTPUT)/libbpf:
 
 $(BPFTOOL):
 	$(MAKE) -C $(BPFTOOL_SRC)/src
+
+build-ecc:
+	cd cmd && cargo build --release
 
 $(ECC):
 	cd cmd && cargo build --release

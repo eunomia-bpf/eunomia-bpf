@@ -214,6 +214,9 @@ fn do_compile(args: &Args, temp_source_file: &str) -> Result<()> {
         meta_json["export_types"] = export_types_json;
     }
 
+    // add version
+    meta_json["eunomia_version"] = json!(include_str!("../../../VERSION"));
+
     let meta_config_str = if args.yaml {
         serde_yaml::to_string(&meta_json)?
     } else {
