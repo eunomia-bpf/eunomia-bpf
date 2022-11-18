@@ -1,4 +1,4 @@
-use std::path;
+use std::{fs, path};
 
 use anyhow::Result;
 use clap::Parser;
@@ -94,4 +94,73 @@ pub fn get_source_file_temp_path(args: &Args) -> String {
     let source_path = path::Path::new(&args.source_path);
     let source_file_temp_path = source_path.with_extension("temp.c");
     source_file_temp_path.to_str().unwrap().to_string()
+}
+
+/// Get include paths from clang
+pub fn get_bpf_sys_include(args: &Args) -> Result<String> {
+    let mut command = format!("{}", args.clang_bin);
+    command += r#" -v -E - </dev/null 2>&1 | sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }'
+     "#;
+    let (code, output, error) = run_script::run_script!(command).unwrap();
+    if code != 0 {
+        println!("$ {}\n {}", command, error);
+        return Err(anyhow::anyhow!("failed to get bpf sys include"));
+    }
+    if args.verbose {
+        println!("$ {}\n{}", command, output);
+    }
+    Ok(output.replace("\n", " "))
+}
+
+/// Get target arch: x86 or arm, etc
+pub fn get_target_arch(args: &Args) -> Result<String> {
+    let command = r#" uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/'
+     "#;
+    let (code, output, error) = run_script::run_script!(command).unwrap();
+    if code != 0 {
+        println!("$ {}\n {}", command, error);
+        return Err(anyhow::anyhow!("failed to get target arch"));
+    }
+    if args.verbose {
+        println!("$ {}\n{}", command, output);
+    }
+    Ok(output.replace("\n", ""))
+}
+
+/// Get eunomia home include dirs
+pub fn get_eunomia_include(args: &Args) -> Result<String> {
+    let eunomia_home = get_eunomia_home()?;
+    let eunomia_include = path::Path::new(&eunomia_home);
+    let eunomia_include = match eunomia_include.canonicalize() {
+        Ok(path) => path,
+        Err(e) => {
+            return Err(anyhow::anyhow!(
+                e.to_string() + ": failed to find eunomia home"
+            ))
+        }
+    };
+    let eunomia_include = eunomia_include.join("include");
+    let vmlinux_include = eunomia_include.join("vmlinux");
+    let vmlinux_include = vmlinux_include.join(get_target_arch(args)?);
+    Ok(format!(
+        "-I{} -I{}",
+        eunomia_include.to_str().unwrap(),
+        vmlinux_include.to_str().unwrap()
+    ))
+}
+
+/// Get eunomia bpftool path
+pub fn get_bpftool_path() -> Result<String> {
+    let eunomia_home = get_eunomia_home()?;
+    let eunomia_bin = path::Path::new(&eunomia_home).join("bin");
+    let bpftool = eunomia_bin.join("bpftool");
+    let bpftool = match bpftool.canonicalize() {
+        Ok(path) => path,
+        Err(e) => {
+            return Err(anyhow::anyhow!(
+                e.to_string() + ": failed to find bpftool binary"
+            ))
+        }
+    };
+    Ok(bpftool.to_str().unwrap().to_string())
 }

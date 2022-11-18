@@ -9,22 +9,6 @@ use std::{
     path::{self, Path},
 };
 
-/// Get include paths from clang
-fn get_bpf_sys_include(args: &Args) -> Result<String> {
-    let mut command = format!("{}", args.clang_bin);
-    command += r#" -v -E - </dev/null 2>&1 | sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }'
-     "#;
-    let (code, output, error) = run_script::run_script!(command).unwrap();
-    if code != 0 {
-        println!("$ {}\n {}", command, error);
-        return Err(anyhow::anyhow!("failed to get bpf sys include"));
-    }
-    if args.verbose {
-        println!("$ {}\n{}", command, output);
-    }
-    Ok(output.replace("\n", " "))
-}
-
 fn parse_json_output(output: &str) -> Result<Value> {
     match serde_json::from_str(output) {
         Ok(v) => Ok(v),
@@ -34,45 +18,6 @@ fn parse_json_output(output: &str) -> Result<Value> {
             Err(anyhow::anyhow!("failed to parse json output"))
         }
     }
-}
-
-/// Get target arch: x86 or arm, etc
-fn get_target_arch(args: &Args) -> Result<String> {
-    let command = r#" uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/'
-     "#;
-    let (code, output, error) = run_script::run_script!(command).unwrap();
-    if code != 0 {
-        println!("$ {}\n {}", command, error);
-        return Err(anyhow::anyhow!("failed to get target arch"));
-    }
-    if args.verbose {
-        println!("$ {}\n{}", command, output);
-    }
-    Ok(output.replace("\n", ""))
-}
-
-/// Get eunomia home include dirs
-fn get_eunomia_include(args: &Args) -> Result<String> {
-    let eunomia_home = get_eunomia_home()?;
-    let eunomia_include = path::Path::new(&eunomia_home);
-    let eunomia_include = fs::canonicalize(eunomia_include)?;
-    let eunomia_include = eunomia_include.join("include");
-    let vmlinux_include = eunomia_include.join("vmlinux");
-    let vmlinux_include = vmlinux_include.join(get_target_arch(args)?);
-    Ok(format!(
-        "-I{} -I{}",
-        eunomia_include.to_str().unwrap(),
-        vmlinux_include.to_str().unwrap()
-    ))
-}
-
-/// Get eunomia bpftool path
-fn get_bpftool_path() -> Result<String> {
-    let eunomia_home = get_eunomia_home()?;
-    let eunomia_bin = path::Path::new(&eunomia_home).join("bin");
-    let bpftool = eunomia_bin.join("bpftool");
-    let bpftool = fs::canonicalize(bpftool)?;
-    Ok(bpftool.to_str().unwrap().to_string())
 }
 
 /// compile bpf object
@@ -86,7 +31,13 @@ fn compile_bpf_object(args: &Args, source_path: &str, output_path: &str) -> Resu
     } else {
         base_dir
     };
-    let base_dir = fs::canonicalize(base_dir)?;
+    let base_dir = match fs::canonicalize(base_dir) {
+        Ok(p) => p,
+        Err(e) => {
+            println!("cannot find compile dir: {}", e);
+            return Err(anyhow::anyhow!(e.to_string()));
+        }
+    };
     let base_include = format!("-I{}", base_dir.to_str().unwrap());
     let command = format!(
         "{} -g -O2 -target bpf -D__TARGET_ARCH_{} {} {} {} {} -c {} -o {}",
@@ -296,15 +247,9 @@ mod test {
     #[test]
     fn test_get_attr() {
         let args = Args {
-            source_path: "".to_string(),
             clang_bin: "clang".to_string(),
             llvm_strip_bin: "llvm-strip".to_string(),
-            output_path: "".to_string(),
-            additional_cflags: "".to_string(),
-            export_event_header: "".to_string(),
-            pack_object: false,
-            verbose: false,
-            yaml: false,
+            ..Default::default()
         };
         let sys_include = get_bpf_sys_include(&args).unwrap();
         println!("{}", sys_include);
@@ -336,11 +281,8 @@ mod test {
             clang_bin: "clang".to_string(),
             llvm_strip_bin: "llvm-strip".to_string(),
             output_path: "/tmp/eunomia/test".to_string(),
-            additional_cflags: "".to_string(),
             export_event_header: event_path.to_str().unwrap().to_string(),
-            pack_object: false,
-            verbose: false,
-            yaml: false,
+            ..Default::default()
         };
         compile_bpf(&args).unwrap();
         let _ = fs::remove_dir_all(tmp_dir);
@@ -367,11 +309,8 @@ mod test {
             clang_bin: "clang".to_string(),
             llvm_strip_bin: "llvm-strip".to_string(),
             output_path: "/tmp/eunomia/export_multi_struct_test".to_string(),
-            additional_cflags: "".to_string(),
             export_event_header: event_path.to_str().unwrap().to_string(),
-            pack_object: false,
-            verbose: false,
-            yaml: false,
+            ..Default::default()
         };
         compile_bpf(&args).unwrap();
         pack_object_in_config(&args).unwrap();
@@ -381,10 +320,10 @@ mod test {
     #[test]
     fn test_compress_and_pack() {
         let bpf_object = "hello world hello world hello world".as_bytes();
-        let encode_bpf_object = base64::encode(&bpf_object);
+        let _ = base64::encode(&bpf_object);
         let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
         e.write_all(&bpf_object).unwrap();
         let compressed_bytes = e.finish().unwrap();
-        let encode_bpf_object = base64::encode(&compressed_bytes);
+        let _ = base64::encode(&compressed_bytes);
     }
 }

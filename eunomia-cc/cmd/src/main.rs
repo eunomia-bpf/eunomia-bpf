@@ -1,7 +1,7 @@
 mod compile_bpf;
 mod config;
-mod export_types;
 mod document_parser;
+mod export_types;
 
 use anyhow::Result;
 use clap::Parser;
