@@ -23,6 +23,15 @@ struct ring_buffer;
 struct bpf_object;
 struct perf_buffer;
 
+extern "C" {
+void
+bpf_object__destroy_skeleton(bpf_object_skeleton *s);
+void
+ring_buffer__free(ring_buffer *rb);
+void
+perf_buffer__free(perf_buffer *pb);
+}
+
 namespace eunomia {
 enum class ebpf_program_state {
     /// @brief The config is set but the program is not loaded
@@ -92,12 +101,16 @@ class bpf_skeleton
     std::vector<bpf_link *> links = {};
     char *bss_buffer = nullptr;
     char *rodata_buffer = nullptr;
-    bpf_object_skeleton *skeleton = nullptr;
+    std::unique_ptr<bpf_object_skeleton, void (*)(bpf_object_skeleton *btf)>
+        skeleton{ nullptr, bpf_object__destroy_skeleton };
 
     /// used for processing maps and free them
-    // FIXME: use smart pointer instead of raw pointer
-    ring_buffer *ring_buffer_map = nullptr;
-    perf_buffer *perf_buffer_map = nullptr;
+    std::unique_ptr<ring_buffer, void (*)(ring_buffer *btf)> ring_buffer_map{
+        nullptr, ring_buffer__free
+    };
+    std::unique_ptr<perf_buffer, void (*)(perf_buffer *btf)> perf_buffer_map{
+        nullptr, perf_buffer__free
+    };
 
   public:
     bpf_skeleton() = default;

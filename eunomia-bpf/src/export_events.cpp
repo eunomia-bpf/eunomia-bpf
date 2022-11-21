@@ -33,23 +33,21 @@ is_bool_type(const char *type_str)
 int
 event_exporter::check_export_type_btf(export_types_struct_meta &struct_meta)
 {
-    auto t = btf__type_by_id(exported_btf.get(), struct_meta.type_id);
+    auto t = btf__type_by_id(exported_btf, struct_meta.type_id);
     if (!t || !btf_is_struct(t)) {
         std::cerr << "type id " << struct_meta.type_id << " is not valid"
                   << std::endl;
     }
-    if (struct_meta.name
-        != btf__name_by_offset(exported_btf.get(), t->name_off)) {
+    if (struct_meta.name != btf__name_by_offset(exported_btf, t->name_off)) {
         std::cerr << "type name " << struct_meta.name << " is not matched "
-                  << btf__name_by_offset(exported_btf.get(), t->name_off)
+                  << btf__name_by_offset(exported_btf, t->name_off)
                   << std::endl;
     }
     btf_member *m = btf_members(t);
     __u16 vlen = BTF_INFO_VLEN(t->info);
     for (size_t i = 0; i < vlen; i++, m++) {
         auto member = struct_meta.members[i];
-        if (member.name
-            != btf__name_by_offset(exported_btf.get(), m->name_off)) {
+        if (member.name != btf__name_by_offset(exported_btf, m->name_off)) {
             continue;
         }
         // found btf type id
@@ -64,8 +62,8 @@ event_exporter::check_export_type_btf(export_types_struct_meta &struct_meta)
             bit_off = m->offset;
             bit_sz = 0;
         }
-        size = (size_t)btf__resolve_size(exported_btf.get(), m->type);
-        auto member_type = btf__type_by_id(exported_btf.get(), type_id);
+        size = (size_t)btf__resolve_size(exported_btf, m->type);
+        auto member_type = btf__type_by_id(exported_btf, type_id);
         checked_export_member_types.push_back(checked_export_member{
             member, member_type, type_id, bit_off, size, bit_sz });
     }
@@ -96,7 +94,7 @@ event_exporter::print_export_types_header(void)
 
 int
 event_exporter::check_for_meta_types_and_create_export_format(
-    std::vector<export_types_struct_meta> &export_types, struct btf *btf_data)
+    std::vector<export_types_struct_meta> &export_types, btf *btf_data)
 {
     // check if the export types are valid
     if (export_types.size() == 0 || btf_data == nullptr) {
@@ -108,7 +106,7 @@ event_exporter::check_for_meta_types_and_create_export_format(
                      "struct as event."
                   << std::endl;
     }
-    exported_btf.reset(btf_data);
+    exported_btf = btf_data;
     if (check_export_type_btf(export_types[0]) < 0) {
         std::cerr << "export type check failed" << std::endl;
         return -1;
@@ -188,8 +186,8 @@ event_exporter::setup_event_exporter(void)
         std::cerr << "Failed to create btf dump" << std::endl;
         return;
     }
-    struct btf_dump *d = btf_dump__new(
-        exported_btf.get(), btf_dump_event_printf, &printer, nullptr);
+    struct btf_dump *d =
+        btf_dump__new(exported_btf, btf_dump_event_printf, &printer, nullptr);
     if (!d) {
         std::cerr << "Failed to create btf dump" << std::endl;
         return;

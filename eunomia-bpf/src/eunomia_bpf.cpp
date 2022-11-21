@@ -48,19 +48,19 @@ bpf_skeleton::load_and_attach_prog(void)
     if (additional_btf_file != NULL) {
         openopts.btf_custom_path = strdup(additional_btf_file);
     }
-    if (bpf_object__open_skeleton(skeleton, &openopts)) {
+    if (bpf_object__open_skeleton(skeleton.get(), &openopts)) {
         std::cerr << "failed to open skeleton" << std::endl;
         return -1;
     }
     load_section_data();
     /* Load & verify BPF programs */
-    err = bpf_object__load_skeleton(skeleton);
+    err = bpf_object__load_skeleton(skeleton.get());
     if (err) {
         std::cerr << "failed to load skeleton" << std::endl;
         return -1;
     }
     /* Attach tracepoints */
-    err = bpf_object__attach_skeleton(skeleton);
+    err = bpf_object__attach_skeleton(skeleton.get());
     if (err) {
         std::cerr << "failed to attach skeleton" << std::endl;
         return -1;
@@ -121,16 +121,18 @@ bpf_skeleton::wait_and_poll_from_rb(std::size_t rb_map_id)
         std::cerr << "Failed to create print format" << std::endl;
         return -1;
     }
-    ring_buffer_map = ring_buffer__new(bpf_map__fd(maps[rb_map_id]),
-                                       handle_print_ringbuf_event, this, NULL);
-    if (!ring_buffer_map) {
+    auto ring_buffer_pointer = ring_buffer__new(
+        bpf_map__fd(maps[rb_map_id]), handle_print_ringbuf_event, this, NULL);
+    if (!ring_buffer_pointer) {
         fprintf(stderr, "Failed to create ring buffer\n");
         return 0;
     }
+    ring_buffer_map.reset(ring_buffer_pointer);
 
     /* Process events */
     while (!exiting) {
-        err = ring_buffer__poll(ring_buffer_map, meta_data.poll_timeout_ms);
+        err =
+            ring_buffer__poll(ring_buffer_map.get(), meta_data.poll_timeout_ms);
         /* Ctrl-C will cause -EINTR */
         if (err == -EINTR) {
             err = 0;
@@ -189,18 +191,20 @@ bpf_skeleton::wait_and_poll_from_perf_event(std::size_t rb_map_id)
         return -1;
     }
     /* setup event callbacks */
-    perf_buffer_map = perf_buffer__new(
+    auto perf_buffer_pointer = perf_buffer__new(
         bpf_map__fd(maps[rb_map_id]), meta_data.perf_buffer_pages, handle_event,
         handle_lost_events, this, NULL);
-    if (!perf_buffer_map) {
+    if (!perf_buffer_pointer) {
         err = -errno;
         fprintf(stderr, "failed to open perf buffer: %d\n", err);
         return err;
     }
+    perf_buffer_map.reset(perf_buffer_pointer);
 
     /* main: poll */
     while (!exiting) {
-        err = perf_buffer__poll(perf_buffer_map, meta_data.poll_timeout_ms);
+        err =
+            perf_buffer__poll(perf_buffer_map.get(), meta_data.poll_timeout_ms);
         if (err < 0 && err != -EINTR) {
             fprintf(stderr, "error polling perf buffer: %s\n", strerror(-err));
             return err;
@@ -277,13 +281,6 @@ bpf_skeleton::destroy() noexcept
     exiting = true;
     /// wait until poll has exit
     std::lock_guard<std::mutex> guard(exit_mutex);
-    // TODO: fix this with smart ptr
-    bpf_object__destroy_skeleton(skeleton);
-    skeleton = nullptr;
-    ring_buffer__free(ring_buffer_map);
-    ring_buffer_map = nullptr;
-    perf_buffer__free(perf_buffer_map);
-    perf_buffer_map = nullptr;
     state = ebpf_program_state::STOPPED;
 }
 
@@ -344,7 +341,7 @@ bpf_skeleton::create_prog_skeleton(void)
     s->data = (void *)__bpf_object_buffer.data();
 
     s->obj = &obj;
-    skeleton = s;
+    skeleton.reset(s);
     return 0;
 err:
     bpf_object__destroy_skeleton(s);

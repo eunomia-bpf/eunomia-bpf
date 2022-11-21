@@ -66,7 +66,7 @@ class event_exporter
     /// export types meta data
     std::vector<checked_export_member> checked_export_member_types;
     /// @brief  raw btf data
-    std::unique_ptr<btf, void (*)(btf *btf)> exported_btf{ nullptr, btf__free };
+    btf *exported_btf = nullptr;
 
     /// user defined export ctx pointer
     void *user_ctx = nullptr;
