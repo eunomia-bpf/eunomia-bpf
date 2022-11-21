@@ -51,7 +51,6 @@ sudo ./ecli run examples/bpftools/opensnoop/package.json
 
 Demonstrations of opensnoop, the Linux eBPF/bcc version.
 
-
 opensnoop traces the open() syscall system-wide, and prints various details.
 Example output:
 ```console

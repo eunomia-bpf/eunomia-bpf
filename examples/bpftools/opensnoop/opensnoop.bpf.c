@@ -10,9 +10,14 @@ struct args_t {
 	int flags;
 };
 
-const volatile pid_t targ_pid = 0;
-const volatile pid_t targ_tgid = 0;
-const volatile uid_t targ_uid = 0;
+/// Process ID to trace
+const volatile pid_t pid_target = 0;
+/// Thread ID to trace
+const volatile pid_t tgid_target = 0;
+/// @description User ID to trace
+const volatile uid_t uid_target = 0;
+/// @cmdarg {"default": false, "short": "f", "long": "failed"}
+/// @description target pid to trace
 const volatile bool targ_failed = false;
 
 struct {
@@ -38,13 +43,13 @@ bool trace_allowed(u32 tgid, u32 pid)
 	u32 uid;
 
 	/* filters */
-	if (targ_tgid && targ_tgid != tgid)
+	if (tgid_target && tgid_target != tgid)
 		return false;
-	if (targ_pid && targ_pid != pid)
+	if (pid_target && pid_target != pid)
 		return false;
-	if (valid_uid(targ_uid)) {
+	if (valid_uid(uid_target)) {
 		uid = (u32)bpf_get_current_uid_gid();
-		if (targ_uid != uid) {
+		if (uid_target != uid) {
 			return false;
 		}
 	}
