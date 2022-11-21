@@ -11,7 +11,7 @@ use config::Args;
 fn main() -> Result<()> {
     let args = Args::parse();
     compile_bpf(&args)?;
-    if args.pack_object {
+    if !args.subskeleton {
         pack_object_in_config(&args)?;
     }
     Ok(())

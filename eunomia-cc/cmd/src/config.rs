@@ -4,6 +4,8 @@ use anyhow::Result;
 use clap::Parser;
 
 /// The eunomia-bpf compile tool
+///
+/// pack ebpf skeleton in config file with zlib compression and base64 encoding
 #[derive(Parser, Debug, Default, Clone)]
 #[command(
     author,
@@ -11,6 +13,7 @@ use clap::Parser;
     about = "eunomia-bpf compiler",
     long_about = "see https://github.com/eunomia-bpf/eunomia-bpf for more information"
 )]
+
 pub struct Args {
     /// path of the bpf.c file to compile
     #[arg()]
@@ -36,9 +39,9 @@ pub struct Args {
     #[arg(short, long, default_value_t = ("llvm-strip").to_string())]
     pub llvm_strip_bin: String,
 
-    /// pack bpf object in JSON format with zlib compression and base64 encoding
+    /// do not pack bpf object in config file
     #[arg(short, long, default_value_t = false)]
-    pub pack_object: bool,
+    pub subskeleton: bool,
 
     /// print the command execution
     #[arg(short, long, default_value_t = false)]

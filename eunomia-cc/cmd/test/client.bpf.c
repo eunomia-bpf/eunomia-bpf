@@ -9,7 +9,7 @@
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
 
-/// @xxx {"interesting": "value"}
+/// @sample {"interval": 1000}
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 8192);
@@ -25,7 +25,12 @@ struct {
 /// min duration for a process to be considered
 const volatile unsigned long long min_duration_ns = 0;
 
-/// @process_start: called when a process starts
+/// {"default": 0, "short": "p", "long": "pid"}
+/// {"description": "target pid to trace"}
+const volatile int target_pid = 0;
+
+/// @flag
+/// called when a process starts
 SEC("tp/sched/sched_process_exec")
 int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 {
@@ -65,7 +70,7 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 	return 0;
 }
 
-/// \attach called when a process exits
+/// called when a process ends
 SEC("tp/sched/sched_process_exit")
 int handle_exit(struct trace_event_raw_sched_process_template* ctx)
 {

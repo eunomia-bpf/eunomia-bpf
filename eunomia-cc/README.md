@@ -61,7 +61,7 @@ ecc cmd/test/client.bpf.c cmd/test/event.h
 create `package.json` for packing the object and config file:
 
 ```console
-ecc cmd/test/client.bpf.c cmd/test/event.h -p
+ecc cmd/test/client.bpf.c cmd/test/event.h
 ```
 
 Or you may use the make file:

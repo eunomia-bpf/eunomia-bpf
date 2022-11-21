@@ -1,13 +1,11 @@
+use crate::document_parser::*;
 use crate::{config::*, export_types::*};
 use anyhow::Result;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
 use serde_json::{json, Value};
 use std::io::prelude::*;
-use std::{
-    fs,
-    path::{self, Path},
-};
+use std::{fs, path::Path};
 
 fn parse_json_output(output: &str) -> Result<Value> {
     match serde_json::from_str(output) {
@@ -109,8 +107,9 @@ fn do_compile(args: &Args, temp_source_file: &str) -> Result<()> {
     println!("Compiling bpf object...");
     compile_bpf_object(args, temp_source_file, &output_bpf_object_path)?;
     let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_path, args)?;
-    let bpf_skel_json = parse_json_output(&bpf_skel_json)?;
-    meta_json["bpf_skel"] = bpf_skel_json;
+    let bpf_skel = parse_json_output(&bpf_skel_json)?;
+    let bpf_skel_with_doc = parse_source_documents(args, &args.source_path, bpf_skel)?;
+    meta_json["bpf_skel"] = bpf_skel_with_doc;
 
     // compile export types
     if args.export_event_header != "" {
@@ -172,15 +171,15 @@ pub fn pack_object_in_config(args: &Args) -> Result<()> {
         "bpf_object_size": bpf_object.len(),
         "meta": meta_json,
     });
-    println!(
-        "Packing oebpf object and config into {}...",
-        output_json_path
-    );
     if args.yaml {
         let output_package_config_path = Path::new(&output_json_path)
             .parent()
             .unwrap()
             .join("package.yaml");
+        println!(
+            "Packing ebpf object and config into {}...",
+            output_package_config_path.display()
+        );
         let package_config_str = serde_yaml::to_string(&package_config).unwrap();
         fs::write(output_package_config_path, package_config_str)?;
     } else {
@@ -188,6 +187,10 @@ pub fn pack_object_in_config(args: &Args) -> Result<()> {
             .parent()
             .unwrap()
             .join("package.json");
+        println!(
+            "Packing ebpf object and config into {}...",
+            output_package_config_path.display()
+        );
         let package_config_str = serde_json::to_string(&package_config).unwrap();
         fs::write(output_package_config_path, package_config_str)?;
     };
@@ -197,6 +200,8 @@ pub fn pack_object_in_config(args: &Args) -> Result<()> {
 #[cfg(test)]
 mod test {
     const TEMP_EUNOMIA_DIR: &str = "/tmp/eunomia";
+    use std::path;
+
     use super::*;
 
     #[test]
