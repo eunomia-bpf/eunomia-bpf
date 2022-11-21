@@ -24,7 +24,7 @@ jobs:
 
     - name: install deps
       run: |
-          sudo make -C ecli install-deps
+          sudo make -C eunomia-cc install-deps
 
     - name: cache dependencies
       uses: actions/cache@v2

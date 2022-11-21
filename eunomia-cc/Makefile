@@ -104,7 +104,7 @@ docker-push:
 .PHONY: install_deps
 install_deps:
 	sudo apt-get update
-	sudo apt-get -y install clang libelf1 libelf-dev zlib1g-dev cmake clang llvm
+	sudo apt-get -y install clang libelf1 libelf-dev zlib1g-dev cmake clang llvm libclang-15-dev
 
 # delete failed targets
 .DELETE_ON_ERROR:

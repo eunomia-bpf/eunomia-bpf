@@ -3,6 +3,10 @@ set(sources
     src/export_events.cpp
     src/eunomia_meta.cpp
     src/section_data.cpp
+    src/trace_helpers.c
+    src/uprobe_helpers.c
+    src/map_helpers.c
+    src/btf_helpers.c
 )
 
 set(exe_sources
@@ -20,6 +24,7 @@ set(third_party_headers
     ../third_party/includes/
     ../third_party/bpftool/libbpf/include/uapi
     ../third_party/bpftool/libbpf/
+    include/helpers/
 )
 
 set(test_sources
