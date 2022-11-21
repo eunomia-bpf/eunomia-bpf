@@ -108,7 +108,18 @@ fn do_compile(args: &Args, temp_source_file: &str) -> Result<()> {
     compile_bpf_object(args, temp_source_file, &output_bpf_object_path)?;
     let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_path, args)?;
     let bpf_skel = parse_json_output(&bpf_skel_json)?;
-    let bpf_skel_with_doc = parse_source_documents(args, &args.source_path, bpf_skel)?;
+    let bpf_skel_with_doc = match parse_source_documents(args, &args.source_path, bpf_skel.clone())
+    {
+        Ok(v) => v,
+        Err(e) => {
+            if e.to_string()
+                != "Failed to create Clang instance: an instance of `Clang` already exists"
+            {
+                panic!("failed to parse source documents: {}", e);
+            };
+            bpf_skel
+        }
+    };
     meta_json["bpf_skel"] = bpf_skel_with_doc;
 
     // compile export types

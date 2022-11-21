@@ -3,6 +3,7 @@ use std::path::Path;
 use std::result::Result::Ok;
 
 use crate::config::*;
+use anyhow::anyhow;
 use anyhow::Result;
 use clang::{documentation::CommentChild, *};
 use serde_json::{json, Value};
@@ -32,11 +33,19 @@ fn parse_source_files<'a>(
     Ok(tu)
 }
 
-fn process_comment_child(child: CommentChild, value: &mut Value) {
+fn process_comment_child(child: CommentChild, value: &mut Value, default_cmd: &str) {
     match child {
         CommentChild::Paragraph(text) => {
+            let mut cmd = String::from(default_cmd);
             for child in text {
-                process_comment_child(child, value);
+                match child {
+                    CommentChild::InlineCommand(command) => {
+                        cmd = command.command;
+                    }
+                    _ => {
+                        process_comment_child(child, value, &cmd);
+                    }
+                }
             }
         }
         CommentChild::Text(text) => {
@@ -45,14 +54,10 @@ fn process_comment_child(child: CommentChild, value: &mut Value) {
             if text == "" {
                 return;
             }
-            if let Ok(v) = serde_json::from_str::<Value>(text) {
-                value
-                    .as_object_mut()
-                    .unwrap()
-                    .extend(v.as_object().unwrap().clone());
-                return;
-            }
-            value["description"] = json!(text);
+            value[&default_cmd] = match serde_json::from_str::<Value>(&text) {
+                Ok(v) => v,
+                Err(_) => json!(&text),
+            };
         }
         CommentChild::InlineCommand(command) => {
             value[&command.command] = json!(true);
@@ -79,7 +84,7 @@ fn resolve_section_data_entities(entities: &Vec<Entity>, data_sec: &mut Value) {
             if let Some(comment) = e.get_parsed_comment() {
                 let children = comment.get_children();
                 for child in children {
-                    process_comment_child(child, var);
+                    process_comment_child(child, var, "description");
                 }
             }
         }
@@ -118,7 +123,7 @@ fn resolve_map_entities(entities: &Vec<Entity>, map: &mut Value) {
         if let Some(comment) = last_var_entity.unwrap().get_parsed_comment() {
             let children = comment.get_children();
             for child in children {
-                process_comment_child(child, map);
+                process_comment_child(child, map, "description");
             }
         }
         last_var_entity = Some(e);
@@ -142,7 +147,7 @@ fn resolve_progs_entities(entities: &Vec<Entity>, progs: &mut Value) {
         if let Some(comment) = e.get_parsed_comment() {
             let children = comment.get_children();
             for child in children {
-                process_comment_child(child, progs);
+                process_comment_child(child, progs, "description");
             }
         }
     }
@@ -175,7 +180,12 @@ pub fn parse_source_documents(
     bpf_skel_json: Value,
 ) -> Result<Value> {
     // Acquire an instance of `Clang`
-    let clang = Clang::new().unwrap();
+    let clang = match Clang::new() {
+        Ok(clang) => clang,
+        Err(e) => {
+            return Err(anyhow!("Failed to create Clang instance: {}", e));
+        }
+    };
     // Create a new `Index`
     let index = Index::new(&clang, false, true);
     let _source_path = Path::new(source_path);
@@ -235,8 +245,18 @@ mod test {
                 }
             ],
             "maps":[], "progs":[]}),
-        )
-        .unwrap();
+        );
+        let skel = match skel {
+            Ok(skel) => skel,
+            Err(e) => {
+                if e.to_string()
+                    != "Failed to create Clang instance: an instance of `Clang` already exists"
+                {
+                    panic!("failed to parse source documents: {}", e);
+                }
+                return;
+            }
+        };
         let rodata = &skel["data_sections"][0];
         assert_eq!(
             rodata,
@@ -249,11 +269,13 @@ mod test {
                         "type": "unsigned long long"
                     },
                     {
-                        "default": 0,
+                        "cmdarg":{
+                            "default": 0,
+                            "short": "p",
+                            "long": "pid",
+                        },
                         "description": "target pid to trace",
-                        "long": "pid",
                         "name": "target_pid",
-                        "short": "p",
                         "type": "int"
                     }
                 ]
@@ -282,17 +304,26 @@ mod test {
                     "name": "handle_exit"
                 }
             ],"maps":[], "data_sections":[]}),
-        )
-        .unwrap();
+        );
+        let skel = match skel {
+            Ok(skel) => skel,
+            Err(e) => {
+                if e.to_string()
+                    != "Failed to create Clang instance: an instance of `Clang` already exists"
+                {
+                    panic!("failed to parse source documents: {}", e);
+                }
+                return;
+            }
+        };
         let handle_exec = &skel["progs"];
         assert_eq!(
             handle_exec,
             &json!([{
                 "attach": "tp/sched/sched_process_exec",
-                "description": "called when a process starts",
                 "link": true,
                 "name": "handle_exec",
-                "flag":true
+                "flag":"called when a process starts"
             },
             {
                 "attach": "tp/sched/sched_process_exit",
@@ -318,16 +349,25 @@ mod test {
                     "name": "exec_start",
                 }
             ], "progs":[], "data_sections":[]}),
-        )
-        .unwrap();
+        );
+        let skel = match skel {
+            Ok(skel) => skel,
+            Err(e) => {
+                if e.to_string()
+                    != "Failed to create Clang instance: an instance of `Clang` already exists"
+                {
+                    panic!("failed to parse source documents: {}", e);
+                }
+                return;
+            }
+        };
         let exec_start = &skel["maps"][0];
         assert_eq!(
             exec_start,
             &json!({
                 "ident": "exec_start",
                 "name": "exec_start",
-                "sample": true,
-                "interval": 1000
+                "sample": {"interval": 1000}
             })
         );
     }
