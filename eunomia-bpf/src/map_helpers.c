@@ -34,7 +34,7 @@ dump_hash_iter(int map_fd, void *keys, __u32 key_size,
 	}
 
 	/* Now read values */
-	for (i = 0; i < n; i++) {
+	for (i = 0; (__u32)i < n; i++) {
 		err = bpf_map_lookup_elem(map_fd, keys + key_size * i,
 					  values + value_size * i);
 		if (err)

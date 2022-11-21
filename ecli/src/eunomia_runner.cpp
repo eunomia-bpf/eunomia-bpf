@@ -39,13 +39,10 @@ ewasm_program_runner::load_and_attach_eunomia_skel()
 {
     ewasm_program p;
     std::string json_env = "[\"app\"]";
-    if (current_config.args.size() > 0) {
-        json j;
-        j.push_back("app");
-        for (auto &arg : current_config.args) {
-            j.push_back(arg);
-        }
-        json_env = j.dump();
+    json j;
+    for (auto &arg : current_config.args) {
+        j.push_back(arg);
     }
+    json_env = j.dump();
     return p.start(current_config.program_data_buffer, json_env);
 }

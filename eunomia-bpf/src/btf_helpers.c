@@ -153,7 +153,7 @@ struct tar_header {
 
 static char *tar_file_start(struct tar_header *tar, const char *name, int *length)
 {
-	while (tar->name[0]) {
+	while (tar && tar->name[0]) {
 		sscanf(tar->size, "%o", length);
 		if (!strcmp(tar->name, name))
 			return (char *)(tar + 1);
@@ -218,7 +218,7 @@ int ensure_core_btf(struct bpf_object_open_opts *opts)
 		goto out;
 	}
 
-	if (fwrite(file_start, 1, dst_size, dst) != dst_size) {
+	if (fwrite(file_start, 1, dst_size, dst) != (size_t)dst_size) {
 		ret = -ferror(dst);
 		goto out;
 	}
