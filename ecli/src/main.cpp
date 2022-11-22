@@ -100,7 +100,6 @@ int
 main(int argc, char *argv[])
 {
     if (argc >= 2) {
-        std::cout << argv[1] << std::endl;
         if (strcmp(argv[1], "run") == 0) {
             // compatible with older versions
             return cmd_run_main(argc - 1, argv + 1);
