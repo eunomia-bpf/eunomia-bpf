@@ -114,6 +114,11 @@ from_json(const nlohmann::json &j, eunomia_object_meta &data)
     get_opt_from_json_at(print_header);
 }
 
+void bpf_skel_meta::from_json_str(const std::string &j_str) {
+    json j = json::parse(j_str);
+    j.get_to(*this);
+}
+
 void
 eunomia_object_meta::from_json_str(const std::string &j_str)
 {

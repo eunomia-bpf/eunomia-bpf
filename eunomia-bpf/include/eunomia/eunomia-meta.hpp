@@ -58,6 +58,8 @@ struct bpf_skel_meta {
     std::vector<prog_meta> progs;
     std::string obj_name;
     bpf_skel_doc doc;
+
+    void from_json_str(const std::string &j_str);
 };
 
 /// global meta data config
