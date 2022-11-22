@@ -19,7 +19,6 @@ We have 3 main ideas:
     #include <bpf/bpf_tracing.h>
     #include <bpf/bpf_helpers.h>
     #include <bpf/bpf_core_read.h>
-    #include "core_fixes.h"
     #include "mdflush.h"
 
     struct {
@@ -131,7 +130,7 @@ export_types:
 - you can dynamically load it on different kernel version without recompile, and without clang/llvm dependency:
 
     ```console
-    $ sudo ecli run opensnoop.json
+    $ sudo ecli opensnoop.json
     TIME     PID     TPID    SIG     RET     COMM    
     22:58:28  77121  3168    0       0       cpptools-srv
     22:58:29  69044  3168    0       0       cpptools-srv
@@ -152,8 +151,8 @@ export_types:
     ```bash
     # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
     $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
-    $ sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json # simply run a pre-compiled ebpf code from a url
-    $ sudo ./ecli run sigsnoop:latest # run with a name and download the latest version bpf tool from our repo
+    $ sudo ./ecli https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json # simply run a pre-compiled ebpf code from a url
+    $ sudo ./ecli sigsnoop:latest # run with a name and download the latest version bpf tool from our repo
     ```
 
 - very small and simple! The library itself `<1MB` and no `LLVM/Clang` dependence, can be embedded easily in you project

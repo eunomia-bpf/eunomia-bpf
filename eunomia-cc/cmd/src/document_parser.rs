@@ -62,6 +62,17 @@ fn process_comment_child(child: CommentChild, value: &mut Value, default_cmd: &s
         CommentChild::InlineCommand(command) => {
             value[&command.command] = json!(true);
         }
+        CommentChild::BlockCommand(command) => {
+            let mut text = String::new();
+            for child in command.children {
+                if let CommentChild::Text(t) = child {
+                    text.push_str(&t);
+                    text.push('\n');
+                }
+            }
+            text = text.trim().to_string();
+            value[&command.command] = json!(text);
+        }
         _ => {}
     }
 }
@@ -153,6 +164,31 @@ fn resolve_progs_entities(entities: &Vec<Entity>, progs: &mut Value) {
     }
 }
 
+/// parse the doc in LICENSE comment
+fn resolve_doc_entities(entities: &Vec<Entity>, skel_json: &mut Value) {
+    for e in entities {
+        if e.get_kind() != EntityKind::VarDecl {
+            continue;
+        }
+        let name = if let Some(name) = e.get_name() {
+            name
+        } else {
+            continue;
+        };
+        if name != "LICENSE" {
+            continue;
+        }
+        if let Some(comment) = e.get_parsed_comment() {
+            let children = comment.get_children();
+            let mut value = json!({});
+            for child in children {
+                process_comment_child(child, &mut value, "description");
+            }
+            skel_json["doc"] = value;
+        }
+    }
+}
+
 fn resolve_bpf_skel_entities(entities: &Vec<Entity>, bpf_skel_json: Value) -> Result<Value> {
     let mut new_skel_json = bpf_skel_json;
 
@@ -170,6 +206,7 @@ fn resolve_bpf_skel_entities(entities: &Vec<Entity>, bpf_skel_json: Value) -> Re
     for progs_sec in new_skel_json["progs"].as_array_mut().unwrap() {
         resolve_progs_entities(entities, progs_sec);
     }
+    resolve_doc_entities(entities, &mut new_skel_json);
     Ok(new_skel_json)
 }
 

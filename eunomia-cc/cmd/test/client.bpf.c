@@ -7,17 +7,26 @@
 #include "event.h"
 #include "other_header.h"
 
+/// @brief   BPF bootstrap demo application.
+/// @details It traces process start and exits and shows associated
+/// information (filename, process duration, PID and PPID, etc).
+/// examples:
+/// ./boostrap           # trace all exec() and exit
+/// ./boostrap -m 10000  # include min_duration_ns
+/// @version 0.1
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
 
 /// @sample {"interval": 1000}
-struct {
+struct
+{
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 8192);
 	__type(key, pid_t);
 	__type(value, u64);
 } exec_start SEC(".maps");
 
-struct {
+struct
+{
 	__uint(type, BPF_MAP_TYPE_RINGBUF);
 	__uint(max_entries, 256 * 1024);
 } rb SEC(".maps");
@@ -43,6 +52,9 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 	pid = bpf_get_current_pid_tgid() >> 32;
 	ts = bpf_ktime_get_ns();
 	bpf_map_update_elem(&exec_start, &pid, &ts, BPF_ANY);
+
+	if (target_pid && pid != target_pid)
+		return 0;
 
 	/* don't emit exec events when minimum duration is specified */
 	if (min_duration_ns)
@@ -71,13 +83,13 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 
 /// called when a process ends
 SEC("tp/sched/sched_process_exit")
-int handle_exit(struct trace_event_raw_sched_process_template* ctx)
+int handle_exit(struct trace_event_raw_sched_process_template *ctx)
 {
 	struct task_struct *task;
 	struct event *e;
 	pid_t pid, tid;
 	u64 id, ts, *start_ts, duration_ns = 0;
-	
+
 	/* get PID and TID of exiting thread/process */
 	id = bpf_get_current_pid_tgid();
 	pid = id >> 32;
@@ -85,6 +97,9 @@ int handle_exit(struct trace_event_raw_sched_process_template* ctx)
 
 	/* ignore thread exits */
 	if (pid != tid)
+		return 0;
+
+	if (target_pid && pid != target_pid)
 		return 0;
 
 	/* if we recorded start of the process, calculate lifetime duration */

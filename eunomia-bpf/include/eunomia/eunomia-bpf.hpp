@@ -127,7 +127,7 @@ class bpf_skeleton
     /// load and attach the ebpf program to the kernel to run the ebpf program
     /// if the ebpf program has maps to export to user space, you need to call
     /// the wait and export.
-    [[nodiscard]] int load_and_attach(void) noexcept;
+    [[nodiscard]] int load_and_attach(std::vector<std::string> args = {}) noexcept;
 
     /// @brief wait for the program to exit
     /// @details the program has a ring buffer or perf event to export data

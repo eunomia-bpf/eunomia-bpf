@@ -22,8 +22,8 @@ test: $(TEST_CASES_DIRS)
 .PHONY:$(TEST_CASES_DIRS)
 # build the test cases
 $(TEST_CASES_DIRS):
-	ls $(TEST_EXAMPLE_DIR)$@/$@.h && $(ECC_BIN) $(TEST_EXAMPLE_DIR)$@/$@.bpf.c $(TEST_EXAMPLE_DIR)$@/$@.h -p \
-	|| $(ECC_BIN) $(TEST_EXAMPLE_DIR)$@/$@.bpf.c -p
+	ls $(TEST_EXAMPLE_DIR)$@/$@.h && $(ECC_BIN) $(TEST_EXAMPLE_DIR)$@/$@.bpf.c $(TEST_EXAMPLE_DIR)$@/$@.h \
+	|| $(ECC_BIN) $(TEST_EXAMPLE_DIR)$@/$@.bpf.c
 	# sudo timeout --preserve-status -s 2 $(TEST_TIME) ./ecli run $(TEST_EXAMPLE_DIR)$@/package.json
 
 install-wasm-clang: ## install clang for wasm

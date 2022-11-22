@@ -14,22 +14,14 @@ template<typename T>
 void
 load_data(const json &json_obj, char *buffer, size_t offset, size_t size)
 {
-    if (!json_obj.contains("value")) {
-        return;
-    }
     T value = json_obj["value"];
-    std::cout << "load runtime arg: " << value << std::endl;
     memcpy(buffer + offset, &value, size);
 }
 
 void
 load_string_data(const json &json_obj, char *buffer, size_t offset, size_t size)
 {
-    if (!json_obj.contains("value")) {
-        return;
-    }
     std::string value = json_obj["value"];
-    std::cout << "load string arg: " << value << std::endl;
     memcpy(buffer + offset, &value, size);
 }
 
@@ -100,29 +92,36 @@ bpf_skeleton::load_section_data_to_buffer(const data_section_meta &sec_meta,
             continue;
         }
         auto &sec_btf_type = btf_type_map[variable.name];
+        json json_obj = json::parse(variable.__raw_json_data);
+        if (!json_obj.contains("value")) {
+            return;
+        }
+        if (config_data.libbpf_debug_verbose) {
+            std::cerr << "load runtime arg: " << json_obj["value"] << std::endl;
+        }
         if (sec_btf_type.is_array) {
             if (strncmp(variable.type.c_str(), "char", 4) == 0) {
-                load_string_data(variable.__raw_json_data, mmap_buffer,
-                                 sec_btf_type.offset, sec_btf_type.size);
+                load_string_data(json_obj, mmap_buffer, sec_btf_type.offset,
+                                 sec_btf_type.size);
             }
         }
         switch (sec_btf_type.size) {
             case 1:
-                load_data<std::uint8_t>(variable.__raw_json_data, mmap_buffer,
+                load_data<std::uint8_t>(json_obj, mmap_buffer,
                                         sec_btf_type.offset, sec_btf_type.size);
                 break;
             case 2:
-                load_data<std::uint16_t>(variable.__raw_json_data, mmap_buffer,
+                load_data<std::uint16_t>(json_obj, mmap_buffer,
                                          sec_btf_type.offset,
                                          sec_btf_type.size);
                 break;
             case 4:
-                load_data<std::uint32_t>(variable.__raw_json_data, mmap_buffer,
+                load_data<std::uint32_t>(json_obj, mmap_buffer,
                                          sec_btf_type.offset,
                                          sec_btf_type.size);
                 break;
             case 8:
-                load_data<std::uint64_t>(variable.__raw_json_data, mmap_buffer,
+                load_data<std::uint64_t>(json_obj, mmap_buffer,
                                          sec_btf_type.offset,
                                          sec_btf_type.size);
                 break;

@@ -70,7 +70,7 @@ bpf_skeleton::load_and_attach_prog(void)
 
 /// load and attach the eBPF program to the kernel
 int
-bpf_skeleton::load_and_attach(void) noexcept
+bpf_skeleton::load_and_attach(std::vector<std::string> args) noexcept
 {
     // check the state of the program
     if (state == ebpf_program_state::INVALID) {
