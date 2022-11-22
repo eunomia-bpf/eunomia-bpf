@@ -48,11 +48,16 @@ struct data_section_meta {
     std::vector<data_section_variable_meta> variables;
 };
 
+struct bpf_skel_doc {
+    std::string __raw_json_data;
+};
+
 struct bpf_skel_meta {
     std::vector<data_section_meta> data_sections;
     std::vector<map_meta> maps;
     std::vector<prog_meta> progs;
     std::string obj_name;
+    bpf_skel_doc doc;
 };
 
 /// global meta data config

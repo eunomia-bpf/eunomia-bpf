@@ -98,8 +98,9 @@ class eunomia_runner
     int start_tracker()
     {
         _is_running = true;
-        return program_runner->load_and_attach_eunomia_skel();
+        int res = program_runner->load_and_attach_eunomia_skel();
         _is_running = false;
+        return res;
     }
     const std::string get_name(void) const
     {

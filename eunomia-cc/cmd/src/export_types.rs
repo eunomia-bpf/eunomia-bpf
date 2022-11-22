@@ -43,7 +43,14 @@ pub fn _add_preserve_access_index(args: &Args) -> Result<String> {
 
 pub fn add_unused_ptr_for_structs(args: &Args, file_path: &str) -> Result<()> {
     let export_struct_names = find_all_export_structs(args)?;
-    let mut content = fs::read_to_string(file_path)?;
+    let content = fs::read_to_string(file_path);
+    let mut content = match content {
+        Ok(content) => content,
+        Err(e) => {
+            println!("access file {} error: {}", file_path, e);
+            return Err(e.into());
+        },
+    };
 
     for struct_name in export_struct_names {
         content += &format!(

@@ -8,7 +8,7 @@
 
 #include <json.hpp>
 
-#include "eunomia/eunomia-bpf.h"
+#include "eunomia/eunomia-bpf.hpp"
 
 using json = nlohmann::json;
 
@@ -18,7 +18,19 @@ eunomia_program_runner::load_and_attach_eunomia_skel()
     std::string program_data =
         std::string(current_config.program_data_buffer.begin(),
                     current_config.program_data_buffer.end());
-    if (program.open_from_json_config(program_data) < 0) {
+    json j = json::parse(program_data);
+    json meta_config = j["meta"];
+    std::string meta_config_str = meta_config.dump();
+    std::string new_config;
+    int res;
+
+    if ((res = eunomia::parse_args_for_json_config(meta_config_str, new_config,
+                                                   current_config.args))
+        != 0) {
+        return -1;
+    }
+    j["meta"] = json::parse(new_config);
+    if (program.open_from_json_config(j.dump()) < 0) {
         std::cerr << "load json config failed" << std::endl;
         return -1;
     }

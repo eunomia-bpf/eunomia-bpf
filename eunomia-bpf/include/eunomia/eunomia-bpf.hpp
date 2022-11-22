@@ -127,7 +127,7 @@ class bpf_skeleton
     /// load and attach the ebpf program to the kernel to run the ebpf program
     /// if the ebpf program has maps to export to user space, you need to call
     /// the wait and export.
-    [[nodiscard]] int load_and_attach(std::vector<std::string> args = {}) noexcept;
+    [[nodiscard]] int load_and_attach(void) noexcept;
 
     /// @brief wait for the program to exit
     /// @details the program has a ring buffer or perf event to export data
@@ -160,6 +160,17 @@ class bpf_skeleton
     // can be used to access the map or prog elements
     [[nodiscard]] int get_fd(const char *name) const noexcept;
 };
+
+/// @brief parse args for json config sub skeleton (not include json object)
+/// @param args cmd args
+/// @param json_config json config sub skeleton
+/// @param new_config new config sub skeleton including the args value
+/// @return 0 on success, -1 on failure, 1 on exit and success
+[[nodiscard]] int
+parse_args_for_json_config(const std::string &json_config,
+                           std::string &new_config,
+                           std::vector<std::string> args);
+
 } // namespace eunomia
 
 #endif
