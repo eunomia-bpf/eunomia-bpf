@@ -992,10 +992,10 @@ private:
    * @returns The stored value if any, std::nullopt otherwise.
    */
   template <typename T> auto present() const -> std::optional<T> {
-    if (m_default_value.has_value()) {
-      throw std::logic_error("Argument with default value always presents");
-    }
     if (m_values.empty()) {
+      if (m_default_value.has_value()) {
+       return get<T>();
+      }
       return std::nullopt;
     }
     if constexpr (details::IsContainer<T>) {

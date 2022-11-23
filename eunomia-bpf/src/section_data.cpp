@@ -14,6 +14,9 @@ template<typename T>
 void
 load_data(const json &json_obj, char *buffer, size_t offset, size_t size)
 {
+    if (json_obj["value"].is_null()) {
+        return;
+    }
     T value = json_obj["value"];
     memcpy(buffer + offset, &value, size);
 }
@@ -21,6 +24,9 @@ load_data(const json &json_obj, char *buffer, size_t offset, size_t size)
 void
 load_string_data(const json &json_obj, char *buffer, size_t offset, size_t size)
 {
+        if (json_obj["value"].is_null()) {
+        return;
+    }
     std::string value = json_obj["value"];
     memcpy(buffer + offset, &value, size);
 }

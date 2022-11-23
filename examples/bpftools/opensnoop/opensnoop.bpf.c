@@ -11,13 +11,13 @@ struct args_t {
 };
 
 /// Process ID to trace
-const volatile pid_t pid_target = 0;
+const volatile int pid_target = 0;
 /// Thread ID to trace
-const volatile pid_t tgid_target = 0;
+const volatile int tgid_target = 0;
 /// @description User ID to trace
-const volatile uid_t uid_target = 0;
+const volatile int uid_target = 0;
 /// @cmdarg {"default": false, "short": "f", "long": "failed"}
-/// @description target pid to trace
+/// @description trace only failed events
 const volatile bool targ_failed = false;
 
 struct {

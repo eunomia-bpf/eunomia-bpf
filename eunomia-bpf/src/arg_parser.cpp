@@ -29,56 +29,53 @@ constexpr auto default_epilog =
 constexpr auto default_var_help = "set value of bpf variable ";
 
 struct possible_option_arg {
-    json default_value;
     std::string help;
     std::string long_name;
     std::string short_name;
     std::string type;
+
+    std::string default_value;
+    bool implicit_value;
+    json *json_value_ref;
 };
 
 std::string
 get_value_or_default(const json &j, const char *key,
-                     const std::string &default_value)
+                     const std::string default_value)
 {
     if (j.is_null() || j.find(key) == j.end()) {
         return default_value;
+    }
+    if (!j[key].is_string()) {
+        return j[key].dump();
     }
     return j[key];
 }
 
 void
 add_default_options(argparse::ArgumentParser &program,
-                    std::vector<possible_option_arg> &opts)
+                    std::vector<possible_option_arg> &opts, json &bpf_skel)
 {
-    opts.push_back({
-        false,
-        "shows help message and exits",
-        "help",
-        "h",
-        "bool",
-    });
-    opts.push_back({
-        false,
-        "prints version information and exits",
-        "version",
-        "v",
-        "bool",
-    });
+    opts.push_back(possible_option_arg{ "shows help message and exits", "help",
+                                        "h", "bool", "false", true, nullptr });
+    opts.push_back(possible_option_arg{ "prints version information and exits",
+                                        "version", "v", "bool", "false", true,
+                                        nullptr });
 }
 
 int
 process_default_args(const argparse::ArgumentParser &program,
                      std::string &version)
 {
-    if (program.get<bool>("--help")) {
+    if (program["--help"] == true) {
         std::cout << program << std::endl;
-        return 0;
+        return 1;
     }
-    if (program.get<bool>("--version")) {
+    if (program["--version"] == true) {
         std::cout << version << std::endl;
-        return 0;
+        return 1;
     }
-    return -1;
+    return 0;
 }
 
 argparse::ArgumentParser
@@ -90,52 +87,70 @@ create_arg_parser_for_program(const json &j)
 }
 
 void
-register_args_for_section_var(argparse::ArgumentParser &program,
-                              const json &bpf_skel,
+register_args_for_section_var(argparse::ArgumentParser &program, json &bpf_skel,
                               std::vector<possible_option_arg> &opts)
 {
     bpf_skel_meta meta;
+
     meta.from_json_str(bpf_skel.dump());
-    for (auto &section : meta.data_sections) {
-        for (auto &var : section.variables) {
-            json var_raw = json::parse(var.__raw_json_data);
-            json var_cmdarg = var_raw["cmdarg"];
-            auto var_help = get_value_or_default(
+    for (std::size_t i = 0; i < meta.data_sections.size(); i++) {
+        auto &section = meta.data_sections[i];
+        auto &section_json = bpf_skel["data_sections"][i];
+        for (std::size_t j = 0; j < section.variables.size(); j++) {
+            auto &var = section.variables[j];
+            auto &var_json = section_json["variables"][j];
+            json &var_cmdarg = var_json["cmdarg"];
+            // help can be var_json["cmdarg"]["help"] or var_json["description"]
+            std::string var_help = get_value_or_default(
                 var_cmdarg, "help",
-                get_value_or_default(var_raw, "description",
+                get_value_or_default(var_json, "description",
                                      default_var_help + var.name));
-            auto var_short_name = get_value_or_default(var_cmdarg, "short", "");
-            auto var_long_name =
+            std::string var_short_name =
+                get_value_or_default(var_cmdarg, "short", "");
+            // long_name can be var_json["cmdarg"]["long"] or var_json["name"]
+            std::string var_long_name =
                 get_value_or_default(var_cmdarg, "long", var.name);
-            auto var_default_value = var_cmdarg["default"];
-            opts.push_back({ var_default_value, var_help, var_long_name,
-                             var_short_name, var.type });
+            // default_value can be var_json["cmdarg"]["default"] or
+            // var_json["value"]
+            std::string var_default_value = get_value_or_default(
+                var_cmdarg, "default",
+                get_value_or_default(var_json, "value", ""));
+            if (var_json.find("value") == var_json.end()) {
+                var_json["value"] = json{};
+            }
+            auto &value = var_json["value"];
+
+            opts.push_back(possible_option_arg{
+                var_help, var_long_name, var_short_name, var.type,
+                var_default_value, false, &value });
         }
     }
 }
 
-argparse::Argument &
-add_arg_for_names(argparse::ArgumentParser &program,
-                  const possible_option_arg &opt)
-{
-    if (opt.short_name.empty()) {
-        return program.add_argument(opt.long_name);
-    }
-    return program.add_argument(opt.short_name, opt.long_name);
-}
-
-template<typename T>
 void
 add_argument_to_program(argparse::ArgumentParser &program,
-                        const possible_option_arg &opt,
-                        bool implicit_value = false)
+                        const possible_option_arg &opt)
 {
-    auto arg = add_arg_for_names(program, opt).help(opt.help);
-    if (!opt.default_value.is_null()) {
-        arg = arg.default_value<T>(opt.default_value.get<T>());
+    if (opt.default_value.empty()) {
+        // No default value, so it's a string flag
+        program.add_argument(opt.short_name, opt.long_name).help(opt.help);
+        return;
     }
-    if (implicit_value) {
-        arg = arg.implicit_value(true);
+    // if implicit_value, it is a bool flag
+    if (opt.implicit_value) {
+        program.add_argument(opt.short_name, opt.long_name)
+            .default_value(opt.default_value == "true")
+            .help(opt.help)
+            .implicit_value(opt.implicit_value)
+            .nargs(0);
+        return;
+    }
+    else {
+        // has default value
+        program.add_argument(opt.short_name, opt.long_name)
+            .default_value(opt.default_value)
+            .help(opt.help);
+        return;
     }
 }
 
@@ -168,50 +183,76 @@ set_program_arguments(argparse::ArgumentParser &program,
                 std::string_view(opt.long_name))) {
             continue;
         }
-        if (opt.type == "bool") {
-            add_argument_to_program<bool>(program, opt, true);
-        }
-        else if (opt.type == "int") {
-            add_argument_to_program<int>(program, opt);
-        }
-        else if (opt.type == "unsigned int") {
-            add_argument_to_program<unsigned int>(program, opt);
-        }
-        else if (opt.type == "unsigned long") {
-            add_argument_to_program<unsigned long>(program, opt);
-        }
-        else if (opt.type == "unsigned long long") {
-            add_argument_to_program<unsigned long long>(program, opt);
-        }
-        else if (opt.type == "unsigned short") {
-            add_argument_to_program<unsigned short>(program, opt);
-        }
-        else if (opt.type == "short") {
-            add_argument_to_program<short>(program, opt);
-        }
-        else if (opt.type == "long long") {
-            add_argument_to_program<long long>(program, opt);
-        }
-        else if (opt.type == "float") {
-            add_argument_to_program<float>(program, opt);
-        }
-        else if (opt.type == "double") {
-            add_argument_to_program<double>(program, opt);
-        }
-        else {
-            add_argument_to_program<std::string>(program, opt);
-        }
+        add_argument_to_program(program, opt);
     }
 }
 
-int
-process_args_for_section_var(const argparse::ArgumentParser &program,
-                             json &bpf_skel,
-                             std::vector<possible_option_arg> &opts)
+template<typename T>
+void
+process_arg_value(const argparse::ArgumentParser &program,
+                  possible_option_arg &opt)
 {
-    json data_sections = bpf_skel["data_sections"];
-    if (data_sections.is_null()) {
-        return 0;
+    if (opt.implicit_value) {
+        auto value = program.get<bool>(opt.long_name);
+        return;
+    }
+    // No default value
+    auto opt_value = program.present<std::string>(opt.long_name);
+    if (opt_value) {
+        std::string flag_str = *opt_value;
+        json j = json::parse(flag_str);
+        T value;
+        try {
+            value = j.get<T>();
+        } catch (json::exception &e) {
+            std::cerr << "Error: " << e.what() << " Failed to parse "
+                      << flag_str << " as " << opt.type << std::endl;
+            return;
+        }
+        if (opt.json_value_ref) {
+            *opt.json_value_ref = value;
+        }
+        return;
+    }
+}
+
+const std::map<std::string, std::function<void(const argparse::ArgumentParser &,
+                                               possible_option_arg &)>>
+    arg_type_to_processor = {
+        { "bool", process_arg_value<bool> },
+        { "int", process_arg_value<int> },
+        { "short", process_arg_value<short> },
+        { "long", process_arg_value<long> },
+        { "long long", process_arg_value<long long> },
+        { "unsigned int", process_arg_value<unsigned int> },
+        { "unsigned short", process_arg_value<unsigned short> },
+        { "unsigned long long", process_arg_value<unsigned long long> },
+        { "float", process_arg_value<float> },
+        { "double", process_arg_value<double> },
+    };
+
+int
+process_args_for_section_value(const argparse::ArgumentParser &program,
+                               json &bpf_skel,
+                               std::vector<possible_option_arg> &opts)
+{
+    for (auto &opt : opts) {
+        if (argparse::details::starts_with(
+                std::string_view("--__eunomia_dummy"),
+                std::string_view(opt.long_name))) {
+            continue;
+        }
+        if (arg_type_to_processor.find(opt.type)
+            != arg_type_to_processor.end()) {
+            arg_type_to_processor.at(opt.type)(program, opt);
+        }
+        else if ((argparse::details::starts_with(std::string_view("char["),
+                                                 std::string_view(opt.type)))) {
+            process_arg_value<std::string>(program, opt);
+        }
+        else {
+            std::cerr << "unknown type: " << opt.type << std::endl;
+        }
     }
     return 0;
 }
@@ -220,11 +261,11 @@ int
 process_args(const argparse::ArgumentParser &program, json &bpf_skel,
              std::vector<possible_option_arg> &opts, std::string &version)
 {
-    int ret = process_args_for_section_var(program, bpf_skel, opts);
+    int ret = process_default_args(program, version);
     if (ret != 0) {
         return ret;
     }
-    ret = process_default_args(program, version);
+    ret = process_args_for_section_value(program, bpf_skel, opts);
     return ret;
 }
 
@@ -232,7 +273,7 @@ void
 register_args(argparse::ArgumentParser &program, json &bpf_skel,
               std::vector<possible_option_arg> &possible_args)
 {
-    add_default_options(program, possible_args);
+    add_default_options(program, possible_args, bpf_skel);
     register_args_for_section_var(program, bpf_skel, possible_args);
 
     set_program_arguments(program, possible_args);
@@ -244,14 +285,13 @@ parse_args_for_json_config(const std::string &json_config,
                            std::vector<std::string> args)
 {
     json j;
-    json bpf_skel;
     try {
         j = json::parse(json_config);
-        bpf_skel = j["bpf_skel"];
     } catch (json::parse_error &e) {
         std::cerr << "parse json config failed for args" << std::endl;
         return -1;
     }
+    json &bpf_skel = j["bpf_skel"];
     std::string name =
         get_value_or_default(bpf_skel, "obj_name", "eunomia app");
 
