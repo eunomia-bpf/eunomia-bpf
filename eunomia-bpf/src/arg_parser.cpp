@@ -65,19 +65,27 @@ add_default_options(argparse::ArgumentParser &program,
     opts.push_back(possible_option_arg{ "prints version information and exits",
                                         "version", "v", "bool", "false",
                                         nullptr });
+    opts.push_back(possible_option_arg{ "prints libbpf debug information",
+                                        "verbose", "", "bool", "false",
+                                        nullptr });
 }
 
 int
 process_default_args(const argparse::ArgumentParser &program,
-                     std::string &version)
+                     std::string &version, json &json_config)
 {
     if (program["--help"] == true) {
-        std::cout << program << std::endl;
+        std::cerr << program << std::endl;
         return 1;
     }
     if (program["--version"] == true) {
-        std::cout << version << std::endl;
+        std::cerr << version << std::endl;
         return 1;
+    }
+    if (program["--verbose"] == true) {
+        std::cerr << "eunomia-bpf: print debug info" << std::endl;
+        json_config["debug_verbose"] = true;
+        return 0;
     }
     return 0;
 }
@@ -275,10 +283,11 @@ process_args_for_section_value(const argparse::ArgumentParser &program,
 }
 
 int
-process_args(const argparse::ArgumentParser &program, json &bpf_skel,
+process_args(const argparse::ArgumentParser &program, json &json_config,
              std::vector<possible_option_arg> &opts, std::string &version)
 {
-    int ret = process_default_args(program, version);
+    json &bpf_skel = json_config["bpf_skel"];
+    int ret = process_default_args(program, version, json_config);
     if (ret != 0) {
         return ret;
     }
@@ -329,7 +338,7 @@ parse_args_for_json_config(const std::string &json_config,
     try {
         register_args(program, bpf_skel, possible_args);
         program.parse_args(args);
-        int res = process_args(program, bpf_skel, possible_args, version);
+        int res = process_args(program, j, possible_args, version);
         new_config = j.dump();
         return res;
     } catch (const std::runtime_error &err) {

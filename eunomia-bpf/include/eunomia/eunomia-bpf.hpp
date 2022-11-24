@@ -58,7 +58,7 @@ class bpf_skeleton
     /// wait and polling the ring buffer map
     int wait_and_poll_from_rb(std::size_t id);
     /// wait and polling from perf event
-    int wait_and_poll_from_perf_event(std::size_t id);
+    int wait_and_poll_from_perf_event_array(std::size_t id);
     /// simply wait for the program to exit
     /// use in no export data mode
     int wait_for_no_export_program(void);

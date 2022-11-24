@@ -15,16 +15,16 @@ extern "C" {
 using json = nlohmann::json;
 namespace eunomia {
 /// use as a optional field
-/// if the field exists, we get it.
-#define get_opt_from_json_at(name) \
-    do {                           \
-        json res;                  \
-        try {                      \
-            res = j.at(#name);     \
-        } catch (...) {            \
-            break;                 \
-        }                          \
-        res.get_to(data.name);     \
+/// if the field exists, get it.
+#define get_from_json_at_or_default(name) \
+    do {                                  \
+        json res;                         \
+        try {                             \
+            res = j.at(#name);            \
+        } catch (...) {                   \
+            break;                        \
+        }                                 \
+        res.get_to(data.name);            \
     } while (0);
 
 /// get from json
@@ -73,7 +73,7 @@ from_json(const nlohmann::json &j, map_meta &data)
 {
     get_from_json_at(name);
     get_from_json_at(ident);
-    get_opt_from_json_at(mmaped);
+    get_from_json_at_or_default(mmaped);
 
     data.__raw_json_data = j.dump();
 }
@@ -106,15 +106,18 @@ from_json(const nlohmann::json &j, bpf_skel_meta &data)
 static void
 from_json(const nlohmann::json &j, eunomia_object_meta &data)
 {
-    get_opt_from_json_at(export_types);
+    get_from_json_at_or_default(export_types);
     get_from_json_at(bpf_skel);
-    get_opt_from_json_at(perf_buffer_pages);
-    get_opt_from_json_at(perf_buffer_time_ms);
-    get_opt_from_json_at(poll_timeout_ms);
-    get_opt_from_json_at(print_header);
+    get_from_json_at_or_default(perf_buffer_pages);
+    get_from_json_at_or_default(perf_buffer_time_ms);
+    get_from_json_at_or_default(poll_timeout_ms);
+    get_from_json_at_or_default(debug_verbose);
+    get_from_json_at_or_default(print_header);
 }
 
-void bpf_skel_meta::from_json_str(const std::string &j_str) {
+void
+bpf_skel_meta::from_json_str(const std::string &j_str)
+{
     json j = json::parse(j_str);
     j.get_to(*this);
 }

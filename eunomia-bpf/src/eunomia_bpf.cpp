@@ -34,7 +34,7 @@ bpf_skeleton::load_and_attach_prog(void)
 {
     int err = 0;
 
-    verbose_local = config_data.libbpf_debug_verbose;
+    verbose_local = meta_data.debug_verbose;
     libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
     /* Set up libbpf errors and debug info callback */
     libbpf_set_print(libbpf_print_fn);
@@ -180,7 +180,7 @@ bpf_skeleton::get_btf_data(void)
 }
 
 int
-bpf_skeleton::wait_and_poll_from_perf_event(std::size_t rb_map_id)
+bpf_skeleton::wait_and_poll_from_perf_event_array(std::size_t rb_map_id)
 {
     int err = 0;
 
@@ -225,20 +225,61 @@ bpf_skeleton::wait_for_no_export_program(void)
     return 0;
 }
 
+enum class export_map_type {
+    RING_BUFFER,
+    PERF_EVENT_ARRAY,
+    SAMPLE,
+    NO_EXPORT,
+};
+
+static void
+set_and_warn_existing_export_map(export_map_type &type,
+                                 export_map_type new_type)
+{
+    if (type != export_map_type::NO_EXPORT) {
+        std::cerr << "Warning: Multiple export maps found" << std::endl;
+    }
+    type = new_type;
+}
+
 int
 bpf_skeleton::check_export_maps(void)
 {
+    export_map_type type = export_map_type::NO_EXPORT;
+    std::size_t map_index = 0;
+
     if (meta_data.export_types.empty()) {
         return wait_for_no_export_program();
     }
     for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++) {
         auto map = maps[i];
+        if (!map) {
+            continue;
+        }
         if (bpf_map__type(map) == BPF_MAP_TYPE_RINGBUF) {
-            return wait_and_poll_from_rb(i);
+            set_and_warn_existing_export_map(type,
+                                             export_map_type::RING_BUFFER);
+            map_index = i;
         }
         else if (bpf_map__type(map) == BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
-            return wait_and_poll_from_perf_event(i);
+            set_and_warn_existing_export_map(type,
+                                             export_map_type::PERF_EVENT_ARRAY);
+            map_index = i;
         }
+    }
+    if (meta_data.debug_verbose) {
+        std::cerr << "eunomia-bpf: wait and poll events type " << (int)type
+                  << " on map id: " << map_index << std::endl;
+    }
+    switch (type) {
+        case export_map_type::RING_BUFFER:
+            return wait_and_poll_from_rb(map_index);
+        case export_map_type::PERF_EVENT_ARRAY:
+            return wait_and_poll_from_perf_event_array(map_index);
+        case export_map_type::SAMPLE:
+            return wait_for_no_export_program();
+        case export_map_type::NO_EXPORT:
+            return wait_for_no_export_program();
     }
     return -1;
 }

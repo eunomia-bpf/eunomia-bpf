@@ -97,8 +97,9 @@ bpf_skeleton::load_section_data_to_buffer(const data_section_meta &sec_meta,
         if (!json_obj.contains("value")) {
             return;
         }
-        if (config_data.libbpf_debug_verbose) {
-            std::cerr << "load runtime arg: " << json_obj["value"] << std::endl;
+        if (meta_data.debug_verbose) {
+            std::cerr << "eunomia-bpf: load runtime arg for " << variable.name
+                      << ": " << json_obj["value"] << std::endl;
         }
         if (sec_btf_type.is_array) {
             if (strncmp(variable.type.c_str(), "char", 4) == 0) {
