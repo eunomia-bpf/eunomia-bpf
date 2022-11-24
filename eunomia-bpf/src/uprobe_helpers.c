@@ -26,7 +26,7 @@ int get_pid_binary_path(pid_t pid, char *path, size_t path_sz)
 	ssize_t ret;
 	char proc_pid_exe[32];
 
-	if (snprintf(proc_pid_exe, sizeof(proc_pid_exe), "/proc/%d/exe", pid)
+	if ((size_t)snprintf(proc_pid_exe, sizeof(proc_pid_exe), "/proc/%d/exe", pid)
 	    >= sizeof(proc_pid_exe)) {
 		warn("snprintf /proc/PID/exe failed");
 		return -1;

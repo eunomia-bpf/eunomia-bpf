@@ -47,7 +47,7 @@ run_mode_operation(const std::string &path,
     r.thread = std::thread(&eunomia_runner::start_tracker, &r);
     static volatile bool is_exiting = false;
     signal(SIGINT, [](int x) {
-        fprintf(stderr, "Ctrl C exit...\n");
+        std::cerr << "Ctrl C exit..." << std::endl;
         is_exiting = true;
         signal(SIGINT, SIG_DFL);
     });
@@ -82,6 +82,10 @@ cmd_run_main(int argc, char *argv[])
         .implicit_value(true);
     std::vector<std::string> run_with_extra_args;
     try {
+        if (argc == 1) {
+            std::cerr << program;
+            std::exit(1);
+        }
         program.parse_args(argc, argv);
     } catch (const std::runtime_error &err) {
         std::cerr << err.what() << std::endl;

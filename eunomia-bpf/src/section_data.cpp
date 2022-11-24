@@ -17,18 +17,13 @@ load_data(const json &json_obj, char *buffer, size_t offset, size_t size)
     if (json_obj["value"].is_null()) {
         return;
     }
-    T value = json_obj["value"];
-    memcpy(buffer + offset, &value, size);
-}
-
-void
-load_string_data(const json &json_obj, char *buffer, size_t offset, size_t size)
-{
-        if (json_obj["value"].is_null()) {
+    try {
+        T value = json_obj["value"];
+        memcpy(buffer + offset, &value, size);
+    } catch (json::exception &e) {
+        std::cerr << "load section value failed: " << e.what() << std::endl;
         return;
     }
-    std::string value = json_obj["value"];
-    memcpy(buffer + offset, &value, size);
 }
 
 struct section_data_btf_type {
@@ -107,8 +102,8 @@ bpf_skeleton::load_section_data_to_buffer(const data_section_meta &sec_meta,
         }
         if (sec_btf_type.is_array) {
             if (strncmp(variable.type.c_str(), "char", 4) == 0) {
-                load_string_data(json_obj, mmap_buffer, sec_btf_type.offset,
-                                 sec_btf_type.size);
+                load_data<std::string>(json_obj, mmap_buffer,
+                                       sec_btf_type.offset, sec_btf_type.size);
             }
         }
         switch (sec_btf_type.size) {

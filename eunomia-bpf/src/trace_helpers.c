@@ -50,7 +50,7 @@ static int ksyms__add_symbol(struct ksyms *ksyms, const char *name, unsigned lon
 	struct ksym *ksym;
 	void *tmp;
 
-	if (ksyms->strs_sz + name_len > ksyms->strs_cap) {
+	if (ksyms->strs_sz + name_len > (size_t)ksyms->strs_cap) {
 		new_cap = ksyms->strs_cap * 4 / 3;
 		if (new_cap < ksyms->strs_sz + name_len)
 			new_cap = ksyms->strs_sz + name_len;

@@ -26,7 +26,6 @@ constexpr auto default_version = "0.1.0";
 constexpr auto default_epilog =
     "Built with eunomia-bpf framework.\n"
     "See https://github.com/eunomia-bpf/eunomia-bpf for more information.";
-constexpr auto default_var_help = "set value of bpf variable ";
 
 struct possible_option_arg {
     std::string help;
@@ -35,9 +34,14 @@ struct possible_option_arg {
     std::string type;
 
     std::string default_value;
-    bool implicit_value;
     json *json_value_ref;
 };
+
+std::string
+get_default_var_help(data_section_variable_meta &var)
+{
+    return std::string("set value of ") + var.type + " variable " + var.name;
+}
 
 std::string
 get_value_or_default(const json &j, const char *key,
@@ -57,9 +61,9 @@ add_default_options(argparse::ArgumentParser &program,
                     std::vector<possible_option_arg> &opts, json &bpf_skel)
 {
     opts.push_back(possible_option_arg{ "shows help message and exits", "help",
-                                        "h", "bool", "false", true, nullptr });
+                                        "h", "bool", "false", nullptr });
     opts.push_back(possible_option_arg{ "prints version information and exits",
-                                        "version", "v", "bool", "false", true,
+                                        "version", "v", "bool", "false",
                                         nullptr });
 }
 
@@ -104,7 +108,7 @@ register_args_for_section_var(argparse::ArgumentParser &program, json &bpf_skel,
             std::string var_help = get_value_or_default(
                 var_cmdarg, "help",
                 get_value_or_default(var_json, "description",
-                                     default_var_help + var.name));
+                                     get_default_var_help(var)));
             std::string var_short_name =
                 get_value_or_default(var_cmdarg, "short", "");
             // long_name can be var_json["cmdarg"]["long"] or var_json["name"]
@@ -120,10 +124,21 @@ register_args_for_section_var(argparse::ArgumentParser &program, json &bpf_skel,
             }
             auto &value = var_json["value"];
 
-            opts.push_back(possible_option_arg{
-                var_help, var_long_name, var_short_name, var.type,
-                var_default_value, false, &value });
+            opts.push_back(possible_option_arg{ var_help, var_long_name,
+                                                var_short_name, var.type,
+                                                var_default_value, &value });
         }
+    }
+}
+
+argparse::Argument &
+add_argument(argparse::ArgumentParser &program, const possible_option_arg &opt)
+{
+    if (opt.short_name != "") {
+        return program.add_argument(opt.long_name, opt.short_name);
+    }
+    else {
+        return program.add_argument(opt.long_name);
     }
 }
 
@@ -131,26 +146,23 @@ void
 add_argument_to_program(argparse::ArgumentParser &program,
                         const possible_option_arg &opt)
 {
-    if (opt.default_value.empty()) {
+    if (opt.default_value.empty() && opt.type != "bool") {
         // No default value, so it's a string flag
-        program.add_argument(opt.short_name, opt.long_name).help(opt.help);
-        return;
+        add_argument(program, opt).help(opt.help);
     }
     // if implicit_value, it is a bool flag
-    if (opt.implicit_value) {
-        program.add_argument(opt.short_name, opt.long_name)
-            .default_value(opt.default_value == "true")
+    else if (opt.type == "bool") {
+        add_argument(program, opt)
+            .default_value(false)
             .help(opt.help)
-            .implicit_value(opt.implicit_value)
+            .implicit_value(true)
             .nargs(0);
-        return;
     }
     else {
         // has default value
-        program.add_argument(opt.short_name, opt.long_name)
+        add_argument(program, opt)
             .default_value(opt.default_value)
             .help(opt.help);
-        return;
     }
 }
 
@@ -192,26 +204,30 @@ void
 process_arg_value(const argparse::ArgumentParser &program,
                   possible_option_arg &opt)
 {
-    if (opt.implicit_value) {
-        auto value = program.get<bool>(opt.long_name);
-        return;
-    }
-    // No default value
-    auto opt_value = program.present<std::string>(opt.long_name);
-    if (opt_value) {
-        std::string flag_str = *opt_value;
-        json j = json::parse(flag_str);
-        T value;
-        try {
-            value = j.get<T>();
-        } catch (json::exception &e) {
-            std::cerr << "Error: " << e.what() << " Failed to parse "
-                      << flag_str << " as " << opt.type << std::endl;
+    try {
+        if (opt.type == "bool") {
+            if (program[opt.long_name] == true && opt.json_value_ref) {
+                *opt.json_value_ref = true;
+            }
             return;
         }
-        if (opt.json_value_ref) {
-            *opt.json_value_ref = value;
+        // No default value
+        auto opt_value = program.present<std::string>(opt.long_name);
+        if (opt_value) {
+            std::string flag_str = *opt_value;
+            json j = json::parse(flag_str);
+            T value;
+
+            value = j.get<T>();
+
+            if (opt.json_value_ref) {
+                *opt.json_value_ref = value;
+            }
+            return;
         }
+    } catch (json::exception &e) {
+        std::cerr << "Error: " << e.what() << " Failed to parse "
+                  << opt.long_name << " as " << opt.type << std::endl;
         return;
     }
 }
@@ -220,6 +236,7 @@ const std::map<std::string, std::function<void(const argparse::ArgumentParser &,
                                                possible_option_arg &)>>
     arg_type_to_processor = {
         { "bool", process_arg_value<bool> },
+        { "pid_t", process_arg_value<int> },
         { "int", process_arg_value<int> },
         { "short", process_arg_value<short> },
         { "long", process_arg_value<long> },
@@ -308,18 +325,17 @@ parse_args_for_json_config(const std::string &json_config,
     program.add_epilog(epilog);
 
     std::vector<possible_option_arg> possible_args;
-    register_args(program, bpf_skel, possible_args);
 
     try {
+        register_args(program, bpf_skel, possible_args);
         program.parse_args(args);
+        int res = process_args(program, bpf_skel, possible_args, version);
+        new_config = j.dump();
+        return res;
     } catch (const std::runtime_error &err) {
         std::cerr << err.what() << std::endl;
         std::cerr << program;
         return 1;
     }
-
-    int res = process_args(program, bpf_skel, possible_args, version);
-    new_config = j.dump();
-    return res;
 }
 }
