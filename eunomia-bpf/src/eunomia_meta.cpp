@@ -14,8 +14,7 @@ extern "C" {
 
 using json = nlohmann::json;
 namespace eunomia {
-/// use as a optional field
-/// if the field exists, get it.
+/// if the field exists, get it. if not, use the default value
 #define get_from_json_at_or_default(name) \
     do {                                  \
         json res;                         \
@@ -25,6 +24,19 @@ namespace eunomia {
             break;                        \
         }                                 \
         res.get_to(data.name);            \
+    } while (0);
+
+/// if the field exists, get it to std::optional.
+#define get_from_json_at_optional(name)     \
+    do {                                    \
+        json res;                           \
+        try {                               \
+            if (j.find(#name) != j.end()) { \
+                data.name = j.at(#name);    \
+            }                               \
+        } catch (...) {                     \
+            break;                          \
+        }                                   \
     } while (0);
 
 /// get from json
@@ -69,11 +81,19 @@ from_json(const nlohmann::json &j, prog_meta &data)
 }
 
 static void
+from_json(const nlohmann::json &j, map_sample_meta &data)
+{
+    get_from_json_at(interval);
+    get_from_json_at_or_default(type);
+}
+
+static void
 from_json(const nlohmann::json &j, map_meta &data)
 {
     get_from_json_at(name);
     get_from_json_at(ident);
     get_from_json_at_or_default(mmaped);
+    get_from_json_at_optional(sample);
 
     data.__raw_json_data = j.dump();
 }
@@ -95,12 +115,21 @@ from_json(const nlohmann::json &j, data_section_meta &data)
 }
 
 static void
+from_json(const nlohmann::json &j, bpf_skel_doc &data)
+{
+    get_from_json_at_or_default(version);
+    get_from_json_at_or_default(brief);
+    get_from_json_at_or_default(details);
+}
+
+static void
 from_json(const nlohmann::json &j, bpf_skel_meta &data)
 {
     get_from_json_at(obj_name);
     get_from_json_at(maps);
     get_from_json_at(progs);
     get_from_json_at(data_sections);
+    get_from_json_at_optional(doc);
 }
 
 static void

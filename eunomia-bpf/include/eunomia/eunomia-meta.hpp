@@ -2,6 +2,7 @@
 #define EUNOMIA_MATA_DATA_
 
 #include <string>
+#include <optional>
 #include <vector>
 
 namespace eunomia {
@@ -20,10 +21,16 @@ struct export_types_struct_meta {
     void from_json_str(const std::string &j_str);
 };
 
+struct map_sample_meta {
+    std::size_t interval;
+    std::string type;
+};
+
 struct map_meta {
     std::string name;
     std::string ident;
     bool mmaped = false;
+    std::optional<map_sample_meta> sample;
 
     std::string __raw_json_data;
 };
@@ -49,7 +56,9 @@ struct data_section_meta {
 };
 
 struct bpf_skel_doc {
-    std::string __raw_json_data;
+    std::string version;
+    std::string brief;
+    std::string details;
 };
 
 struct bpf_skel_meta {
@@ -57,7 +66,7 @@ struct bpf_skel_meta {
     std::vector<map_meta> maps;
     std::vector<prog_meta> progs;
     std::string obj_name;
-    bpf_skel_doc doc;
+    std::optional<bpf_skel_doc> doc;
 
     void from_json_str(const std::string &j_str);
 };

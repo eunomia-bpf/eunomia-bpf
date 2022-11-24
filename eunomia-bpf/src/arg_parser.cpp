@@ -262,6 +262,7 @@ process_args_for_section_value(const argparse::ArgumentParser &program,
                                std::vector<possible_option_arg> &opts)
 {
     for (auto &opt : opts) {
+        // TODO: remove __eunomia_dummy in eunomia-cc
         if (argparse::details::starts_with(
                 std::string_view("--__eunomia_dummy"),
                 std::string_view(opt.long_name))) {
