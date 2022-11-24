@@ -57,6 +57,10 @@ class bpf_skeleton
 
     /// wait and polling the ring buffer map
     int wait_and_poll_from_rb(std::size_t id);
+    /// wait and sample from map
+    int wait_and_sample_map(std::size_t id);
+    int export_kv_map(struct bpf_map *hists, unsigned int key_type_id,
+              unsigned int value_type_id);
     /// wait and polling from perf event
     int wait_and_poll_from_perf_event_array(std::size_t id);
     /// simply wait for the program to exit

@@ -64,7 +64,7 @@ event_exporter::check_export_type_btf(export_types_struct_meta &struct_meta)
         }
         size = (size_t)btf__resolve_size(exported_btf, m->type);
         auto member_type = btf__type_by_id(exported_btf, type_id);
-        checked_export_member_types.push_back(checked_export_member{
+        checked_export_value_member_types.push_back(checked_export_member{
             member, member_type, type_id, bit_off, size, bit_sz });
     }
     return 0;
@@ -76,7 +76,7 @@ event_exporter::print_export_types_header(void)
     // print the time header
     constexpr const char *time_header = "TIME     ";
     std::string header = time_header;
-    for (auto &type : checked_export_member_types) {
+    for (auto &type : checked_export_value_member_types) {
         type.output_header_offset = header.size();
         auto str = type.meta.name;
         std::transform(str.begin(), str.end(), str.begin(), ::toupper);
@@ -93,7 +93,18 @@ event_exporter::print_export_types_header(void)
 }
 
 int
-event_exporter::check_for_meta_types_and_create_export_format(
+event_exporter::check_and_create_key_value_format(unsigned int key_type_id,
+                                                  unsigned int value_type_id,
+                                                  sample_map_type map_type,
+                                                  struct btf *btf_data)
+{
+    std::cerr << "check_and_create_key_value_format" << std::endl;
+    // TODO: check the key and value type
+    return 0;
+}
+
+int
+event_exporter::check_and_create_export_format(
     std::vector<export_types_struct_meta> &export_types, btf *btf_data)
 {
     // check if the export types are valid
@@ -231,8 +242,8 @@ event_exporter::print_export_event_to_json(const char *event)
     if (res < 0) {
         return;
     }
-    for (std::size_t i = 0; i < checked_export_member_types.size(); ++i) {
-        auto &member = checked_export_member_types[i];
+    for (std::size_t i = 0; i < checked_export_value_member_types.size(); ++i) {
+        auto &member = checked_export_value_member_types[i];
         auto offset = member.bit_offset / 8;
 
         if (member.bit_offset % 8) {
@@ -244,7 +255,7 @@ event_exporter::print_export_event_to_json(const char *event)
             return;
         }
         print_export_member(event, offset, member, true);
-        if (i < checked_export_member_types.size() - 1) {
+        if (i < checked_export_value_member_types.size() - 1) {
             res = printer.sprintf_event(",");
             if (res < 0) {
                 return;
@@ -281,7 +292,7 @@ event_exporter::print_plant_text_event_with_time(const char *event)
         return;
     }
 
-    for (const auto &member : checked_export_member_types) {
+    for (const auto &member : checked_export_value_member_types) {
         if (member.output_header_offset > printer.buffer.size()) {
             for (std::size_t i = printer.buffer.size();
                  i < member.output_header_offset; ++i) {
@@ -302,7 +313,6 @@ event_exporter::print_plant_text_event_with_time(const char *event)
     printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
 }
 
-/// FIXME: output config with lua
 void
 event_exporter::handler_export_events(const char *event) const
 {
@@ -316,6 +326,14 @@ event_exporter::handler_export_events(const char *event) const
     else {
         assert(false && "No export event handler!");
     }
+}
+
+// handle values from sample map events
+void
+event_exporter::handler_sample_key_value(std::vector<char> &key_buffer,
+                                         std::vector<char> &value_buffer) const
+{
+    std::cerr << "handler_sample_key_value not implemented" << std::endl;
 }
 
 void

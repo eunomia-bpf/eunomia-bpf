@@ -9,12 +9,16 @@
 #include "base64.h"
 #include "eunomia/eunomia-bpf.hpp"
 #include "json.hpp"
+#include "helpers/map_helpers.h"
+#include "helpers/trace_helpers.h"
 
 extern "C" {
 #include <bpf/libbpf.h>
+#include <bpf/bpf.h>
 #include <bpf/btf.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 }
 
 using json = nlohmann::json;
@@ -111,12 +115,95 @@ handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
 }
 
 int
+bpf_skeleton::export_kv_map(struct bpf_map *hists, unsigned int key_type_id,
+                            unsigned int value_type_id)
+{
+    int err, fd = bpf_map__fd(hists);
+    __u32 lookup_key = -2, next_key;
+    const auto btf_data = get_btf_data();
+    if (!btf_data) {
+        std::cerr << "failed to get btf data" << std::endl;
+        return -1;
+    }
+    std::vector<char> key_buffer = {};
+    std::vector<char> value_buffer = {};
+    key_buffer.resize(btf__resolve_size(btf_data, key_type_id));
+    value_buffer.resize(btf__resolve_size(btf_data, value_type_id));
+
+    while (!bpf_map_get_next_key(fd, &lookup_key, key_buffer.data())) {
+        err = bpf_map_lookup_elem(fd, &next_key, value_buffer.data());
+        if (err < 0) {
+            std::cerr << "failed to lookup hist" << std::endl;
+            return -1;
+        }
+        exporter.handler_sample_key_value(key_buffer, value_buffer);
+        lookup_key = next_key;
+    }
+
+    lookup_key = -2;
+    while (!bpf_map_get_next_key(fd, &lookup_key, &next_key)) {
+        err = bpf_map_delete_elem(fd, &next_key);
+        if (err < 0) {
+            fprintf(stderr, "failed to cleanup hist : %d\n", err);
+            return -1;
+        }
+        lookup_key = next_key;
+    }
+    return 0;
+}
+
+static const std::map<std::string, event_exporter::sample_map_type>
+    sample_map_type_map = {
+        { "linear_hist", event_exporter::sample_map_type::linear_hist },
+        { "log2_hist", event_exporter::sample_map_type::log2_hist },
+    };
+int
+bpf_skeleton::wait_and_sample_map(std::size_t sample_map_id)
+{
+    int err = 0;
+    const auto &map_meta = meta_data.bpf_skel.maps[sample_map_id];
+    const map_sample_meta &sample_config = *(map_meta.sample);
+
+    unsigned int key_type_id = bpf_map__btf_key_type_id(maps[sample_map_id]);
+    unsigned int value_type_id =
+        bpf_map__btf_value_type_id(maps[sample_map_id]);
+    event_exporter::sample_map_type sample_map_type =
+        event_exporter::sample_map_type::default_kv;
+    if (sample_map_type_map.count(sample_config.type)) {
+        sample_map_type = sample_map_type_map.at(sample_config.type);
+    }
+    else {
+        std::cerr << "warning: unknown sample map type: " << sample_config.type
+                  << std::endl;
+    }
+
+    if (exporter.check_and_create_key_value_format(
+            key_type_id, value_type_id, sample_map_type, get_btf_data())
+        < 0) {
+        std::cerr << "Failed to create print format" << std::endl;
+        return -1;
+    }
+
+    /* Process events */
+    while (!exiting) {
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(sample_config.interval));
+        err = export_kv_map(maps[sample_map_id], key_type_id, value_type_id);
+        if (err) {
+            break;
+        }
+    }
+
+    return 0;
+}
+
+int
 bpf_skeleton::wait_and_poll_from_rb(std::size_t rb_map_id)
 {
     int err = 0;
 
-    if (exporter.check_for_meta_types_and_create_export_format(
-            meta_data.export_types, get_btf_data())
+    if (exporter.check_and_create_export_format(meta_data.export_types,
+                                                get_btf_data())
         < 0) {
         std::cerr << "Failed to create print format" << std::endl;
         return -1;
@@ -139,7 +226,7 @@ bpf_skeleton::wait_and_poll_from_rb(std::size_t rb_map_id)
             break;
         }
         if (err < 0) {
-            printf("Error polling perf buffer: %d\n", err);
+            printf("Error polling ring buffer: %d\n", err);
             return -1;
         }
     }
@@ -184,8 +271,8 @@ bpf_skeleton::wait_and_poll_from_perf_event_array(std::size_t rb_map_id)
 {
     int err = 0;
 
-    if (exporter.check_for_meta_types_and_create_export_format(
-            meta_data.export_types, get_btf_data())
+    if (exporter.check_and_create_export_format(meta_data.export_types,
+                                                get_btf_data())
         < 0) {
         std::cerr << "Failed to create print format" << std::endl;
         return -1;
@@ -253,10 +340,15 @@ bpf_skeleton::check_export_maps(void)
     }
     for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++) {
         auto map = maps[i];
+        const auto &map_meta = meta_data.bpf_skel.maps[i];
         if (!map) {
             continue;
         }
-        if (bpf_map__type(map) == BPF_MAP_TYPE_RINGBUF) {
+        else if (map_meta.sample) {
+            set_and_warn_existing_export_map(type, export_map_type::SAMPLE);
+            map_index = i;
+        }
+        else if (bpf_map__type(map) == BPF_MAP_TYPE_RINGBUF) {
             set_and_warn_existing_export_map(type,
                                              export_map_type::RING_BUFFER);
             map_index = i;
@@ -277,7 +369,7 @@ bpf_skeleton::check_export_maps(void)
         case export_map_type::PERF_EVENT_ARRAY:
             return wait_and_poll_from_perf_event_array(map_index);
         case export_map_type::SAMPLE:
-            return wait_for_no_export_program();
+            return wait_and_sample_map(map_index);
         case export_map_type::NO_EXPORT:
             return wait_for_no_export_program();
     }

@@ -63,8 +63,10 @@ class event_exporter
     export_event_handler user_export_event_handler = nullptr;
     /// internal handler to process export data to a given format
     internal_event_handler internal_event_processor = nullptr;
-    /// export types meta data
-    std::vector<checked_export_member> checked_export_member_types;
+    /// export map value types meta data
+    std::vector<checked_export_member> checked_export_value_member_types;
+    /// export map key types meta data
+    std::vector<checked_export_member> checked_export_key_member_types;
     /// @brief  raw btf data
     btf *exported_btf = nullptr;
 
@@ -95,20 +97,38 @@ class event_exporter
     void setup_event_exporter(void);
     int print_export_member(const char *event, std::size_t offset,
                             const checked_export_member &member, bool is_json);
-
-  public:
+    friend class bpf_skeleton;
     /// print event with meta data;
     /// used for export call backs: ring buffer and perf events
     /// provide a common interface to print the event data
     void handler_export_events(const char *event) const;
 
+    // handle values from sample map events
+    void handler_sample_key_value(std::vector<char> &key_buffer,
+                                  std::vector<char> &value_buffer) const;
+
+  public:
     /// @brief check for types and create export format
     /// @details  the types from ebpf source code and export header
     /// create export formats for correctly print the data,
     /// and used by user space.
-    int check_for_meta_types_and_create_export_format(
+    int check_and_create_export_format(
         std::vector<export_types_struct_meta> &export_types,
         struct btf *btf_data);
+
+    enum class sample_map_type {
+        /// print the event data as log2_hist plain text
+        log2_hist,
+        /// print the event data as linear hist plain text
+        linear_hist,
+        /// print the event data as key-value format in plain text or json
+        default_kv,
+    };
+    /// @brief set export format to key value btf
+    int check_and_create_key_value_format(unsigned int key_type_id,
+                                          unsigned int value_type_id,
+                                          sample_map_type map_type,
+                                          struct btf *btf_data);
 
     /// @brief set user export event handler to type
     void set_export_type(export_format_type type, export_event_handler handler,
