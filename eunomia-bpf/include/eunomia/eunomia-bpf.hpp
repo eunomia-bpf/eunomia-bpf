@@ -59,8 +59,9 @@ class bpf_skeleton
     int wait_and_poll_from_rb(std::size_t id);
     /// wait and sample from map
     int wait_and_sample_map(std::size_t id);
-    int export_kv_map(struct bpf_map *hists, unsigned int key_type_id,
-              unsigned int value_type_id);
+    int export_kv_map(struct bpf_map *hists, std::vector<char> &key_buffer,
+                      std::vector<char> &value_buffer,
+                      const map_sample_meta &sample_config);
     /// wait and polling from perf event
     int wait_and_poll_from_perf_event_array(std::size_t id);
     /// simply wait for the program to exit

@@ -104,8 +104,9 @@ event_exporter::print_export_types_header(void)
         }
         header += "  ";
     }
-    // print the field name endline
-    std::cout << header << std::endl;
+    printer.reset();
+    printer.sprintf_event("%s", header.c_str());
+    printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
 }
 
 static int
@@ -149,9 +150,7 @@ event_exporter::check_and_push_export_type_btf(
         // replace generated struct member meta with provide meta data
         meta = *member_meta;
     }
-    std::cerr << "type: " << meta.type << " name: " << meta.name
-              << " size: " << size << std::endl;
-    checked_export_value_member_types.push_back(
+    vec.push_back(
         checked_export_member{ meta, t, type_id, bit_off, size, bit_sz });
     return 0;
 }
@@ -199,7 +198,8 @@ event_exporter::check_sample_types_btf(
         }
         std::optional<export_types_struct_member_meta> member_meta;
         if (members) {
-            std::cerr << "member_meta = members->members[i];" << i << std::endl;
+            // if export types exists, use the export type value for member meta
+            // to fix the name of struct fields.
             member_meta = members->members[i];
         }
         auto err = check_and_push_export_type_btf(
@@ -215,7 +215,7 @@ int
 event_exporter::check_and_create_key_value_format(
     unsigned int key_type_id, unsigned int value_type_id,
     sample_map_type map_type,
-    std::vector<export_types_struct_meta> &export_types, struct btf *btf_data)
+    std::vector<export_types_struct_meta> &export_types, const btf *btf_data)
 {
     std::optional<export_types_struct_meta> member;
     if (export_types.size() > 1) {
@@ -228,7 +228,7 @@ event_exporter::check_and_create_key_value_format(
         member = export_types[0];
     }
     exported_btf = btf_data;
-    // TODO: check the key type
+    // TODO: check the key btf type with export_types_struct_meta
     if (check_sample_types_btf(key_type_id, checked_export_key_member_types,
                                std::nullopt)
         < 0) {
@@ -242,6 +242,28 @@ event_exporter::check_and_create_key_value_format(
         return -1;
     }
     setup_btf_dumper();
+    // setup the internal_event_processor
+    switch (format_type) {
+        case export_format_type::EXPORT_JSON:
+        {
+            internal_sample_map_processor =
+                std::bind(&event_exporter::print_sample_event_to_json, this,
+                          std::placeholders::_1, std::placeholders::_2);
+        } break;
+        case export_format_type::EXPORT_RAW_EVENT:
+            internal_sample_map_processor =
+                std::bind(&event_exporter::raw_sample_handler, this,
+                          std::placeholders::_1, std::placeholders::_2);
+            break;
+        case export_format_type::EXPORT_PLANT_TEXT:
+            [[fallthrough]];
+        default:
+            internal_sample_map_processor =
+                std::bind(&event_exporter::print_sample_event_to_plant_text,
+                          this, std::placeholders::_1, std::placeholders::_2);
+            print_export_types_header();
+            break;
+    }
     return 0;
 }
 
@@ -265,10 +287,7 @@ event_exporter::check_and_create_export_format(
         std::cerr << "export type check failed" << std::endl;
         return -1;
     }
-    if (user_export_event_handler == nullptr
-        && format_type == export_format_type::EXPORT_PLANT_TEXT) {
-        print_export_types_header();
-    }
+    setup_btf_dumper();
     // setup the internal_event_processor
     switch (format_type) {
         case export_format_type::EXPORT_JSON:
@@ -288,9 +307,9 @@ event_exporter::check_and_create_export_format(
             internal_event_processor = std::bind(
                 &event_exporter::print_export_event_to_plant_text_with_time,
                 this, std::placeholders::_1);
+            print_export_types_header();
             break;
     }
-    setup_btf_dumper();
     return 0;
 }
 
@@ -343,6 +362,7 @@ event_exporter::sprintf_printer::export_to_handler_or_print(
         user_export_event_handler(user_ctx, buffer.data());
     }
     else {
+        // print to stdout if handler not exists
         std::cout << buffer << std::endl;
     }
 }
@@ -350,10 +370,7 @@ event_exporter::sprintf_printer::export_to_handler_or_print(
 void
 event_exporter::setup_btf_dumper(void)
 {
-    if (exported_btf == nullptr) {
-        std::cerr << "Failed to create btf dump" << std::endl;
-        return;
-    }
+    assert(exported_btf);
     struct btf_dump *d =
         btf_dump__new(exported_btf, btf_dump_event_printf, &printer, nullptr);
     if (!d) {
@@ -392,34 +409,32 @@ event_exporter::print_export_member(const char *event, std::size_t offset,
 }
 
 void
-event_exporter::print_export_event_to_json(const char *event)
+event_exporter::dump_event_buffer_to_json(
+    const char *event, std::vector<checked_export_member> &checker_members)
 {
-    printer.reset();
-    int res = printer.sprintf_event("{");
-    if (res < 0) {
-        return;
-    }
-    for (std::size_t i = 0; i < checked_export_value_member_types.size(); ++i) {
-        auto &member = checked_export_value_member_types[i];
+    printer.sprintf_event("{");
+    for (std::size_t i = 0; i < checker_members.size(); ++i) {
+        auto &member = checker_members[i];
         auto offset = member.bit_offset / 8;
 
         if (member.bit_offset % 8) {
             std::cerr << "bit offset not supported" << std::endl;
             return;
         }
-        res = printer.sprintf_event("\"%s\":", member.meta.name.c_str());
-        if (res < 0) {
-            return;
-        }
+        printer.sprintf_event("\"%s\":", member.meta.name.c_str());
         print_export_member(event, offset, member, true);
-        if (i < checked_export_value_member_types.size() - 1) {
-            res = printer.sprintf_event(",");
-            if (res < 0) {
-                return;
-            }
+        if (i < checker_members.size() - 1) {
+            printer.sprintf_event(",");
         }
     }
     printer.sprintf_event("}");
+}
+
+void
+event_exporter::print_export_event_to_json(const char *event)
+{
+    printer.reset();
+    dump_event_buffer_to_json(event, checked_export_value_member_types);
     printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
 }
 
@@ -453,7 +468,15 @@ void
 event_exporter::print_sample_event_to_json(std::vector<char> &key_buffer,
                                            std::vector<char> &value_buffer)
 {
-    std::cerr << "print_sample_event_to_json not implemented" << std::endl;
+    printer.reset();
+    printer.sprintf_event("{\"key\":");
+    dump_event_buffer_to_json(key_buffer.data(),
+                              checked_export_key_member_types);
+    printer.sprintf_event(",\"value\":");
+    dump_event_buffer_to_json(value_buffer.data(),
+                              checked_export_value_member_types);
+    printer.sprintf_event("}");
+    printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
 }
 
 void
@@ -515,7 +538,13 @@ void
 event_exporter::handler_sample_key_value(std::vector<char> &key_buffer,
                                          std::vector<char> &value_buffer) const
 {
-    std::cerr << "handler_sample_key_value not implemented" << std::endl;
+    if (internal_sample_map_processor) {
+        internal_sample_map_processor(key_buffer, value_buffer);
+        return;
+    }
+    else {
+        assert(false && "No handler_sample_key_value!");
+    }
 }
 
 void

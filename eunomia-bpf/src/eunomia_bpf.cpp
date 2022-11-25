@@ -115,36 +115,29 @@ handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
 }
 
 int
-bpf_skeleton::export_kv_map(struct bpf_map *hists, unsigned int key_type_id,
-                            unsigned int value_type_id)
+bpf_skeleton::export_kv_map(struct bpf_map *hists,
+                            std::vector<char> &key_buffer,
+                            std::vector<char> &value_buffer,
+                            const map_sample_meta &sample_config)
 {
     int err, fd = bpf_map__fd(hists);
     __u32 lookup_key = -2, next_key;
-    const auto btf_data = get_btf_data();
-    if (!btf_data) {
-        std::cerr << "failed to get btf data" << std::endl;
-        return -1;
-    }
-    std::vector<char> key_buffer = {};
-    std::vector<char> value_buffer = {};
-    key_buffer.resize(btf__resolve_size(btf_data, key_type_id));
-    value_buffer.resize(btf__resolve_size(btf_data, value_type_id));
 
     while (!bpf_map_get_next_key(fd, &lookup_key, key_buffer.data())) {
         err = bpf_map_lookup_elem(fd, &next_key, value_buffer.data());
         if (err < 0) {
-            std::cerr << "failed to lookup hist: " << fd << std::endl;
             break;
         }
         exporter.handler_sample_key_value(key_buffer, value_buffer);
         lookup_key = next_key;
     }
 
+    // cleanup maps
     lookup_key = -2;
     while (!bpf_map_get_next_key(fd, &lookup_key, &next_key)) {
         err = bpf_map_delete_elem(fd, &next_key);
         if (err < 0) {
-            fprintf(stderr, "failed to cleanup hist : %d\n", err);
+            fprintf(stderr, "failed to cleanup map : %d\n", err);
             return -1;
         }
         lookup_key = next_key;
@@ -157,12 +150,17 @@ static const std::map<std::string, event_exporter::sample_map_type>
         { "linear_hist", event_exporter::sample_map_type::linear_hist },
         { "log2_hist", event_exporter::sample_map_type::log2_hist },
     };
+
 int
 bpf_skeleton::wait_and_sample_map(std::size_t sample_map_id)
 {
     int err = 0;
     const auto &map_meta = meta_data.bpf_skel.maps[sample_map_id];
     const map_sample_meta &sample_config = *(map_meta.sample);
+    const auto btf_data = get_btf_data();
+    if (!btf_data) {
+        return -1;
+    }
 
     unsigned int key_type_id = bpf_map__btf_key_type_id(maps[sample_map_id]);
     unsigned int value_type_id =
@@ -174,21 +172,28 @@ bpf_skeleton::wait_and_sample_map(std::size_t sample_map_id)
     }
     else {
         std::cerr << "warning: unknown sample map type: " << sample_config.type
-                  << std::endl << "print key-value as default" << std::endl;
+                  << std::endl
+                  << "print key-value as default" << std::endl;
     }
-
     if (exporter.check_and_create_key_value_format(
-            key_type_id, value_type_id, sample_map_type, meta_data.export_types, get_btf_data())
+            key_type_id, value_type_id, sample_map_type, meta_data.export_types,
+            btf_data)
         < 0) {
         std::cerr << "Failed to create print format" << std::endl;
         return -1;
     }
 
+    std::vector<char> key_buffer = {};
+    std::vector<char> value_buffer = {};
+    key_buffer.resize(btf__resolve_size(btf_data, key_type_id));
+    value_buffer.resize(btf__resolve_size(btf_data, value_type_id));
+
     /* Process events */
     while (!exiting) {
         std::this_thread::sleep_for(
             std::chrono::milliseconds(sample_config.interval));
-        err = export_kv_map(maps[sample_map_id], key_type_id, value_type_id);
+        err = export_kv_map(maps[sample_map_id], key_buffer, value_buffer,
+                            sample_config);
         if (err) {
             break;
         }
@@ -256,12 +261,12 @@ bpf_skeleton::get_btf_data(void)
 {
     if (!obj) {
         fprintf(stderr, "no BPF object load\n");
-        return {};
+        return nullptr;
     }
     auto btf_data = bpf_object__btf(obj);
     if (!btf_data) {
         fprintf(stderr, "no BTF data load\n");
-        return {};
+        return nullptr;
     }
     return btf_data;
 }

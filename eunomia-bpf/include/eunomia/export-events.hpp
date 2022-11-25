@@ -21,7 +21,6 @@ btf_dump__free(struct btf_dump *d);
 }
 
 namespace eunomia {
-using internal_event_handler = std::function<void(const char *event)>;
 using export_event_handler = std::function<void(void *ctx, const char *event)>;
 
 /// @brief eunomia-bpf exporter for events in user space
@@ -57,18 +56,24 @@ class event_exporter
         std::uint32_t bit_size;
         std::size_t output_header_offset;
     };
+    using internal_event_handler = std::function<void(const char *event)>;
+    using internal_sample_map_handler = std::function<void(
+        std::vector<char> &key_buffer, std::vector<char> &value_buffer)>;
+
     /// @brief export format type
     export_format_type format_type;
     /// user define handler to process export data
     export_event_handler user_export_event_handler = nullptr;
     /// internal handler to process export data to a given format
     internal_event_handler internal_event_processor = nullptr;
+    /// internal handler to sample map data to a given format
+    internal_sample_map_handler internal_sample_map_processor = nullptr;
     /// export map value types meta data
     std::vector<checked_export_member> checked_export_value_member_types;
     /// export map key types meta data
     std::vector<checked_export_member> checked_export_key_member_types;
     /// @brief  raw btf data
-    btf *exported_btf = nullptr;
+    const btf *exported_btf = nullptr;
 
     /// user defined export ctx pointer
     void *user_ctx = nullptr;
@@ -77,10 +82,10 @@ class event_exporter
     /// @param field field meta data
     /// @param width the width of the type in bytes
     int check_export_types_btf(export_types_struct_meta &member);
-    int check_and_push_export_type_btf(unsigned int type_id, uint32_t bit_off,
-                                       uint32_t bit_sz,
-                                       std::vector<checked_export_member> &vec,
-                                       std::optional<export_types_struct_member_meta> member_meta);
+    int check_and_push_export_type_btf(
+        unsigned int type_id, uint32_t bit_off, uint32_t bit_sz,
+        std::vector<checked_export_member> &vec,
+        std::optional<export_types_struct_member_meta> member_meta);
     /// @brief check sample map key and value types from btf
     int check_sample_types_btf(
         unsigned int key_type_id,
@@ -88,6 +93,9 @@ class event_exporter
         std::optional<export_types_struct_meta> members);
     /// print the export header meta if needed
     void print_export_types_header(void);
+
+    void dump_event_buffer_to_json(
+        const char *event, std::vector<checked_export_member> &checker_members);
 
     /// a default printer to print event data
     void print_export_event_to_plant_text_with_time(const char *event);
@@ -148,7 +156,7 @@ class event_exporter
         unsigned int key_type_id, unsigned int value_type_id,
         sample_map_type map_type,
         std::vector<eunomia::export_types_struct_meta> &export_types,
-        struct btf *btf_data);
+        const btf *btf_data);
 
     /// @brief set user export event handler to type
     void set_export_type(export_format_type type, export_event_handler handler,
