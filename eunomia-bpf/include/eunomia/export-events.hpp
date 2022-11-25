@@ -76,16 +76,35 @@ class event_exporter
     /// @brief check a single type in exported struct and found btf id
     /// @param field field meta data
     /// @param width the width of the type in bytes
-    int check_export_type_btf(export_types_struct_meta &member);
+    int check_export_types_btf(export_types_struct_meta &member);
+    int check_and_push_export_type_btf(unsigned int type_id, uint32_t bit_off,
+                                       uint32_t bit_sz,
+                                       std::vector<checked_export_member> &vec,
+                                       std::optional<export_types_struct_member_meta> member_meta);
+    /// @brief check sample map key and value types from btf
+    int check_sample_types_btf(
+        unsigned int key_type_id,
+        std::vector<checked_export_member> &checked_member,
+        std::optional<export_types_struct_meta> members);
     /// print the export header meta if needed
     void print_export_types_header(void);
 
     /// a default printer to print event data
-    void print_plant_text_event_with_time(const char *event);
+    void print_export_event_to_plant_text_with_time(const char *event);
     /// a default printer to pass event data to user defined handler
     void raw_event_handler(const char *event);
     ///  printer to print event data to json
     void print_export_event_to_json(const char *event);
+
+    /// a default printer to print event data
+    void print_sample_event_to_plant_text(std::vector<char> &key_buffer,
+                                          std::vector<char> &value_buffer);
+    /// a default printer to pass event data to user defined handler
+    void raw_sample_handler(std::vector<char> &key_buffer,
+                            std::vector<char> &value_buffer);
+    ///  printer to print event data to json
+    void print_sample_event_to_json(std::vector<char> &key_buffer,
+                                    std::vector<char> &value_buffer);
 
     /// export event to json format
     void export_event_to_json(const char *event);
@@ -94,7 +113,7 @@ class event_exporter
     std::unique_ptr<btf_dump, void (*)(btf_dump *)> btf_dumper{
         nullptr, btf_dump__free
     };
-    void setup_event_exporter(void);
+    void setup_btf_dumper(void);
     int print_export_member(const char *event, std::size_t offset,
                             const checked_export_member &member, bool is_json);
     friend class bpf_skeleton;
@@ -125,10 +144,11 @@ class event_exporter
         default_kv,
     };
     /// @brief set export format to key value btf
-    int check_and_create_key_value_format(unsigned int key_type_id,
-                                          unsigned int value_type_id,
-                                          sample_map_type map_type,
-                                          struct btf *btf_data);
+    int check_and_create_key_value_format(
+        unsigned int key_type_id, unsigned int value_type_id,
+        sample_map_type map_type,
+        std::vector<eunomia::export_types_struct_meta> &export_types,
+        struct btf *btf_data);
 
     /// @brief set user export event handler to type
     void set_export_type(export_format_type type, export_event_handler handler,

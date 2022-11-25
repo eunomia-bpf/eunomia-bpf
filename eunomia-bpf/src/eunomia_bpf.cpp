@@ -133,8 +133,8 @@ bpf_skeleton::export_kv_map(struct bpf_map *hists, unsigned int key_type_id,
     while (!bpf_map_get_next_key(fd, &lookup_key, key_buffer.data())) {
         err = bpf_map_lookup_elem(fd, &next_key, value_buffer.data());
         if (err < 0) {
-            std::cerr << "failed to lookup hist" << std::endl;
-            return -1;
+            std::cerr << "failed to lookup hist: " << fd << std::endl;
+            break;
         }
         exporter.handler_sample_key_value(key_buffer, value_buffer);
         lookup_key = next_key;
@@ -174,11 +174,11 @@ bpf_skeleton::wait_and_sample_map(std::size_t sample_map_id)
     }
     else {
         std::cerr << "warning: unknown sample map type: " << sample_config.type
-                  << std::endl;
+                  << std::endl << "print key-value as default" << std::endl;
     }
 
     if (exporter.check_and_create_key_value_format(
-            key_type_id, value_type_id, sample_map_type, get_btf_data())
+            key_type_id, value_type_id, sample_map_type, meta_data.export_types, get_btf_data())
         < 0) {
         std::cerr << "Failed to create print format" << std::endl;
         return -1;
@@ -335,9 +335,6 @@ bpf_skeleton::check_export_maps(void)
     export_map_type type = export_map_type::NO_EXPORT;
     std::size_t map_index = 0;
 
-    if (meta_data.export_types.empty()) {
-        return wait_for_no_export_program();
-    }
     for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++) {
         auto map = maps[i];
         const auto &map_meta = meta_data.bpf_skel.maps[i];
@@ -348,12 +345,14 @@ bpf_skeleton::check_export_maps(void)
             set_and_warn_existing_export_map(type, export_map_type::SAMPLE);
             map_index = i;
         }
-        else if (bpf_map__type(map) == BPF_MAP_TYPE_RINGBUF) {
+        else if (bpf_map__type(map) == BPF_MAP_TYPE_RINGBUF
+                 && !meta_data.export_types.empty()) {
             set_and_warn_existing_export_map(type,
                                              export_map_type::RING_BUFFER);
             map_index = i;
         }
-        else if (bpf_map__type(map) == BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
+        else if (bpf_map__type(map) == BPF_MAP_TYPE_PERF_EVENT_ARRAY
+                 && !meta_data.export_types.empty()) {
             set_and_warn_existing_export_map(type,
                                              export_map_type::PERF_EVENT_ARRAY);
             map_index = i;
