@@ -10,15 +10,6 @@ const pid_t pid_filter = 0;
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
 
-/* Create an array with 1 entry instead of a global variable
- * which does not work with older kernels */
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, u32);
-	__type(value, pid_t);
-} my_pid_map SEC(".maps");
-
 SEC("tp/syscalls/sys_enter_write")
 int handle_tp(void *ctx)
 {

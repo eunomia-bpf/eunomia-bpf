@@ -9,8 +9,6 @@
 #include "base64.h"
 #include "eunomia/eunomia-bpf.hpp"
 #include "json.hpp"
-#include "helpers/map_helpers.h"
-#include "helpers/trace_helpers.h"
 
 extern "C" {
 #include <bpf/libbpf.h>
@@ -19,6 +17,8 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "helpers/map_helpers.h"
+#include "helpers/trace_helpers.h"
 }
 
 using json = nlohmann::json;
@@ -145,12 +145,6 @@ bpf_skeleton::export_kv_map(struct bpf_map *hists,
     return 0;
 }
 
-static const std::map<std::string, event_exporter::sample_map_type>
-    sample_map_type_map = {
-        { "linear_hist", event_exporter::sample_map_type::linear_hist },
-        { "log2_hist", event_exporter::sample_map_type::log2_hist },
-    };
-
 int
 bpf_skeleton::wait_and_sample_map(std::size_t sample_map_id)
 {
@@ -165,18 +159,8 @@ bpf_skeleton::wait_and_sample_map(std::size_t sample_map_id)
     unsigned int key_type_id = bpf_map__btf_key_type_id(maps[sample_map_id]);
     unsigned int value_type_id =
         bpf_map__btf_value_type_id(maps[sample_map_id]);
-    event_exporter::sample_map_type sample_map_type =
-        event_exporter::sample_map_type::default_kv;
-    if (sample_map_type_map.count(sample_config.type)) {
-        sample_map_type = sample_map_type_map.at(sample_config.type);
-    }
-    else {
-        std::cerr << "warning: unknown sample map type: " << sample_config.type
-                  << std::endl
-                  << "print key-value as default" << std::endl;
-    }
     if (exporter.check_and_create_key_value_format(
-            key_type_id, value_type_id, sample_map_type, meta_data.export_types,
+            key_type_id, value_type_id, sample_config, meta_data.export_types,
             btf_data)
         < 0) {
         std::cerr << "Failed to create print format" << std::endl;
@@ -259,10 +243,7 @@ handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
 btf *
 bpf_skeleton::get_btf_data(void)
 {
-    if (!obj) {
-        fprintf(stderr, "no BPF object load\n");
-        return nullptr;
-    }
+    assert(obj);
     auto btf_data = bpf_object__btf(obj);
     if (!btf_data) {
         fprintf(stderr, "no BTF data load\n");

@@ -24,6 +24,8 @@ struct export_types_struct_meta {
 struct map_sample_meta {
     std::size_t interval;
     std::string type;
+    // unit for print hist
+    std::string unit = "(unit)";
 };
 
 struct map_meta {

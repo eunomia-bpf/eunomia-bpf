@@ -57,7 +57,7 @@ class event_exporter
         std::size_t output_header_offset;
     };
     using internal_event_handler = std::function<void(const char *event)>;
-    using internal_sample_map_handler = std::function<void(
+    using internal_sample_map_handler = std::function<int(
         std::vector<char> &key_buffer, std::vector<char> &value_buffer)>;
 
     /// @brief export format type
@@ -72,11 +72,16 @@ class event_exporter
     std::vector<checked_export_member> checked_export_value_member_types;
     /// export map key types meta data
     std::vector<checked_export_member> checked_export_key_member_types;
+
     /// @brief  raw btf data
     const btf *exported_btf = nullptr;
-
     /// user defined export ctx pointer
     void *user_ctx = nullptr;
+    sprintf_printer printer;
+    std::unique_ptr<btf_dump, void (*)(btf_dump *)> btf_dumper{
+        nullptr, btf_dump__free
+    };
+    map_sample_meta sample_map_config;
 
     /// @brief check a single type in exported struct and found btf id
     /// @param field field meta data
@@ -94,7 +99,9 @@ class event_exporter
     /// print the export header meta if needed
     void print_export_types_header(void);
 
-    void dump_event_buffer_to_json(
+    void dump_value_members_to_json(
+        const char *event, std::vector<checked_export_member> &checker_members);
+    void dump_value_members_to_plant_text(
         const char *event, std::vector<checked_export_member> &checker_members);
 
     /// a default printer to print event data
@@ -105,22 +112,21 @@ class event_exporter
     void print_export_event_to_json(const char *event);
 
     /// a default printer to print event data
-    void print_sample_event_to_plant_text(std::vector<char> &key_buffer,
-                                          std::vector<char> &value_buffer);
+    int print_sample_event_to_plant_text(std::vector<char> &key_buffer,
+                                         std::vector<char> &value_buffer);
+    /// a log2_hist printer to print event data to plant text
+    int print_sample_event_to_log2_hist(std::vector<char> &key_buffer,
+                                        std::vector<char> &value_buffer);
     /// a default printer to pass event data to user defined handler
-    void raw_sample_handler(std::vector<char> &key_buffer,
-                            std::vector<char> &value_buffer);
+    int raw_sample_handler(std::vector<char> &key_buffer,
+                           std::vector<char> &value_buffer);
     ///  printer to print event data to json
-    void print_sample_event_to_json(std::vector<char> &key_buffer,
-                                    std::vector<char> &value_buffer);
+    int print_sample_event_to_json(std::vector<char> &key_buffer,
+                                   std::vector<char> &value_buffer);
 
     /// export event to json format
     void export_event_to_json(const char *event);
 
-    sprintf_printer printer;
-    std::unique_ptr<btf_dump, void (*)(btf_dump *)> btf_dumper{
-        nullptr, btf_dump__free
-    };
     void setup_btf_dumper(void);
     int print_export_member(const char *event, std::size_t offset,
                             const checked_export_member &member, bool is_json);
@@ -131,8 +137,8 @@ class event_exporter
     void handler_export_events(const char *event) const;
 
     // handle values from sample map events
-    void handler_sample_key_value(std::vector<char> &key_buffer,
-                                  std::vector<char> &value_buffer) const;
+    int handler_sample_key_value(std::vector<char> &key_buffer,
+                                 std::vector<char> &value_buffer) const;
 
   public:
     /// @brief check for types and create export format
@@ -154,7 +160,7 @@ class event_exporter
     /// @brief set export format to key value btf
     int check_and_create_key_value_format(
         unsigned int key_type_id, unsigned int value_type_id,
-        sample_map_type map_type,
+        map_sample_meta sample_config,
         std::vector<eunomia::export_types_struct_meta> &export_types,
         const btf *btf_data);
 

@@ -11,6 +11,8 @@ extern "C" {
 #include <bpf/btf.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "helpers/map_helpers.h"
+#include "helpers/trace_helpers.h"
 }
 
 namespace eunomia {
@@ -211,10 +213,16 @@ event_exporter::check_sample_types_btf(
     return 0;
 }
 
+static const std::map<std::string, event_exporter::sample_map_type>
+    sample_map_type_map = {
+        { "linear_hist", event_exporter::sample_map_type::linear_hist },
+        { "log2_hist", event_exporter::sample_map_type::log2_hist },
+    };
+
 int
 event_exporter::check_and_create_key_value_format(
     unsigned int key_type_id, unsigned int value_type_id,
-    sample_map_type map_type,
+    map_sample_meta sample_config,
     std::vector<export_types_struct_meta> &export_types, const btf *btf_data)
 {
     std::optional<export_types_struct_meta> member;
@@ -241,6 +249,15 @@ event_exporter::check_and_create_key_value_format(
         std::cerr << "sample value type check failed" << std::endl;
         return -1;
     }
+    sample_map_config = sample_config;
+    sample_map_type map_type = sample_map_type::default_kv;
+    if (sample_map_type_map.count(sample_config.type)) {
+        map_type = sample_map_type_map.at(sample_config.type);
+    }
+    else {
+        std::cerr << "warning: unknown sample map type: " << sample_config.type
+                  << " print key-value as default" << std::endl;
+    }
     setup_btf_dumper();
     // setup the internal_event_processor
     switch (format_type) {
@@ -258,11 +275,26 @@ event_exporter::check_and_create_key_value_format(
         case export_format_type::EXPORT_PLANT_TEXT:
             [[fallthrough]];
         default:
-            internal_sample_map_processor =
-                std::bind(&event_exporter::print_sample_event_to_plant_text,
-                          this, std::placeholders::_1, std::placeholders::_2);
-            print_export_types_header();
-            break;
+        {
+            switch (map_type) {
+                case sample_map_type::log2_hist:
+                    internal_sample_map_processor = std::bind(
+                        &event_exporter::print_sample_event_to_log2_hist, this,
+                        std::placeholders::_1, std::placeholders::_2);
+                    break;
+                case sample_map_type::linear_hist:
+                    std::cerr << "unimplemented print linear_hist" << std::endl;
+                    break;
+                case sample_map_type::default_kv:
+                    [[fallthrough]];
+                default:
+                    internal_sample_map_processor = std::bind(
+                        &event_exporter::print_sample_event_to_plant_text, this,
+                        std::placeholders::_1, std::placeholders::_2);
+                    print_export_types_header();
+                    break;
+            }
+        } break;
     }
     return 0;
 }
@@ -409,7 +441,7 @@ event_exporter::print_export_member(const char *event, std::size_t offset,
 }
 
 void
-event_exporter::dump_event_buffer_to_json(
+event_exporter::dump_value_members_to_json(
     const char *event, std::vector<checked_export_member> &checker_members)
 {
     printer.sprintf_event("{");
@@ -434,49 +466,119 @@ void
 event_exporter::print_export_event_to_json(const char *event)
 {
     printer.reset();
-    dump_event_buffer_to_json(event, checked_export_value_member_types);
+    dump_value_members_to_json(event, checked_export_value_member_types);
     printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
 }
 
 void
 event_exporter::raw_event_handler(const char *event)
 {
+    printer.reset();
     if (user_export_event_handler) {
         user_export_event_handler(user_ctx, event);
     }
 }
 
-void
+int
 event_exporter::print_sample_event_to_plant_text(
     std::vector<char> &key_buffer, std::vector<char> &value_buffer)
 {
+    printer.reset();
     std::cerr << "print_sample_event_to_plant_text not implemented"
               << std::endl;
+    return 0;
 }
 
-void
+int
+event_exporter::print_sample_event_to_log2_hist(std::vector<char> &key_buffer,
+                                                std::vector<char> &value_buffer)
+{
+    printer.reset();
+    const char *value_event_buffer = value_buffer.data();
+    assert(value_event_buffer);
+    unsigned int *hist_pointer = nullptr;
+    int hist_vals_size = 0;
+
+    printer.sprintf_event("key = ");
+    dump_value_members_to_plant_text(key_buffer.data(),
+                                     checked_export_key_member_types);
+    printer.sprintf_event("\n");
+    for (const auto &member : checked_export_value_member_types) {
+        auto offset = member.bit_offset / 8;
+        if (member.bit_offset % 8) {
+            std::cerr << "bit offset not supported" << std::endl;
+            return -1;
+        }
+        if (member.meta.name == "slots") {
+            assert(offset < value_buffer.size());
+            hist_pointer = static_cast<unsigned int *>(
+                (void *)value_event_buffer + offset);
+            hist_vals_size = member.size / 4;
+            // find slots for hist
+        }
+        else {
+            printer.sprintf_event("%s = ", member.meta.name.c_str());
+            print_export_member(value_event_buffer, offset, member, false);
+            printer.sprintf_event("\n");
+        }
+    }
+    printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
+    if (hist_pointer) {
+        print_log2_hist(hist_pointer, hist_vals_size,
+                        sample_map_config.unit.c_str());
+    }
+    return 0;
+}
+
+int
 event_exporter::raw_sample_handler(std::vector<char> &key_buffer,
                                    std::vector<char> &value_buffer)
 {
+    printer.reset();
     if (user_export_event_handler) {
         // TODO: use key value for raw event
         user_export_event_handler(user_ctx, value_buffer.data());
     }
+    return 0;
 }
 
-void
+int
 event_exporter::print_sample_event_to_json(std::vector<char> &key_buffer,
                                            std::vector<char> &value_buffer)
 {
     printer.reset();
     printer.sprintf_event("{\"key\":");
-    dump_event_buffer_to_json(key_buffer.data(),
-                              checked_export_key_member_types);
+    dump_value_members_to_json(key_buffer.data(),
+                               checked_export_key_member_types);
     printer.sprintf_event(",\"value\":");
-    dump_event_buffer_to_json(value_buffer.data(),
-                              checked_export_value_member_types);
+    dump_value_members_to_json(value_buffer.data(),
+                               checked_export_value_member_types);
     printer.sprintf_event("}");
-    printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
+    return 0;
+}
+
+void
+event_exporter::dump_value_members_to_plant_text(
+    const char *event, std::vector<checked_export_member> &checker_members)
+{
+    for (const auto &member : checker_members) {
+        if (member.output_header_offset > printer.buffer.size()) {
+            for (std::size_t i = printer.buffer.size();
+                 i < member.output_header_offset; ++i) {
+                printer.sprintf_event(" ");
+            }
+        }
+        else {
+            printer.sprintf_event(" ");
+        }
+        auto offset = member.bit_offset / 8;
+
+        if (member.bit_offset % 8) {
+            std::cerr << "bit offset not supported" << std::endl;
+            return;
+        }
+        print_export_member(event, offset, member, false);
+    }
 }
 
 void
@@ -496,25 +598,7 @@ event_exporter::print_export_event_to_plant_text_with_time(const char *event)
     if (res < 0) {
         return;
     }
-
-    for (const auto &member : checked_export_value_member_types) {
-        if (member.output_header_offset > printer.buffer.size()) {
-            for (std::size_t i = printer.buffer.size();
-                 i < member.output_header_offset; ++i) {
-                printer.sprintf_event(" ");
-            }
-        }
-        else {
-            printer.sprintf_event(" ");
-        }
-        auto offset = member.bit_offset / 8;
-
-        if (member.bit_offset % 8) {
-            std::cerr << "bit offset not supported" << std::endl;
-            return;
-        }
-        print_export_member(event, offset, member, false);
-    }
+    dump_value_members_to_plant_text(event, checked_export_value_member_types);
     printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
 }
 
@@ -534,17 +618,15 @@ event_exporter::handler_export_events(const char *event) const
 }
 
 // handle values from sample map events
-void
+int
 event_exporter::handler_sample_key_value(std::vector<char> &key_buffer,
                                          std::vector<char> &value_buffer) const
 {
     if (internal_sample_map_processor) {
-        internal_sample_map_processor(key_buffer, value_buffer);
-        return;
+        return internal_sample_map_processor(key_buffer, value_buffer);
     }
-    else {
-        assert(false && "No handler_sample_key_value!");
-    }
+    assert(false && "No handler_sample_key_value!");
+    return -1;
 }
 
 void
