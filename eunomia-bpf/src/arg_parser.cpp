@@ -324,8 +324,9 @@ parse_args_for_json_config(const std::string &json_config,
 
     json doc = bpf_skel["doc"];
 
-    std::string description =
-        get_value_or_default(doc, "brief", default_description);
+    std::string description = get_value_or_default(
+        doc, "brief",
+        get_value_or_default(doc, "description", default_description));
     std::string version = get_value_or_default(doc, "version", default_version);
     std::string epilog = get_value_or_default(doc, "details", default_epilog);
 

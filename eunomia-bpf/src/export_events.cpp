@@ -88,8 +88,10 @@ event_exporter::check_export_types_btf(export_types_struct_meta &struct_meta)
     return 0;
 }
 
-void
-event_exporter::print_export_types_header(void)
+std::string
+event_exporter::get_plant_text_checked_types_header(
+    std::vector<checked_export_member> &checked_member,
+    std::string &prev_header)
 {
     // print the time header
     constexpr const char *time_header = "TIME     ";
@@ -106,9 +108,7 @@ event_exporter::print_export_types_header(void)
         }
         header += "  ";
     }
-    printer.reset();
-    printer.sprintf_event("%s", header.c_str());
-    printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
+    return header;
 }
 
 static int
@@ -284,6 +284,7 @@ event_exporter::check_and_create_key_value_format(
                     break;
                 case sample_map_type::linear_hist:
                     std::cerr << "unimplemented print linear_hist" << std::endl;
+                    return -1;
                     break;
                 case sample_map_type::default_kv:
                     [[fallthrough]];
@@ -291,7 +292,16 @@ event_exporter::check_and_create_key_value_format(
                     internal_sample_map_processor = std::bind(
                         &event_exporter::print_sample_event_to_plant_text, this,
                         std::placeholders::_1, std::placeholders::_2);
-                    print_export_types_header();
+                    // print header for plant text events
+                    std::string time_header = "TIME     ";
+                    auto header = get_plant_text_checked_types_header(
+                        checked_export_key_member_types, time_header);
+                    header = get_plant_text_checked_types_header(
+                        checked_export_value_member_types, header);
+                    printer.reset();
+                    printer.sprintf_event("%s", header.c_str());
+                    printer.export_to_handler_or_print(
+                        user_ctx, user_export_event_handler);
                     break;
             }
         } break;
@@ -339,7 +349,14 @@ event_exporter::check_and_create_export_format(
             internal_event_processor = std::bind(
                 &event_exporter::print_export_event_to_plant_text_with_time,
                 this, std::placeholders::_1);
-            print_export_types_header();
+            std::string time_header = "TIME     ";
+            // print header for plant text events
+            auto header = get_plant_text_checked_types_header(
+                checked_export_value_member_types, time_header);
+            printer.reset();
+            printer.sprintf_event("%s", header.c_str());
+            printer.export_to_handler_or_print(user_ctx,
+                                               user_export_event_handler);
             break;
     }
     return 0;
@@ -483,9 +500,21 @@ int
 event_exporter::print_sample_event_to_plant_text(
     std::vector<char> &key_buffer, std::vector<char> &value_buffer)
 {
+    struct tm *tm;
+    char ts[32];
+    time_t t;
+    int res;
+
     printer.reset();
-    std::cerr << "print_sample_event_to_plant_text not implemented"
-              << std::endl;
+    time(&t);
+    tm = localtime(&t);
+    strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+    printer.sprintf_event("%-8s ", ts);
+    dump_value_members_to_plant_text(key_buffer.data(),
+                                     checked_export_key_member_types);
+    dump_value_members_to_plant_text(value_buffer.data(),
+                                     checked_export_value_member_types);
+    printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
     return 0;
 }
 
@@ -527,6 +556,10 @@ event_exporter::print_sample_event_to_log2_hist(std::vector<char> &key_buffer,
         print_log2_hist(hist_pointer, hist_vals_size,
                         sample_map_config.unit.c_str());
     }
+    else {
+        std::cerr << "slots not found." << std::endl;
+        return -1;
+    }
     return 0;
 }
 
@@ -562,6 +595,7 @@ event_exporter::dump_value_members_to_plant_text(
     const char *event, std::vector<checked_export_member> &checker_members)
 {
     for (const auto &member : checker_members) {
+        // print padding white space if needed
         if (member.output_header_offset > printer.buffer.size()) {
             for (std::size_t i = printer.buffer.size();
                  i < member.output_header_offset; ++i) {
@@ -590,14 +624,10 @@ event_exporter::print_export_event_to_plant_text_with_time(const char *event)
     int res;
 
     printer.reset();
-
     time(&t);
     tm = localtime(&t);
     strftime(ts, sizeof(ts), "%H:%M:%S", tm);
-    res = printer.sprintf_event("%-8s ", ts);
-    if (res < 0) {
-        return;
-    }
+    printer.sprintf_event("%-8s ", ts);
     dump_value_members_to_plant_text(event, checked_export_value_member_types);
     printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
 }
