@@ -42,8 +42,8 @@ else
 	MAKEFLAGS += --no-print-directory
 endif
 
-.PHONY: all install build-ecc
-all: build-ecc
+.PHONY: all install
+all: $(ECC)
 
 wasi-sdk-16.0-linux.tar.gz:
 	wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-16/wasi-sdk-16.0-linux.tar.gz
@@ -62,18 +62,15 @@ $(OUTPUT) $(OUTPUT)/libbpf:
 $(BPFTOOL):
 	$(MAKE) -C $(BPFTOOL_SRC)/src
 
-build-ecc:
+$(ECC): $(BPFTOOL)
 	cd cmd && cargo build --release
-
-$(ECC):
-	cd cmd && cargo build --release
-
-install: $(BPFTOOL) $(ECC)
 	mkdir -p workspace/bin workspace/include
 	cp $(ECC) workspace/bin/ecc
 	cp $(BPFTOOL) workspace/bin/bpftool
 	cp -r $(BPFTOOL_SRC)/src/libbpf/include/bpf workspace/include/bpf
 	cp -r ../third_party/vmlinux workspace/include/vmlinux
+
+install: $(ECC)
 	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia
 
 EWASM_DIR ?= eunomia-bpf/ewasm
@@ -91,7 +88,8 @@ gen-wasm-skel: build
 
 .PHONY: build
 build:
-	$(Q)workspace/bin/ecc $(shell ls $(SOURCE_DIR)*.bpf.c) $(shell ls $(SOURCE_DIR)*.bpf.h) -p
+	export PATH=$PATH:~/.eunomia/bin
+	$(Q)workspace/bin/ecc $(shell ls $(SOURCE_DIR)*.bpf.c) $(shell ls -h1 $(SOURCE_DIR)*.h | grep -v .*\.bpf\.h)
 
 .PHONY: docker
 docker: wasi-sdk-16.0-linux.tar.gz
@@ -101,10 +99,10 @@ docker: wasi-sdk-16.0-linux.tar.gz
 docker-push:
 	docker push yunwei37/ebpm:latest
 
-.PHONY: install_deps
-install_deps:
+.PHONY: install-deps
+install-deps:
 	sudo apt-get update
-	sudo apt-get -y install clang libelf1 libelf-dev zlib1g-dev cmake clang llvm libclang-15-dev
+	sudo apt-get -y install clang libelf1 libelf-dev zlib1g-dev cmake clang llvm libclang-13-dev
 
 # delete failed targets
 .DELETE_ON_ERROR:

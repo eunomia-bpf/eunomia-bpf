@@ -8,9 +8,13 @@
 
 `eunomia-bpf` is a dynamic loading library and a compile toolchain, aim to help you build and distribute eBPF programs easier. Some command line tools are also provided to help you build, distribute and run the eBPF programs.
 
-We have 3 main ideas:
+We have 3 main features:
 
-### Write eBPF kernel code only to build CO-RE libbpf eBPF program
+- Write eBPF kernel code only with comments to build `CO-RE` libbpf eBPF applications
+- Compile and pack CO-RE eBPF kernel code to a config file, eg. `JSON` or `YAML` format
+- Write user space code for your eBPF program in `WebAssembly`, and  pack the program with a `WASM` module
+
+### Write eBPF kernel code only to build CO-RE libbpf eBPF applications
 
 - Write eBPF kernel code only and automatically exposing your data with `perf event` or `ring buffer` from kernel:
 
@@ -59,6 +63,25 @@ We have 3 main ideas:
     } hists SEC(".maps");
     ```
 
+    and Get `hist` data from `hists` map and print them in human readable format:
+
+    ```bash
+    $ sudo ecli run examples/bpftools/runqlat/package.json --targ_per_process
+    key = 8326
+    comm = containerd
+
+          usec              : count    distribution
+            0 -> 1          : 0        |                                        |
+            2 -> 3          : 0        |                                        |
+            4 -> 7          : 0        |                                        |
+            8 -> 15         : 0        |                                        |
+           16 -> 31         : 2        |*************                           |
+           32 -> 63         : 2        |*************                           |
+           64 -> 127        : 6        |****************************************|
+          128 -> 255        : 0        |                                        |
+          256 -> 511        : 2        |*************                           |
+    ```
+
     see [examples/bpftools/mdflush.bpf.c](examples/bpftools/runqlat/runqlat.bpf.c) for example.
 
 - Automatically generate and config command line arguments for your eBPF program from the comments in your kernel code:
@@ -73,6 +96,22 @@ We have 3 main ideas:
     /// @cmdarg {"default": false, "short": "f", "long": "failed"}
     /// @description target pid to trace
     const volatile bool targ_failed = false;
+    ```
+
+    and Get:
+
+    ```console
+    $ sudo ecli run examples/bpftools/opensnoop/package.json -h
+    Usage: opensnoop_bpf [--help] [--version] [--verbose] [--pid_target VAR] [--tgid_target VAR] [--uid_target VAR] [--failed]
+
+    Trace open family syscalls.
+
+    Optional arguments:
+      -h, --help    shows help message and exits 
+      -v, --version prints version information and exits 
+      --verbose     prints libbpf debug information 
+      --pid_target  Process ID to trace 
+      --tgid_target Thread ID to trace
     ```
 
     see [examples/bpftools/opensnoop/opensnoop.bpf.c](examples/bpftools/opensnoop/opensnoop.bpf.c) for example.
@@ -188,6 +227,34 @@ Powered by WASM, an eBPF program may be able to:
 - Write eBPF programs with the language you favor, distribute and run the programs on another kernel or arch.
 
 We have tested on `x86` and `arm` platform, more Architecture tests will be added soon.
+
+
+## build or install the project
+
+- Install the `ecli` tool for running eBPF program from the cloud:
+
+    ```bash
+    wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
+    sudo ./ecli -h
+    ```
+
+- Install the compiler-toolchain for compiling eBPF kernel code to a `config` file or `WASM` module:
+
+    ```bash
+    wget https://aka.pw/bpf-ecc -O ecc && chmod +x ./ecc
+    ./ecc -h
+    ```
+
+  or use the docker image for compile:
+
+    ```bash
+    docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest # build with docker. `pwd` should contains *.bpf.c files and *.h files.
+    ```
+
+- build the compiler, runtime library and tools:
+
+  see [build](documents/build.md) for details.
+
 
 ## Project Arch
 
