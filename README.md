@@ -16,43 +16,46 @@ We have 3 main features:
 
 ### Write eBPF kernel code only to build CO-RE libbpf eBPF applications
 
-- Write eBPF kernel code only and automatically exposing your data with `perf event` or `ring buffer` from kernel:
+- Write libbpf eBPF kernel code only and automatically exposing your data with `perf event` or `ring buffer` from kernel:
 
     ```c
-    #include <vmlinux.h>
-    #include <bpf/bpf_tracing.h>
-    #include <bpf/bpf_helpers.h>
-    #include <bpf/bpf_core_read.h>
-    #include "mdflush.h"
-
     struct {
-        __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
-        __type(key, __u32);
-        __type(value, __u32);
-    } events SEC(".maps");
+      __uint(type, BPF_MAP_TYPE_RINGBUF);
+      __uint(max_entries, 256 * 1024);
+    } rb SEC(".maps");
 
-    SEC("fentry/md_flush_request")
-    int BPF_PROG(md_flush_request, void *mddev, void *bio)
+    SEC("tp/sched/sched_process_exec")
+    int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
     {
-        __u64 pid = bpf_get_current_pid_tgid() >> 32;
-        struct event event = {};
-        struct gendisk *gendisk;
-
-        event.pid = pid;
-        gendisk = get_gendisk(bio);
-        BPF_CORE_READ_STR_INTO(event.disk, gendisk, disk_name);
-        bpf_get_current_comm(event.comm, sizeof(event.comm));
-        bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &event, sizeof(event));
-        return 0;
+      ....
+      e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
+      ....
+      bpf_ringbuf_submit(e, 0);
+      return 0;
     }
-
-    char LICENSE[] SEC("license") = "Dual BSD/GPL";
     ```
 
-    see [examples/bpftools/mdflush.bpf.c](examples/bpftools/mdflush/mdflush.bpf.c) for example.
+    Compile and Run the program:
+
+    ```console
+    $ ecc bootstrap.bpf.c bootstrap.h
+    Compiling bpf object...
+    Generating export types...
+    Packing ebpf object and config into package.json...
+    $ sudo ./ecli examples/bpftools/bootstrap/package.json
+    TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT  
+    22:01:04  46310  2915    0          0            sh      /bin/sh   0
+    22:01:04  46311  46310   0          0            which   /usr/bin/which 0
+    22:01:04  46311  46310   0          2823776      which             1
+    22:01:04  46310  2915    0          6288891      sh                1
+    22:01:04  46312  2915    0          0            sh      /bin/sh   0
+    22:01:04  46313  46312   0          0            ps      /usr/bin/ps 0
+    ```
+
+    see [bootstrap](examples/bpftools/bootstrap/bootstrap.bpf.c) for example. This is exactly the same as [bootstrap.bpf.c](https://github.com/libbpf/libbpf-bootstrap/blob/master/examples/c/bootstrap.bpf.c) in [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap) project, but only kernel code is needed.
 
 - Automatically sample the data from hash maps and print them in human readable format with comments:
-    
+
     ```c
     /// @sample {"interval": 1000, "type" : "log2_hist"}
     struct {
@@ -197,7 +200,7 @@ export_types:
 - very small and simple! The library itself `<1MB` and no `LLVM/Clang` dependence, can be embedded easily in you project
 - as fast as `<100ms` and little resource need to dynamically load and run eBPF program
 
-Base on `eunomia-bpf`, we have an eBPF pacakge manager in [LMP](https://github.com/linuxkerneltravel/lmp) project, with OCI images and [ORAS](https://github.com/oras-project/oras) for distribution. 
+Base on `eunomia-bpf`, we have an eBPF pacakge manager in [LMP](https://github.com/linuxkerneltravel/lmp) project, with OCI images and [ORAS](https://github.com/oras-project/oras) for distribution.
 
 ### Write user space code for your eBPF program in WebAssembly
 
@@ -216,7 +219,7 @@ Trace standard and real-time signals.
     -s, --signal=<int>  target signal
 ```
 
-See [sigsnoop](examples/bpftools/sigsnoop/app.c), we port the user space code of `sigsnoop` tool from [BCC](https://github.com/iovisor/bcc/blob/master/libbpf-tools/sigsnoop.c) to our project as an example. 
+See [sigsnoop](examples/bpftools/sigsnoop/app.c), we port the user space code of `sigsnoop` tool from [BCC](https://github.com/iovisor/bcc/blob/master/libbpf-tools/sigsnoop.c) to our project as an example.
 
 You can operate the eBPF kernel program or process the data in user space `WASM` runtime.
 
@@ -228,33 +231,38 @@ Powered by WASM, an eBPF program may be able to:
 
 We have tested on `x86` and `arm` platform, more Architecture tests will be added soon.
 
-
 ## build or install the project
 
 - Install the `ecli` tool for running eBPF program from the cloud:
 
-    ```bash
-    wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
-    sudo ./ecli -h
+    ```console
+    $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
+    $ ./ecli -h
+    Usage: ecli [--help] [--version] [--json] [--no-cache] url-and-args
+    ....
     ```
 
 - Install the compiler-toolchain for compiling eBPF kernel code to a `config` file or `WASM` module:
 
-    ```bash
-    wget https://aka.pw/bpf-ecc -O ecc && chmod +x ./ecc
-    ./ecc -h
+    ```console
+    $ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/eunomia.tar.gz
+    $ tar -xvf eunomia.tar.gz -C ~
+    $ export PATH=$PATH:~/.eunomia/bin
+    $ ecc -h
+    eunomia-bpf compiler
+    Usage: ecc [OPTIONS] <SOURCE_PATH> [EXPORT_EVENT_HEADER]
+    ....
     ```
 
   or use the docker image for compile:
 
     ```bash
-    docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest # build with docker. `pwd` should contains *.bpf.c files and *.h files.
+    docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest # compile with docker. `pwd` should contains *.bpf.c files and *.h files.
     ```
 
 - build the compiler, runtime library and tools:
 
   see [build](documents/build.md) for details.
-
 
 ## Project Arch
 

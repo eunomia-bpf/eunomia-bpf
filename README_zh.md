@@ -74,12 +74,10 @@ $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # sim
 - [X] 使编译更容易使用，更灵活，完全兼容其他 libbpf 程序；
 - [X] 添加可配置的可观测性导出器
 - [X] 使用 WASM 进行 ebpf 包加载配置，并添加更多 ebpf 程序类型支持
-- [ ] 支持更多的 ebpf 程序类型：
+- [X] 支持更多的 ebpf 程序类型：
 - [X] 为 eunomia-bpf 添加简单的包管理器: LMP
-- [ ] 从 `libbpf` 添加更多可能性
+- [ ] 从 `libbpf` 添加更多功能
 - [ ] 提供 python、go 等 sdk
-- [ ] 添加对 `etcd` 的支持并增强服务器
-- [ ] 修复 ci 和 docs
 
 ## 证书
 

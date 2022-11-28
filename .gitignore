@@ -5,3 +5,4 @@ doxygens/
 docs/
 third_party/wasmtime/
 eunomia.tar.gz
+.eunomia

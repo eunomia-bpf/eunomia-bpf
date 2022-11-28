@@ -69,7 +69,7 @@ TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT
   or
 
   ```shell
-  ecc bootstrap.bpf.c bootstrap.bpf.h
+  ecc bootstrap.bpf.c bootstrap.h
   ```
 
 - Run and help:

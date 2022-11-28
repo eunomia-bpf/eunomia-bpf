@@ -55,5 +55,6 @@ eunomia-exporter: ## build the exporter for custom metric
 release:
 	make -C ecli install
 	make -C eunomia-cc install
-	cp -R ~/.eunomia eunomia
-	tar -czvf eunomia.tar.gz eunomia
+	cp -R ~/.eunomia .eunomia
+	tar -czvf eunomia.tar.gz .eunomia
+	rm -rf .eunomia
