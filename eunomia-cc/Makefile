@@ -42,7 +42,7 @@ else
 	MAKEFLAGS += --no-print-directory
 endif
 
-.PHONY: all install
+.PHONY: all install $(ECC)
 all: $(ECC)
 
 wasi-sdk-16.0-linux.tar.gz:
@@ -70,7 +70,7 @@ $(ECC): $(BPFTOOL)
 	cp -r $(BPFTOOL_SRC)/src/libbpf/include/bpf workspace/include/bpf
 	cp -r ../third_party/vmlinux workspace/include/vmlinux
 
-install: $(ECC)
+install:
 	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia
 
 EWASM_DIR ?= eunomia-bpf/ewasm

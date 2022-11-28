@@ -13,7 +13,7 @@ summary: Tcpstates prints TCP state change information, including the duration i
 
 origin from:
 
-https://github.com/iovisor/bcc/blob/master/libbpf-tools/tcpconnlat.bpf.c
+<https://github.com/iovisor/bcc/blob/master/libbpf-tools/tcpstates.bpf.c>
 
 ## Compile and Run
 
@@ -22,19 +22,43 @@ Compile:
 ```shell
 docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
 ```
+
+Or compile with `ecc`:
+
+```console
+$ ecc tcpstates.bpf.c tcpstates.h
+Compiling bpf object...
+Generating export types...
+Packing ebpf object and config into package.json...
+```
+
 Run:
 
-```shell
-sudo ./ecli run package.json
+```console
+$ sudo ./ecli examples/bpftools/tcpstates/package.json -h
+Usage: tcpstates_bpf [--help] [--version] [--verbose] [--filter_by_sport] [--filter_by_dport] [--target_family VAR]
+
+A simple eBPF program
+
+Optional arguments:
+  -h, --help            shows help message and exits 
+  -v, --version         prints version information and exits 
+  --verbose             prints libbpf debug information 
+  --filter_by_sport     set value of bool variable filter_by_sport 
+  --filter_by_dport     set value of bool variable filter_by_dport 
+  --target_family       set value of short variable target_family 
+
+Built with eunomia-bpf framework.
+See https://github.com/eunomia-bpf/eunomia-bpf for more information.
 ```
 
 ## details in bcc
 
 Demonstrations of tcpstates, the Linux BPF/bcc version.
 
-
 tcpstates prints TCP state change information, including the duration in each
 state as milliseconds. For example, a single TCP session:
+
 ```console
 # tcpstates
 SKADDR           C-PID C-COMM     LADDR           LPORT RADDR           RPORT OLDSTATE    -> NEWSTATE    MS
@@ -45,6 +69,7 @@ ffff9fd7e8192000 0     swapper/5  100.66.100.185  63446 52.33.159.26    80    FI
 ffff9fd7e8192000 0     swapper/5  100.66.100.185  63446 52.33.159.26    80    FIN_WAIT2   -> CLOSE       0.006
 ^C
 ```
+
 This showed that the most time was spent in the ESTABLISHED state (which then
 transitioned to FIN_WAIT1), which was 176.042 milliseconds.
 
@@ -53,4 +78,3 @@ different sessions interleaved. The next two columns show the current on-CPU
 process ID and command name: these may show the process that owns the TCP
 session, depending on whether the state change executes synchronously in
 process context. If that's not the case, they may show kernel details.
-

@@ -12,7 +12,15 @@ summary: a minimal example of a BPF application installs a tracepoint handler wh
 `minimal` is just that – a minimal practical BPF application example. It
 doesn't use or require BPF CO-RE, so should run on quite old kernels. It
 installs a tracepoint handler which is triggered once every second. It uses
-`bpf_printk()` BPF helper to communicate with the world. To see it's output,
+`bpf_printk()` BPF helper to communicate with the world. 
+
+
+```console
+$ sudo ecli  examples/bpftools/minimal/package.json
+Runing eBPF program...
+```
+
+To see it's output,
 read `/sys/kernel/debug/tracing/trace_pipe` file as a root:
 
 ```shell
@@ -32,6 +40,14 @@ Compile:
 
 ```console
 docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+```
+
+or compile with `ecc`:
+
+```console
+$ ecc minimal.bpf.c
+Compiling bpf object...
+Packing ebpf object and config into package.json...
 ```
 
 Run:

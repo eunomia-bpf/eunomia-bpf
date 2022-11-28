@@ -14,7 +14,7 @@ summary: The mdflush tool traces flushes at the md driver level, and prints deta
 
 origin from:
 
-https://github.com/iovisor/bcc/blob/master/libbpf-tools/mdflush.bpf.c
+<https://github.com/iovisor/bcc/blob/master/libbpf-tools/mdflush.bpf.c>
 
 ## Compile and Run
 
@@ -24,10 +24,26 @@ Compile:
 docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
 ```
 
+or compile with `ecc`:
+
+```console
+$ ecc mdflush.bpf.c mdflush.h
+Compiling bpf object...
+Generating export types...
+Packing ebpf object and config into package.json...
+```
+
 Run:
 
-```shell
-sudo ./ecli run package.json
+```console
+$ sudo ecli  examples/bpftools/mdflush/package.json
+TIME     PID     COMM    DISK
+03:13:49 16770  sync     md0
+03:14:08 16864  sync     md0
+03:14:49 496    kworker/1:0H md0
+03:14:49 488    xfsaild/md0  md0
+03:14:54 488    xfsaild/md0  md0
+03:15:00 488    xfsaild/md0  md0
 ```
 
 ## details in bcc

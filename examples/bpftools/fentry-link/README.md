@@ -24,12 +24,9 @@ result, while kretprobe can only access the result.
 
 fentry and fexit programs are available starting from 5.5 kernels.
 
-```shell
-$ sudo ./fentry
-libbpf: loading object 'fentry_bpf' from buffer
-...
-Successfully started!
-..........
+```console
+$ sudo ecli  examples/bpftools/fentry-link/package.json
+Runing eBPF program...
 ```
 
 The `fentry` output in `/sys/kernel/debug/tracing/trace_pipe` should look
@@ -47,14 +44,33 @@ $ sudo cat /sys/kernel/debug/tracing/trace_pipe
 
  
 
-Compile:
+- Compile:
 
-```console
-docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
-```
+    ```console
+    docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+    ```
 
-Run:
+    or
 
-```console
-sudo ecli/build/bin/Release/ecli run examples/bpftools/fentry-link/package.json
-```
+    ```console
+    $ ecc fentry-link.bpf.c
+    Compiling bpf object...
+    Packing ebpf object and config into package.json...
+    ```
+
+- Run and help:
+
+    ```console
+    sudo ecli  examples/bpftools/fentry-link/package.json -h
+    Usage: fentry_link_bpf [--help] [--version] [--verbose]
+
+    A simple eBPF program
+
+    Optional arguments:
+    -h, --help    shows help message and exits 
+    -v, --version prints version information and exits 
+    --verbose     prints libbpf debug information 
+
+    Built with eunomia-bpf framework.
+    See https://github.com/eunomia-bpf/eunomia-bpf for more information.
+    ```

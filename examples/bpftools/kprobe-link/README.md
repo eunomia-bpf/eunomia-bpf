@@ -14,12 +14,9 @@ probes, `kprobe` and `kretprobe` in libbpf lingo. It attaches `kprobe` and
 `kretprobe` BPF programs to the `do_unlinkat()` function and logs the PID,
 filename, and return result, respectively, using `bpf_printk()` macro.
 
-```shell
-$ sudo ./kprobe
-libbpf: loading object 'kprobe_bpf' from buffer
-...
-Successfully started!
-...........
+```console
+$ sudo ecli  examples/bpftools/kprobe-link/package.json
+Runing eBPF program...
 ```
 
 The `kprobe` demo output in `/sys/kernel/debug/tracing/trace_pipe` should look
@@ -37,14 +34,22 @@ $ sudo cat /sys/kernel/debug/tracing/trace_pipe
 
  
 
-Compile:
+Compile with docker:
 
 ```console
 docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
 ```
 
+or compile with `ecc`:
+
+```console
+$ ecc kprobe-link.bpf.c
+Compiling bpf object...
+Packing ebpf object and config into package.json...
+```
+
 Run:
 
 ```console
-sudo ecli/build/bin/Release/ecli run examples/bpftools/kprobe-link/package.json
+sudo ecli examples/bpftools/kprobe-link/package.json
 ```

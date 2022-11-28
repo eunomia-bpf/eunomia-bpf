@@ -13,7 +13,7 @@ summary: Summarize run queue (scheduler) latency as a histogram.
 
 origin from:
 
-https://github.com/iovisor/bcc/blob/master/libbpf-tools/runqlat.bpf.c
+<https://github.com/iovisor/bcc/blob/master/libbpf-tools/runqlat.bpf.c>
 
 This program summarizes scheduler run queue latency as a histogram, showing
 how long tasks spent waiting their turn to run on-CPU.
@@ -26,18 +26,74 @@ Compile:
 docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
 ```
 
+```console
+$ ecc runqlat.bpf.c runqlat.h
+Compiling bpf object...
+Generating export types...
+Packing ebpf object and config into package.json...
+```
+
 Run:
 
 ```console
-$ sudo ./ecli package.json
+$ sudo ecli examples/bpftools/runqlat/package.json -h
+Usage: runqlat_bpf [--help] [--version] [--verbose] [--filter_cg] [--targ_per_process] [--targ_per_thread] [--targ_per_pidns] [--targ_ms] [--targ_tgid VAR]
 
+A simple eBPF program
+
+Optional arguments:
+  -h, --help            shows help message and exits 
+  -v, --version         prints version information and exits 
+  --verbose             prints libbpf debug information 
+  --filter_cg           set value of bool variable filter_cg 
+  --targ_per_process    set value of bool variable targ_per_process 
+  --targ_per_thread     set value of bool variable targ_per_thread 
+  --targ_per_pidns      set value of bool variable targ_per_pidns 
+  --targ_ms             set value of bool variable targ_ms 
+  --targ_tgid           set value of pid_t variable targ_tgid 
+
+Built with eunomia-bpf framework.
+See https://github.com/eunomia-bpf/eunomia-bpf for more information.
+
+$ sudo ecli examples/bpftools/runqlat/package.json
+key =  4294967295
+comm = rcu_preempt
+
+     (unit)              : count    distribution
+         0 -> 1          : 9        |****                                    |
+         2 -> 3          : 6        |**                                      |
+         4 -> 7          : 12       |*****                                   |
+         8 -> 15         : 28       |*************                           |
+        16 -> 31         : 40       |*******************                     |
+        32 -> 63         : 83       |****************************************|
+        64 -> 127        : 57       |***************************             |
+       128 -> 255        : 19       |*********                               |
+       256 -> 511        : 11       |*****                                   |
+       512 -> 1023       : 2        |                                        |
+      1024 -> 2047       : 2        |                                        |
+      2048 -> 4095       : 0        |                                        |
+      4096 -> 8191       : 0        |                                        |
+      8192 -> 16383      : 0        |                                        |
+     16384 -> 32767      : 1        |                                        |
+
+$ sudo ecli examples/bpftools/runqlat/package.json --targ_per_process
+key =  3189
+comm = cpptools
+
+     (unit)              : count    distribution
+         0 -> 1          : 0        |                                        |
+         2 -> 3          : 0        |                                        |
+         4 -> 7          : 0        |                                        |
+         8 -> 15         : 1        |***                                     |
+        16 -> 31         : 2        |*******                                 |
+        32 -> 63         : 11       |****************************************|
+        64 -> 127        : 8        |*****************************           |
+       128 -> 255        : 3        |**********                              |
 ```
-
-
 
 ## details in bcc
 
-```
+```text
 Demonstrations of runqlat, the Linux eBPF/bcc version.
 
 
@@ -155,7 +211,7 @@ Tracing run queue latency... Hit Ctrl-C to end.
 For comparison, here is pidstat(1) for that process:
 
 # pidstat -p 4505 1
-Linux 4.4.0-virtual (bgregg-xxxxxxxx) 	02/08/2016 	_x86_64_	(8 CPU)
+Linux 4.4.0-virtual (bgregg-xxxxxxxx)  02/08/2016  _x86_64_ (8 CPU)
 
 08:56:11 AM   UID       PID    %usr %system  %guest    %CPU   CPU  Command
 08:56:12 AM     0      4505    9.00    3.00    0.00   12.00     0  bash

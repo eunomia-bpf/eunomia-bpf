@@ -23,34 +23,57 @@ Compile:
 docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
 ```
 
+Or compile with `ecc`:
+
+```console
+$ ecc sigsnoop.bpf.c sigsnoop.h
+Compiling bpf object...
+Generating export types...
+Packing ebpf object and config into package.json...
+```
+
 Run:
 
 ```console
-$ sudo ./ecli run package.json
+$ sudo ./ecli examples/bpftools/sigsnoop/package.json
+TIME     PID     TPID    SIG     RET     COMM    
+20:43:44  21276  3054    0       0       cpptools-srv
+20:43:44  22407  3054    0       0       cpptools-srv
+20:43:44  20222  3054    0       0       cpptools-srv
+20:43:44  8933   3054    0       0       cpptools-srv
+20:43:44  2915   2803    0       0       node
+20:43:44  2943   2803    0       0       node
+20:43:44  31453  3054    0       0       cpptools-srv
+$ sudo ./ecli examples/bpftools/sigsnoop/package.json  -h
+Usage: sigsnoop_bpf [--help] [--version] [--verbose] [--filtered_pid VAR] [--target_signal VAR] [--failed_only]
 
-running and waiting for the ebpf events from perf event...
-time pid tpid sig ret comm 
-00:24:14 169126 168102 0 0 cpptools-srv 
-00:24:14 166416 1804 0 0 node 
-00:24:14 168438 166416 0 0 node 
-00:24:14 163282 1804 0 0 node 
-00:24:14 104109 102346 0 0 cpptools-srv
+A simple eBPF program
+
+Optional arguments:
+  -h, --help            shows help message and exits 
+  -v, --version         prints version information and exits 
+  --verbose             prints libbpf debug information 
+  --filtered_pid        set value of pid_t variable filtered_pid 
+  --target_signal       set value of int variable target_signal 
+  --failed_only         set value of bool variable failed_only 
+
+Built with eunomia-bpf framework.
+See https://github.com/eunomia-bpf/eunomia-bpf for more information.
 ```
-
-
 
 ## WASM example
 
 Generate WASM skel:
 
-> The skel is generated and commit, so you don't need to generate it again.
-> skel includes:
-> - eunomia-include: include headers for WASM
-> - app.c: the WASM app. all library is header only.
-
 ```shell
 docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest gen-wasm-skel
 ```
+
+> The skel is generated and commit, so you don't need to generate it again.
+> skel includes:
+>
+> - eunomia-include: include headers for WASM
+> - app.c: the WASM app. all library is header only.
 
 Build WASM module
 

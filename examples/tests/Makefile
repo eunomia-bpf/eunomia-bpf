@@ -6,10 +6,11 @@ ECC_BIN ?= ~/.eunomia/bin/ecc
 
 # TODO: maybe use the compile docker to test?
 
-.PHONY:test test_project install_deps clean
+.PHONY:test test_project install-deps clean
 all: test
 
-install_deps:
+install-deps:
+	make -C $(ECC_DIR) install-deps
 	make -C $(ECC_DIR)
 	make -C $(ECC_DIR) install
 	make -C $(ECLI_DIR) install

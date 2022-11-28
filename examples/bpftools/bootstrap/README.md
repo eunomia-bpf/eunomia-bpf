@@ -39,18 +39,17 @@ yourself started.
 Here's an example output in minimum process duration mode:
 
 ```console
-$ sudo ./bootstrap -d 50
-running and waiting for the ebpf events...
-01:21:48 167307 166025 0 0 sh /bin/sh 0
-01:21:48 167308 167307 0 0 which /usr/bin/which 0
-01:21:48 167308 167307 0 3515432 which  1
-01:21:48 167307 166025 0 8797379 sh  1
-01:21:49 167309 166025 0 0 sh /bin/sh 0
-01:21:49 167310 167309 0 0 ps /usr/bin/ps 0
-01:21:49 167310 167309 0 83298343 ps  1
-01:21:49 167309 166025 0 88504290 sh  1
-01:21:49 167311 166025 0 0 sh /bin/sh 0
-...
+$ sudo ecli  examples/bpftools/bootstrap/package.json
+TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT  
+20:18:47  30428  2915    0          0            sh      /bin/sh   0
+20:18:47  30429  30428   0          0            which   /usr/bin/which 0
+20:18:47  30429  30428   0          4552141      which             1
+20:18:47  30428  2915    0          8430578      sh                1
+20:18:47  30430  2915    0          0            sh      /bin/sh   0
+20:18:47  30431  30430   0          0            ps      /usr/bin/ps 0
+20:18:47  30431  30430   0          46361291     ps                1
+20:18:47  30430  2915    0          54470349     sh                1
+20:18:47  30432  2915    0          0            sh      /bin/sh   0
 ```
 
 ## System requirements:
@@ -59,18 +58,34 @@ running and waiting for the ebpf events...
 - Eunomia's [ecli](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/ecli) installed
 
 
-
 ## Run
 
-Compile:
+- Compile:
 
-```shell
-git clone https://github.com/eunomia-bpf/eunomia-bpf.git
-docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
-```
+  ```shell
+  docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+  ```
 
-Run:
+  or
 
-```shell
-sudo ./ecli run eunomia-bpf/examples/bpftools/bootstrap/package.json
+  ```shell
+  ecc bootstrap.bpf.c bootstrap.bpf.h
+  ```
+
+- Run and help:
+
+```console
+$ sudo ./ecli run eunomia-bpf/examples/bpftools/bootstrap/package.json -h
+Usage: bootstrap_bpf [--help] [--version] [--verbose] [--min_duration_ns VAR]
+
+A simple eBPF program
+
+Optional arguments:
+  -h, --help            shows help message and exits 
+  -v, --version         prints version information and exits 
+  --verbose             prints libbpf debug information 
+  --min_duration_ns     set value of long long unsigned int variable min_duration_ns 
+
+Built with eunomia-bpf framework.
+See https://github.com/eunomia-bpf/eunomia-bpf for more information.
 ```

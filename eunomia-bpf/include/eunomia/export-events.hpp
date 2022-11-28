@@ -97,7 +97,9 @@ class event_exporter
         std::vector<checked_export_member> &checked_member,
         std::optional<export_types_struct_meta> members);
     /// print the export header meta if needed
-    void print_export_types_header(void);
+    std::string get_plant_text_checked_types_header(
+        std::vector<checked_export_member> &checked_member,
+        std::string &prev_header);
 
     void dump_value_members_to_json(
         const char *event, std::vector<checked_export_member> &checker_members);

@@ -136,5 +136,5 @@ int tracepoint__syscalls__sys_exit_openat(struct trace_event_raw_sys_exit* ctx)
 	return trace_exit(ctx);
 }
 
-/// @brief Trace open family syscalls.
+/// Trace open family syscalls.
 char LICENSE[] SEC("license") = "GPL";

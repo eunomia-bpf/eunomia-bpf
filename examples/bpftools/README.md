@@ -4,8 +4,8 @@ This folder contains examples for eunomia-bpf.
 
 Tools are expected to follow a simple naming convention:
   - <tool>.bpf.c contains BPF C code, which gets compiled into `package.json`
-  - <tool>.bpf.h can optionally contain types exported to userspace through pref event or ring buffer
-  - <tool>.h can optionally contain any types and constants, shared by both BPF and userspace sides of a tool.
+  - <tool>.h can optionally contain types exported to userspace through pref event or ring buffer
+  - <tool>.bpf.h can optionally contain any types and constants, shared by both BPF and userspace sides of a tool.
 
 ## Pre-requisites
 
@@ -15,10 +15,12 @@ libbpf probes to see if your sys fs exports the file `/sys/kernel/btf/vmlinux` (
 Please note the ELF file could exist without the BTF info in it. Your Kconfig should contain the options below
 
 1. Compile options
+
 ```code
 CONFIG_DEBUG_INFO_BTF=y
 CONFIG_DEBUG_INFO=y
 ```
+
 2. Also, make sure that you have pahole 1.13 (or preferably 1.16+) during the
 kernel build (it comes from dwarves package). Without it, BTF won't be
 generated, and on older kernels you'd get only warning, but still would
@@ -39,5 +41,5 @@ perform the CO-RE relocations when loading the eBPF programs.
 
 Most codes come from:
 
-- libbpf-tools: https://github.com/iovisor/bcc/tree/master/libbpf-tools
-- libbpf-bootstrap: https://github.com/libbpf/libbpf-bootstrap/tree/master/examples/c
+- libbpf-tools: <https://github.com/iovisor/bcc/tree/master/libbpf-tools>
+- libbpf-bootstrap: <https://github.com/libbpf/libbpf-bootstrap/tree/master/examples/c>

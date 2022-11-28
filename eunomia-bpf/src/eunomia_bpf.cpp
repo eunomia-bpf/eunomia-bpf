@@ -292,6 +292,7 @@ int
 bpf_skeleton::wait_for_no_export_program(void)
 {
     // if we don't have a ring buffer, just wait for the program to exit
+    std::cerr << "Runing eBPF program..." << std::endl;
     while (!exiting) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }

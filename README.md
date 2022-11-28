@@ -66,7 +66,7 @@ We have 3 main features:
     and Get `hist` data from `hists` map and print them in human readable format:
 
     ```bash
-    $ sudo ecli run examples/bpftools/runqlat/package.json --targ_per_process
+    $ sudo ecli  examples/bpftools/runqlat/package.json --targ_per_process
     key = 8326
     comm = containerd
 
@@ -101,7 +101,7 @@ We have 3 main features:
     and Get:
 
     ```console
-    $ sudo ecli run examples/bpftools/opensnoop/package.json -h
+    $ sudo ecli  examples/bpftools/opensnoop/package.json -h
     Usage: opensnoop_bpf [--help] [--version] [--verbose] [--pid_target VAR] [--tgid_target VAR] [--uid_target VAR] [--failed]
 
     Trace open family syscalls.

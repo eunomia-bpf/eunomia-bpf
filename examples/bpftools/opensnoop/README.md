@@ -10,35 +10,64 @@ summary: opensnoop traces the open() syscall system-wide, and prints various det
 
 ## origin
 
-origin from:
+The kernel code is origin from:
 
-https://github.com/iovisor/bcc/blob/master/libbpf-tools/opensnoop.bpf.c
+<https://github.com/iovisor/bcc/blob/master/libbpf-tools/opensnoop.bpf.c>
 
 result:
 
 ```console
-$ sudo ecli/build/bin/Release/ecli run examples/bpftools/opensnoop/package.json
+$ sudo ecli examples/bpftools/opensnoop/package.json -h
+Usage: opensnoop_bpf [--help] [--version] [--verbose] [--pid_target VAR] [--tgid_target VAR] [--uid_target VAR] [--failed]
 
-running and waiting for the ebpf events from perf event...
-time ts pid uid ret flags comm fname 
-00:58:08 0 812 0 9 524288 vmtoolsd /etc/mtab 
-00:58:08 0 812 0 11 0 vmtoolsd /proc/devices 
-00:58:08 0 34351 0 24 524288 ecli /etc/localtime 
-00:58:08 0 812 0 9 0 vmtoolsd /sys/class/block/sda5/../device/../../../class 
-00:58:08 0 812 0 -2 0 vmtoolsd /sys/class/block/sda5/../device/../../../label 
-00:58:08 0 812 0 9 0 vmtoolsd /sys/class/block/sda1/../device/../../../class 
-00:58:08 0 812 0 -2 0 vmtoolsd /sys/class/block/sda1/../device/../../../label 
-00:58:08 0 812 0 9 0 vmtoolsd /run/systemd/resolve/resolv.conf 
-00:58:08 0 812 0 9 0 vmtoolsd /proc/net/route 
-00:58:08 0 812 0 9 0 vmtoolsd /proc/net/ipv6_route 
+Trace open family syscalls.
+
+Optional arguments:
+  -h, --help    shows help message and exits 
+  -v, --version prints version information and exits 
+  --verbose     prints libbpf debug information 
+  --pid_target  Process ID to trace 
+  --tgid_target Thread ID to trace 
+  --uid_target  User ID to trace 
+  -f, --failed  trace only failed events 
+
+Built with eunomia-bpf framework.
+See https://github.com/eunomia-bpf/eunomia-bpf for more information.
+
+$ sudo ecli examples/bpftools/opensnoop/package.json
+TIME     TS      PID     UID     RET     FLAGS   COMM    FNAME   
+20:31:50  0      1       0       51      524288  systemd /proc/614/cgroup
+20:31:50  0      33182   0       25      524288  ecli    /etc/localtime
+20:31:53  0      754     0       6       0       irqbalance /proc/interrupts
+20:31:53  0      754     0       6       0       irqbalance /proc/stat
+20:32:03  0      754     0       6       0       irqbalance /proc/interrupts
+20:32:03  0      754     0       6       0       irqbalance /proc/stat
+20:32:03  0      632     0       7       524288  vmtoolsd /etc/mtab
+20:32:03  0      632     0       9       0       vmtoolsd /proc/devices
+
+$ sudo ecli examples/bpftools/opensnoop/package.json --pid_target 754
+TIME     TS      PID     UID     RET     FLAGS   COMM    FNAME   
+20:34:13  0      754     0       6       0       irqbalance /proc/interrupts
+20:34:13  0      754     0       6       0       irqbalance /proc/stat
+20:34:23  0      754     0       6       0       irqbalance /proc/interrupts
+20:34:23  0      754     0       6       0       irqbalance /proc/stat
 ```
 
 ## Compile and Run
 
-Compile:
+Compile with docker:
 
 ```shell
 docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+```
+
+or compile with `ecc`:
+
+```console
+$ ecc opensnoop.bpf.c opensnoop.h
+Compiling bpf object...
+Generating export types...
+Packing ebpf object and config into package.json...
 ```
 
 Run:
@@ -53,6 +82,7 @@ Demonstrations of opensnoop, the Linux eBPF/bcc version.
 
 opensnoop traces the open() syscall system-wide, and prints various details.
 Example output:
+
 ```console
 # ./opensnoop
 PID    COMM      FD ERR PATH
@@ -111,11 +141,12 @@ TIME(s)       PID    COMM               FD ERR PATH
 3.068203997   1956   supervise           9   0 supervise/status.new
 3.068544999   1956   supervise           9   0 supervise/status.new
 ```
+
 This shows the supervise process is opening the status.new file twice every
 second.
 
-
 The -U option include UID on output:
+
 ```console
 # ./opensnoop -U
 UID   PID    COMM               FD ERR PATH
@@ -126,6 +157,7 @@ UID   PID    COMM               FD ERR PATH
 ```
 
 The -u option filtering UID:
+
 ```console
 # ./opensnoop -Uu 1000
 UID   PID    COMM               FD ERR PATH
@@ -136,7 +168,9 @@ UID   PID    COMM               FD ERR PATH
 1000  30240  ls                  3   0 /lib/x86_64-linux-gnu/libdl.so.2
 1000  30240  ls                  3   0 /lib/x86_64-linux-gnu/libpthread.so.0
 ```
+
 The -x option only prints failed opens:
+
 ```console
 # ./opensnoop -x
 PID    COMM      FD ERR PATH
@@ -153,15 +187,16 @@ PID    COMM      FD ERR PATH
 18385  run       -1   6 /dev/tty
 18386  run       -1   6 /dev/tty
 ```
+
 This caught a df command failing to open a coreutils.mo file, and trying from
 different directories.
 
 The ERR column is the system error number. Error number 2 is ENOENT: no such
 file or directory.
 
-
 A maximum tracing duration can be set with the -d option. For example, to trace
 for 2 seconds:
+
 ```console
 # ./opensnoop -d 2
 PID    COMM               FD ERR PATH
@@ -172,7 +207,9 @@ PID    COMM               FD ERR PATH
 2191   indicator-multi    11   0 /sys/block
 
 ```
+
 The -n option can be used to filter on process name using partial matches:
+
 ```console
 # ./opensnoop -n ed
 
@@ -199,12 +236,13 @@ PID    COMM               FD ERR PATH
 2680   sed                -1   2
 ^C
 ```
+
 This caught the 'sed' command because it partially matches 'ed' that's passed
 to the '-n' option.
 
-
 The -e option prints out extra columns; for example, the following output
 contains the flags passed to open(2), in octal:
+
 ```console
 # ./opensnoop -e
 PID    COMM               FD ERR FLAGS    PATH
@@ -220,6 +258,7 @@ PID    COMM               FD ERR FLAGS    PATH
 ```
 
 The -f option filters based on flags to the open(2) call, for example:
+
 ```console
 # ./opensnoop -e -f O_WRONLY -f O_RDWR
 PID    COMM               FD ERR FLAGS    PATH
@@ -234,8 +273,9 @@ PID    COMM               FD ERR FLAGS    PATH
 
 The --cgroupmap option filters based on a cgroup set. It is meant to be used
 with an externally created map.
+
 ```console
 # ./opensnoop --cgroupmap /sys/fs/bpf/test01
 ```
-For more details, see docs/special_filtering.md
 
+For more details, see docs/special_filtering.md

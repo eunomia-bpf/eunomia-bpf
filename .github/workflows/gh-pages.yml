@@ -39,7 +39,7 @@ jobs:
 
       - name: install test deps
         run:  |
-              make -C examples/tests install_deps
+              make -C examples/tests install-deps
               make -C examples/tests install-wasm-clang
 
       - name: test build runners
