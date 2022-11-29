@@ -3,6 +3,7 @@ set(sources
     src/export_events.cpp
     src/eunomia_meta.cpp
     src/section_data.cpp
+    src/attach.cpp
     src/arg_parser.cpp
     src/trace_helpers.c
     src/uprobe_helpers.c

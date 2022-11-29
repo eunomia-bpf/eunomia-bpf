@@ -69,6 +69,11 @@ bpf_skeleton::load_and_attach_prog(void)
         std::cerr << "failed to attach skeleton" << std::endl;
         return -1;
     }
+    err = attach_special_programs();
+    if (err) {
+        std::cerr << "failed to attach programs" << std::endl;
+        return -1;
+    }
     return 0;
 }
 

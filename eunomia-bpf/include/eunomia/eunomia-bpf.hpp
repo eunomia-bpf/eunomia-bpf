@@ -98,6 +98,10 @@ class bpf_skeleton
                                      char *mmap_buffer);
     void load_section_data();
 
+    int attach_tc_prog(std::size_t id);
+    // attach special programs. eg tc, xdp...
+    int attach_special_programs();
+
     /// buffer to base 64 decode
     bpf_object *obj = nullptr;
     std::vector<char> __bpf_object_buffer = {};
