@@ -25,7 +25,7 @@ test: $(TEST_CASES_DIRS)
 $(TEST_CASES_DIRS):
 	ls $(TEST_EXAMPLE_DIR)$@/$@.h && $(ECC_BIN) $(TEST_EXAMPLE_DIR)$@/$@.bpf.c $(TEST_EXAMPLE_DIR)$@/$@.h \
 	|| $(ECC_BIN) $(TEST_EXAMPLE_DIR)$@/$@.bpf.c
-	# sudo timeout --preserve-status -s 2 $(TEST_TIME) ./ecli run $(TEST_EXAMPLE_DIR)$@/package.json
+	sudo timeout --preserve-status -s 2 $(TEST_TIME) ./ecli run $(TEST_EXAMPLE_DIR)$@/package.json
 
 install-wasm-clang: ## install clang for wasm
 	wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-16/wasi-sdk-16.0-linux.tar.gz

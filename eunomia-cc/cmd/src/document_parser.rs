@@ -56,7 +56,12 @@ fn process_comment_child(child: CommentChild, value: &mut Value, default_cmd: &s
             }
             value[&default_cmd] = match serde_json::from_str::<Value>(&text) {
                 Ok(v) => v,
-                Err(_) => json!(&text),
+                Err(_) => {
+                    // if text is not json, use it as string
+                    print!("warning: text is not json: {}", text);
+                    println!(" use it as a string");
+                    json!(&text)
+                },
             };
         }
         CommentChild::InlineCommand(command) => {
