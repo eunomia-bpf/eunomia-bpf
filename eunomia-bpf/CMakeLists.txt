@@ -164,11 +164,17 @@ set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
 # Tell cmake where to find BpfObject module
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+if (DEFINED LIBBPF_SOURCE_DIR)
+  verbose_message("Use libbpf source from ${LIBBPF_SOURCE_DIR}")
+else()
+  set(LIBBPF_SOURCE_DIR ${THIRD_PARTY_DIR}/bpftool/libbpf/src)
+endif()
+
 # Build vendored libbpf
 include(ExternalProject)
 ExternalProject_Add(libbpf
   PREFIX libbpf
-  SOURCE_DIR ${THIRD_PARTY_DIR}/bpftool/libbpf/src
+  SOURCE_DIR ${LIBBPF_SOURCE_DIR}
   CONFIGURE_COMMAND ""
   BUILD_COMMAND make
     BUILD_STATIC_ONLY=1
