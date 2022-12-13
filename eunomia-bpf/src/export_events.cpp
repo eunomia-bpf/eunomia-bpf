@@ -541,7 +541,7 @@ event_exporter::print_sample_event_to_log2_hist(std::vector<char> &key_buffer,
         if (member.meta.name == "slots") {
             assert(offset < value_buffer.size());
             hist_pointer = static_cast<unsigned int *>(
-                (void *)value_event_buffer + offset);
+                (void *)(value_event_buffer + offset));
             hist_vals_size = member.size / 4;
             // find slots for hist
         }
