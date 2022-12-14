@@ -9,16 +9,14 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <catch2/catch_test_macros.hpp>
+#include <cstdint>
 
 #include "eunomia/eunomia-bpf.hpp"
 
 using namespace eunomia;
 
-#define TASK_COMM_LEN 16
-#define NAME_MAX 255
-
-int
-main(int argc, char **argv)
+TEST_CASE("export types are tested", "[factorial]")
 {
-    return 0;
+    // TODO: add test for export types
 }

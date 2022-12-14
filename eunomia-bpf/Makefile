@@ -34,8 +34,13 @@ install-deps: ## install deps
 	apt update
 	apt-get install libcurl4-openssl-dev libelf-dev clang llvm -y ## libgtest-dev
 
-test: ## run tests quickly with ctest
-	rm -rf build/
+Catch2:
+	git clone https://github.com/catchorg/Catch2.git --depth=1
+	cd Catch2 && cmake -Bbuild -H. -DBUILD_TESTING=OFF
+	cd Catch2 && sudo cmake --build build/ --target install
+
+test: Catch2 ## run tests quickly with ctest
+	sudo rm -rf build/
 	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -Deunomia_ENABLE_UNIT_TESTING=1 -Deunomia_ENABLE_ASAN=1
 	cmake --build build
 	cd build/ && sudo ctest -VV
