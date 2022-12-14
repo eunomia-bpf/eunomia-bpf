@@ -26,6 +26,7 @@ struct map_sample_meta {
     std::string type;
     // unit for print hist
     std::string unit = "(unit)";
+    bool clear_map = true;
 };
 
 struct map_meta {
