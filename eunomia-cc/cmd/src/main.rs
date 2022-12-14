@@ -7,7 +7,7 @@ use crate::config::get_eunomia_home;
 use anyhow::Result;
 use clap::Parser;
 use compile_bpf::*;
-use config::Args;
+use config::CompileOptions;
 use rust_embed::RustEmbed;
 use std::path::Path;
 
@@ -16,8 +16,7 @@ use std::path::Path;
 #[folder = "../workspace/"]
 struct Workspace;
 
-fn main() -> Result<()> {
-    let args = Args::parse();
+fn create_eunomia_home() -> Result<()> {
     let eunomia_home_path = get_eunomia_home()?;
     if !Path::new(&eunomia_home_path).exists() {
         std::fs::create_dir_all(&eunomia_home_path)?;
@@ -33,6 +32,12 @@ fn main() -> Result<()> {
             println!("creating file: {}", file_path);
         }
     }
+    Ok(())
+}
+
+fn main() -> Result<()> {
+    let args = CompileOptions::parse();
+    create_eunomia_home()?;
     compile_bpf(&args)?;
     if !args.subskeleton {
         pack_object_in_config(&args)?;

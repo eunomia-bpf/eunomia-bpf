@@ -16,7 +16,7 @@ const _EXPORT_C_TEMPLATE: &'static str = r#"
 const REGEX_STRUCT_PATTREN: &'static str = r#"struct\s+(\w+)\s*\{"#;
 
 // find all structs in event header
-pub fn find_all_export_structs(args: &Args) -> Result<Vec<String>> {
+pub fn find_all_export_structs(args: &CompileOptions) -> Result<Vec<String>> {
     let mut export_structs: Vec<String> = Vec::new();
     let export_struct_header = fs::read_to_string(&args.export_event_header)?;
     let re = Regex::new(REGEX_STRUCT_PATTREN).unwrap();
@@ -29,7 +29,7 @@ pub fn find_all_export_structs(args: &Args) -> Result<Vec<String>> {
 }
 
 // add  __attribute__((preserve_access_index)) for structs to preserve BTF info
-pub fn _add_preserve_access_index(args: &Args) -> Result<String> {
+pub fn _add_preserve_access_index(args: &CompileOptions) -> Result<String> {
     let export_struct_header = fs::read_to_string(&args.export_event_header)?;
     // skip enum
     let re = Regex::new(r"(enum\s+\w+\s*\{[^\}]*\});").unwrap();
@@ -41,7 +41,7 @@ pub fn _add_preserve_access_index(args: &Args) -> Result<String> {
     Ok(result.to_string())
 }
 
-pub fn add_unused_ptr_for_structs(args: &Args, file_path: &str) -> Result<()> {
+pub fn add_unused_ptr_for_structs(args: &CompileOptions, file_path: &str) -> Result<()> {
     let export_struct_names = find_all_export_structs(args)?;
     let content = fs::read_to_string(file_path);
     let mut content = match content {

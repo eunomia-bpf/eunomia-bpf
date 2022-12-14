@@ -19,7 +19,7 @@ fn parse_json_output(output: &str) -> Result<Value> {
 }
 
 /// compile bpf object
-fn compile_bpf_object(args: &Args, source_path: &str, output_path: &str) -> Result<()> {
+fn compile_bpf_object(args: &CompileOptions, source_path: &str, output_path: &str) -> Result<()> {
     let bpf_sys_include = get_bpf_sys_include(args)?;
     let target_arch = get_target_arch(args)?;
 
@@ -52,7 +52,7 @@ fn compile_bpf_object(args: &Args, source_path: &str, output_path: &str) -> Resu
 }
 
 /// get the skel as json object
-fn get_bpf_skel_json(object_path: &String, args: &Args) -> Result<String> {
+fn get_bpf_skel_json(object_path: &String, args: &CompileOptions) -> Result<String> {
     let bpftool_bin = get_bpftool_path()?;
     let command = format!("{} gen skeleton {} -j", bpftool_bin, object_path);
     let (code, output, error) = run_script::run_script!(command).unwrap();
@@ -67,7 +67,7 @@ fn get_bpf_skel_json(object_path: &String, args: &Args) -> Result<String> {
 }
 
 /// get the export typs as json object
-fn get_export_types_json(args: &Args, output_bpf_object_path: &String) -> Result<String> {
+fn get_export_types_json(args: &CompileOptions, output_bpf_object_path: &String) -> Result<String> {
     let bpftool_bin = get_bpftool_path()?;
     let command = format!(
         "{} btf dump file {} format c -j",
@@ -98,7 +98,7 @@ fn get_export_types_json(args: &Args, output_bpf_object_path: &String) -> Result
 }
 
 /// do actual work for compiling
-fn do_compile(args: &Args, temp_source_file: &str) -> Result<()> {
+fn do_compile(args: &CompileOptions, temp_source_file: &str) -> Result<()> {
     let output_bpf_object_path = get_output_object_path(args);
     let output_json_path = get_output_config_path(args);
     let mut meta_json = json!({});
@@ -143,7 +143,7 @@ fn do_compile(args: &Args, temp_source_file: &str) -> Result<()> {
 }
 
 /// compile JSON file
-pub fn compile_bpf(args: &Args) -> Result<()> {
+pub fn compile_bpf(args: &CompileOptions) -> Result<()> {
     // backup old files
     let source_file_content = fs::read_to_string(&args.source_path)?;
     let mut temp_source_file = args.source_path.clone();
@@ -162,7 +162,7 @@ pub fn compile_bpf(args: &Args) -> Result<()> {
 }
 
 /// pack the object file into a package.json
-pub fn pack_object_in_config(args: &Args) -> Result<()> {
+pub fn pack_object_in_config(args: &CompileOptions) -> Result<()> {
     let output_bpf_object_path = get_output_object_path(args);
     let bpf_object = fs::read(output_bpf_object_path)?;
 
@@ -217,7 +217,7 @@ mod test {
 
     #[test]
     fn test_get_attr() {
-        let args = Args {
+        let args = CompileOptions {
             clang_bin: "clang".to_string(),
             llvm_strip_bin: "llvm-strip".to_string(),
             ..Default::default()
@@ -247,7 +247,7 @@ mod test {
         fs::write(&source_path, test_bpf).unwrap();
         let event_path = tmp_dir.join("event.h");
         fs::write(&event_path, test_event).unwrap();
-        let args = Args {
+        let args = CompileOptions {
             source_path: source_path.to_str().unwrap().to_string(),
             clang_bin: "clang".to_string(),
             llvm_strip_bin: "llvm-strip".to_string(),
@@ -275,7 +275,7 @@ mod test {
         fs::write(&source_path, test_bpf).unwrap();
         let event_path = tmp_dir.join("event.h");
         fs::write(&event_path, test_event).unwrap();
-        let args = Args {
+        let args = CompileOptions {
             source_path: source_path.to_str().unwrap().to_string(),
             clang_bin: "clang".to_string(),
             llvm_strip_bin: "llvm-strip".to_string(),
