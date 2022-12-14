@@ -1,5 +1,4 @@
 ignore:
-  - "eunomia-bpf/test"
   - "ecli"
   - "bpftools"
   - "eunomia-exporter"
