@@ -63,12 +63,13 @@ $(BPFTOOL):
 	$(MAKE) -C $(BPFTOOL_SRC)/src
 
 $(ECC): $(BPFTOOL)
-	cd cmd && cargo build --release
+	rm -rf workspace
 	mkdir -p workspace/bin workspace/include
-	cp $(ECC) workspace/bin/ecc
 	cp $(BPFTOOL) workspace/bin/bpftool
 	cp -r $(BPFTOOL_SRC)/src/libbpf/include/bpf workspace/include/bpf
 	cp -r ../third_party/vmlinux workspace/include/vmlinux
+	cd cmd && cargo build --release
+	cp $(ECC) workspace/bin/ecc
 
 install:
 	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia
