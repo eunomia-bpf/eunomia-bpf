@@ -57,10 +57,13 @@ class bpf_skeleton
 
     /// wait and polling the ring buffer map
     int wait_and_poll_from_rb(std::size_t id);
+    /// polling the ring buffer map
+    int poll_rb();
+    /// wait and polling from perf event
+    int poll_perf_event_array();
     /// wait and sample from map
     int wait_and_sample_map(std::size_t id);
-    int export_kv_map(struct bpf_map *hists, std::vector<char> &key_buffer,
-                      std::vector<char> &value_buffer,
+    int export_kv_map(struct bpf_map *hists,
                       const map_sample_meta &sample_config);
     /// wait and polling from perf event
     int wait_and_poll_from_perf_event_array(std::size_t id);
@@ -138,20 +141,14 @@ class bpf_skeleton
     /// the wait and export.
     [[nodiscard]] int load_and_attach(void) noexcept;
 
-    /// @brief wait for the program to exit
-    /// @details the program has a ring buffer or perf event to export data
-    /// to user space, the program will help load the map info and poll the
-    /// events automatically.
-    [[nodiscard]] int wait_and_poll(void) noexcept;
-    /// @brief export the data as json string.
+    /// @brief auto polling and export the data to user space handler
     /// @details The key of the value is the field name in the export json.
     [[nodiscard]] int wait_and_poll_to_handler(enum export_format_type type,
                                                export_event_handler handler,
                                                void *ctx = nullptr) noexcept;
 
-    /// stop, detach, and clean up memory
-
-    /// This is thread safe with wait_and_poll.
+    /// @brief stop, detach, and clean up memory
+    /// @details This is thread safe with wait_and_poll.
     /// it will notify the wait_and_poll to exit and
     /// wait until it exits.
     void destroy(void) noexcept;

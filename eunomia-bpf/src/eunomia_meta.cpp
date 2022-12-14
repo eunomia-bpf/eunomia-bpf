@@ -86,6 +86,7 @@ from_json(const nlohmann::json &j, map_sample_meta &data)
     get_from_json_at(interval);
     get_from_json_at_or_default(type);
     get_from_json_at_or_default(unit);
+    get_from_json_at_or_default(clear_map);
 }
 
 static void

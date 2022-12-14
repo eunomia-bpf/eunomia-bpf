@@ -27,14 +27,10 @@ int
 load_and_attach_eunomia_skel(struct eunomia_bpf *prog);
 
 /// @brief wait for the program to exit and receive data from export maps and
-/// print the data
+/// send to handlers
 /// @details if the program has a ring buffer or perf event to export data
 /// to user space, the program will help load the map info and poll the
 /// events automatically.
-int
-wait_and_poll_events(struct eunomia_bpf *prog);
-/// @brief wait for the program to exit and receive data from export maps and
-/// send to handlers
 int
 wait_and_poll_events_to_handler(struct eunomia_bpf *prog,
                                 enum export_format_type type,

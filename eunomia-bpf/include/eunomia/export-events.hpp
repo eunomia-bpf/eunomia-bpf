@@ -23,7 +23,7 @@ btf_dump__free(struct btf_dump *d);
 namespace eunomia {
 using export_event_handler = std::function<void(void *ctx, const char *event)>;
 
-/// @brief eunomia-bpf exporter for events in user space
+/// @brief dump export event in user space
 class event_exporter
 {
   public:
@@ -125,9 +125,6 @@ class event_exporter
     ///  printer to print event data to json
     int print_sample_event_to_json(std::vector<char> &key_buffer,
                                    std::vector<char> &value_buffer);
-
-    /// export event to json format
-    void export_event_to_json(const char *event);
 
     void setup_btf_dumper(void);
     int print_export_member(const char *event, std::size_t offset,

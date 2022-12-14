@@ -121,12 +121,16 @@ handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
 
 int
 bpf_skeleton::export_kv_map(struct bpf_map *hists,
-                            std::vector<char> &key_buffer,
-                            std::vector<char> &value_buffer,
                             const map_sample_meta &sample_config)
 {
     int err, fd = bpf_map__fd(hists);
     __u32 lookup_key = -2, next_key;
+    std::vector<char> key_buffer = {};
+    std::vector<char> value_buffer = {};
+    key_buffer.resize(
+        btf__resolve_size(get_btf_data(), bpf_map__btf_key_type_id(hists)));
+    value_buffer.resize(
+        btf__resolve_size(get_btf_data(), bpf_map__btf_key_type_id(hists)));
 
     while (!bpf_map_get_next_key(fd, &lookup_key, key_buffer.data())) {
         err = bpf_map_lookup_elem(fd, &next_key, value_buffer.data());
@@ -135,6 +139,9 @@ bpf_skeleton::export_kv_map(struct bpf_map *hists,
         }
         exporter.handler_sample_key_value(key_buffer, value_buffer);
         lookup_key = next_key;
+    }
+    if (!sample_config.clear_map) {
+        return 0;
     }
 
     // cleanup maps
@@ -172,22 +179,47 @@ bpf_skeleton::wait_and_sample_map(std::size_t sample_map_id)
         return -1;
     }
 
-    std::vector<char> key_buffer = {};
-    std::vector<char> value_buffer = {};
-    key_buffer.resize(btf__resolve_size(btf_data, key_type_id));
-    value_buffer.resize(btf__resolve_size(btf_data, value_type_id));
-
     /* Process events */
     while (!exiting) {
         std::this_thread::sleep_for(
             std::chrono::milliseconds(sample_config.interval));
-        err = export_kv_map(maps[sample_map_id], key_buffer, value_buffer,
-                            sample_config);
+        err = export_kv_map(maps[sample_map_id], sample_config);
         if (err) {
             break;
         }
     }
 
+    return 0;
+}
+
+int
+bpf_skeleton::poll_rb()
+{
+    int err = 0;
+    err = ring_buffer__poll(ring_buffer_map.get(), meta_data.poll_timeout_ms);
+    /* Ctrl-C will cause -EINTR */
+    if (err == -EINTR) {
+        return -EINTR;
+    }
+    if (err < 0) {
+        printf("Error polling ring buffer: %d\n", err);
+        return err;
+    }
+    return 0;
+}
+
+int
+bpf_skeleton::poll_perf_event_array()
+{
+    int err = 0;
+    err = perf_buffer__poll(perf_buffer_map.get(), meta_data.poll_timeout_ms);
+    if (err == -EINTR) {
+        return -EINTR;
+    }
+    if (err < 0) {
+        fprintf(stderr, "error polling perf buffer: %s\n", strerror(-err));
+        return err;
+    }
     return 0;
 }
 
@@ -216,7 +248,6 @@ bpf_skeleton::wait_and_poll_from_rb(std::size_t rb_map_id)
             ring_buffer__poll(ring_buffer_map.get(), meta_data.poll_timeout_ms);
         /* Ctrl-C will cause -EINTR */
         if (err == -EINTR) {
-            err = 0;
             break;
         }
         if (err < 0) {
@@ -283,7 +314,10 @@ bpf_skeleton::wait_and_poll_from_perf_event_array(std::size_t rb_map_id)
     while (!exiting) {
         err =
             perf_buffer__poll(perf_buffer_map.get(), meta_data.poll_timeout_ms);
-        if (err < 0 && err != -EINTR) {
+        if (err == -EINTR) {
+            break;
+        }
+        if (err < 0) {
             fprintf(stderr, "error polling perf buffer: %s\n", strerror(-err));
             return err;
         }
@@ -380,20 +414,6 @@ bpf_skeleton::enter_wait_and_poll(void)
     // help the wait_and_print work with stop correctly in multi-thread
     std::lock_guard<std::mutex> guard(exit_mutex);
     return check_export_maps();
-}
-
-int
-bpf_skeleton::wait_and_poll(void) noexcept
-{
-    exporter.set_export_type(export_format_type::EXPORT_PLANT_TEXT, nullptr);
-    int err = 0;
-    try {
-        err = enter_wait_and_poll();
-    } catch (const std::exception &e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
-        err = -1;
-    }
-    return err;
 }
 
 void
@@ -534,15 +554,6 @@ load_and_attach_eunomia_skel(struct eunomia_bpf *prog)
         return -1;
     }
     return prog->program.load_and_attach();
-}
-
-int
-wait_and_poll_events(struct eunomia_bpf *prog)
-{
-    if (!prog) {
-        return -1;
-    }
-    return prog->program.wait_and_poll();
 }
 
 int
