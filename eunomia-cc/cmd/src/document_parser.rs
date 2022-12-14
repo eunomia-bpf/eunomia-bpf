@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 
 fn parse_source_files<'a>(
     index: &'a Index<'a>,
-    args: &'a Args,
+    args: &'a CompileOptions,
     source_path: &'a str,
 ) -> Result<TranslationUnit<'a>> {
     let bpf_sys_include = get_bpf_sys_include(args)?;
@@ -217,7 +217,7 @@ fn resolve_bpf_skel_entities(entities: &Vec<Entity>, bpf_skel_json: Value) -> Re
 
 /// Get documentations from source file
 pub fn parse_source_documents(
-    args: &Args,
+    args: &CompileOptions,
     source_path: &str,
     bpf_skel_json: Value,
 ) -> Result<Value> {
@@ -264,7 +264,7 @@ mod test {
 
     #[test]
     fn test_parse_variables() {
-        let args = Args {
+        let args = CompileOptions {
             ..Default::default()
         };
 
@@ -327,7 +327,7 @@ mod test {
 
     #[test]
     fn test_parse_progss() {
-        let args = Args {
+        let args = CompileOptions {
             ..Default::default()
         };
 
@@ -378,7 +378,7 @@ mod test {
 
     #[test]
     fn test_parse_maps() {
-        let args = Args {
+        let args = CompileOptions {
             ..Default::default()
         };
 

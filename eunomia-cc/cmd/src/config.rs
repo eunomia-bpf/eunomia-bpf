@@ -15,7 +15,7 @@ use std::os::unix::fs::PermissionsExt;
     long_about = "see https://github.com/eunomia-bpf/eunomia-bpf for more information"
 )]
 
-pub struct Args {
+pub struct CompileOptions {
     /// path of the bpf.c file to compile
     #[arg()]
     pub source_path: String,
@@ -69,7 +69,7 @@ pub fn get_eunomia_home() -> Result<String> {
 }
 
 /// Get output path for json: output.meta.json
-pub fn get_output_config_path(args: &Args) -> String {
+pub fn get_output_config_path(args: &CompileOptions) -> String {
     let output_path = if args.output_path == "" {
         path::Path::new(&args.source_path).with_extension("")
     } else {
@@ -84,7 +84,7 @@ pub fn get_output_config_path(args: &Args) -> String {
 }
 
 /// Get output path for bpf object: output.bpf.o  
-pub fn get_output_object_path(args: &Args) -> String {
+pub fn get_output_object_path(args: &CompileOptions) -> String {
     let output_path = if args.output_path == "" {
         path::Path::new(&args.source_path).with_extension("")
     } else {
@@ -94,14 +94,14 @@ pub fn get_output_object_path(args: &Args) -> String {
     output_object_path.to_str().unwrap().to_string()
 }
 
-pub fn get_source_file_temp_path(args: &Args) -> String {
+pub fn get_source_file_temp_path(args: &CompileOptions) -> String {
     let source_path = path::Path::new(&args.source_path);
     let source_file_temp_path = source_path.with_extension("temp.c");
     source_file_temp_path.to_str().unwrap().to_string()
 }
 
 /// Get include paths from clang
-pub fn get_bpf_sys_include(args: &Args) -> Result<String> {
+pub fn get_bpf_sys_include(args: &CompileOptions) -> Result<String> {
     let mut command = format!("{}", args.clang_bin);
     command += r#" -v -E - </dev/null 2>&1 | sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }'
      "#;
@@ -117,7 +117,7 @@ pub fn get_bpf_sys_include(args: &Args) -> Result<String> {
 }
 
 /// Get target arch: x86 or arm, etc
-pub fn get_target_arch(args: &Args) -> Result<String> {
+pub fn get_target_arch(args: &CompileOptions) -> Result<String> {
     let command = r#" uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/'
      "#;
     let (code, output, error) = run_script::run_script!(command).unwrap();
@@ -132,7 +132,7 @@ pub fn get_target_arch(args: &Args) -> Result<String> {
 }
 
 /// Get eunomia home include dirs
-pub fn get_eunomia_include(args: &Args) -> Result<String> {
+pub fn get_eunomia_include(args: &CompileOptions) -> Result<String> {
     let eunomia_home = get_eunomia_home()?;
     let eunomia_include = path::Path::new(&eunomia_home);
     let eunomia_include = match eunomia_include.canonicalize() {
