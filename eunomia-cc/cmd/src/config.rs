@@ -2,6 +2,7 @@ use std::{fs, path};
 
 use anyhow::Result;
 use clap::Parser;
+use std::os::unix::fs::PermissionsExt;
 
 /// The eunomia-bpf compile tool
 ///
@@ -165,6 +166,11 @@ pub fn get_bpftool_path() -> Result<String> {
             ))
         }
     };
+    let f = std::fs::File::open(&bpftool)?;
+    let metadata = f.metadata()?;
+    let mut permissions = metadata.permissions();
+    permissions.set_mode(0o744);
+    std::fs::set_permissions(&bpftool, permissions)?;
     Ok(bpftool.to_str().unwrap().to_string())
 }
 
