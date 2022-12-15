@@ -8,7 +8,7 @@ on:
       - ".github/**"
   pull_request:
     branches: "*"
-    paths: 
+    paths:
       - "eunomia-bpf/**"
       - ".github/**"
 env:

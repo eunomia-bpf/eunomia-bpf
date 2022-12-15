@@ -49,7 +49,7 @@ pub fn add_unused_ptr_for_structs(args: &CompileOptions, file_path: &str) -> Res
         Err(e) => {
             println!("access file {} error: {}", file_path, e);
             return Err(e.into());
-        },
+        }
     };
 
     for struct_name in export_struct_names {
