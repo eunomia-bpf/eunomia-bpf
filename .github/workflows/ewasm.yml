@@ -50,7 +50,3 @@ jobs:
       run: |
         cd ewasm/
         sudo make test-wasm
-
-    - name: Code coverage using Codecov
-      run: bash <(curl -s https://codecov.io/bash)
-
