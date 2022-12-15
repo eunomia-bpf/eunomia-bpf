@@ -3,9 +3,14 @@ name: Build and test ewasm on Ubuntu
 on:
   push:
     branches: "*"
+    paths:
+      - "ewasm/**"
+      - ".github/**"
   pull_request:
     branches: "*"
-
+    paths: 
+      - "ewasm/**"
+      - ".github/**"
 env:
   BUILD_TYPE: Release
   INSTALL_LOCATION: .local
