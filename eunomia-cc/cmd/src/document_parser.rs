@@ -61,7 +61,7 @@ fn process_comment_child(child: CommentChild, value: &mut Value, default_cmd: &s
                     print!("warning: text is not json: {}", text);
                     println!(" use it as a string");
                     json!(&text)
-                },
+                }
             };
         }
         CommentChild::InlineCommand(command) => {
