@@ -28,7 +28,7 @@ parse_arg_for_program(const char *path, std::vector<std::string> args)
     return res;
 }
 
-TEST_CASE("test arg opensnoop", "[eunomia_object_meta]")
+TEST_CASE("test arg opensnoop", "[opensnoop]")
 {
     REQUIRE(parse_arg_for_program("../../test/asserts/opensnoop.json",
                                   { "opensnoop", "-h" })
@@ -50,7 +50,7 @@ TEST_CASE("test arg opensnoop", "[eunomia_object_meta]")
             != 0);
 }
 
-TEST_CASE("test arg bootstrap", "[eunomia_object_meta]")
+TEST_CASE("test arg bootstrap", "[bootstrap]")
 {
     REQUIRE(parse_arg_for_program("../../test/asserts/bootstrap.json",
                                   { "boostrap", "-h" })
