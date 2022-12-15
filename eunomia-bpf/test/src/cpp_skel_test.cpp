@@ -18,20 +18,20 @@ read_file_data(const char *path)
 }
 
 int
-test_create_and_stop()
+test_create_and_stop(const char *path)
 {
     bpf_skeleton ebpf_program;
-    auto json_package = read_file_data("../../test/asserts/bootstrap.json");
+    auto json_package = read_file_data(path);
     REQUIRE(ebpf_program.open_from_json_config(json_package) == 0);
     ebpf_program.destroy();
     return 0;
 }
 
 int
-test_create_and_run()
+test_create_and_run(const char *path)
 {
     bpf_skeleton ebpf_program;
-    auto json_package = read_file_data("../../test/asserts/bootstrap.json");
+    auto json_package = read_file_data(path);
     REQUIRE(ebpf_program.open_from_json_config(json_package) == 0);
     REQUIRE(ebpf_program.load_and_attach() == 0);
     ebpf_program.destroy();
@@ -39,10 +39,11 @@ test_create_and_run()
 }
 
 int
-test_create_and_run_multi()
+test_create_and_run_multi(const char *path)
+
 {
     bpf_skeleton ebpf_program;
-    auto json_package = read_file_data("../../test/asserts/bootstrap.json");
+    auto json_package = read_file_data(path);
     REQUIRE(ebpf_program.open_from_json_config(json_package) == 0);
     REQUIRE(ebpf_program.load_and_attach() == 0);
     bpf_skeleton ebpf_program2;
@@ -55,15 +56,28 @@ test_create_and_run_multi()
 
 TEST_CASE("creat and stop", "[creat]")
 {
-    REQUIRE(test_create_and_stop() == 0);
+    REQUIRE(test_create_and_stop("../../test/asserts/bootstrap.json") == 0);
+    REQUIRE(test_create_and_stop("../../test/asserts/opensnoop.json") == 0);
+    REQUIRE(test_create_and_stop("../../test/asserts/runqlat.json") == 0);
+    REQUIRE(test_create_and_stop("../../test/asserts/minimal.json") == 0);
+    REQUIRE(test_create_and_stop("../../test/asserts/tc.json") == 0);
 }
 
 TEST_CASE("creat and run", "[creat]")
 {
-    REQUIRE(test_create_and_run() == 0);
+    REQUIRE(test_create_and_run("../../test/asserts/bootstrap.json") == 0);
+    REQUIRE(test_create_and_run("../../test/asserts/opensnoop.json") == 0);
+    REQUIRE(test_create_and_run("../../test/asserts/runqlat.json") == 0);
+    REQUIRE(test_create_and_run("../../test/asserts/minimal.json") == 0);
+    REQUIRE(test_create_and_run("../../test/asserts/tc.json") == 0);
 }
 
 TEST_CASE("creat and run multi", "[creat]")
 {
-    REQUIRE(test_create_and_run_multi() == 0);
+    REQUIRE(test_create_and_run_multi("../../test/asserts/bootstrap.json")
+            == 0);
+    REQUIRE(test_create_and_run_multi("../../test/asserts/opensnoop.json")
+            == 0);
+    REQUIRE(test_create_and_run_multi("../../test/asserts/runqlat.json") == 0);
+    REQUIRE(test_create_and_run_multi("../../test/asserts/minimal.json") == 0);
 }
