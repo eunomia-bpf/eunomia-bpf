@@ -34,4 +34,5 @@ set(test_sources
     src/export_types_test.cpp
     src/test_c_skel.c
     src/test_cpp_skel.cpp
+    src/arg_parser_test.cpp
 )
