@@ -31,8 +31,8 @@ set(third_party_headers
 
 set(test_sources
     src/config_test.cpp
-    src/export_types_test.cpp
-    src/test_c_skel.c
-    src/test_cpp_skel.cpp
+    src/auto_polling_test.cpp
+    src/c_skel_test.c
+    src/cpp_skel_test.cpp
     src/arg_parser_test.cpp
 )

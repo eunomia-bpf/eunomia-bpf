@@ -72,3 +72,16 @@ TEST_CASE("run and auto export types perf event", "[opensnoop]")
                               export_format_type::EXPORT_RAW_EVENT)
             == 0);
 }
+
+TEST_CASE("run and auto export types hist map", "[minimal]")
+{
+    REQUIRE(start_new_program("../../test/asserts/minimal.json",
+                              export_format_type::EXPORT_JSON)
+            == 0);
+    REQUIRE(start_new_program("../../test/asserts/minimal.json",
+                              export_format_type::EXPORT_PLANT_TEXT)
+            == 0);
+    REQUIRE(start_new_program("../../test/asserts/minimal.json",
+                              export_format_type::EXPORT_RAW_EVENT)
+            == 0);
+}
