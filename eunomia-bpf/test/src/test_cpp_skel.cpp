@@ -21,7 +21,7 @@ int
 test_create_and_stop()
 {
     bpf_skeleton ebpf_program;
-    auto json_package = read_file_data("../../test/asserts/package.json");
+    auto json_package = read_file_data("../../test/asserts/bootstrap.json");
     REQUIRE(ebpf_program.open_from_json_config(json_package) == 0);
     ebpf_program.destroy();
     return 0;
@@ -31,7 +31,7 @@ int
 test_create_and_run()
 {
     bpf_skeleton ebpf_program;
-    auto json_package = read_file_data("../../test/asserts/package.json");
+    auto json_package = read_file_data("../../test/asserts/bootstrap.json");
     REQUIRE(ebpf_program.open_from_json_config(json_package) == 0);
     REQUIRE(ebpf_program.load_and_attach() == 0);
     ebpf_program.destroy();
@@ -42,7 +42,7 @@ int
 test_create_and_run_multi()
 {
     bpf_skeleton ebpf_program;
-    auto json_package = read_file_data("../../test/asserts/package.json");
+    auto json_package = read_file_data("../../test/asserts/bootstrap.json");
     REQUIRE(ebpf_program.open_from_json_config(json_package) == 0);
     REQUIRE(ebpf_program.load_and_attach() == 0);
     bpf_skeleton ebpf_program2;

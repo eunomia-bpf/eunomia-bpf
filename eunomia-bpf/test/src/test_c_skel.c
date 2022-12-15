@@ -8,29 +8,28 @@
 const char *
 read_file_data(const char *path)
 {
-    int res;
     FILE *fp = fopen(path, "r");
     if (!fp) {
         return NULL;
     }
-    res = fseek(fp, 0, SEEK_END);
+    fseek(fp, 0, SEEK_END);
     long size = ftell(fp);
-    res = fseek(fp, 0, SEEK_SET);
+    fseek(fp, 0, SEEK_SET);
     char *data = malloc((size_t)size + 1);
     if (!data) {
         fclose(fp);
         return NULL;
     }
-    res = fread(data, (size_t)size, 1, fp);
+    fread(data, (size_t)size, 1, fp);
     data[size] = '\0';
-    res = fclose(fp);
+    fclose(fp);
     return data;
 }
 
 int
 test_create_and_stop()
 {
-    const char *data = read_file_data("../../test/asserts/package.json");
+    const char *data = read_file_data("../../test/asserts/bootstrap.json");
     struct eunomia_bpf *ctx = open_eunomia_skel_from_json_package(data);
     assert(ctx);
     destroy_eunomia_skel(ctx);
@@ -41,7 +40,7 @@ test_create_and_stop()
 int
 test_create_and_run()
 {
-    const char *data = read_file_data("../../test/asserts/package.json");
+    const char *data = read_file_data("../../test/asserts/bootstrap.json");
     struct eunomia_bpf *ctx = open_eunomia_skel_from_json_package(data);
     assert(ctx);
     int res = load_and_attach_eunomia_skel(ctx);
@@ -54,7 +53,7 @@ test_create_and_run()
 int
 test_create_and_run_multi()
 {
-    const char *data = read_file_data("../../test/asserts/package.json");
+    const char *data = read_file_data("../../test/asserts/bootstrap.json");
     struct eunomia_bpf *ctx1 = open_eunomia_skel_from_json_package(data);
     assert(ctx1);
     int res = load_and_attach_eunomia_skel(ctx1);
