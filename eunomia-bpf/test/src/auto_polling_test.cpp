@@ -73,7 +73,7 @@ TEST_CASE("run and auto export types perf event", "[opensnoop]")
             == 0);
 }
 
-TEST_CASE("run and auto export types hist map", "[minimal]")
+TEST_CASE("run and auto export types none", "[minimal]")
 {
     REQUIRE(start_new_program("../../test/asserts/minimal.json",
                               export_format_type::EXPORT_JSON)
@@ -82,6 +82,19 @@ TEST_CASE("run and auto export types hist map", "[minimal]")
                               export_format_type::EXPORT_PLANT_TEXT)
             == 0);
     REQUIRE(start_new_program("../../test/asserts/minimal.json",
+                              export_format_type::EXPORT_RAW_EVENT)
+            == 0);
+}
+
+TEST_CASE("run and auto export types hist map", "[runqlat]")
+{
+    REQUIRE(start_new_program("../../test/asserts/runqlat.json",
+                              export_format_type::EXPORT_JSON)
+            == 0);
+    REQUIRE(start_new_program("../../test/asserts/runqlat.json",
+                              export_format_type::EXPORT_PLANT_TEXT)
+            == 0);
+    REQUIRE(start_new_program("../../test/asserts/runqlat.json",
                               export_format_type::EXPORT_RAW_EVENT)
             == 0);
 }
