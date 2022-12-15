@@ -8,6 +8,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <thread>
 #include <string>
 #include <thread>
 #include <catch2/catch_test_macros.hpp>
