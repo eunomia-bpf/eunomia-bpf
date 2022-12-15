@@ -4,6 +4,4 @@ ignore:
   - "eunomia-exporter"
   - "eunomia-sdks"
   - "third_party"
-
-comment:
-  require_changes: true
+comment: true

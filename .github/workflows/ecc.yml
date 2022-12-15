@@ -52,6 +52,16 @@ jobs:
 
     - name: test ecc
       run:  cd eunomia-cc/cmd && cargo test
+      env:
+        CARGO_INCREMENTAL: '0'
+        RUSTFLAGS: '-Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off'
+        RUSTDOCFLAGS: '-Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off'
+
+    - name: rust-grcov
+      # You may pin to the exact commit or the version.
+      # uses: actions-rs/grcov@bb47b1ed7883a1502fa6875d562727ace2511248
+      uses: actions-rs/grcov@v0.1.5
+      working-directory: eunomia-cc/cmd/
 
     - name: Install required cargo
       run: cargo install clippy-sarif sarif-fmt
@@ -63,6 +73,7 @@ jobs:
           --all-features
           --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
       continue-on-error: true
+
     - name: Run fmt check
       run:
           cd eunomia-cc/cmd && cargo fmt --check
