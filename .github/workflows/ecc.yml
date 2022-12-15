@@ -58,14 +58,14 @@ jobs:
           --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
       continue-on-error: true
     - name: Run fmt check
-      run: 
+      run:
           cd eunomia-cc/cmd && cargo fmt --check
     - name: Upload analysis results to GitHub
       uses: github/codeql-action/upload-sarif@v1
       with:
         sarif_file: rust-clippy-results.sarif
         wait-for-processing: true
-  
+
     - name: Code coverage using Codecov
       run: bash <(curl -s https://codecov.io/bash)
 
