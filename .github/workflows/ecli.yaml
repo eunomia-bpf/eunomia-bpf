@@ -3,8 +3,14 @@ name: Build and test ecli on Ubuntu
 on:
   push:
     branches: "*"
+    paths:
+      - "ecli/**"
+      - ".github/**"
   pull_request:
     branches: "*"
+    paths: 
+      - "ecli/**"
+      - ".github/**"
 
 env:
   BUILD_TYPE: Release

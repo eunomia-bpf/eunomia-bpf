@@ -3,9 +3,14 @@ name: Build and test eunomia-bpf on Ubuntu
 on:
   push:
     branches: "*"
+    paths:
+      - "eunomia-bpf/**"
+      - ".github/**"
   pull_request:
     branches: "*"
-
+    paths: 
+      - "eunomia-bpf/**"
+      - ".github/**"
 env:
   BUILD_TYPE: Release
   INSTALL_LOCATION: .local
