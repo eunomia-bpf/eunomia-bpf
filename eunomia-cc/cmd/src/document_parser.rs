@@ -267,7 +267,26 @@ mod test {
         let args = CompileOptions {
             ..Default::default()
         };
-
+        let test_case_res = json!({
+            "name": ".rodata",
+            "variables": [
+                {
+                    "description": "min duration for a process to be considered",
+                    "name": "min_duration_ns",
+                    "type": "unsigned long long"
+                },
+                {
+                    "cmdarg":{
+                        "default": 0,
+                        "short": "p",
+                        "long": "pid",
+                    },
+                    "description": "target pid to trace",
+                    "name": "target_pid",
+                    "type": "int"
+                }
+            ]
+        });
         let skel = parse_source_documents(
             &args,
             SOURCE_PATH,
@@ -300,29 +319,7 @@ mod test {
             }
         };
         let rodata = &skel["data_sections"][0];
-        assert_eq!(
-            rodata,
-            &json!({
-                "name": ".rodata",
-                "variables": [
-                    {
-                        "description": "min duration for a process to be considered",
-                        "name": "min_duration_ns",
-                        "type": "unsigned long long"
-                    },
-                    {
-                        "cmdarg":{
-                            "default": 0,
-                            "short": "p",
-                            "long": "pid",
-                        },
-                        "description": "target pid to trace",
-                        "name": "target_pid",
-                        "type": "int"
-                    }
-                ]
-            })
-        );
+        assert_eq!(rodata, &test_case_res);
     }
 
     #[test]
@@ -330,7 +327,18 @@ mod test {
         let args = CompileOptions {
             ..Default::default()
         };
-
+        let test_case_res = json!([{
+            "attach": "tp/sched/sched_process_exec",
+            "link": true,
+            "name": "handle_exec",
+            "flag":"called when a process starts"
+        },
+        {
+            "attach": "tp/sched/sched_process_exit",
+            "description": "called when a process ends",
+            "link": true,
+            "name": "handle_exit",
+        }]);
         let skel = parse_source_documents(
             &args,
             SOURCE_PATH,
@@ -359,21 +367,7 @@ mod test {
             }
         };
         let handle_exec = &skel["progs"];
-        assert_eq!(
-            handle_exec,
-            &json!([{
-                "attach": "tp/sched/sched_process_exec",
-                "link": true,
-                "name": "handle_exec",
-                "flag":"called when a process starts"
-            },
-            {
-                "attach": "tp/sched/sched_process_exit",
-                "description": "called when a process ends",
-                "link": true,
-                "name": "handle_exit",
-            }])
-        );
+        assert_eq!(handle_exec, &test_case_res);
     }
 
     #[test]
@@ -381,6 +375,11 @@ mod test {
         let args = CompileOptions {
             ..Default::default()
         };
+        let test_case_res = json!({
+            "ident": "exec_start",
+            "name": "exec_start",
+            "sample": {"interval": 1000}
+        });
 
         let skel = parse_source_documents(
             &args,
@@ -404,13 +403,6 @@ mod test {
             }
         };
         let exec_start = &skel["maps"][0];
-        assert_eq!(
-            exec_start,
-            &json!({
-                "ident": "exec_start",
-                "name": "exec_start",
-                "sample": {"interval": 1000}
-            })
-        );
+        assert_eq!(exec_start, &test_case_res);
     }
 }
