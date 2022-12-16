@@ -1088,7 +1088,7 @@ bool kprobe_exists(const char *name)
 		goto slow_path;
 
 	while (true) {
-		ret = fscanf(f, "%s%*[^\n]\n", sym_name);
+		ret = fscanf(f, "%255s%*[^\n]\n", sym_name);
 		if (ret == EOF && feof(f))
 			break;
 		if (ret != 1) {
@@ -1110,7 +1110,7 @@ slow_path:
 		return false;
 
 	while (true) {
-		ret = fscanf(f, "%*x %*c %s%*[^\n]\n", sym_name);
+		ret = fscanf(f, "%*x %*c %255s%*[^\n]\n", sym_name);
 		if (ret == EOF && feof(f))
 			break;
 		if (ret != 1) {
