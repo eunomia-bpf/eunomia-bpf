@@ -69,7 +69,7 @@ int get_pid_lib_path(pid_t pid, const char *lib, char *path, size_t path_sz)
 		return -1;
 	}
 	while (fgets(line_buf, sizeof(line_buf), maps)) {
-		if (sscanf(line_buf, "%*x-%*x %*s %*x %*s %*u %s", path_buf) != 1)
+		if (sscanf(line_buf, "%*x-%*x %*s %*x %*s %*u %1023s", path_buf) != 1)
 			continue;
 		/* e.g. /usr/lib/x86_64-linux-gnu/libc-2.31.so */
 		p = strrchr(path_buf, '/');
@@ -85,7 +85,7 @@ int get_pid_lib_path(pid_t pid, const char *lib, char *path, size_t path_sz)
 		if (*p != '.' && *p != '-')
 			continue;
 		if (strnlen(path_buf, 1024) >= path_sz) {
-			warn("readlink truncation");
+			warn("path size too small\n");
 			return -1;
 		}
 		strcpy(path, path_buf);

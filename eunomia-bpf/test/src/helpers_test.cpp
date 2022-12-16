@@ -63,3 +63,8 @@ TEST_CASE("test trace helpers print hist", "[trace][helpers]")
     print_linear_hist(h.slots, MAX_SLOTS, 0, HIST_STEP_SIZE, "test comm");
     print_log2_hist(h.slots, MAX_SLOTS, "test unit");
 }
+
+TEST_CASE("test trace helpers kprobe exists", "[trace][helpers]")
+{
+    REQUIRE(kprobe_exists("do_unlinkat"));
+}
