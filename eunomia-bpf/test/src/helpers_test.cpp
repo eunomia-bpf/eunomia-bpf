@@ -28,10 +28,25 @@ TEST_CASE("test btf helpers", "[btf][helpers]")
     cleanup_core_btf(&openopts);
 }
 
-TEST_CASE("test uprobe helpers", "[uprobe][helpers]") {
+TEST_CASE("test uprobe helpers", "[uprobe][helpers]")
+{
     char path[1024];
+    char cpath[1024];
+    char minpath[1];
+
     REQUIRE(get_pid_binary_path(1, path, 1024) == 0);
     printf("path: %s", path);
+    REQUIRE(get_pid_binary_path(1, minpath, 1) < 0);
+    REQUIRE(get_pid_binary_path(-1, path, 1024) < 0);
+
+    auto off = get_elf_func_offset(path, "fbeucfveybsxuwbydfvuvuebdcggsu");
+    REQUIRE(off < 0);
+
+    REQUIRE(get_pid_lib_path(1, "c", cpath, 1024) == 0);
+    printf("path: %s", cpath);
+    REQUIRE(get_pid_lib_path(1, "cbb", cpath, 1024) < 0);
+    REQUIRE(get_pid_lib_path(-1, "c", cpath, 1024) < 0);
+    REQUIRE(get_pid_lib_path(1, "c", minpath, 1) < 0);
 }
 
 #define MAX_SLOTS 26
