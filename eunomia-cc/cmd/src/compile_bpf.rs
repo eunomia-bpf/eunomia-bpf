@@ -123,7 +123,7 @@ fn do_compile(args: &CompileOptions, temp_source_file: &str) -> Result<()> {
     meta_json["bpf_skel"] = bpf_skel_with_doc;
 
     // compile export types
-    if args.export_event_header.is_empty() {
+    if !args.export_event_header.is_empty() {
         println!("Generating export types...");
         let export_types_json = get_export_types_json(args, &output_bpf_object_path)?;
         let export_types_json: Value = parse_json_output(&export_types_json)?;
@@ -148,14 +148,14 @@ pub fn compile_bpf(args: &CompileOptions) -> Result<()> {
     let source_file_content = fs::read_to_string(&args.source_path)?;
     let mut temp_source_file = args.source_path.clone();
 
-    if args.export_event_header.is_empty() {
+    if !args.export_event_header.is_empty() {
         temp_source_file = get_source_file_temp_path(args);
         // create temp source file
         fs::write(&temp_source_file, source_file_content)?;
         add_unused_ptr_for_structs(args, &temp_source_file)?;
     }
     let res = do_compile(args, &temp_source_file);
-    if args.export_event_header.is_empty() {
+    if !args.export_event_header.is_empty() {
         fs::remove_file(temp_source_file)?;
     }
     res
@@ -218,8 +218,6 @@ mod test {
     #[test]
     fn test_get_attr() {
         let args = CompileOptions {
-            clang_bin: "clang".to_string(),
-            llvm_strip_bin: "llvm-strip".to_string(),
             ..Default::default()
         };
         let sys_include = get_bpf_sys_include(&args).unwrap();
@@ -247,7 +245,7 @@ mod test {
         fs::write(&source_path, test_bpf).unwrap();
         let event_path = tmp_dir.join("event.h");
         fs::write(&event_path, test_event).unwrap();
-        let args = CompileOptions {
+        let mut args = CompileOptions {
             source_path: source_path.to_str().unwrap().to_string(),
             clang_bin: "clang".to_string(),
             llvm_strip_bin: "llvm-strip".to_string(),
@@ -255,6 +253,8 @@ mod test {
             export_event_header: event_path.to_str().unwrap().to_string(),
             ..Default::default()
         };
+        compile_bpf(&args).unwrap();
+        args.yaml = true;
         compile_bpf(&args).unwrap();
         let _ = fs::remove_dir_all(tmp_dir);
     }
