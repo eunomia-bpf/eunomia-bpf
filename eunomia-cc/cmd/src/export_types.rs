@@ -2,7 +2,6 @@ use std::fs;
 
 use crate::config::*;
 use anyhow::Result;
-use regex::Captures;
 use regex::Regex;
 const _EXPORT_C_TEMPLATE: &str = r#"
 // do not use this file: auto generated
@@ -28,19 +27,8 @@ pub fn find_all_export_structs(args: &CompileOptions) -> Result<Vec<String>> {
     Ok(export_structs)
 }
 
-// add  __attribute__((preserve_access_index)) for structs to preserve BTF info
-pub fn _add_preserve_access_index(args: &CompileOptions) -> Result<String> {
-    let export_struct_header = fs::read_to_string(&args.export_event_header)?;
-    // skip enum
-    let re = Regex::new(r"(enum\s+\w+\s*\{[^\}]*\});").unwrap();
-    let result = re.replace_all(&export_struct_header, |caps: &Captures| {
-        format!("{} ;", &caps[1])
-    });
-    let re = Regex::new(r"\};").unwrap();
-    let result = re.replace_all(&result, "} __attribute__((preserve_access_index));");
-    Ok(result.to_string())
-}
-
+/// add unused_ptr_for_structs to preserve BTF info
+/// optional: add  __attribute__((preserve_access_index)) for structs to preserve BTF info
 pub fn add_unused_ptr_for_structs(args: &CompileOptions, file_path: &str) -> Result<()> {
     let export_struct_names = find_all_export_structs(args)?;
     let content = fs::read_to_string(file_path);
@@ -67,16 +55,45 @@ mod test {
     use super::*;
     #[test]
     fn test_match_struct() {
-        let test_event = include_str!("../test/event.h");
-        let re = Regex::new(REGEX_STRUCT_PATTREN).unwrap();
-        assert_eq!(&re.captures(test_event).unwrap()[1], "event");
+        let tmp_file = "tmp_test_event.h";
+        let arg = CompileOptions {
+            export_event_header: tmp_file.to_string(),
+            ..Default::default()
+        };
         let test_event = r#"
             struct eventqwrd3 { int x };
             struct event2 { int x };
             typedef struct event3 { int x } event3_t;
         "#;
-        for cap in re.captures_iter(test_event) {
-            println!("Found match: {}", &cap[1]);
-        }
+        fs::write(tmp_file, test_event).unwrap();
+        let structs = find_all_export_structs(&arg).unwrap();
+        assert_eq!(structs.len(), 3);
+        assert_eq!(structs[0], "eventqwrd3");
+        assert_eq!(structs[1], "event2");
+        assert_eq!(structs[2], "event3");
+        fs::remove_file(tmp_file).unwrap();
+    }
+
+    #[test]
+    fn test_add_unused_ptr_for_structs() {
+        let tmp_file = "tmp_test_event.h";
+        let tmp_source_file = "tmp_test_event.c";
+        let arg = CompileOptions {
+            export_event_header: tmp_file.to_string(),
+            ..Default::default()
+        };
+        let test_event = r#"
+            struct eventqwrd3 { int x };
+            struct event2 { int x };
+            typedef struct event3 { int x } event3_t;
+        "#;
+        let test_source_content_res = "const volatile struct eventqwrd3 * __eunomia_dummy_eventqwrd3_ptr  __attribute__((unused));\nconst volatile struct event2 * __eunomia_dummy_event2_ptr  __attribute__((unused));\nconst volatile struct event3 * __eunomia_dummy_event3_ptr  __attribute__((unused));\n";
+        fs::write(tmp_file, test_event).unwrap();
+        fs::write(tmp_source_file, "").unwrap();
+        add_unused_ptr_for_structs(&arg, tmp_source_file).unwrap();
+        let content = fs::read_to_string(tmp_source_file).unwrap();
+        assert_eq!(test_source_content_res, content);
+        fs::remove_file(tmp_file).unwrap();
+        fs::remove_file(tmp_source_file).unwrap();
     }
 }
