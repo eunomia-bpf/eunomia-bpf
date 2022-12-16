@@ -16,3 +16,4 @@ cmd/Cargo.lock
 cmd/rust-clippy-results.sarif
 *.profraw
 cmd/lcov.info
+cmd/coverage

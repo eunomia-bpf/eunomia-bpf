@@ -94,7 +94,7 @@ bpf_skeleton::attach_tc_prog(std::size_t id)
 
     tc_opts.prog_fd = bpf_program__fd(progs[id]);
     err = bpf_tc_attach(&tc_hook, &tc_opts);
-    if (err) {
+    if (err && err != -EEXIST) {
         fprintf(stderr, "Failed to attach TC: %d\n", err);
         return -1;
     }

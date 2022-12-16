@@ -51,6 +51,9 @@ bpf_skeleton::load_and_attach_prog(void)
     DECLARE_LIBBPF_OPTS(bpf_object_open_opts, openopts);
     if (additional_btf_file != NULL) {
         openopts.btf_custom_path = strdup(additional_btf_file);
+    } else if (!vmlinux_btf_exists()) {
+        std::cerr << "failed to find vmlinux BTF. please provide btf file with env BTF_FILE_PATH." << std::endl;
+        return -1;
     }
     if (bpf_object__open_skeleton(skeleton.get(), &openopts)) {
         std::cerr << "failed to open skeleton" << std::endl;

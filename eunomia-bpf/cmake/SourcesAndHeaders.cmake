@@ -35,4 +35,5 @@ set(test_sources
     src/c_skel_test.c
     src/cpp_skel_test.cpp
     src/arg_parser_test.cpp
+    src/helpers_test.cpp
 )
