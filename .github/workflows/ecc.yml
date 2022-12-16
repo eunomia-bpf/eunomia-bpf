@@ -31,6 +31,8 @@ jobs:
     - name: install deps
       run: |
           sudo make -C eunomia-cc install-deps
+          cargo install clippy-sarif sarif-fmt grcov
+	        rustup component add llvm-tools-preview
 
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af #@v1
@@ -51,32 +53,7 @@ jobs:
       run:  cd eunomia-cc && make && make install
 
     - name: test ecc
-      run:  cd eunomia-cc/cmd && cargo test
-      env:
-        CARGO_INCREMENTAL: '0'
-        RUSTFLAGS: '-Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off'
-        RUSTDOCFLAGS: '-Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off'
-
-    - name: rust-grcov
-      # You may pin to the exact commit or the version.
-      # uses: actions-rs/grcov@bb47b1ed7883a1502fa6875d562727ace2511248
-      uses: actions-rs/grcov@v0.1.5
-      working-directory: eunomia-cc/cmd/
-
-    - name: Install required cargo
-      run: cargo install clippy-sarif sarif-fmt
-
-    - name: Run rust-clippy
-      run:
-          cd eunomia-cc/cmd &&
-          cargo clippy
-          --all-features
-          --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
-      continue-on-error: true
-
-    - name: Run fmt check
-      run:
-          cd eunomia-cc/cmd && cargo fmt --check
+      run:  cd eunomia-cc && make test
     - name: Upload analysis results to GitHub
       uses: github/codeql-action/upload-sarif@v1
       with:

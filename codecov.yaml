@@ -1,7 +1,5 @@
 ignore:
   - "ecli"
-  - "bpftools"
-  - "eunomia-exporter"
+  - "examples"
   - "eunomia-sdks"
   - "third_party"
-comment: true
