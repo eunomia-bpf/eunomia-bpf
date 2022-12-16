@@ -2,7 +2,9 @@ use std::{fs, path};
 
 use anyhow::Result;
 use clap::Parser;
+use rust_embed::RustEmbed;
 use std::os::unix::fs::PermissionsExt;
+use std::path::Path;
 
 /// The eunomia-bpf compile tool
 ///
@@ -191,4 +193,57 @@ pub fn get_base_dir_include(source_path: &str) -> Result<String> {
         }
     };
     Ok(format!("-I{}", base_dir.to_str().unwrap()))
+}
+
+/// embed workspace
+#[derive(RustEmbed)]
+#[folder = "../workspace/"]
+struct Workspace;
+
+pub fn create_eunomia_home() -> Result<()> {
+    let eunomia_home_path = get_eunomia_home()?;
+    if !Path::new(&eunomia_home_path).exists() {
+        std::fs::create_dir_all(&eunomia_home_path)?;
+        println!("creating eunomia home dir: {}", eunomia_home_path);
+        for file in Workspace::iter() {
+            let file_path = format!("{}/{}", eunomia_home_path, file.as_ref());
+            let file_dir = Path::new(&file_path).parent().unwrap();
+            if !file_dir.exists() {
+                std::fs::create_dir_all(file_dir)?;
+            }
+            let content = Workspace::get(file.as_ref()).unwrap();
+            std::fs::write(&file_path, content.data.as_ref())?;
+            println!("creating file: {}", file_path);
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use clap::Parser;
+
+    #[test]
+    fn test_create_eunomia_home() {
+        create_eunomia_home().unwrap();
+        let home = get_eunomia_home().unwrap();
+        assert!(Path::new(&home).exists());
+    }
+
+    #[test]
+    fn test_parse_args() {
+        let _ = CompileOptions::parse_from(&["ecc", "test.c"]);
+        let _ = CompileOptions::parse_from(&["ecc", "test.c", "-o", "test.o"]);
+        let _ = CompileOptions::parse_from(&["ecc", "test.c", "test.h", "-v"]);
+        let _ = CompileOptions::parse_from(&["ecc", "test.c", "test.h", "-y"]);
+        let _ = CompileOptions::parse_from(&["ecc", "test.c", "-c", "clang"]);
+        let _ = CompileOptions::parse_from(&["ecc", "test.c", "-l", "llvm-strip"]);
+    }
+
+    #[test]
+    fn test_get_base_dir_include_fail() {
+        let source_path = "/xxx/test.c";
+        let _ = get_base_dir_include(source_path).unwrap_err();
+    }
 }
