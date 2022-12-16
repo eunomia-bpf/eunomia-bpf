@@ -123,7 +123,7 @@ fn do_compile(args: &CompileOptions, temp_source_file: &str) -> Result<()> {
     meta_json["bpf_skel"] = bpf_skel_with_doc;
 
     // compile export types
-    if args.export_event_header != "" {
+    if args.export_event_header.is_empty() {
         println!("Generating export types...");
         let export_types_json = get_export_types_json(args, &output_bpf_object_path)?;
         let export_types_json: Value = parse_json_output(&export_types_json)?;
@@ -148,14 +148,14 @@ pub fn compile_bpf(args: &CompileOptions) -> Result<()> {
     let source_file_content = fs::read_to_string(&args.source_path)?;
     let mut temp_source_file = args.source_path.clone();
 
-    if args.export_event_header != "" {
+    if args.export_event_header.is_empty() {
         temp_source_file = get_source_file_temp_path(args);
         // create temp source file
         fs::write(&temp_source_file, source_file_content)?;
         add_unused_ptr_for_structs(args, &temp_source_file)?;
     }
     let res = do_compile(args, &temp_source_file);
-    if args.export_event_header != "" {
+    if args.export_event_header.is_empty() {
         fs::remove_file(temp_source_file)?;
     }
     res

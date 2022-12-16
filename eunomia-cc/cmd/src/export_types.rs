@@ -4,7 +4,7 @@ use crate::config::*;
 use anyhow::Result;
 use regex::Captures;
 use regex::Regex;
-const _EXPORT_C_TEMPLATE: &'static str = r#"
+const _EXPORT_C_TEMPLATE: &str = r#"
 // do not use this file: auto generated
 #include "vmlinux.h"
 
@@ -13,7 +13,7 @@ const _EXPORT_C_TEMPLATE: &'static str = r#"
 
 "#;
 
-const REGEX_STRUCT_PATTREN: &'static str = r#"struct\s+(\w+)\s*\{"#;
+const REGEX_STRUCT_PATTREN: &str = r#"struct\s+(\w+)\s*\{"#;
 
 // find all structs in event header
 pub fn find_all_export_structs(args: &CompileOptions) -> Result<Vec<String>> {

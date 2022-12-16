@@ -51,10 +51,10 @@ fn process_comment_child(child: CommentChild, value: &mut Value, default_cmd: &s
         CommentChild::Text(text) => {
             let text = text.trim();
             // skip blank text
-            if text == "" {
+            if text.is_empty() {
                 return;
             }
-            value[&default_cmd] = match serde_json::from_str::<Value>(&text) {
+            value[&default_cmd] = match serde_json::from_str::<Value>(text) {
                 Ok(v) => v,
                 Err(_) => {
                     // if text is not json, use it as string
@@ -111,7 +111,7 @@ fn resolve_section_data_entities(entities: &Vec<Entity>, data_sec: &mut Value) {
 fn resolve_map_entities(entities: &Vec<Entity>, map: &mut Value) {
     let mut last_var_entity = None;
     for e in entities {
-        if e.get_kind() != EntityKind::VarDecl || last_var_entity == None {
+        if e.get_kind() != EntityKind::VarDecl || last_var_entity.is_none() {
             last_var_entity = Some(e);
             continue;
         }
