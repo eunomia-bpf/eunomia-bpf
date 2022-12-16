@@ -63,14 +63,14 @@ pub fn get_eunomia_home() -> Result<String> {
                 let home = home.join(".eunomia");
                 Ok(home.to_str().unwrap().to_string())
             }
-            None => return Err(anyhow::anyhow!("HOME is not found")),
+            None => Err(anyhow::anyhow!("HOME is not found")),
         },
     }
 }
 
 /// Get output path for json: output.meta.json
 pub fn get_output_config_path(args: &CompileOptions) -> String {
-    let output_path = if args.output_path == "" {
+    let output_path = if args.output_path.is_empty() {
         path::Path::new(&args.source_path).with_extension("")
     } else {
         path::Path::new(&args.output_path).to_path_buf()
@@ -85,7 +85,7 @@ pub fn get_output_config_path(args: &CompileOptions) -> String {
 
 /// Get output path for bpf object: output.bpf.o  
 pub fn get_output_object_path(args: &CompileOptions) -> String {
-    let output_path = if args.output_path == "" {
+    let output_path = if args.output_path.is_empty() {
         path::Path::new(&args.source_path).with_extension("")
     } else {
         path::Path::new(&args.output_path).to_path_buf()
@@ -102,7 +102,7 @@ pub fn get_source_file_temp_path(args: &CompileOptions) -> String {
 
 /// Get include paths from clang
 pub fn get_bpf_sys_include(args: &CompileOptions) -> Result<String> {
-    let mut command = format!("{}", args.clang_bin);
+    let mut command = args.clang_bin.clone();
     command += r#" -v -E - </dev/null 2>&1 | sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }'
      "#;
     let (code, output, error) = run_script::run_script!(command).unwrap();
