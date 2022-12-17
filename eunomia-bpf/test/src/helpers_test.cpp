@@ -68,3 +68,12 @@ TEST_CASE("test trace helpers kprobe exists", "[trace][helpers]")
 {
     REQUIRE(kprobe_exists("do_unlinkat"));
 }
+
+
+
+TEST_CASE("test trace helpers tracepoint exists", "[trace][helpers]")
+{
+    REQUIRE(tracepoint_exists("do_unlinkat","true")==0);
+    REQUIRE(tracepoint_exists("do_unlinkat","false")==0);
+}
+
