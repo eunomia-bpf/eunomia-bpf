@@ -69,11 +69,24 @@ TEST_CASE("test trace helpers kprobe exists", "[trace][helpers]")
     REQUIRE(kprobe_exists("do_unlinkat"));
 }
 
-
-
 TEST_CASE("test trace helpers tracepoint exists", "[trace][helpers]")
 {
-    REQUIRE(tracepoint_exists("do_unlinkat","true")==0);
-    REQUIRE(tracepoint_exists("do_unlinkat","false")==0);
+    REQUIRE(tracepoint_exists("do_unlinkat", "true") == 0);
+    REQUIRE(tracepoint_exists("do_unlinkat", "false") == 0);
 }
 
+TEST_CASE("test trace helpers probe_ringbuf", "[trace][helpers")
+{
+    REQUIRE(probe_ringbuf() == true);
+}
+
+TEST_CASE("test trace helpers probe_tp_btf", "[trace][helpers")
+{
+    REQUIRE(probe_tp_btf("ss") == false);
+    REQUIRE(probe_tp_btf("softirq_entry") == true);
+    REQUIRE(probe_tp_btf("sched_wakeup") == true);
+    REQUIRE(probe_tp_btf("sched_switch") == true);
+    REQUIRE(probe_tp_btf("SCHED_SWITCH") == false);
+    REQUIRE(probe_tp_btf("block_rq_insert") == true);
+    REQUIRE(probe_tp_btf(" ") == false);
+}
