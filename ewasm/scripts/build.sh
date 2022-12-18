@@ -17,13 +17,15 @@ OUT_FILE=${i%.*}.wasm
 
 # use WAMR SDK to build out the .wasm binary
 /opt/wasi-sdk/bin/clang     \
-        --target=wasm32 -O0 -z stack-size=4096 -Wl,--initial-memory=65536 \
-        --sysroot=${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot  \
+        --target=wasm32-wasi \
+        -O0 -z stack-size=4096 -Wl,--initial-memory=65536 \
+        --sysroot=/opt/wasi-sdk/share/wasi-sysroot  \
         -I${INCLUDE_DIR} \
         -Wl,--allow-undefined-file=${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot/share/defined-symbols.txt \
-        -Wl,--strip-all,--no-entry -nostdlib \
+        -Wl,--export=all \
         -Wl,--export=bpf_main \
         -Wl,--export=process_event \
+        -Wl,--strip-all,--no-entry \
         -Wl,--allow-undefined \
         -o ${OUT_FILE} ${APP_SRC}
 
@@ -43,13 +45,15 @@ OUT_FILE=${i%.*}.wasm
 
 # use WAMR SDK to build out the .wasm binary
 /opt/wasi-sdk/bin/clang     \
-        --target=wasm32 -O0 -z stack-size=4096 -Wl,--initial-memory=65536 \
-        --sysroot=${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot  \
+        --target=wasm32-wasi \
+        -O0 -z stack-size=4096 -Wl,--initial-memory=65536 \
+        --sysroot=/opt/wasi-sdk/share/wasi-sysroot  \
         -I${INCLUDE_DIR} \
         -Wl,--allow-undefined-file=${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot/share/defined-symbols.txt \
-        -Wl,--strip-all,--no-entry -nostdlib \
+        -Wl,--export=all \
         -Wl,--export=bpf_main \
         -Wl,--export=process_event \
+        -Wl,--strip-all,--no-entry \
         -Wl,--allow-undefined \
         -o ${OUT_FILE} ${APP_SRC}
 
