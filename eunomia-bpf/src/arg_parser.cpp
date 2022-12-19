@@ -309,7 +309,7 @@ register_args(argparse::ArgumentParser &program, json &bpf_skel,
 int
 parse_args_for_json_config(const std::string &json_config,
                            std::string &new_config,
-                           std::vector<std::string> args)
+                           std::vector<std::string> args) noexcept
 {
     json j;
     try {
