@@ -373,6 +373,6 @@ errors
 doxygens/
 docs/
 build-wasm
-wasi-sdk-16.0-linux.tar.gz
-wasi-sdk-16.0
+wasi-sdk-*-linux.tar.gz
+wasi-sdk-*
 test/wasm-apps/*.wasm
