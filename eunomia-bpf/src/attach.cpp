@@ -17,7 +17,6 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "helpers/map_helpers.h"
 #include "helpers/trace_helpers.h"
 }
 
