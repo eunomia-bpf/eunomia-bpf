@@ -6,11 +6,11 @@ ways you can get involved.
 
 If you are looking for a good way to contribute to the project, please:
 
-* have a look at the [available issue templates](https://github.com/filipdutescu/modern-cpp-template/issues/new/choose)
-and checkout the [examples of good first issues](https://github.com/filipdutescu/modern-cpp-template/contribute)
-(or [click here](https://github.com/filipdutescu/modern-cpp-template/labels/good%20first%20issue)).
+* have a look at the [available issue templates](https://github.com/eunomia-bpf/eunomia-bpf/issues/new/choose)
+and checkout the [examples of good first issues](https://github.com/eunomia-bpf/eunomia-bpf/contribute)
+(or [click here](https://github.com/eunomia-bpf/eunomia-bpf/labels/good%20first%20issue)).
 
-* look through the [issues that need help](https://github.com/filipdutescu/modern-cpp-template/labels/help%20wanted).
+* look through the [issues that need help](https://github.com/eunomia-bpf/eunomia-bpf/labels/help%20wanted).
 
 * take a look at a [Pull Request template](PULL_REQUEST_TEMPLATE.md) to get yourself
 started.
@@ -18,27 +18,27 @@ started.
 ## Reporting issues and suggesting new features
 
 If you find that the project is not working properly, please file a report using
-the [Bug Report template](https://github.com/filipdutescu/modern-cpp-template/issues/new?assignees=&labels=bug&template=bug_report.md&title=[BUG]).
+the [Bug Report template](https://github.com/eunomia-bpf/eunomia-bpf/issues/new?assignees=&labels=bug&template=bug_report.md&title=[BUG]).
 Should the template provided not suit your needs, feel free to make a
-[custom Bug Report](https://github.com/filipdutescu/modern-cpp-template/issues/new/choose),
+[custom Bug Report](https://github.com/eunomia-bpf/eunomia-bpf/issues/new/choose),
 but please label it accordingly.
 
 We are happy to hear your ideas for how to further improve eunomia-bpd,
-ensuring it suits your needs. Check the [Issues](https://github.com/filipdutescu/modern-cpp-template/issues)
+ensuring it suits your needs. Check the [Issues](https://github.com/eunomia-bpf/eunomia-bpf/issues)
 and see if others have submitted similar feedback. You can upvote existing feedback
-(using the thumbs up reaction/by commenting) or [submit a new suggestion](https://github.com/filipdutescu/modern-cpp-template/labels/feature).
+(using the thumbs up reaction/by commenting) or [submit a new suggestion](https://github.com/eunomia-bpf/eunomia-bpf/labels/feature).
 
-We always look at upvoted items in [Issues](https://github.com/filipdutescu/modern-cpp-template/issues)
+We always look at upvoted items in [Issues](https://github.com/eunomia-bpf/eunomia-bpf/issues)
 when we decide what to work on next. We read the comments and we look forward to
 hearing your input.
 
 ## Finding issues you can help with
 
 Looking for something to work on?
-Issues marked [`good first issue`](https://github.com/filipdutescu/modern-cpp-template/labels/good%20first%20issue)
+Issues marked [`good first issue`](https://github.com/eunomia-bpf/eunomia-bpf/labels/good%20first%20issue)
 are a good place to start.
 
-You can also check the [`help wanted`](https://github.com/filipdutescu/modern-cpp-template/labels/help%20wanted)
+You can also check the [`help wanted`](https://github.com/eunomia-bpf/eunomia-bpf/labels/help%20wanted)
 tag to find other issues to help with. If you're interested in working on a fix,
 leave a comment to let everyone know and to help avoid duplicated effort from others.
 
@@ -139,7 +139,7 @@ community may participate in the review, but at least one member of the project 
 will ultimately approve the request.
 
 Often, multiple iterations or discussions will be needed to responding to feedback
-from reviewers. Try looking at [past pull requests](https://github.com/filipdutescu/modern-cpp-template/pulls?q=is%3Apr+is%3Aclosed)
+from reviewers. Try looking at [past pull requests](https://github.com/eunomia-bpf/eunomia-bpf/pulls?q=is%3Apr+is%3Aclosed)
 to see what the experience might be like.
 
 ## Contributor License Agreement

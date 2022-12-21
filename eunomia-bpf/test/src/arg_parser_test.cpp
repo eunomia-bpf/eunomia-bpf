@@ -25,6 +25,21 @@ parse_arg_for_program(const char *path, std::vector<std::string> args)
     json config = json::parse(json_str);
     int res =
         parse_args_for_json_config(config["meta"].dump(), new_config, args);
+    if (res != 0) {
+        return res;
+    }
+    config["meta"] = json::parse(new_config);
+    bpf_skeleton ebpf_program;
+    res = ebpf_program.open_from_json_config(config.dump());
+    if (res != 0) {
+        std::cout << new_config << std::endl;
+        return res;
+    }
+    res = ebpf_program.load_and_attach();
+    if (res != 0) {
+        return res;
+    }
+    ebpf_program.destroy();
     return res;
 }
 
@@ -59,6 +74,6 @@ TEST_CASE("test arg bootstrap", "[bootstrap]")
                                   { "boostrap", "-f" })
             != 0);
     REQUIRE(parse_arg_for_program("../../test/asserts/bootstrap.json",
-                                  { "boostrap", "--min_duration_ns", "0" })
+                                  { "boostrap", "--min_duration_ns", "1000" })
             == 0);
 }

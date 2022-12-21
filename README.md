@@ -244,13 +244,11 @@ We have tested on `x86` and `arm` platform, more Architecture tests will be adde
     ....
     ```
 
-- Install the compiler-toolchain for compiling eBPF kernel code to a `config` file or `WASM` module:
+- Install the compiler-toolchain for compiling eBPF kernel code to a `config` file or `WASM` module(`clang` and `llvm` should be installed already):
 
     ```console
-    $ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/eunomia.tar.gz
-    $ tar -xvf eunomia.tar.gz -C ~
-    $ export PATH=$PATH:~/.eunomia/bin
-    $ ecc -h
+    $ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecc && chmod +x ./ecc
+    $ ./ecc -h
     eunomia-bpf compiler
     Usage: ecc [OPTIONS] <SOURCE_PATH> [EXPORT_EVENT_HEADER]
     ....
