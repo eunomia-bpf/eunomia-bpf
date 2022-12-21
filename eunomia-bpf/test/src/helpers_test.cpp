@@ -14,7 +14,6 @@
 extern "C" {
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
-#include <btf_helpers.h>
 #include <uprobe_helpers.h>
 #include <trace_helpers.h>
 }
@@ -23,9 +22,10 @@ using namespace eunomia;
 
 TEST_CASE("test btf helpers", "[btf][helpers]")
 {
-    DECLARE_LIBBPF_OPTS(bpf_object_open_opts, openopts);
-    REQUIRE(ensure_core_btf(&openopts) == 0);
-    cleanup_core_btf(&openopts);
+    // DECLARE_LIBBPF_OPTS(bpf_object_open_opts, openopts);
+    // REQUIRE(ensure_core_btf(&openopts) == 0);
+    // cleanup_core_btf(&openopts);
+    // remove useless helpers temporarily
 }
 
 TEST_CASE("test uprobe helpers", "[uprobe][helpers]")
@@ -90,26 +90,26 @@ TEST_CASE("test trace helpers probe_tp_btf", "[trace][helpers")
     REQUIRE(probe_tp_btf("block_rq_insert") == true);
     REQUIRE(probe_tp_btf(" ") == false);
 }
-TEST_CASE("test trace helpers vmlinux_btf_exists","[trace][helpers")
+TEST_CASE("test trace helpers vmlinux_btf_exists", "[trace][helpers")
 {
-    REQUIRE(vmlinux_btf_exists()==true);
+    REQUIRE(vmlinux_btf_exists() == true);
 }
 
-TEST_CASE("test trace helpers fentry_can_attach","[trace][helpers")
+TEST_CASE("test trace helpers fentry_can_attach", "[trace][helpers")
 {
-    REQUIRE(fentry_can_attach("tcp_v4_syn_recv_sock", NULL)==true);
-    REQUIRE(fentry_can_attach("vfs_read", NULL)==true);
-    REQUIRE(fentry_can_attach("folio_account_dirtied", NULL)==false);
-    REQUIRE(fentry_can_attach("inet_listen", NULL)==true);
-    REQUIRE(fentry_can_attach("mutex_lock_nested", NULL)==false);
-    REQUIRE(fentry_can_attach("mutex_lock", NULL)==true);
-    REQUIRE(fentry_can_attach("blk_account_io_start", NULL)==true);
-    REQUIRE(fentry_can_attach("tcp_v4_connect", NULL)==true);
-    REQUIRE(fentry_can_attach("tcp_rcv_established", NULL)==true);
-    REQUIRE(fentry_can_attach("blk_account_io_start", NULL)==true);
+    REQUIRE(fentry_can_attach("tcp_v4_syn_recv_sock", NULL) == true);
+    REQUIRE(fentry_can_attach("vfs_read", NULL) == true);
+    REQUIRE(fentry_can_attach("folio_account_dirtied", NULL) == false);
+    REQUIRE(fentry_can_attach("inet_listen", NULL) == true);
+    REQUIRE(fentry_can_attach("mutex_lock_nested", NULL) == false);
+    REQUIRE(fentry_can_attach("mutex_lock", NULL) == true);
+    REQUIRE(fentry_can_attach("blk_account_io_start", NULL) == true);
+    REQUIRE(fentry_can_attach("tcp_v4_connect", NULL) == true);
+    REQUIRE(fentry_can_attach("tcp_rcv_established", NULL) == true);
+    REQUIRE(fentry_can_attach("blk_account_io_start", NULL) == true);
 }
 
-TEST_CASE("test trace helpers module_btf_exists","[trace][helpers")
+TEST_CASE("test trace helpers module_btf_exists", "[trace][helpers")
 {
-    REQUIRE(module_btf_exists("true")==false);
+    REQUIRE(module_btf_exists("true") == false);
 }

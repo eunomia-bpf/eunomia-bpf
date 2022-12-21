@@ -7,8 +7,6 @@ set(sources
     src/arg_parser.cpp
     src/trace_helpers.c
     src/uprobe_helpers.c
-    src/map_helpers.c
-    src/btf_helpers.c
 )
 
 set(exe_sources

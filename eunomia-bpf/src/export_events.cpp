@@ -11,7 +11,6 @@ extern "C" {
 #include <bpf/btf.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "helpers/map_helpers.h"
 #include "helpers/trace_helpers.h"
 }
 
