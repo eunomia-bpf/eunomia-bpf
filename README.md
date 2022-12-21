@@ -1,4 +1,4 @@
-# eunomia-bpf: A library to help you build and distribute eBPF program easier
+# eunomia-bpf: libraries and tools to help you build and distribute eBPF program easier
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
@@ -8,13 +8,18 @@
 
 ## Introduction
 
-`eunomia-bpf` is a dynamic loading library and a compile toolchain, aim to help you build and distribute eBPF programs easier. Some command line tools are also provided to help you build, distribute and run the eBPF programs.
+`eunomia-bpf` is a dynamic loading library/runtime backend and a compile toolchain frontend, aim at helping you build and distribute eBPF programs easier. Some command line tools are also provided to help you build, distribute and run the eBPF programs.
 
-We have 3 main features:
+We have 3 main features for out compile SDK and runtime:
 
-- Write eBPF kernel code only with comments to build `CO-RE` libbpf eBPF applications
-- Compile and pack CO-RE eBPF kernel code to a config file, eg. `JSON` or `YAML` format
-- Write user space code for your eBPF program in `WebAssembly`, and  pack the program with a `WASM` module
+- Write eBPF kernel code only with comments to build simple `CO-RE` libbpf eBPF applications in multiple format, BCC and libbpf style are both accepted
+- Compile and pack CO-RE eBPF kernel code to a config metadata with ELF object, eg. `JSON` or `YAML` format, dynamically load it everywhere with CO-RE libbpf runtime
+- Write user space code for your eBPF program with `WebAssembly` in C++/C/Go/Rust...etc
+
+Tools are also provided:
+
+- convert BCC stype source code to libbpf style source code
+- some tracing tool examples
 
 ### Write eBPF kernel code only to build CO-RE libbpf eBPF applications
 
@@ -349,7 +354,7 @@ see [benchmark](documents/benchmark.md) for details.
 - [X] add simple pacakage manager in `OCI` `and` ORAS for eunomia-bpf: in [LMP](https://github.com/linuxkerneltravel/lmp) community
 - [X] use WASM for ebpf package load config and add more user space support
 - [X] support running in `ARM` and `x86`
-- [ ] add more helper functions from `libbpf`
+- [X] add more helper functions from `libbpf`
 - [ ] Android support
 - [ ] `riscv` support
 - [ ] provide python, go and others sdk
