@@ -55,9 +55,11 @@ pub struct CompileOptions {
     pub yaml: bool,
 }
 
+static EUNOMIA_HOME_ENV: &str = "EUNOMIA_HOME";
+
 /// Get home directory from env
 pub fn get_eunomia_home() -> Result<String> {
-    let eunomia_home = std::env::var("EUNOMIA_HOME");
+    let eunomia_home = std::env::var(EUNOMIA_HOME_ENV);
     match eunomia_home {
         Ok(home) => Ok(home),
         Err(_) => match home::home_dir() {
