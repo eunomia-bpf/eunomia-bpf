@@ -3,4 +3,4 @@ ignore:
   - "examples"
   - "eunomia-sdks"
   - "third_party"
-  - "eunomia-bpf/include/helpers/syscall_helpers.h"
+  - "bpf-loader/include/helpers/syscall_helpers.h"

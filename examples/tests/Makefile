@@ -16,7 +16,7 @@ install-deps:
 	make -C $(ECLI_DIR) install
 	cp $(ECLI_DIR)build/bin/Release/ecli ./ecli
 
-# test with the files in eunomia-bpf
+# test with the files in bpf-loader
 TEST_CASES_DIRS=$(shell ls -l $(TEST_EXAMPLE_DIR) | grep ^d | awk '{print $$9}')
 test: $(TEST_CASES_DIRS)
 

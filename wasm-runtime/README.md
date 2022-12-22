@@ -1,15 +1,15 @@
 # ewasm: a dynamically loading library for eBPF with WASM
 
 - build the user space and kernel space eBPF as a WASM module
-- load the WASM module dynamically and run with eunomia-bpf
+- load the WASM module dynamically and run with bpf-loader
 
 ## How it works
 
-The library use the `eunomia-bpf` library to load `eBPF` program from a `WASM` module, you can write a WASM module to operate the eBPF program or process the data in user space `WASM` runtime. The idea is simple:
+The library use the `bpf-loader` library to load `eBPF` program from a `WASM` module, you can write a WASM module to operate the eBPF program or process the data in user space `WASM` runtime. The idea is simple:
 
 1. compile the kernel eBPF code skeleton to the `JSON` format with `eunomia-cc` toolchain
 2. embed the `JSON` data in the `WASM` module, and provide some API for operating the eBPF program skeleton
-3. load the `JSON` data from the `WASM` module and run the eBPF program skeleton with `eunomia-bpf` library
+3. load the `JSON` data from the `WASM` module and run the eBPF program skeleton with `bpf-loader` library
 
 ## example: opensnoop
 

@@ -11,7 +11,7 @@ $ # download the release from https://github.com/eunomia-bpf/eunomia-bpf/release
 $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ecli
 ```
 
-see [eunomia-bpf](../eunomia-bpf) folder for details. With the library, we have provide [a simple cli](https://github.com/eunomia-bpf/eunomia-bpf/releases/), you can simply run pre-compiled ebpf data with a url or path, on most eBPF supported kernel versions:
+see [bpf-loader](../ebpf-loader folder for details. With the library, we have provide [a simple cli](https://github.com/eunomia-bpf/eunomia-bpf/releases/), you can simply run pre-compiled ebpf data with a url or path, on most eBPF supported kernel versions:
 
 ```bash
 $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url

@@ -84,7 +84,7 @@ $ curl -X POST http://127.0.0.1:8526/stop -H "Content-Type: application/json" -d
 
 ## build
 
-Notice: You must compile `eunomia-bpf` before build `eunomia-exporter`. Details in [build.md](../documents/build.md)
+Notice: You must compile `bpf-loader` before build `eunomia-exporter`. Details in [build.md](../documents/build.md)
 
 This component was written by rust,Please install `rust` before build.
 

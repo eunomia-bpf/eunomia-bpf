@@ -172,7 +172,7 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
 verbose_message("Successfully added all dependencies and linked against them.")
 
-set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../eunomia-bpf)
+set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../bpf-loader)
 set(EUNOMIA_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
 include_directories(${EUNOMIA_DIR}/include)
 

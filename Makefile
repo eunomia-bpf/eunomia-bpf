@@ -1,6 +1,6 @@
-.PHONY: ecli eunomia-bpf eunomia-exporter help install-deps clean ewasm all
+.PHONY: ecli bpf-loader eunomia-exporter help install-deps clean ewasm all
 .DEFAULT_GOAL := all
-all: eunomia-bpf ewasm ecli ## Build all binaries
+all: bpf-loader ewasm ecli ## Build all binaries
 
 define BROWSER_PYSCRIPT
 import os, webbrowser, sys
@@ -41,15 +41,15 @@ ecli: ## build the command line tool for eunomia-bpf
 ewasm: ## build the command line tool for eunomia-bpf
 	make -C ewasm build
 
-eunomia-bpf: ## build the core library for eunomia-bpf
-	make -C eunomia-bpf
+bpf-loader: ## build the core library for eunomia-bpf
+	make -C bpf-loader
 
 clean: ## clean all build projects
-	make -C eunomia-bpf clean
+	make -C bpf-loader clean
 	make -C ecli clean
 
 eunomia-exporter: ## build the exporter for custom metric
-	make -C eunomia-bpf
+	make -C bpf-loader
 	cd eunomia-exporter && cargo build --release
 
 release:

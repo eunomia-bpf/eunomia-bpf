@@ -275,13 +275,13 @@ we have a loader library, a compile toolchain, and some additional tools like cl
 
 ![eunomia-arch.png](documents/images/eunomia-arch.png)
 
-### An eunomia-bpf library
+### An bpf-loader library
 
 A wrapper of main functions of libbpf, provide the ability to dynamically load eBPF code to the kernel and run it with a simple JSON and a few API.
 
-see [eunomia-bpf](eunomia-bpf) for details.
+see [bpf-loader](eunomia-bpf) for details.
 
-A [simple cli interface](ecli) is provided for eunomia-bpf library, which you can use it to start any eBPF program from a url in a command. You can download it from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/).
+A [simple cli interface](ecli) is provided for bpf-loader library, which you can use it to start any eBPF program from a url in a command. You can download it from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/).
 
 see [examples](examples) for more examples.
 
@@ -295,7 +295,7 @@ Use the `eunomia-bpf` library to load `eBPF` program from a `WASM` module, you c
 
 You can have multiple `eBPF` program in a single `WASM` module.
 
-See [ewasm](ewasm) for details. In fact, `ewasm` library only exports a few functions from `eunomia-bpf` library to the `VM`, so you can replace the `WASM` runtime with your own easily.
+See [ewasm](ewasm) for details. In fact, `ewasm` library only exports a few functions from `bpf-loader` library to the `VM`, so you can replace the `WASM` runtime with your own easily.
 
 For example, you can run an eBPF program with a WASM module for an URL:
 
