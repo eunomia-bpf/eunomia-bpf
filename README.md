@@ -303,7 +303,7 @@ For example, you can run an eBPF program with a WASM module for an URL:
 sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/app.wasm
 ```
 
-You can also generate a WASM program template for eBPF or build WASM module with `eunomia-cc` container:
+You can also generate a WASM program template for eBPF or build WASM module with `compiler` container:
 
 ```shell
 docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest gen-wasm-skel # generate WASM app template for eBPF
@@ -316,7 +316,7 @@ see [sigsnoop example](examples/bpftools/sigsnoop) for more detail.
 
 The toolchain can be used as a docker to generate pre-compiled eBPF data in one command:
 
-see the compile toolchains [eunomia-cc](eunomia-cc) for details.
+see the compile toolchains [compiler](compiler) for details.
 
 you can also simply use the [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) repo as a template in github, just push to it and github action can help you compile CO-RE ebpf code!
 

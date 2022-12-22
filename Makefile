@@ -44,6 +44,9 @@ ewasm: ## build the command line tool for eunomia-bpf
 bpf-loader: ## build the core library for eunomia-bpf
 	make -C bpf-loader
 
+ecc: ## build the core library for eunomia-bpf
+	make -C compiler
+
 clean: ## clean all build projects
 	make -C bpf-loader clean
 	make -C ecli clean
@@ -54,7 +57,7 @@ eunomia-exporter: ## build the exporter for custom metric
 
 release:
 	make -C ecli install
-	make -C eunomia-cc install
+	make -C compiler install
 	cp -R ~/.eunomia .eunomia
 	tar -czvf eunomia.tar.gz .eunomia
 	rm -rf .eunomia

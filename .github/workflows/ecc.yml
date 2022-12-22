@@ -1,4 +1,4 @@
-name: Build and test eunomia-cc on Ubuntu
+name: Build and test compiler on Ubuntu
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
 
     - name: install deps
       run: |
-          sudo make -C eunomia-cc install-deps
+          sudo make -C compiler install-deps
           cargo install clippy-sarif sarif-fmt grcov
           rustup component add llvm-tools-preview
 
@@ -44,14 +44,14 @@ jobs:
         key: ${{ runner.os }}-dependencies
 
     - name: build ecc
-      run:  cd eunomia-cc && make && make install
+      run:  cd compiler && make && make install
 
     - name: test ecc
-      run:  cd eunomia-cc && make test
+      run:  cd compiler && make test
     - name: Upload analysis results to GitHub
       uses: github/codeql-action/upload-sarif@v1
       with:
-        sarif_file: eunomia-cc/cmd/rust-clippy-results.sarif
+        sarif_file: compiler/cmd/rust-clippy-results.sarif
         wait-for-processing: true
 
     - name: Code coverage using Codecov

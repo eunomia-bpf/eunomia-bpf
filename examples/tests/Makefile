@@ -1,7 +1,7 @@
 TEST_EXAMPLE_DIR ?= ../bpftools/
 TEST_TIME ?= 2
 ECLI_DIR ?= ../../ecli/
-ECC_DIR ?= ../../eunomia-cc/
+ECC_DIR ?= ../../compiler/
 ECC_BIN ?= ~/.eunomia/bin/ecc
 
 # TODO: maybe use the compile docker to test?
