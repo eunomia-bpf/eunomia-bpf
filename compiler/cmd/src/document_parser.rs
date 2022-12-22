@@ -260,7 +260,7 @@ pub fn parse_source_documents(
 #[cfg(test)]
 mod test {
     use super::*;
-    const SOURCE_PATH: &str = "/home/yunwei/eunomia-bpf/eunomia-cc/cmd/test/client.bpf.c";
+    const SOURCE_PATH: &str = "./compiler/cmd/test/client.bpf.c";
 
     #[test]
     fn test_parse_variables() {

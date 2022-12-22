@@ -21,6 +21,12 @@ On CentOS/Fedora, you need:
 $ dnf install clang elfutils-libelf elfutils-libelf-devel zlib-devel
 ```
 
+install rust toolchain
+
+```shell
+curl https://sh.rustup.rs -sSf | sh -s
+```
+
 ## build bpf-loader
 
 bpf-loader is our core library written in C++17. It has no other dependencies except libbpf.
@@ -42,16 +48,6 @@ $ make ecli
 
 reference: https://github.com/libbpf/libbpf-bootstrap
 
-## build eunomia-exporter
-
-The eunomia-exporter is written in Rust, you need to install the toolchain first. And you need to compile the `eunomia-bpf` library, which will be statically linked to the exporter.
-
-then you can build the exporter:
-
-```shell
-$ make eunomia-exporter
-```
-
 ## build wasm lib
 
 ```shell
@@ -59,6 +55,12 @@ $ make wasm-runtime
 ```
 
 Please install WASI SDK, download the [wasi-sdk](https://github.com/CraneStation/wasi-sdk/releases) release and extract the archive to default path /opt/wasi-sdk if you want to compile c code to wasm.
+
+## build compiler
+
+```shell
+$ make ecc
+```
 
 ## more details
 

@@ -51,7 +51,7 @@ $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # sim
 ### 一个帮助您生成预编译eBPF数据的编译工具链
 
 该工具链可以和docker一样使用，在一个命令中生成预编译的eBPF数据:
-详细信息请参见 [eunomia-cc](eunomia-cc)。
+详细信息请参见 [eunomia-cc](compiler)。
 您也可以简单地使用 [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) 作为一个模板，将修改推送到这里后使用github action可以帮助您编译CO-RE ebpf代码!
 
 ### 一个可观测性工具
