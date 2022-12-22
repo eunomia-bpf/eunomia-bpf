@@ -68,7 +68,7 @@ fn process_comment_child(child: CommentChild, value: &mut Value, default_cmd: &s
             value[&command.command] = json!(true);
         }
         CommentChild::BlockCommand(command) => {
-            let mut text = String::new();
+            let mut text = String::default();
             for child in command.children {
                 if let CommentChild::Text(t) = child {
                     text.push_str(&t);
