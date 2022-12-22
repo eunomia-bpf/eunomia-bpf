@@ -1,9 +1,9 @@
+#!/bin/bash
 #
 # Copyright (C) 2019 Intel Corporation.  All rights reserved.
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 #
 
-#!/bin/bash
 
 CURR_DIR=$PWD
 WAMR_DIR=${PWD}/../../third_party/wasm-micro-runtime
@@ -38,7 +38,7 @@ fi
 done
 
 
-for i in `ls *.cpp`
+for i in *.cpp
 do
 APP_SRC="$i"
 OUT_FILE=${i%.*}.wasm
