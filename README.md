@@ -295,7 +295,7 @@ Use the `eunomia-bpf` library to load `eBPF` program from a `WASM` module, you c
 
 You can have multiple `eBPF` program in a single `WASM` module.
 
-See [ewasm](ewasm) for details. In fact, `ewasm` library only exports a few functions from `bpf-loader` library to the `VM`, so you can replace the `WASM` runtime with your own easily.
+See [ewasm](wasm-runtime) for details. In fact, `ewasm` library only exports a few functions from `bpf-loader` library to the `VM`, so you can replace the `WASM` runtime with your own easily.
 
 For example, you can run an eBPF program with a WASM module for an URL:
 

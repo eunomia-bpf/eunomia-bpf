@@ -56,7 +56,7 @@ apt update
 apt install clang cmake libelf1 libelf-dev zlib1g-dev
 ```
 
-4.修改ewasm/CMakeLists.txt` 中的 `WAMR_BUILD_TARGET（may not required)
+4.修改wasm-runtime/CMakeLists.txt` 中的 `WAMR_BUILD_TARGET（may not required)
 
 change `set (WAMR_BUILD_TARGET "X86_64")` to `set (WAMR_BUILD_TARGET "AARCH64")`
 

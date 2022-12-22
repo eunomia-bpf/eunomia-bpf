@@ -84,18 +84,18 @@ test:
 	cd cmd && cargo clippy --all-features --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
 	cd cmd && cargo fmt --check
 
-EWASM_DIR ?= eunomia-bpf/ewasm
-EWASM_BUILD_DIR ?= $(EWASM_DIR)/build
+wasm-runtime_DIR ?= eunomia-bpf/wasm-runtime
+wasm-runtime_BUILD_DIR ?= $(wasm-runtime_DIR)/build
 
 .PHONY: build-wasm
 build-wasm: build
 	$(call msg,BUILD-WASM)
-	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C eunomia-bpf/ewasm/scripts build
+	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C eunomia-bpf/wasm-runtime/scripts build
 
 .PHONY: generate_wasm_skel
 gen-wasm-skel: build
 	$(call msg,GEN-WASM-SKEL)
-	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C eunomia-bpf/ewasm/scripts generate
+	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C eunomia-bpf/wasm-runtime/scripts generate
 
 .PHONY: build
 build:

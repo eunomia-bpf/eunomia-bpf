@@ -160,14 +160,14 @@ set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
 # Set the build/user include directories
 #
 set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../bpf-loader)
-set(EWASM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../ewasm)
+set(EWASM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../wasm-runtime)
 set(WAMR_ROOT_DIR ../third_party/wasm-micro-runtime)
 include_directories(${EUNOMIA_DIR}/include)
 include_directories(${THIRD_PARTY_DIR}/includes/)
 include_directories(${WAMR_ROOT_DIR}/core/iwasm/include/)
 include_directories(${EWASM_DIR}/include)
 
-add_subdirectory(${EWASM_DIR} ${CMAKE_CURRENT_BINARY_DIR}/ewasm)
+add_subdirectory(${EWASM_DIR} ${CMAKE_CURRENT_BINARY_DIR}/wasm-runtime)
 add_dependencies(ewasm libbpf-build)
 add_dependencies(${PROJECT_NAME} ewasm)
 target_link_libraries(${PROJECT_NAME} PUBLIC ewasm -lpthread)

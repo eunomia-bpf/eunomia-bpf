@@ -46,7 +46,7 @@ $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # sim
 
 在单个 `WASM` 模块中可以有多个 `eBPF` 程序。
 
-您可以在 [ewasm](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/ewasm) 中看到更多细节
+您可以在 [wasm-runtime](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/wasm-runtime) 中看到更多细节
 
 ### 一个帮助您生成预编译eBPF数据的编译工具链
 

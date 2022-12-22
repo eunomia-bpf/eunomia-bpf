@@ -39,7 +39,7 @@ ecli: ## build the command line tool for eunomia-bpf
 	make -C ecli install
 
 ewasm: ## build the command line tool for eunomia-bpf
-	make -C ewasm build
+	make -C wasm-runtime build
 
 bpf-loader: ## build the core library for eunomia-bpf
 	make -C bpf-loader

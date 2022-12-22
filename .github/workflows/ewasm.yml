@@ -1,15 +1,15 @@
-name: Build and test ewasm on Ubuntu
+name: Build and test wasm-runtime on Ubuntu
 
 on:
   push:
     branches: "*"
     paths:
-      - "ewasm/**"
+      - "wasm-runtime/**"
       - ".github/**"
   pull_request:
     branches: "*"
     paths:
-      - "ewasm/**"
+      - "wasm-runtime/**"
       - ".github/**"
 env:
   BUILD_TYPE: Release
@@ -43,10 +43,10 @@ jobs:
 
     - name: run unit tests
       run: |
-        cd ewasm/
+        cd wasm-runtime/
         sudo make test
 
     - name: run wasm generate tests
       run: |
-        cd ewasm/
+        cd wasm-runtime/
         sudo make test-wasm
