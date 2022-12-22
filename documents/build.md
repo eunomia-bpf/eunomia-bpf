@@ -21,20 +21,20 @@ On CentOS/Fedora, you need:
 $ dnf install clang elfutils-libelf elfutils-libelf-devel zlib-devel
 ```
 
-## build eunomia-bpf
+## build bpf-loader
 
-eunomia-bpf is our core library written in C++17. It has no other dependencies except libbpf.
+bpf-loader is our core library written in C++17. It has no other dependencies except libbpf.
 
 ```shell
 $ git submodule update --init --recursive       # check out libbpf
-$ make eunomia-bpf                              # build eunomia-bpf
+$ make bpf-loader                              # build ebpf-loader
 ```
 
 The recommended compiler is gcc9 or later.
 
 ## build ecli:
 
-After compile the eunomia-bpf, you can build the cli tool in C++:
+After compile the bpf-loader, you can build the cli tool in C++:
 
 ```shell
 $ make ecli

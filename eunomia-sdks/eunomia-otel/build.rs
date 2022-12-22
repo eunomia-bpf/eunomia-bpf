@@ -6,8 +6,8 @@ use std::path::PathBuf;
 fn main() {
     // FIXME: fix hardcoded abs path
     // because cargo publish is not working with relative path, we need to use absolute path
-    println!("cargo:rustc-link-search=../eunomia-bpf/build/lib/Release");
-    println!("cargo:rustc-link-search=../eunomia-bpf/build/libbpf");
+    println!("cargo:rustc-link-search=../bpf-loader/build/lib/Release");
+    println!("cargo:rustc-link-search=../bpf-loader/build/libbpf");
     println!("cargo:rustc-link-search=/lib/x86_64-linux-gnu");
     println!("cargo:rustc-link-search=/lib32");
 

@@ -1,4 +1,4 @@
-# eunomia-bpf: A Dynamic Loading Library for eBPF program
+# bpf-loader: A Dynamic Loading Library for eBPF program
 
 A wrapper of main functions of libbpf, some helper functions for user development.
 
@@ -11,7 +11,7 @@ A wrapper of main functions of libbpf, some helper functions for user developmen
 cmake for example:
 
 ```cmake
-set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../eunomia-bpf)
+set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../bpf-loader)
 set(EUNOMIA_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
 include_directories(${EUNOMIA_DIR}/include)
 
@@ -26,6 +26,6 @@ see the example in [../examples/simple-runner](../examples/simple-runner) for mo
 
 ## cli tool
 
-a simple cli interface for eunomia-bpf library, which you can use it to start any eBPF program from a url in a command.
+a simple cli interface for bpf-loader library, which you can use it to start any eBPF program from a url in a command.
 
 see [ecli](../ecli) for details.

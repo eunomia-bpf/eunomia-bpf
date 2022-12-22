@@ -63,7 +63,7 @@ change `set (WAMR_BUILD_TARGET "X86_64")` to `set (WAMR_BUILD_TARGET "AARCH64")`
 5.编译
 
 ```sh
-make eunomia-bpf
+make bpf-loader
 make ecli
 ```
 

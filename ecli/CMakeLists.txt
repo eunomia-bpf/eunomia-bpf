@@ -159,7 +159,7 @@ set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
 #
 # Set the build/user include directories
 #
-set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../eunomia-bpf)
+set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../bpf-loader)
 set(EWASM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../ewasm)
 set(WAMR_ROOT_DIR ../third_party/wasm-micro-runtime)
 include_directories(${EUNOMIA_DIR}/include)

@@ -1,4 +1,4 @@
-# a simple demo for eunomia-bpf
+# a simple demo for bpf-loader
 
 ## build
 
