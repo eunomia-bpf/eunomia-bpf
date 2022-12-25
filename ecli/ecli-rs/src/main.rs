@@ -16,8 +16,8 @@ pub enum Action {
         no_cache: Option<bool>,
         #[arg(long, short = 'j')]
         json: Option<bool>,
-        #[arg(long, short = 'f')]
-        file: String,
+        #[arg(allow_hyphen_values = true)]
+        prog: Vec<String>,
     },
 }
 
@@ -37,6 +37,6 @@ fn main() -> EcliResult<()> {
     init_log();
     let args = Args::parse();
     match args.action {
-        Action::Run { .. } => run(args.action.into()),
+        Action::Run { .. } => run(args.action.try_into()?),
     }
 }

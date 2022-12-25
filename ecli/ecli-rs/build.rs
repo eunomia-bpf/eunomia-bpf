@@ -1,12 +1,9 @@
 extern crate bindgen;
 
-use std::env;
-use std::path::PathBuf;
-
 fn main() {
-    println!("cargo:rustc-link-search=../bpf-loader/build/lib/Release");
-    println!("cargo:rustc-link-search=../wasm-runtime/build/lib/Release");
-    println!("cargo:rustc-link-search=../wasm-runtime/build");
+    println!("cargo:rustc-link-search=../../bpf-loader/build/lib/Release");
+    println!("cargo:rustc-link-search=../../wasm-runtime/build/lib/Release");
+    println!("cargo:rustc-link-search=../../wasm-runtime/build");
     println!("cargo:rustc-link-search=/lib/x86_64-linux-gnu");
 
     println!("cargo:rustc-link-lib=static=eunomia");
@@ -26,7 +23,7 @@ fn main() {
     let wasm_bindings = bindgen::Builder::default()
         // The input header we would like to generate
         // bindings for.
-        .header("../wasm-runtime/include/ewasm/ewasm.h")
+        .header("../../wasm-runtime/include/ewasm/ewasm.h")
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
@@ -45,7 +42,7 @@ fn main() {
     let json_bindings = bindgen::Builder::default()
         // The input header we would like to generate
         // bindings for.
-        .header("../bpf-loader/include/eunomia/eunomia-bpf.h")
+        .header("../../bpf-loader/include/eunomia/eunomia-bpf.h")
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))

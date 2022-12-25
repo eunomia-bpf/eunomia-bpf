@@ -1,5 +1,6 @@
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::os::raw::c_char;
 use std::os::raw::c_void;
 use std::ptr::null_mut;
 
@@ -25,7 +26,7 @@ pub fn handle_json(conf: ProgramConfigData) -> EcliResult<()> {
     let json_data = CString::new(conf.program_data_buf.as_slice())
         .map_err(|e| EcliError::Other(e.to_string()))?;
 
-    let bpf = unsafe { open_eunomia_skel_from_json_package(json_data.as_ptr()) };
+    let bpf = unsafe { open_eunomia_skel_from_json_package(json_data.as_ptr() as *const c_char) };
     if bpf.is_null() {
         return Err(EcliError::BpfError("open bpf from json fail".to_string()));
     }

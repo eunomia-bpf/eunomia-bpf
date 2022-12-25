@@ -54,6 +54,9 @@ stop_ebpf_program(struct eunomia_bpf *prog);
 /// @brief free the memory of the program
 void
 free_bpf_skel(struct eunomia_bpf *prog);
+/// @brief merge json config and args and return the new config
+char*
+new_json_config(const char* json_config, char** args, int argc);
 #ifdef __cplusplus
 }
 #endif

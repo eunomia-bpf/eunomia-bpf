@@ -607,4 +607,19 @@ get_bpf_fd(struct eunomia_bpf *prog, const char *name)
     }
     return prog->program.get_fd(name);
 }
+
+char*
+new_json_config(const char* json_config, char** args, int argc){
+    std::string new_conf_str;
+    std::vector<std::string> args_vec;
+    for (int i=0; i<argc; i++)
+        args_vec.push_back(args[i]);
+    
+    if (eunomia::parse_args_for_json_config(json_config,new_conf_str,args_vec) < 0)
+        return NULL;
+    
+    char* new_conf = (char*)malloc(new_conf_str.size() + 1);
+    strcpy(new_conf, new_conf_str.c_str());
+    return new_conf;
+}
 }
