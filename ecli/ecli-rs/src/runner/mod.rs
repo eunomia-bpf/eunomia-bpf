@@ -21,6 +21,7 @@ pub struct RunArgs {
     pub export_to_json: bool,
     // file path or url
     pub file: String,
+    pub extra_arg: Vec<String>,
     pub prog_type: ProgramType,
 }
 
@@ -69,19 +70,27 @@ impl RunArgs {
     }
 }
 
-impl From<Action> for RunArgs {
-    fn from(act: Action) -> Self {
+impl TryFrom<Action> for RunArgs {
+    type Error = EcliError;
+
+    fn try_from(act: Action) -> Result<Self, Self::Error> {
         match act {
             Action::Run {
                 no_cache,
                 json,
-                file,
-            } => Self {
-                no_cache: no_cache.unwrap_or_default(),
-                export_to_json: json.unwrap_or_default(),
-                file,
-                prog_type: ProgramType::Undefine,
-            },
+                mut prog,
+            } => {
+                if prog.len() == 0 {
+                    return Err(EcliError::ParamErr("prog not present".to_string()));
+                }
+                Ok(Self {
+                    no_cache: no_cache.unwrap_or_default(),
+                    export_to_json: json.unwrap_or_default(),
+                    file: prog.remove(0),
+                    extra_arg: prog,
+                    prog_type: ProgramType::Undefine,
+                })
+            }
         }
     }
 }
