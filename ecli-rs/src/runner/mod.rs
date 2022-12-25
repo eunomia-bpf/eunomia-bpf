@@ -38,8 +38,6 @@ impl RunArgs {
             return Ok(content);
         }
 
-        // TODO implement get content from repo
-
         // assume file is valid file path
         let path = Path::new(self.file.as_str());
         if path.exists() && path.is_file() {
@@ -61,11 +59,12 @@ impl RunArgs {
         self.prog_type = ProgramType::try_from(url.path())?;
 
         info!("read content from url {}", self.file);
-        reqwest::blocking::get(url)
+        ureq::get(url.as_str())
+            .call()
             .map_err(|e| EcliError::HttpError(e.to_string()))?
+            .into_reader()
             .read_to_end(&mut content)
             .map_err(|e| EcliError::IOErr(e))?;
-
         Ok(content)
     }
 }
