@@ -182,3 +182,22 @@ ewasm_program::~ewasm_program()
         wasm_runtime_unload(module);
     wasm_runtime_destroy();
 }
+
+// simple wrappers for C API
+extern "C" {
+
+struct ewasm_bpf {
+    ewasm_program prog;
+};
+
+struct ewasm_bpf* new_ewasm_bpf(){
+    return new ewasm_bpf{};
+}
+
+int ewasm_bpf_start(struct ewasm_bpf* ewasm,char* buff, int buff_size, char* json_env){
+    std::vector<char> buff_vec(buff, buff + buff_size);
+    std::string env(json_env);
+    return ewasm->prog.start(buff_vec,env);
+}
+
+}
