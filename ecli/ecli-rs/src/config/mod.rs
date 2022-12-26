@@ -1,14 +1,16 @@
 mod json;
-
-use std::ffi::{c_char, CString};
+use std::{
+    ffi::{c_char, CString},
+    process::exit,
+};
 
 use crate::{
     error::{EcliError, EcliResult},
-    json_runner::new_json_config,
+    json_runner::parse_args_to_json_config,
     runner::RunArgs,
 };
 
-use self::json::JsonProg;
+use serde_json::Value;
 
 pub enum ExportFormatType {
     ExportJson,
@@ -48,41 +50,6 @@ pub struct ProgramConfigData {
     pub export_format_type: ExportFormatType,
 }
 
-impl ProgramConfigData {
-    fn rewrite_prog_meta(&mut self) -> EcliResult<()> {
-        let mut j: JsonProg = serde_json::from_slice(&self.program_data_buf)
-            .map_err(|e| EcliError::JsonError(e.to_string()))?;
-        let meta =
-            serde_json::to_string(&j.meta).map_err(|e| EcliError::JsonError(e.to_string()))?;
-
-        let meta_c_str = CString::new(meta).map_err(|e| EcliError::Other(e.to_string()))?;
-        let mut extra_arg_raw = vec![];
-        for i in self.extra_arg.iter() {
-            let arg = CString::new(i.as_bytes()).unwrap();
-            extra_arg_raw.push(arg.as_ptr() as *mut c_char)
-        }
-
-        unsafe {
-            let new_conf = new_json_config(
-                meta_c_str.as_ptr(),
-                extra_arg_raw.as_mut_ptr(),
-                (extra_arg_raw.len() as i32).into(),
-            );
-            if new_conf.is_null() {
-                return Err(EcliError::BpfError(
-                    "get new config with prog param fail".to_string(),
-                ));
-            }
-
-            j.meta = serde_json::from_slice(CString::from_raw(new_conf).as_bytes())
-                .map_err(|e| EcliError::JsonError(e.to_string()))?
-        }
-
-        self.program_data_buf = serde_json::to_string(&j).unwrap().as_bytes().to_vec();
-        Ok(())
-    }
-}
-
 impl TryFrom<&mut RunArgs> for ProgramConfigData {
     type Error = EcliError;
 
@@ -100,7 +67,6 @@ impl TryFrom<&mut RunArgs> for ProgramConfigData {
                 ExportFormatType::ExportPlantText
             },
         };
-        s.rewrite_prog_meta()?;
         Ok(s)
     }
 }
