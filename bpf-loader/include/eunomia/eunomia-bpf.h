@@ -19,6 +19,9 @@ open_eunomia_skel_from_json(const char *json_data,
 /// create a new eunomia bpf program from a json file
 struct eunomia_bpf *
 open_eunomia_skel_from_json_package(const char *json_data);
+struct eunomia_bpf *
+open_eunomia_skel_from_json_package_with_args(const char *json_data,
+                                              char **args, int argc);
 /// @brief start running the ebpf program
 /// @details load and attach the ebpf program to the kernel to run the ebpf
 /// program if the ebpf program has maps to export to user space, you need to
@@ -55,8 +58,9 @@ stop_ebpf_program(struct eunomia_bpf *prog);
 void
 free_bpf_skel(struct eunomia_bpf *prog);
 /// @brief merge json config and args and return the new config
-char*
-new_json_config(const char* json_config, char** args, int argc);
+int
+parse_args_to_json_config(const char *json_config, char **args, int argc,
+                          char *out_buffer, size_t out_buffer_size);
 #ifdef __cplusplus
 }
 #endif

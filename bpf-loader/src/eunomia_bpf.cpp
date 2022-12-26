@@ -50,8 +50,11 @@ bpf_skeleton::load_and_attach_prog(void)
     DECLARE_LIBBPF_OPTS(bpf_object_open_opts, openopts);
     if (additional_btf_file != NULL) {
         openopts.btf_custom_path = strdup(additional_btf_file);
-    } else if (!vmlinux_btf_exists()) {
-        std::cerr << "failed to find vmlinux BTF. please provide btf file with env BTF_FILE_PATH." << std::endl;
+    }
+    else if (!vmlinux_btf_exists()) {
+        std::cerr << "failed to find vmlinux BTF. please provide btf file with "
+                     "env BTF_FILE_PATH."
+                  << std::endl;
         return -1;
     }
     if (bpf_object__open_skeleton(skeleton.get(), &openopts)) {
@@ -608,18 +611,54 @@ get_bpf_fd(struct eunomia_bpf *prog, const char *name)
     return prog->program.get_fd(name);
 }
 
-char*
-new_json_config(const char* json_config, char** args, int argc){
+struct eunomia_bpf *
+open_eunomia_skel_from_json_package_with_args(const char *json_data,
+                                              char **args, int argc)
+{
+    std::vector<std::string> args_vec;
+    int res;
+    for (int i = 0; i < argc; i++) {
+        args_vec.push_back(args[i]);
+        std::cout << "arg: " << args[i] << std::endl;
+    }
+    json j = json::parse(json_data);
+    json meta_config = j["meta"];
+    std::string meta_config_str = meta_config.dump();
+    std::string new_config;
+
+    if ((res = eunomia::parse_args_for_json_config(meta_config_str, new_config,
+                                                   args_vec))
+        != 0) {
+        return nullptr;
+    }
+    j["meta"] = json::parse(new_config);
+    return open_eunomia_skel_from_json_package(j.dump().c_str());
+}
+
+int
+parse_args_to_json_config(const char *json_config, char **args, int argc,
+                          char *out_buffer, size_t out_buffer_size)
+{
     std::string new_conf_str;
     std::vector<std::string> args_vec;
-    for (int i=0; i<argc; i++)
+    int res;
+    for (int i = 0; i < argc; i++) {
         args_vec.push_back(args[i]);
-    
-    if (eunomia::parse_args_for_json_config(json_config,new_conf_str,args_vec) < 0)
-        return NULL;
-    
-    char* new_conf = (char*)malloc(new_conf_str.size() + 1);
-    strcpy(new_conf, new_conf_str.c_str());
-    return new_conf;
+    }
+
+    res = eunomia::parse_args_for_json_config(json_config, new_conf_str,
+                                              args_vec);
+    if (res != 0) {
+        return res;
+    }
+    if (new_conf_str.size() > out_buffer_size) {
+        return -1;
+    }
+    if (!out_buffer_size) {
+        std::cerr << "out_buffer_size is 0" << std::endl;
+        return -1;
+    }
+    strncpy(out_buffer, new_conf_str.c_str(), out_buffer_size);
+    return 0;
 }
 }

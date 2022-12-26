@@ -311,6 +311,10 @@ parse_args_for_json_config(const std::string &json_config,
                            std::string &new_config,
                            std::vector<std::string> args) noexcept
 {
+    if (args.size() == 0) {
+        new_config = json_config;
+        return 0;
+    }
     json j;
     try {
         j = json::parse(json_config);
