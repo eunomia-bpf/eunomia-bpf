@@ -1,16 +1,4 @@
-mod json;
-use std::{
-    ffi::{c_char, CString},
-    process::exit,
-};
-
-use crate::{
-    error::{EcliError, EcliResult},
-    json_runner::parse_args_to_json_config,
-    runner::RunArgs,
-};
-
-use serde_json::Value;
+use crate::{error::EcliError, runner::RunArgs};
 
 pub enum ExportFormatType {
     ExportJson,
@@ -55,7 +43,7 @@ impl TryFrom<&mut RunArgs> for ProgramConfigData {
 
     fn try_from(args: &mut RunArgs) -> Result<Self, Self::Error> {
         let prog_buf = args.get_file_content()?;
-        let mut s = Self {
+        Ok(Self {
             url: args.file.clone(),
             use_cache: !args.no_cache,
             program_data_buf: prog_buf,
@@ -66,7 +54,6 @@ impl TryFrom<&mut RunArgs> for ProgramConfigData {
             } else {
                 ExportFormatType::ExportPlantText
             },
-        };
-        Ok(s)
+        })
     }
 }
