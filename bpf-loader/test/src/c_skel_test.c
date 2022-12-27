@@ -38,6 +38,25 @@ test_create_and_stop()
 }
 
 int
+test_create_args_and_stop()
+{
+    char *args[] = { "boostraps", "value1", "--arg2", "value2" };
+    const char *data = read_file_data("../../test/asserts/bootstrap.json");
+    struct eunomia_bpf *ctx =
+        open_eunomia_skel_from_json_package_with_args(data, args, 1);
+    assert(ctx);
+    destroy_eunomia_skel(ctx);
+    ctx = open_eunomia_skel_from_json_package_with_args(data, args, 2);
+    assert(!ctx);
+
+    char outbuffer[1024];
+    int res = parse_args_to_json_config(data, args, 1, outbuffer, 1024);
+    assert(res < 0);
+    free((void *)data);
+    return 0;
+}
+
+int
 test_create_and_run()
 {
     const char *data = read_file_data("../../test/asserts/bootstrap.json");
@@ -77,6 +96,7 @@ main(int argc, char **argv)
 {
     test_create_and_stop();
     test_create_and_run();
+    test_create_args_and_stop();
     test_create_and_run_multi();
     return 0;
 }

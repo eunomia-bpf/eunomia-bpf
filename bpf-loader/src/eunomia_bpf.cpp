@@ -615,6 +615,9 @@ struct eunomia_bpf *
 open_eunomia_skel_from_json_package_with_args(const char *json_data,
                                               char **args, int argc)
 {
+    assert(json_data);
+    assert(args);
+    assert(argc > 0);
     std::vector<std::string> args_vec;
     int res;
     for (int i = 0; i < argc; i++) {
@@ -639,6 +642,12 @@ int
 parse_args_to_json_config(const char *json_config, char **args, int argc,
                           char *out_buffer, size_t out_buffer_size)
 {
+    assert(json_config);
+    assert(args);
+    assert(argc > 0);
+    assert(out_buffer);
+    assert(out_buffer_size > 0);
+
     std::string new_conf_str;
     std::vector<std::string> args_vec;
     int res;
@@ -652,10 +661,6 @@ parse_args_to_json_config(const char *json_config, char **args, int argc,
         return res;
     }
     if (new_conf_str.size() > out_buffer_size) {
-        return -1;
-    }
-    if (!out_buffer_size) {
-        std::cerr << "out_buffer_size is 0" << std::endl;
         return -1;
     }
     strncpy(out_buffer, new_conf_str.c_str(), out_buffer_size);
