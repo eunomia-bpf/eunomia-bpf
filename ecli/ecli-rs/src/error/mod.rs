@@ -9,7 +9,6 @@ pub enum EcliError {
     HttpError(String),
     BpfError(String),
     WasmError(String),
-    JsonError(String),
     Other(String),
 }
 
