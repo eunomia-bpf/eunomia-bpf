@@ -350,7 +350,7 @@ parse_args_for_json_config(const std::string &json_config,
     } catch (const std::runtime_error &err) {
         std::cerr << err.what() << std::endl;
         std::cerr << program;
-        return 1;
+        return -1;
     }
 }
 }
