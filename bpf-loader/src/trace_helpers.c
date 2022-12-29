@@ -134,7 +134,7 @@ bool is_kernel_module(const char *name)
 		return false;
 
 	while (fgets(buf, sizeof(buf), f) != NULL) {
-		if (sscanf(buf, "%s %*s\n", buf) != 1)
+		if (sscanf(buf, "%63s %*s\n", buf) != 1)
 			break;
 		if (!strcmp(buf, name)) {
 			found = true;
@@ -266,15 +266,25 @@ bool tracepoint_exists(const char *category, const char *event)
 	char path[PATH_MAX];
 
 	snprintf(path, sizeof(path), "/sys/kernel/debug/tracing/events/%s/%s/format", category, event);
-	if (!access(path, F_OK))
-		return true;
+	setuid(0);
+	FILE *fp = fopen(path, "r");
+    if (fp != NULL) {
+        fclose(fp);
+        return true;
+    }
 	return false;
 }
 
 bool vmlinux_btf_exists(void)
 {
-	if (!access("/sys/kernel/btf/vmlinux", R_OK))
-		return true;
+	// Set the correct permissions for the file
+	setuid(0);
+	FILE *fp = fopen("/sys/kernel/btf/vmlinux", "r");
+    if (fp != NULL) {
+        fclose(fp);
+        return true;
+    }
+
 	return false;
 }
 
@@ -283,9 +293,14 @@ bool module_btf_exists(const char *mod)
 	char sysfs_mod[80];
 
 	if (mod) {
+		
 		snprintf(sysfs_mod, sizeof(sysfs_mod), "/sys/kernel/btf/%s", mod);
-		if (!access(sysfs_mod, R_OK))
-			return true;
+		setuid(0);
+		FILE *fp = fopen(sysfs_mod, "r");
+        if (fp) {
+            fclose(fp);
+            return true;
+        }
 	}
 	return false;
 }

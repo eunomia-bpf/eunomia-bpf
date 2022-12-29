@@ -3,8 +3,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "eunomia-include/wasm-app.h"
-#include "eunomia-include/entry.h"
+#include "wasm-app/wasm-app.h"
+#include "wasm-app/entry.h"
 #include "ewasm-skel.h"
 
 static const char *const usages[] = {
