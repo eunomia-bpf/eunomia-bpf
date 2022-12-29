@@ -2,23 +2,27 @@
 #
 # Copyright (C) 2019 Intel Corporation.  All rights reserved.
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-#
+
 
 
 WAMR_DIR=${PWD}/../../third_party/wasm-micro-runtime
 INCLUDE_DIR=${PWD}/../include/
 
-for i in $(ls -I *.bpf.c | grep '.*.c$')
+current_dir=$(pwd)
+
+
+for i in $(find "$current_dir" -regex '.*\.c$' ! -regex '.*\.bpf\.c$')
 do
-APP_SRC="$i"
+APP_SRC="$i"  
 OUT_FILE=${i%.*}.wasm
+echo "${INCLUDE_DIR}"
 
 # use WAMR SDK to build out the .wasm binary
-/opt/wasi-sdk/bin/clang     \
+/opt/wasi-sdk/bin/clang  \
         --target=wasm32-wasi \
         -O0 -z stack-size=4096 -Wl,--initial-memory=65536 \
         --sysroot=/opt/wasi-sdk/share/wasi-sysroot  \
-        -I${INCLUDE_DIR} \
+        -I ${INCLUDE_DIR} \
         -Wl,--allow-undefined-file=${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot/share/defined-symbols.txt \
         -Wl,--export=all \
         -Wl,--export=bpf_main \

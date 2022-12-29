@@ -40,7 +40,6 @@ start_bpf_program(char *program_data)
 cJSON *
 set_bpf_program_global_var(cJSON *program, char *key, cJSON *value)
 {
-
     cJSON *args = cJSON_GetObjectItem(program, "runtime_args");
     if (args == NULL)
     {

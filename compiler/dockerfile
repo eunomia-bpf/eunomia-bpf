@@ -5,7 +5,8 @@ ENV TZ = Asia/Shanghai
 
 WORKDIR /usr/local/src
 
-RUN apt-get update -y && apt-get install -y libelf1 libelf-dev zlib1g-dev clang make llvm libclang-13-dev
+RUN apt-get update -y && apt-get install -y --no-install-recommends libelf1 libelf-dev zlib1g-dev clang make llvm libclang-13-dev && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
 COPY ./. /usr/local/src
 

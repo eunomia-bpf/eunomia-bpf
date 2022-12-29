@@ -499,15 +499,15 @@ int
 event_exporter::print_sample_event_to_plant_text(
     std::vector<char> &key_buffer, std::vector<char> &value_buffer)
 {
-    struct tm *tm;
+    struct tm tm;
     char ts[32];
     time_t t;
     int res;
 
     printer.reset();
     time(&t);
-    tm = localtime(&t);
-    strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+    localtime_r(&t, &tm);
+    strftime(ts, sizeof(ts), "%H:%M:%S", &tm);
     printer.sprintf_event("%-8s ", ts);
     dump_value_members_to_plant_text(key_buffer.data(),
                                      checked_export_key_member_types);
@@ -617,15 +617,15 @@ event_exporter::dump_value_members_to_plant_text(
 void
 event_exporter::print_export_event_to_plant_text_with_time(const char *event)
 {
-    struct tm *tm;
+    struct tm tm;
     char ts[32];
     time_t t;
     int res;
 
     printer.reset();
     time(&t);
-    tm = localtime(&t);
-    strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+    localtime_r(&t, &tm);
+    strftime(ts, sizeof(ts), "%H:%M:%S", &tm);
     printer.sprintf_event("%-8s ", ts);
     dump_value_members_to_plant_text(event, checked_export_value_member_types);
     printer.export_to_handler_or_print(user_ctx, user_export_event_handler);
