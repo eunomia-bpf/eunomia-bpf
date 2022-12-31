@@ -9,10 +9,11 @@ use log::{debug, info};
 use url::Url;
 
 use crate::{
-    config::ProgramType,
+    config::{ProgramConfigData, ProgramType},
     error::{EcliError, EcliResult},
     ewasm_runner::wasm::handle_wasm,
     json_runner::json::handle_json,
+    oci::{default_schema_port, parse_img_url, wasm_pull},
     Action,
 };
 
@@ -26,7 +27,7 @@ pub struct RunArgs {
 }
 
 impl RunArgs {
-    pub fn get_file_content(&mut self) -> EcliResult<Vec<u8>> {
+    pub async fn get_file_content(&mut self) -> EcliResult<Vec<u8>> {
         let mut content = vec![];
 
         if self.file == "-" {
@@ -53,19 +54,51 @@ impl RunArgs {
             return Ok(content);
         }
 
+        // assume file is from oras
+        if let Ok((_, _, _, repo_url)) = parse_img_url(self.file.as_str()) {
+            info!("try read content from repo url: {}", repo_url);
+            if let Ok(data) = wasm_pull(self.file.as_str()).await {
+                self.prog_type = ProgramType::WasmModule;
+                return Ok(data);
+            };
+            info!(
+                "fail to read content from repo url: {}, try next type",
+                repo_url
+            );
+        }
+
         // assume file is valid url
         let Ok(url) = Url::parse(&self.file) else {
             return Err(EcliError::UnknownFileType(format!("unknown type of {}, must file path or valid url", self.file)));
         };
-        self.prog_type = ProgramType::try_from(url.path())?;
 
-        info!("read content from url {}", self.file);
+        info!(
+            "try read content from url: {}",
+            format!(
+                "{}://{}:{}{}?{}",
+                url.scheme(),
+                if let Some(host) = url.host() {
+                    host.to_string()
+                } else {
+                    return Err(EcliError::UnknownFileType(format!(
+                        "unknown type of {}, must file path or valid url",
+                        self.file
+                    )));
+                },
+                url.port().unwrap_or(default_schema_port(url.scheme())?),
+                url.path(),
+                url.query().unwrap_or_default()
+            )
+        );
+
+        self.prog_type = ProgramType::try_from(url.path())?;
         ureq::get(url.as_str())
             .call()
             .map_err(|e| EcliError::HttpError(e.to_string()))?
             .into_reader()
             .read_to_end(&mut content)
             .map_err(|e| EcliError::IOErr(e))?;
+
         Ok(content)
     }
 }
@@ -74,29 +107,24 @@ impl TryFrom<Action> for RunArgs {
     type Error = EcliError;
 
     fn try_from(act: Action) -> Result<Self, Self::Error> {
-        match act {
-            Action::Run {
-                no_cache,
-                json,
-                mut prog,
-            } => {
-                if prog.len() == 0 {
-                    return Err(EcliError::ParamErr("prog not present".to_string()));
-                }
-                Ok(Self {
-                    no_cache: no_cache.unwrap_or_default(),
-                    export_to_json: json.unwrap_or_default(),
-                    file: prog.remove(0),
-                    extra_arg: prog,
-                    prog_type: ProgramType::Undefine,
-                })
-            }
+        let Action::Run { no_cache, json, mut prog } = act else {
+            unreachable!()
+        };
+        if prog.len() == 0 {
+            return Err(EcliError::ParamErr("prog not present".to_string()));
         }
+        Ok(Self {
+            no_cache: no_cache.unwrap_or_default(),
+            export_to_json: json.unwrap_or_default(),
+            file: prog.remove(0),
+            extra_arg: prog,
+            prog_type: ProgramType::Undefine,
+        })
     }
 }
 
-pub fn run(mut arg: RunArgs) -> EcliResult<()> {
-    let conf = (&mut arg).try_into()?;
+pub async fn run(mut arg: RunArgs) -> EcliResult<()> {
+    let conf = ProgramConfigData::async_try_from(&mut arg).await?;
     match arg.prog_type {
         ProgramType::JsonEunomia => handle_json(conf),
         ProgramType::WasmModule => handle_wasm(conf),
