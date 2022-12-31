@@ -1,4 +1,7 @@
-use crate::{error::EcliError, runner::RunArgs};
+use crate::{
+    error::{EcliError, EcliResult},
+    runner::RunArgs,
+};
 
 pub enum ExportFormatType {
     ExportJson,
@@ -38,11 +41,9 @@ pub struct ProgramConfigData {
     pub export_format_type: ExportFormatType,
 }
 
-impl TryFrom<&mut RunArgs> for ProgramConfigData {
-    type Error = EcliError;
-
-    fn try_from(args: &mut RunArgs) -> Result<Self, Self::Error> {
-        let prog_buf = args.get_file_content()?;
+impl ProgramConfigData {
+    pub async fn async_try_from(args: &mut RunArgs) -> EcliResult<Self> {
+        let prog_buf = args.get_file_content().await?;
         Ok(Self {
             url: args.file.clone(),
             use_cache: !args.no_cache,
