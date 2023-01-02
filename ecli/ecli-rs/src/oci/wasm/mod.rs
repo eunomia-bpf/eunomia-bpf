@@ -25,6 +25,7 @@ pub mod push;
 pub fn parse_img_url(url: &str) -> EcliResult<(Client, RegistryAuth, Reference, String)> {
     let img_url = Url::parse(url).map_err(|e| EcliError::ParamErr(e.to_string()))?;
     let auth = if !img_url.username().is_empty() {
+        println!("auth with username: {}", img_url.username());
         RegistryAuth::Basic(
             img_url.username().into(),
             img_url.password().unwrap_or_default().into(),
