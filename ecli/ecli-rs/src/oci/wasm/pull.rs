@@ -13,12 +13,12 @@ impl TryFrom<Action> for PullArgs {
     type Error = EcliError;
 
     fn try_from(value: Action) -> Result<Self, Self::Error> {
-        let Action::Pull { write_to, image } = value else {
+        let Action::Pull { output, image } = value else {
             unreachable!()
         };
 
         Ok(PullArgs {
-            write_file: write_to,
+            write_file: output,
             image_url: image,
         })
     }
