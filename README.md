@@ -8,18 +8,19 @@
 
 ## Introduction
 
-`eunomia-bpf` is a dynamic loading library/runtime backend and a compile toolchain frontend, aim at helping you build and distribute eBPF programs easier. Some command line tools are also provided to help you build, distribute and run the eBPF programs.
+`eunomia-bpf` is a dynamic loading library/runtime and a compile toolchain framework, aim at helping you build and distribute eBPF programs easier.
 
-We have 3 main features for out compile SDK and runtime:
+With eunnomia-bpf, you can:
 
-- Write eBPF kernel code only with comments to build simple `CO-RE` libbpf eBPF applications in multiple format, BCC and libbpf style are both accepted
-- Compile and pack CO-RE eBPF kernel code to a config metadata with ELF object, eg. `JSON` or `YAML` format, dynamically load it everywhere with CO-RE libbpf runtime
-- Write user space code for your eBPF program with `WebAssembly` in C++/C/Go/Rust...etc
+- [Write eBPF kernel code only to build simple `CO-RE` libbpf eBPF applications](#write-ebpf-kernel-code-only-to-build-co-re-libbpf-ebpf-applications)
+- [Write eBPF kernel code in multiple format, `BCC` and `libbpf` style are both accepted](compiler)
+- [Write user space code for your eBPF program with `WebAssembly` in C++/C/Go/Rust...etc](#write-user-space-code-for-your-ebpf-program-in-webassembly)
+- [Compile and pack eBPF program to a `JSON` or `YAML` config file, or a WASM module, run it with `CO-RE` libbpf support](#compile-and-pack-co-re-ebpf-kernel-code-to-a-config-file)
 
 Tools are also provided:
 
-- convert BCC stype source code to libbpf style source code
-- some tracing tool examples
+- [convert BCC stype source code to libbpf style source code](https://github.com/eunomia-bpf/bcc/tree/master/src/cc/converter)
+- [push or pull pre-compiled eBPF program as an `OCI` image](ecli/ecli-rs)
 
 ### Write eBPF kernel code only to build CO-RE libbpf eBPF applications
 
@@ -357,7 +358,7 @@ see [benchmark](documents/benchmark.md) for details.
 - [X] add more helper functions from `libbpf`
 - [ ] Android support
 - [ ] `riscv` support
-- [ ] provide python, go and others sdk
+- [ ] provide python, go and others sdk with wasm
 
 ## License
 
