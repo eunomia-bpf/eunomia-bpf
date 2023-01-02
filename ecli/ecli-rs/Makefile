@@ -10,3 +10,7 @@ $(LIBEUNOMIA):
 
 $(LIBEWASM):
 	$(MAKE) -C ../../wasm-runtime install
+
+install-deps:
+	sudo apt install libssl-dev
+	sudo apt install pkg-config

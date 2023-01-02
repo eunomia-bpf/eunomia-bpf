@@ -23,15 +23,15 @@ pub enum Action {
     },
 
     Push {
-        #[arg(long, short = 'm')]
+        #[arg(long, short, default_value_t = ("app.wasm").to_string())]
         module: String,
         #[arg()]
         image: String,
     },
 
     Pull {
-        #[arg(short = 'w')]
-        write_to: String,
+        #[arg(short, long, default_value_t = ("app.wasm").to_string())]
+        output: String,
         #[arg()]
         image: String,
     },
