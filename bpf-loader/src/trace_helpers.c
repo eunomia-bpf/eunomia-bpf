@@ -22,6 +22,7 @@
 #include "trace_helpers.h"
 #include "uprobe_helpers.h"
 
+
 #define min(x, y) ({				\
 	typeof(x) _min1 = (x);			\
 	typeof(y) _min2 = (y);			\
@@ -134,8 +135,14 @@ bool is_kernel_module(const char *name)
 		return false;
 
 	while (fgets(buf, sizeof(buf), f) != NULL) {
-		if (sscanf(buf, "%63s %*s\n", buf) != 1)
-			break;
+	char *word = strtok(buf, " ");
+    if (word == NULL) {
+      // 如果没有单词，则跳过
+      break;
+    }
+    // 
+    strncpy(buf, word, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
 		if (!strcmp(buf, name)) {
 			found = true;
 			break;
@@ -266,10 +273,9 @@ bool tracepoint_exists(const char *category, const char *event)
 	char path[PATH_MAX];
 
 	snprintf(path, sizeof(path), "/sys/kernel/debug/tracing/events/%s/%s/format", category, event);
-	setuid(0);
-	FILE *fp = fopen(path, "r");
-    if (fp != NULL) {
-        fclose(fp);
+	struct stat st;
+  	if (stat("/path/to/file", &st) == 0) 
+	{
         return true;
     }
 	return false;
@@ -278,10 +284,8 @@ bool tracepoint_exists(const char *category, const char *event)
 bool vmlinux_btf_exists(void)
 {
 	// Set the correct permissions for the file
-	setuid(0);
-	FILE *fp = fopen("/sys/kernel/btf/vmlinux", "r");
-    if (fp != NULL) {
-        fclose(fp);
+	struct stat st;
+  	if (stat("/sys/kernel/btf/vmlinux", &st) == 0 && (st.st_mode & S_IRUSR)) {
         return true;
     }
 
@@ -295,12 +299,11 @@ bool module_btf_exists(const char *mod)
 	if (mod) {
 		
 		snprintf(sysfs_mod, sizeof(sysfs_mod), "/sys/kernel/btf/%s", mod);
-		setuid(0);
-		FILE *fp = fopen(sysfs_mod, "r");
-        if (fp) {
-            fclose(fp);
-            return true;
-        }
+		struct stat sb;
+		if (stat(sysfs_mod, &sb) == 0 && S_ISREG(sb.st_mode) && (sb.st_mode & S_IRUSR))
+        {
+			return true;
+		}
 	}
 	return false;
 }
