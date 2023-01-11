@@ -67,6 +67,10 @@ TEST_CASE("test trace helpers print hist", "[trace][helpers]")
 TEST_CASE("test trace helpers kprobe exists", "[trace][helpers]")
 {
     REQUIRE(kprobe_exists("do_unlinkat"));
+    REQUIRE(kprobe_exists("do_syscall_64") == true);
+    REQUIRE(kprobe_exists("non_existent_function") == false);
+    REQUIRE(kprobe_exists("") == false);
+    REQUIRE(kprobe_exists("long_name_of_a_non_existent_function_with_more_than_255_characters") == false);
 }
 
 TEST_CASE("test trace helpers tracepoint exists", "[trace][helpers]")
@@ -112,4 +116,95 @@ TEST_CASE("test trace helpers fentry_can_attach", "[trace][helpers")
 TEST_CASE("test trace helpers module_btf_exists", "[trace][helpers")
 {
     REQUIRE(module_btf_exists("true") == false);
+    REQUIRE(module_btf_exists("tcp") == true);
+}
+
+TEST_CASE("test trace helpers is_kernel_module", "[trace][helpers")
+{
+    REQUIRE(is_kernel_module("tcp") == true);
+    REQUIRE(is_kernel_module("non_existent_module") == false);
+    REQUIRE(is_kernel_module("") == false);
+    REQUIRE(is_kernel_module("long_name_of_a_non_existent_module_with_more_than_255_characters") == false);
+    REQUIRE(is_kernel_module("0") == true);
+    REQUIRE(is_kernel_module("-module") == false); 
+    REQUIRE(is_kernel_module("module_with_numbers1234") == true); 
+    char long_name_module[1024];
+    memset(long_name_module, 'a', sizeof(long_name_module));
+    long_name_module[1023] = '\0';
+    REQUIRE(is_kernel_module(long_name_module) == false);
+    REQUIRE_THROWS_WITH(is_kernel_module("tcp"), "Failed to open /proc/modules");
+    REQUIRE_NOTHROW(is_kernel_module(nullptr));
+}
+
+TEST_CASE("test trace helpers resolve_binary_path", "[trace][helpers")
+{
+    char path[1024];
+    char short_path[2];
+    REQUIRE(resolve_binary_path("", 0, path, sizeof(path)) == -1);
+    REQUIRE(resolve_binary_path("", 1234, path, sizeof(path)) == 0);
+    REQUIRE(resolve_binary_path("program", 0, path, sizeof(path)) == 0);
+    REQUIRE(resolve_binary_path("library", 1234, path, sizeof(path)) == 0);
+    REQUIRE(resolve_binary_path("non_existent_program", 0, path, sizeof(path)) == -1);
+    REQUIRE(resolve_binary_path("", -1, path, sizeof(path)) == -1);
+    REQUIRE(resolve_binary_path("program", 0, short_path, sizeof(short_path)) == -1);
+    REQUIRE(resolve_binary_path(NULL, 0, path, sizeof(path)) == -1);
+    REQUIRE(resolve_binary_path("program", 0, path, sizeof(path)) == 0);
+    REQUIRE(resolve_binary_path("program", 0, path, sizeof(path)) == 0);
+}
+
+TEST_CASE("test trace helpers open_elf", "[trace][helpers")
+{
+    int fd_close;
+    Elf *e = open_elf("path/to/valid_elf_file", &fd_close);
+    REQUIRE(e != NULL);
+    elf_end(e);
+    close(fd_close);
+
+    int fd_close;
+    Elf *e = open_elf("path/to/invalid_elf_file", &fd_close);
+    REQUIRE(e == NULL);
+}
+
+TEST_CASE("test trace helpers *open_elf_by_fd", "[trace][helpers")
+{
+    int fd = open("file.elf", O_RDONLY);
+    Elf *e;
+    REQUIRE(fd >= 0);
+    e = open_elf_by_fd(fd);
+    REQUIRE(e != NULL);
+    elf_end(e);
+    close(fd);
+
+    fd = open("file1.txt", O_RDONLY);
+    REQUIRE(fd >= 0);
+    e = open_elf_by_fd(fd);
+    REQUIRE(e == NULL);
+    close(fd);
+
+    fd = open("non_existent_file", O_RDONLY);
+    REQUIRE(fd < 0);
+    e = open_elf_by_fd(fd);
+    REQUIRE(e == NULL);
+
+    char empty[] = "";
+    Elf *e = open_elf_by_fd(-1);
+    REQUIRE(e == NULL);
+    e = open_elf_by_fd(INT_MAX);
+    REQUIRE(e == NULL);
+    e = open_elf_by_fd(INT_MIN);
+    REQUIRE(e == NULL);
+    e = open_elf_by_fd(INT_MIN);
+    REQUIRE(e == NULL);
+    e = open_elf_by_fd(INT_MIN);
+    REQUIRE(e == NULL);
+    e = open_elf_by_fd(INT_MIN);
+    REQUIRE(e == NULL);
+    e = open_elf_by_fd(INT_MIN);
+    REQUIRE(e == NULL);
+    e = open_elf_by_fd(INT_MIN);
+    REQUIRE(e == NULL);
+    e = open_elf_by_fd(INT_MIN);
+    REQUIRE(e == NULL);
+    e = open_elf_by_fd(INT_MIN);
+    REQUIRE(e == NULL);
 }
