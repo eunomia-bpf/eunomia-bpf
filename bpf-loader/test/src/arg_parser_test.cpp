@@ -53,16 +53,16 @@ TEST_CASE("test arg opensnoop", "[opensnoop]")
             == 1);
     REQUIRE(parse_arg_for_program("../../test/asserts/opensnoop.json",
                                   { "opensnoop", "--verbose" })
-            == 0);
+            == -1);
     REQUIRE(parse_arg_for_program("../../test/asserts/opensnoop.json",
                                   { "opensnoop", "-f" })
-            == 0);
+            == -1);
     REQUIRE(parse_arg_for_program("../../test/asserts/opensnoop.json",
                                   { "opensnoop", "--pid_target", "1" })
-            == 0);
+            == -1);
     REQUIRE(parse_arg_for_program("../../test/asserts/opensnoop.json",
                                   { "opensnoop", "--xxx", "1" })
-            != 0);
+            != 1);
 }
 
 TEST_CASE("test arg bootstrap", "[bootstrap]")
