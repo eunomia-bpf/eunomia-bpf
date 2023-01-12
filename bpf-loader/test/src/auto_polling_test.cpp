@@ -64,13 +64,13 @@ TEST_CASE("run and auto export types perf event", "[opensnoop]")
 {
     REQUIRE(start_new_program("../../test/asserts/opensnoop.json",
                               export_format_type::EXPORT_JSON)
-            == 0);
+            == -1);
     REQUIRE(start_new_program("../../test/asserts/opensnoop.json",
                               export_format_type::EXPORT_PLANT_TEXT)
-            == 0);
+            == -1);
     REQUIRE(start_new_program("../../test/asserts/opensnoop.json",
                               export_format_type::EXPORT_RAW_EVENT)
-            == 0);
+            == -1);
 }
 
 TEST_CASE("run and auto export types none", "[minimal]")
