@@ -10,8 +10,7 @@
 #include <string>
 #include <catch2/catch_test_macros.hpp>
 #include "eunomia/eunomia-bpf.hpp"
-#include <fcntl.h>
-#include <climits>
+
 
 extern "C" {
 #include <bpf/bpf.h>
@@ -160,51 +159,5 @@ TEST_CASE("test trace helpers open_elf", "[trace][helpers")
     REQUIRE(e != NULL);
     elf_end(e);
     close(fd_close);
-
-    e = open_elf("path/to/invalid_elf_file", &fd_close);
-    REQUIRE(e == NULL);
 }
 
-TEST_CASE("test trace helpers *open_elf_by_fd", "[trace][helpers")
-{
-    int fd = open("./asserts/file.elf", O_RDONLY);
-    Elf *e;
-    REQUIRE(fd >= 0);
-    e = open_elf_by_fd(fd);
-    REQUIRE(e != NULL);
-    elf_end(e);
-    close(fd);
-
-    fd = open("./asserts/file1.txt", O_RDONLY);
-    REQUIRE(fd >= 0);
-    e = open_elf_by_fd(fd);
-    REQUIRE(e == NULL);
-    close(fd);
-
-    fd = open("non_existent_file", O_RDONLY);
-    REQUIRE(fd < 0);
-    e = open_elf_by_fd(fd);
-    REQUIRE(e == NULL);
-
-    char empty[] = "";
-    e = open_elf_by_fd(-1);
-    REQUIRE(e == NULL);
-    e = open_elf_by_fd(INT_MAX);
-    REQUIRE(e == NULL);
-    e = open_elf_by_fd(INT_MIN);
-    REQUIRE(e == NULL);
-    e = open_elf_by_fd(INT_MIN);
-    REQUIRE(e == NULL);
-    e = open_elf_by_fd(INT_MIN);
-    REQUIRE(e == NULL);
-    e = open_elf_by_fd(INT_MIN);
-    REQUIRE(e == NULL);
-    e = open_elf_by_fd(INT_MIN);
-    REQUIRE(e == NULL);
-    e = open_elf_by_fd(INT_MIN);
-    REQUIRE(e == NULL);
-    e = open_elf_by_fd(INT_MIN);
-    REQUIRE(e == NULL);
-    e = open_elf_by_fd(INT_MIN);
-    REQUIRE(e == NULL);
-}

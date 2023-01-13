@@ -20,8 +20,9 @@
 #include <limits.h>
 #include "trace_helpers.h"
 #include "uprobe_helpers.h"
-#include <linux/btf.h>
+#include <bpf/btf.h>
 #include <sys/stat.h>
+
 #define min(x, y) ({				\
 	typeof(x) _min1 = (x);			\
 	typeof(y) _min2 = (y);			\
@@ -132,14 +133,10 @@ bool is_kernel_module(const char *name)
 	f = fopen("/proc/modules", "r");
 	if (!f)
 		return false;
-
+	
 	while (fgets(buf, sizeof(buf), f) != NULL) {
-	char *word = strtok(buf, " ");
-    if (word == NULL) {
-      break;
-    }
-    strncpy(buf, word, sizeof(buf) - 1);
-    buf[sizeof(buf) - 1] = '\0';
+		if (sscanf(buf, "%63s %*s\n", buf) != 1)
+			break;
 		if (!strcmp(buf, name)) {
 			found = true;
 			break;
@@ -206,7 +203,7 @@ bool fentry_can_attach(const char *name, const char *mod)
 		btf = base;
 		base = NULL;
 	}
-
+	
 	id = btf__find_by_name_kind(btf, name, BTF_KIND_FUNC);
 
 err_out:
