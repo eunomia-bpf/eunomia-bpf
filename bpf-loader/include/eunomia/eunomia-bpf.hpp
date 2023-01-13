@@ -53,7 +53,7 @@ enum class ebpf_program_state {
 /// @details Used for managing the life span of eBPF program
 class bpf_skeleton
 {
-    private:
+  private:
     /// create an ebpf skeleton
     int create_prog_skeleton(void);
 
