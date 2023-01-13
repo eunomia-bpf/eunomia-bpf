@@ -136,10 +136,8 @@ bool is_kernel_module(const char *name)
 	while (fgets(buf, sizeof(buf), f) != NULL) {
 	char *word = strtok(buf, " ");
     if (word == NULL) {
-      // 如果没有单词，则跳过
       break;
     }
-    // 
     strncpy(buf, word, sizeof(buf) - 1);
     buf[sizeof(buf) - 1] = '\0';
 		if (!strcmp(buf, name)) {

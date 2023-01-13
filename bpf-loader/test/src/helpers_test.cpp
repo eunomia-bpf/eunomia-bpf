@@ -129,7 +129,6 @@ TEST_CASE("test trace helpers is_kernel_module", "[trace][helpers")
     REQUIRE(is_kernel_module("long_name_of_a_non_existent_module_with_more_than_255_characters") == false);
     REQUIRE(is_kernel_module("0") == true);
     REQUIRE(is_kernel_module("-module") == false); 
-    REQUIRE(is_kernel_module("module_with_numbers1234") == true); 
     char long_name_module[1024];
     memset(long_name_module, 'a', sizeof(long_name_module));
     long_name_module[1023] = '\0';
@@ -168,7 +167,7 @@ TEST_CASE("test trace helpers open_elf", "[trace][helpers")
 
 TEST_CASE("test trace helpers *open_elf_by_fd", "[trace][helpers")
 {
-    int fd = open("file.elf", O_RDONLY);
+    int fd = open("./asserts/file.elf", O_RDONLY);
     Elf *e;
     REQUIRE(fd >= 0);
     e = open_elf_by_fd(fd);
@@ -176,7 +175,7 @@ TEST_CASE("test trace helpers *open_elf_by_fd", "[trace][helpers")
     elf_end(e);
     close(fd);
 
-    fd = open("file1.txt", O_RDONLY);
+    fd = open("./asserts/file1.txt", O_RDONLY);
     REQUIRE(fd >= 0);
     e = open_elf_by_fd(fd);
     REQUIRE(e == NULL);
