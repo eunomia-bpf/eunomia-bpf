@@ -12,7 +12,6 @@ workspace
 *.skel.yaml
 package.json
 package.yaml
-cmd/Cargo.lock
 cmd/rust-clippy-results.sarif
 *.profraw
 cmd/lcov.info
