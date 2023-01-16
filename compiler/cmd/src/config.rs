@@ -255,4 +255,35 @@ mod test {
         let source_path = "/xxx/test.c";
         let _ = get_base_dir_include(source_path).unwrap_err();
     }
+
+    #[test]
+    fn test_get_eunomia_home() {
+        let eunomia_home_from_env = std::env::var(EUNOMIA_HOME_ENV);
+        let eunomia_home_from_home = home::home_dir().unwrap();
+
+        match eunomia_home_from_env {
+            Ok(path) => assert_eq!(get_eunomia_home().unwrap(), path),
+            Err(_) => {
+                if get_eunomia_home().is_err() {
+                    assert!(true)
+                }
+
+                if eunomia_home_from_home.exists() {
+                    assert_eq!(
+                        get_eunomia_home().unwrap(),
+                        eunomia_home_from_home
+                            .join(".eunomia")
+                            .into_os_string()
+                            .into_string()
+                            .unwrap()
+                    );
+                } else {
+                    assert_eq!(
+                        get_eunomia_home().unwrap(),
+                        FHS_EUNOMIA_HOME_ENTRY.to_string()
+                    )
+                }
+            }
+        }
+    }
 }
