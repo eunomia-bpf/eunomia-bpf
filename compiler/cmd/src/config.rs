@@ -234,13 +234,6 @@ mod test {
     use clap::Parser;
 
     #[test]
-    fn test_create_eunomia_home() {
-        create_eunomia_home().unwrap();
-        let home = get_eunomia_home().unwrap();
-        assert!(Path::new(&home).exists());
-    }
-
-    #[test]
     fn test_parse_args() {
         let _ = CompileOptions::parse_from(&["ecc", "test.c"]);
         let _ = CompileOptions::parse_from(&["ecc", "test.c", "-o", "test.o"]);
@@ -285,5 +278,12 @@ mod test {
                 }
             }
         }
+    }
+
+    #[test]
+    fn test_create_eunomia_home() {
+        create_eunomia_home().unwrap();
+        let home = get_eunomia_home().unwrap();
+        assert!(Path::new(&home).exists());
     }
 }
