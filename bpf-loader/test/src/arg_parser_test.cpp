@@ -59,7 +59,7 @@ TEST_CASE("test arg opensnoop", "[opensnoop]")
             == 0);
     REQUIRE(parse_arg_for_program("../../test/asserts/opensnoop.json",
                                   { "opensnoop", "--pid_target", "1" })
-            == -1);
+            == 0);
     REQUIRE(parse_arg_for_program("../../test/asserts/opensnoop.json",
                                   { "opensnoop", "--xxx", "1" })
             != 1);

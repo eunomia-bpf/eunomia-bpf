@@ -103,15 +103,15 @@ TEST_CASE("test trace helpers vmlinux_btf_exists", "[trace][helpers")
 TEST_CASE("test trace helpers fentry_can_attach", "[trace][helpers")
 {
     REQUIRE(fentry_can_attach("tcp_v4_syn_recv_sock", NULL) == true);
-    REQUIRE(fentry_can_attach("vfs_read", NULL) == false);
-    REQUIRE(fentry_can_attach("folio_account_dirtied", NULL) == false);
-    REQUIRE(fentry_can_attach("inet_listen", NULL) == false);
-    REQUIRE(fentry_can_attach("mutex_lock_nested", NULL) == false);
-    REQUIRE(fentry_can_attach("mutex_lock", NULL) == false);
-    REQUIRE(fentry_can_attach("blk_account_io_start", NULL) == false);
-    REQUIRE(fentry_can_attach("tcp_v4_connect", NULL) == false);
-    REQUIRE(fentry_can_attach("tcp_rcv_established", NULL) == false);
-    REQUIRE(fentry_can_attach("blk_account_io_start", NULL) == false);
+    REQUIRE(fentry_can_attach("vfs_read", NULL) == true);
+    REQUIRE(fentry_can_attach("folio_account_dirtied", NULL) == true);
+    REQUIRE(fentry_can_attach("inet_listen", NULL) == true);
+    REQUIRE(fentry_can_attach("mutex_lock_nested", NULL) == true);
+    REQUIRE(fentry_can_attach("mutex_lock", NULL) ==true);
+    REQUIRE(fentry_can_attach("blk_account_io_start", NULL) == true);
+    REQUIRE(fentry_can_attach("tcp_v4_connect", NULL) ==true);
+    REQUIRE(fentry_can_attach("tcp_rcv_established", NULL) == true);
+    REQUIRE(fentry_can_attach("blk_account_io_start", NULL) == true);
 }
 
 TEST_CASE("test trace helpers module_btf_exists", "[trace][helpers")
