@@ -102,7 +102,7 @@ TEST_CASE("test trace helpers vmlinux_btf_exists", "[trace][helpers")
 
 TEST_CASE("test trace helpers fentry_can_attach", "[trace][helpers")
 {
-    REQUIRE(fentry_can_attach("tcp_v4_syn_recv_sock", NULL) == true;
+    REQUIRE(fentry_can_attach("tcp_v4_syn_recv_sock", NULL) == true);
     REQUIRE(fentry_can_attach("vfs_read", NULL) == false);
     REQUIRE(fentry_can_attach("folio_account_dirtied", NULL) == false);
     REQUIRE(fentry_can_attach("inet_listen", NULL) == false);
