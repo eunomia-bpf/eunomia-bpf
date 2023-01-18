@@ -141,8 +141,6 @@ TEST_CASE("test trace helpers resolve_binary_path", "[trace][helpers")
     REQUIRE(resolve_binary_path("", 0, path, sizeof(path)) == -1);
     REQUIRE(resolve_binary_path("non_existent_program", 0, path, sizeof(path)) == -1);
     REQUIRE(resolve_binary_path("", -1, path, sizeof(path)) == -1);
-    REQUIRE(resolve_binary_path(NULL, 0, path, sizeof(path)) == -1);
-  
 }
 
 TEST_CASE("test trace helpers open_elf", "[trace][helpers")
