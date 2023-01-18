@@ -4,3 +4,25 @@ ignore:
   - "eunomia-sdks"
   - "third_party"
   - "bpf-loader/include/helpers/syscall_helpers.h"
+
+coverage:
+  status:
+    project:
+      default: false
+
+      bpf-loader:
+        target: auto
+        threshold: 0.3%
+        paths:
+          - bpf-loader
+
+      compiler:
+        target: auto
+        threshold: 0.3%
+        paths:
+          - compiler
+    patch:
+      default:
+        target: auto
+        base: auto
+        only_pulls: false
