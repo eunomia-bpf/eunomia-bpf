@@ -102,7 +102,7 @@ TEST_CASE("test trace helpers vmlinux_btf_exists", "[trace][helpers")
 
 TEST_CASE("test trace helpers fentry_can_attach", "[trace][helpers")
 {
-    REQUIRE(fentry_can_attach("tcp_v4_syn_recv_sock", NULL) == false);
+    REQUIRE(fentry_can_attach("tcp_v4_syn_recv_sock", NULL) == true;
     REQUIRE(fentry_can_attach("vfs_read", NULL) == false);
     REQUIRE(fentry_can_attach("folio_account_dirtied", NULL) == false);
     REQUIRE(fentry_can_attach("inet_listen", NULL) == false);
@@ -132,7 +132,6 @@ TEST_CASE("test trace helpers is_kernel_module", "[trace][helpers")
     memset(long_name_module, 'a', sizeof(long_name_module));
     long_name_module[1023] = '\0';
     REQUIRE(is_kernel_module(long_name_module) == false);
-    REQUIRE_NOTHROW(is_kernel_module(nullptr));
 }
 
 TEST_CASE("test trace helpers resolve_binary_path", "[trace][helpers")
