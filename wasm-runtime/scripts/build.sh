@@ -10,7 +10,7 @@ INCLUDE_DIR=${PWD}/../include/
 
 find . -type f -name "*.c" -not -name "*.bpf.c" -print0 | while IFS= read -r -d '' i; 
 do
-  echo "$i"
+echo "$i"
 APP_SRC="$i"  
 OUT_FILE=${i%.*}.wasm
 echo "${INCLUDE_DIR}"
