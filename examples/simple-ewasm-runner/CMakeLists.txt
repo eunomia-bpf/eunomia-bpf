@@ -12,6 +12,4 @@ include_directories(${WAMR_ROOT_DIR}/core/iwasm/include/)
 include_directories(${EWASM_DIR}/include)
 
 add_subdirectory(${EWASM_DIR} ${CMAKE_CURRENT_BINARY_DIR}/wasm-runtime)
-add_dependencies(ewasm libbpf-build)
-add_dependencies(${PROJECT_NAME} ewasm)
-target_link_libraries(${PROJECT_NAME} PUBLIC ewasm elf z)
+target_link_libraries(${PROJECT_NAME} PUBLIC ewasm)
