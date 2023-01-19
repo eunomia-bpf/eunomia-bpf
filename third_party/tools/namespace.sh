@@ -19,7 +19,7 @@ declare -A hostns
 
 printf "%-14s %-20s %6s %-16s" "CONTAINER" "NAME" "PID" "PATH"
 for n in $namespaces; do
-    printf " %-10s" "$(echo $n | '[:upper:]' '[:lower:]')"
+    printf " %-10s" "$(echo "$n" | '[:upper:]' '[:lower:]')"
 done
 echo
 

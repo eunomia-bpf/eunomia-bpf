@@ -8,9 +8,9 @@
 WAMR_DIR=${PWD}/../../third_party/wasm-micro-runtime
 INCLUDE_DIR=${PWD}/../include/
 
-
-for i in $(find . -type f -name "*.c" -not -name "*.bpf.c")
+find . -type f -name "*.c" -not -name "*.bpf.c" -print0 | while IFS= read -r -d '' i; 
 do
+  echo "$i"
 APP_SRC="$i"  
 OUT_FILE=${i%.*}.wasm
 echo "${INCLUDE_DIR}"
@@ -20,7 +20,7 @@ echo "${INCLUDE_DIR}"
         --target=wasm32-wasi \
         -O0 -z stack-size=4096 -Wl,--initial-memory=65536 \
         --sysroot=/opt/wasi-sdk/share/wasi-sysroot  \
-        -I ${INCLUDE_DIR} \
+        -I "${INCLUDE_DIR}" \
         -Wl,--allow-undefined-file=${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot/share/defined-symbols.txt \
         -Wl,--export=all \
         -Wl,--export=bpf_main \
@@ -36,6 +36,7 @@ else
         echo "build ${OUT_FILE} fail"
 fi
 done
+
 
 
 for i in *.cpp
