@@ -6,3 +6,4 @@ all: eunomia-bpf-runner
 
 eunomia-bpf-runner:
 	cd simple-runner && mkdir build && cd build && cmake .. && make
+	cd simple-wasm-bpf-runner && mkdir build && cd build && cmake .. && make
