@@ -1,20 +1,17 @@
 cmake_minimum_required(VERSION 3.10)
-project(wasm-demo)
+project(ewasm-demo)
+set(PROJECT_NAME ewasm_demo)
+set(CMAKE_BUILD_TYPE Release)
+add_executable(${PROJECT_NAME} main.cpp)
 
-set(CMAKE_CXX_STANDARD 17)
+set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../bpf-loader)
+set(EWASM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../wasm-runtime)
+set(WAMR_ROOT_DIR ../../third_party/wasm-micro-runtime)
+include_directories(${EUNOMIA_DIR}/include)
+include_directories(${WAMR_ROOT_DIR}/core/iwasm/include/)
+include_directories(${EWASM_DIR}/include)
 
-SET(BPF_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../bpf-loader/)
-include_directories(${BPF_DIR}/include/)    # search for eunomia headers
-link_directories(${BPF_DIR}/build/lib/Release/)     # search for libeunomia.a
-link_directories(${BPF_DIR}/build/libbpf/)      # search for libbpf.a
-
-SET(EWASM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../wasm-runtime/)
-include_directories(${EWASM_DIR}/include/)  # search ewasm headers
-link_directories(${EWASM_DIR}/build/lib/Release)    # search libewasm.a
-link_directories(${EWASM_DIR}/build/)   # search for libvmlib.a
-
-SET(IWASM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/wasm-micro-runtime/core/iwasm)
-include_directories(${IWASM_DIR}/include/)  # search for wasm_export.h
-
-add_executable(main main.cpp)
-target_link_libraries(main  libewasm.a  libeunomia.a libvmlib.a libbpf.a elf z)
+add_subdirectory(${EWASM_DIR} ${CMAKE_CURRENT_BINARY_DIR}/wasm-runtime)
+add_dependencies(ewasm libbpf-build)
+add_dependencies(${PROJECT_NAME} ewasm)
+target_link_libraries(${PROJECT_NAME} PUBLIC ewasm elf z)
