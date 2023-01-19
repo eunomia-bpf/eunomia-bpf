@@ -19,7 +19,7 @@ main(int argc, char *argv_main[])
 {
     std::vector<char> buffer_vector;
     if (argc != 2) {
-        std::cout << "usage: " << argv_main[0] << " <json config file>" << std::endl;
+        std::cout << "usage: " << argv_main[0] << " <wasm config file>" << std::endl;
         return 1;
     }
     std::ifstream wasm_file(argv_main[1]);
