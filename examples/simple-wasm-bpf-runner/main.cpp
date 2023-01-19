@@ -2,8 +2,6 @@
 #include <fstream>
 #include <iostream>
 
-using namespace eunomia;
-
 void print_event(void *ctx, const char *e)
 {
     std::cout << e << std::endl;
@@ -23,22 +21,23 @@ int main(int argc, char *argv[])
         std::cout << "usage: " << argv[0] << " <json config file>" << std::endl;
         exit(1);
     }
-    bpf_skeleton ebpf_program;
-    if (ebpf_program.open_from_json_config(json_str) < 0)
+    ewasm_program p;
+    int id = p.create_bpf_program(json_str.data());
+    if ( id < 0)
     {
         std::cerr << "load json config failed" << std::endl;
         return -1;
     }
-    if (ebpf_program.load_and_attach() < 0)
+    if (p.run_bpf_program(id) < 0)
     {
         std::cerr << "Failed to run ebpf program" << std::endl;
         exit(1);
     }
-    if (ebpf_program.wait_and_poll_to_handler(export_format_type::EXPORT_JSON, print_event) < 0)
+    if (p.wait_and_poll_bpf_program(id) < 0)
     {
         std::cerr << "Failed to wait and print rb" << std::endl;
         exit(1);
     }
-    ebpf_program.destroy();
+    // ebpf_program.destroy();
     return 0;
 }
