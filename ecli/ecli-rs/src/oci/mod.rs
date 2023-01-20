@@ -1,12 +1,18 @@
+pub mod auth;
 mod wasm;
 
 use std::path::Path;
 
 use log::info;
+use oci_distribution::{
+    client::{ClientConfig, ClientProtocol},
+    Client,
+};
 use tokio::{
     fs::{File, OpenOptions},
     io::AsyncWriteExt,
 };
+use url::Url;
 pub use wasm::{parse_img_url, wasm_pull};
 
 use crate::error::{EcliError, EcliResult};
@@ -21,6 +27,24 @@ pub fn default_schema_port(schema: &str) -> EcliResult<u16> {
         "https" => Ok(443),
         _ => Err(EcliError::ParamErr(format!("unknown schema {}", schema))),
     }
+}
+
+pub fn get_client(url: &Url) -> EcliResult<Client> {
+    Ok(Client::new(ClientConfig {
+        protocol: match url.scheme() {
+            "http" => ClientProtocol::Http,
+            "https" => ClientProtocol::Https,
+            _ => {
+                return Err(EcliError::ParamErr(format!(
+                    "unsupport schema {}",
+                    url.scheme()
+                )))
+            }
+        },
+
+        // TODO add self sign cert support
+        ..Default::default()
+    }))
 }
 
 pub async fn push(args: PushArgs) -> EcliResult<()> {

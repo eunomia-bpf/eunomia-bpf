@@ -8,7 +8,10 @@ mod runner;
 use clap::{Parser, Subcommand};
 use env_logger::{Builder, Target};
 use error::EcliResult;
-use oci::{pull, push};
+use oci::{
+    auth::{login, logout},
+    pull, push,
+};
 use runner::run;
 
 #[derive(Subcommand)]
@@ -35,6 +38,16 @@ pub enum Action {
         #[arg()]
         image: String,
     },
+
+    Login {
+        #[arg()]
+        url: String,
+    },
+
+    Logout {
+        #[arg()]
+        url: String,
+    },
 }
 
 #[derive(Parser)]
@@ -57,5 +70,7 @@ async fn main() -> EcliResult<()> {
         Action::Run { .. } => run(args.action.try_into()?).await,
         Action::Push { .. } => push(args.action.try_into()?).await,
         Action::Pull { .. } => pull(args.action.try_into()?).await,
+        Action::Login { url } => login(url).await,
+        Action::Logout { url } => logout(url),
     }
 }
