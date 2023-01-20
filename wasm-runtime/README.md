@@ -51,16 +51,23 @@ process_event(int ctx, char *e, int str_len)
 
 For the kernel code, please refer to [../examples/bpftools/opensnoop](../examples/bpftools/opensnoop).
 
-Run `./build` to build the WASM module. 
+### build the WASM module. 
+```console
+$ make /opt/wasi-sdk    # install WASI SDK
+$ cd ./test/wasm-apps/ && make && cd -
+```
 
-> Please install WASI SDK, download the [wasi-sdk](https://github.com/CraneStation/wasi-sdk/releases) release and extract the archive to default path `/opt/wasi-sdk`.
+> To install the latest WASI SDK, you can download the latest [wasi-sdk](https://github.com/CraneStation/wasi-sdk/releases) release and extract the archive to default path `/opt/wasi-sdk`.
 
-You will get a `opensnoop.wasm` file, which contains the pre-compiled kernel eBPF code and user-space `WASM` code.
+You will get a `opensnoop.wasm` file in folder `test\wasm-apps`, which contains the pre-compiled kernel eBPF code and user-space `WASM` code.
 
 ### run eBPF from WASM module
 
 ```console
-$ sudo build/bin/Release/ewasm test/wasm-apps/opensnoop.wasm
+$ cd wasm-runtime
+$ mkdir build && cd build
+$ cmake -Dewasm_BUILD_EXECUTABLE=ON -DCMAKE_BUILD_TYPE=Release .. && make	# generate ewasm loader
+$ sudo ./bin/Release/ewasm ../test/wasm-apps/opensnoop.wasm
 
 {"pid":1509,"uid":0,"ret":11,"flags":0,"comm":"YDService","fname":"/proc/self/stat"}
 {"pid":1509,"uid":0,"ret":3,"flags":0,"comm":"YDService","fname":"/home/ubuntu/.zsh_history"}
