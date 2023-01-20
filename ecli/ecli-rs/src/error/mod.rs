@@ -11,6 +11,9 @@ pub enum EcliError {
     WasmError(String),
     OciPushError(String),
     OciPullError(String),
+    SerializeError(String),
+    LoginError(String),
+    LoginInfoNotFoundError(String),
     Other(String),
 }
 

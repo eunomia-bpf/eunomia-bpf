@@ -1,11 +1,7 @@
 use std::path::Path;
 
 use log::info;
-use oci_distribution::{
-    client::{ClientConfig, ClientProtocol},
-    secrets::RegistryAuth,
-    Client, Reference,
-};
+use oci_distribution::{secrets::RegistryAuth, Client, Reference};
 use tokio::{fs::File, io::AsyncReadExt};
 use url::Url;
 
@@ -16,7 +12,7 @@ use crate::{
 
 use self::push::push_wasm_to_registry;
 
-use super::default_schema_port;
+use super::{auth::get_auth_info_by_url, default_schema_port, get_client};
 
 pub mod pull;
 pub mod push;
@@ -24,31 +20,21 @@ pub mod push;
 // return (..., repo_url_strip_auth_info)
 pub fn parse_img_url(url: &str) -> EcliResult<(Client, RegistryAuth, Reference, String)> {
     let img_url = Url::parse(url).map_err(|e| EcliError::ParamErr(e.to_string()))?;
-    let auth = if !img_url.username().is_empty() {
-        println!("auth with username: {}", img_url.username());
-        RegistryAuth::Basic(
-            img_url.username().into(),
-            img_url.password().unwrap_or_default().into(),
-        )
-    } else {
-        RegistryAuth::Anonymous
-    };
-    let client = Client::new(ClientConfig {
-        protocol: match img_url.scheme() {
-            "http" => ClientProtocol::Http,
-            "https" => ClientProtocol::Https,
-            _ => {
-                return Err(EcliError::ParamErr(format!(
-                    "unsupport schema {}",
-                    img_url.scheme()
-                )))
+    let auth = match get_auth_info_by_url(&img_url) {
+        Ok((username, password)) => {
+            println!("auth with username: {}", username);
+            RegistryAuth::Basic(username, password)
+        }
+        Err(err) => {
+            if let EcliError::LoginInfoNotFoundError(_) = err {
+                RegistryAuth::Anonymous
+            } else {
+                return Err(err);
             }
-        },
+        }
+    };
 
-        // TODO add self sign cert support
-        ..Default::default()
-    });
-
+    let client = get_client(&img_url)?;
     let Some(host) = img_url.host() else {
         return Err(EcliError::ParamErr(format!("invalid url: {}",url)))
     };
