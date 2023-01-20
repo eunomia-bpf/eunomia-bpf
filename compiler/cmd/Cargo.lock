@@ -168,6 +168,7 @@ dependencies = [
  "base64",
  "clang",
  "clap",
+ "eunomia-rs",
  "flate2",
  "home",
  "regex",
@@ -197,6 +198,14 @@ checksum = "aa68f1b12764fab894d2755d2518754e71b4fd80ecfb822714a1206c2aab39bf"
 dependencies = [
  "cc",
  "libc",
+]
+
+[[package]]
+name = "eunomia-rs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "home",
 ]
 
 [[package]]

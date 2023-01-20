@@ -2,6 +2,7 @@ use std::{fs, path};
 
 use anyhow::Result;
 use clap::Parser;
+use eunomia_rs::get_eunomia_home;
 use rust_embed::RustEmbed;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
@@ -53,30 +54,6 @@ pub struct CompileOptions {
     /// output config skel file in yaml
     #[arg(short, long, default_value_t = false)]
     pub yaml: bool,
-}
-
-static EUNOMIA_HOME_ENV: &str = "EUNOMIA_HOME";
-static FHS_EUNOMIA_HOME_ENTRY: &str = "/usr/share/eunomia";
-
-/// Get home directory from env
-pub fn get_eunomia_home() -> Result<String> {
-    let eunomia_home = std::env::var(EUNOMIA_HOME_ENV);
-    match eunomia_home {
-        Ok(home) => Ok(home),
-        Err(_) => match home::home_dir() {
-            Some(home) => {
-                let home = home.join(".eunomia");
-                Ok(home.to_str().unwrap().to_string())
-            }
-            None => {
-                if path::Path::new(FHS_EUNOMIA_HOME_ENTRY).exists() {
-                    Ok(FHS_EUNOMIA_HOME_ENTRY.to_string())
-                } else {
-                    Err(anyhow::anyhow!("HOME is not found"))
-                }
-            }
-        },
-    }
 }
 
 /// Get output path for json: output.meta.json
@@ -232,6 +209,7 @@ pub fn create_eunomia_home() -> Result<()> {
 mod test {
     use super::*;
     use clap::Parser;
+    use eunomia_rs::get_eunomia_home;
 
     #[test]
     fn test_parse_args() {
@@ -247,37 +225,6 @@ mod test {
     fn test_get_base_dir_include_fail() {
         let source_path = "/xxx/test.c";
         let _ = get_base_dir_include(source_path).unwrap_err();
-    }
-
-    #[test]
-    fn test_get_eunomia_home() {
-        let eunomia_home_from_env = std::env::var(EUNOMIA_HOME_ENV);
-        let eunomia_home_from_home = home::home_dir().unwrap();
-
-        match eunomia_home_from_env {
-            Ok(path) => assert_eq!(get_eunomia_home().unwrap(), path),
-            Err(_) => {
-                if get_eunomia_home().is_err() {
-                    assert!(true)
-                }
-
-                if eunomia_home_from_home.exists() {
-                    assert_eq!(
-                        get_eunomia_home().unwrap(),
-                        eunomia_home_from_home
-                            .join(".eunomia")
-                            .into_os_string()
-                            .into_string()
-                            .unwrap()
-                    );
-                } else {
-                    assert_eq!(
-                        get_eunomia_home().unwrap(),
-                        FHS_EUNOMIA_HOME_ENTRY.to_string()
-                    )
-                }
-            }
-        }
     }
 
     #[test]
