@@ -12,8 +12,13 @@
 #include <string>
 #include <thread>
 #include <vector>
+// #include "../../third_party/bpftool/libbpf/src/libbpf.h"
+
 #include "ecli/eunomia_runner.h"
 #include "ecli/url_resolver.h"
+extern "C" {
+const char* libbpf_version_string(void);
+}
 
 using namespace std::chrono_literals;
 using json = nlohmann::json;
@@ -115,6 +120,7 @@ static int cmd_run_main(int argc, char* argv[]) {
         cout << "Linux version: " << uname_st.sysname << " " << uname_st.release
              << " " << uname_st.version << " " << uname_st.nodename << " "
              << uname_st.machine << endl;
+        cout << "libbpf version: " << libbpf_version_string() << endl;
         cout << "arch: " << uname_st.machine << endl;
         return 0;
     }
