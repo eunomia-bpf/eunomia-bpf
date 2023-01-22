@@ -5,45 +5,40 @@
  */
 
 #include <signal.h>
-#include <sys/utsname.h>
 #include <argparse.hpp>
 #include <iostream>
 #include <json.hpp>
 #include <string>
 #include <thread>
 #include <vector>
-// #include "../../third_party/bpftool/libbpf/src/libbpf.h"
-
+#include "eunomia/eunomia-bpf.hpp"
 #include "ecli/eunomia_runner.h"
 #include "ecli/url_resolver.h"
-extern "C" {
-const char* libbpf_version_string(void);
-}
 
 using namespace std::chrono_literals;
 using json = nlohmann::json;
 
 enum class eunomia_cmd_mode { run, help, pull };
 
-const char* ECLI_VERSION = "1.0";
-
-static void run_mode_operation(
-    const std::string& path,
-    const std::vector<std::string>& run_with_extra_args,
-    bool export_to_json,
-    bool no_cache) {
+static void 
+run_mode_operation(const std::string &path,
+    const std::vector<std::string> &run_with_extra_args,
+    bool export_to_json, bool no_cache)
+{
     export_format_type type;
     if (export_to_json) {
         type = export_format_type::EXPORT_JSON;
-    } else {
+    }
+    else {
         type = export_format_type::EXPORT_PLANT_TEXT;
     }
-    auto base = program_config_data{path,
-                                    !no_cache,
-                                    {},
-                                    program_config_data::program_type::UNDEFINE,
-                                    run_with_extra_args,
-                                    type};
+    auto base =
+        program_config_data{ path,
+                             !no_cache,
+                             {},
+                             program_config_data::program_type::UNDEFINE,
+                             run_with_extra_args,
+                             type };
     if (!resolve_url_path(base)) {
         std::cerr << "cannot resolve url data" << std::endl;
         return;
@@ -64,9 +59,11 @@ static void run_mode_operation(
     }
 }
 
-static int cmd_run_main(int argc, char* argv[]) {
+static int
+cmd_run_main(int argc, char *argv[])
+{
     using argparse::default_arguments;
-    argparse::ArgumentParser program("ecli", ECLI_VERSION,
+    argparse::ArgumentParser program("ecli", eunomia::get_eunomia_version(),
                                      default_arguments::help);
     program.add_description("eunomia-bpf ebpf program runtime cli");
     program.add_epilog(
@@ -96,7 +93,7 @@ static int cmd_run_main(int argc, char* argv[]) {
             std::exit(1);
         }
         program.parse_args(argc, argv);
-    } catch (const std::runtime_error& err) {
+    } catch (const std::runtime_error &err) {
         std::cerr << err.what() << std::endl;
         std::cerr << program;
         std::exit(1);
@@ -106,22 +103,7 @@ static int cmd_run_main(int argc, char* argv[]) {
     bool no_cache = program.get<bool>("--no-cache");
     bool show_version = program.get<bool>("--version");
     if (show_version) {
-        using std::cerr;
-        using std::cout;
-        using std::endl;
-        utsname uname_st;
-        int err;
-        if ((err = uname(&uname_st)) != 0) {
-            cerr << "Error when calling uname: " << strerror(err) << endl;
-            std::exit(1);
-        }
-
-        cout << "ecli: " << ECLI_VERSION << endl;
-        cout << "Linux version: " << uname_st.sysname << " " << uname_st.release
-             << " " << uname_st.version << " " << uname_st.nodename << " "
-             << uname_st.machine << endl;
-        cout << "libbpf version: " << libbpf_version_string() << endl;
-        cout << "arch: " << uname_st.machine << endl;
+        std::cout<< eunomia::generate_version_info();
         return 0;
     }
     run_mode_operation(run_with_extra_args[0], run_with_extra_args,
@@ -129,7 +111,9 @@ static int cmd_run_main(int argc, char* argv[]) {
     return 0;
 }
 
-int main(int argc, char* argv[]) {
+int
+main(int argc, char *argv[])
+{
     if (argc >= 2) {
         if (strcmp(argv[1], "run") == 0) {
             // compatible with older versions

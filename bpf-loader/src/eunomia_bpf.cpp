@@ -5,6 +5,8 @@
  */
 #include <iostream>
 #include <thread>
+#include <string>
+#include <sstream>
 
 #include "base64.h"
 #include "eunomia/eunomia-bpf.hpp"
@@ -18,6 +20,7 @@ extern "C" {
 #include <stdlib.h>
 #include <unistd.h>
 #include "helpers/trace_helpers.h"
+#include <sys/utsname.h>
 }
 
 using json = nlohmann::json;
@@ -512,7 +515,25 @@ bpf_skeleton::get_fd(const char *name) const noexcept
     }
     return -1;
 }
-
+extern "C" {
+const char* libbpf_version_string(void);
+}
+std::string get_eunomia_version() {
+    return std::string(EUNOMIA_VERSION);
+}
+std::string generate_version_info() {
+    using std::endl;
+    std::ostringstream ss;
+    utsname uname_st;
+    uname(&uname_st);  // It won't fault
+    ss << "eunomia-bpf version: " << get_eunomia_version() << endl;
+    ss << "Linux version: " << uname_st.sysname << " " << uname_st.release
+       << " " << uname_st.version << " " << uname_st.nodename << " "
+       << uname_st.machine << endl;
+    ss << "libbpf version: " << libbpf_version_string() << endl;
+    ss << "arch: " << uname_st.machine << endl;
+    return ss.str();
+}
 } // namespace eunomia
 
 // simple wrappers for C API
