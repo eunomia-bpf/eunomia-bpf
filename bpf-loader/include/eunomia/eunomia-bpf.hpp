@@ -33,6 +33,11 @@ perf_buffer__free(perf_buffer *pb);
 }
 
 namespace eunomia {
+
+std::string get_eunomia_version();
+
+std::string generate_version_info();
+
 enum class ebpf_program_state {
     /// @brief The config is set but the program is not loaded
     INIT,
