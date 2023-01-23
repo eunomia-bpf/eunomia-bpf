@@ -11,6 +11,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include "eunomia/eunomia-bpf.hpp"
 #include <json.hpp>
+#include <sys/utsname.h>
+#include <sstream>
 
 using namespace eunomia;
 using json = nlohmann::json;
@@ -26,4 +28,28 @@ TEST_CASE("test load config", "[eunomia_object_meta]")
     REQUIRE(ebpf_program.open_from_json_config(json_package) == 0);
     REQUIRE(ebpf_program.open_from_json_config(json_package) == 0);
     REQUIRE(ebpf_program.open_from_json_config(config["meta"].dump(), {}) == 0);
+}
+
+extern "C" {
+const char* libbpf_version_string(void);
+}
+
+TEST_CASE("test version info generation", "[eunomia_object_meta]") {
+    std::ifstream version_file("../../../VERSION");
+    REQUIRE(version_file.is_open());
+    std::string version_str;
+    version_file >> version_str;
+    using std::endl;
+    std::ostringstream ss;
+    utsname uname_st;
+    int err = uname(&uname_st);
+    REQUIRE(err == 0);
+    ss << "eunomia-bpf version: " << version_str << endl;
+    ss << "Linux version: " << uname_st.sysname << " " << uname_st.release
+       << " " << uname_st.version << " " << uname_st.nodename << " "
+       << uname_st.machine << endl;
+    ss << "libbpf version: " << libbpf_version_string() << endl;
+    ss << "arch: " << uname_st.machine << endl;
+
+    REQUIRE(ss.str() == eunomia::generate_version_info());
 }
