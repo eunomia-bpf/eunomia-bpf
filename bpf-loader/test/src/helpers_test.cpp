@@ -11,7 +11,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include "eunomia/eunomia-bpf.hpp"
 
-
 extern "C" {
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
@@ -71,7 +70,9 @@ TEST_CASE("test trace helpers kprobe exists", "[trace][helpers]")
     REQUIRE(kprobe_exists("do_syscall_64") == false);
     REQUIRE(kprobe_exists("non_existent_function") == false);
     REQUIRE(kprobe_exists("") == false);
-    REQUIRE(kprobe_exists("long_name_of_a_non_existent_function_with_more_than_255_characters") == false);
+    REQUIRE(kprobe_exists("long_name_of_a_non_existent_function_with_more_than_"
+                          "255_characters")
+            == false);
 }
 
 TEST_CASE("test trace helpers tracepoint exists", "[trace][helpers]")
@@ -125,9 +126,12 @@ TEST_CASE("test trace helpers is_kernel_module", "[trace][helpers")
     REQUIRE(is_kernel_module("tcp") == false);
     REQUIRE(is_kernel_module("non_existent_module") == false);
     REQUIRE(is_kernel_module("") == false);
-    REQUIRE(is_kernel_module("long_name_of_a_non_existent_module_with_more_than_255_characters") == false);
+    REQUIRE(
+        is_kernel_module(
+            "long_name_of_a_non_existent_module_with_more_than_255_characters")
+        == false);
     REQUIRE(is_kernel_module("0") == false);
-    REQUIRE(is_kernel_module("-module") == false); 
+    REQUIRE(is_kernel_module("-module") == false);
     char long_name_module[1024];
     memset(long_name_module, 'a', sizeof(long_name_module));
     long_name_module[1023] = '\0';
@@ -139,7 +143,8 @@ TEST_CASE("test trace helpers resolve_binary_path", "[trace][helpers")
     char path[1024];
     char short_path[2];
     REQUIRE(resolve_binary_path("", 0, path, sizeof(path)) == -1);
-    REQUIRE(resolve_binary_path("non_existent_program", 0, path, sizeof(path)) == -1);
+    REQUIRE(resolve_binary_path("non_existent_program", 0, path, sizeof(path))
+            == -1);
     REQUIRE(resolve_binary_path("", -1, path, sizeof(path)) == -1);
 }
 
@@ -152,4 +157,3 @@ TEST_CASE("test trace helpers open_elf", "[trace][helpers")
     elf_end(e);
     close(fd_close);
 }
-
