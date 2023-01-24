@@ -37,6 +37,10 @@ handle_eunomia_event(void *ctx, const char *e)
 {
     assert("ctx is null" && ctx != nullptr);
     ewasm_program *program = (ewasm_program *)ctx;
+    // for(int i = 0; i < 32; i++) {
+	// 	printf("%d ", (int)e[i]);
+	// }
+	// putchar('\n');
     program->process_event(e);
 }
 
@@ -48,7 +52,7 @@ ewasm_program::wait_and_poll_bpf_program(int id)
         return -1;
     }
     return bpf_program->second->wait_and_poll_to_handler(
-        export_format_type::EXPORT_JSON, handle_eunomia_event, this);
+        export_format_type::EXPORT_RAW_EVENT, handle_eunomia_event, this);
 }
 
 extern "C" {
