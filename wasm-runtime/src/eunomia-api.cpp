@@ -33,15 +33,15 @@ ewasm_program::run_bpf_program(int id)
 }
 
 void
-handle_eunomia_event(void *ctx, const char *e)
+handle_eunomia_event(void *ctx, const char *e, size_t size)
 {
     assert("ctx is null" && ctx != nullptr);
     ewasm_program *program = (ewasm_program *)ctx;
     // for(int i = 0; i < 32; i++) {
-	// 	printf("%d ", (int)e[i]);
-	// }
-	// putchar('\n');
-    program->process_event(e);
+    // 	printf("%d ", (int)e[i]);
+    // }
+    // putchar('\n');
+    program->process_event(e, size);
 }
 
 int

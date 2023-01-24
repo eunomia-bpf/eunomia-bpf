@@ -9,41 +9,25 @@
 #include "wasm_export.h"
 #include "eunomia/eunomia-bpf.hpp"
 
-class ewasm_program_base
-{
-  public:
-    virtual ~ewasm_program_base() = default;
-
-    virtual int create_bpf_program(char *ebpf_json) = 0;
-    virtual int run_bpf_program(int id) = 0;
-    virtual int wait_and_poll_bpf_program(int id) = 0;
-
-    virtual int start(std::vector<char> &wasm_buffer, std::string &json_env) = 0;
-
-    virtual void process_event(const char *e) = 0;
-    virtual void register_event_handler(void (*handler)(void *, const char *),
-                                        void *ctx) = 0;
-};
-
 /// @brief ewasm program runtime base on WSMR
-class ewasm_program : public ewasm_program_base
+class ewasm_program
 {
   public:
     ewasm_program() = default;
     ~ewasm_program();
     void register_event_handler(void (*handler)(void *, const char *),
-                                void *ctx) override
+                                void *ctx)
     {
         event_handler = handler;
         event_ctx = ctx;
     }
 
-    int start(std::vector<char> &wasm_buffer, std::string &json_env) override;
+    int start(std::vector<char> &wasm_buffer, std::string &json_env);
 
-    int create_bpf_program(char *ebpf_json) override;
-    int run_bpf_program(int id) override;
-    int wait_and_poll_bpf_program(int id) override;
-    void process_event(const char *e) override;
+    int create_bpf_program(char *ebpf_json);
+    int run_bpf_program(int id);
+    int wait_and_poll_bpf_program(int id);
+    void process_event(const char *e, size_t size);
 
   private:
     std::map<int, std::unique_ptr<eunomia::bpf_skeleton>> bpf_program_map;
@@ -73,7 +57,7 @@ class ewasm_program : public ewasm_program_base
     const uint32_t EVENT_BUFFER_SIZE = 4096;
 
     int call_wasm_init(std::string &json_env);
-    int call_wasm_process_event(const char *e);
+    int call_wasm_process_event(const char *e, size_t size);
     int init_wasm_functions();
 
     int default_bpf_main();
