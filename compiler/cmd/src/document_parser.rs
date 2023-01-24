@@ -196,20 +196,23 @@ fn resolve_doc_entities(entities: &Vec<Entity>, skel_json: &mut Value) {
 
 fn resolve_bpf_skel_entities(entities: &Vec<Entity>, bpf_skel_json: Value) -> Result<Value> {
     let mut new_skel_json = bpf_skel_json;
-
-    // reslove comments for section data
-    for data_sec in new_skel_json["data_sections"].as_array_mut().unwrap() {
-        resolve_section_data_entities(entities, data_sec);
+    if let Some(data_secs) = new_skel_json["data_sections"].as_array_mut() {
+        // resolve comments for section data
+        for data_sec in data_secs {
+            resolve_section_data_entities(entities, data_sec);
+        }
     }
-
-    // resolve comments for section maps
-    for map_sec in new_skel_json["maps"].as_array_mut().unwrap() {
-        resolve_map_entities(entities, map_sec);
+    if let Some(map_secs) = new_skel_json["maps"].as_array_mut() {
+        // resolve comments for section maps
+        for map_sec in map_secs {
+            resolve_map_entities(entities, map_sec);
+        }
     }
-
-    // resolve comments for section progs
-    for progs_sec in new_skel_json["progs"].as_array_mut().unwrap() {
-        resolve_progs_entities(entities, progs_sec);
+    if let Some(progs_secs) = new_skel_json["progs"].as_array_mut() {
+        // resolve comments for section progs
+        for progs_sec in progs_secs {
+            resolve_progs_entities(entities, progs_sec);
+        }
     }
     resolve_doc_entities(entities, &mut new_skel_json);
     Ok(new_skel_json)
@@ -404,5 +407,13 @@ mod test {
         };
         let exec_start = &skel["maps"][0];
         assert_eq!(exec_start, &test_case_res);
+    }
+
+    #[test]
+    fn test_parse_empty() {
+        let args = CompileOptions {
+            ..Default::default()
+        };
+        let _ = parse_source_documents(&args, SOURCE_PATH, json!({}));
     }
 }
