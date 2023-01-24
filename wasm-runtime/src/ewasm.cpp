@@ -115,8 +115,9 @@ ewasm_program::call_wasm_init(std::string &json_env)
 
     if (!wasm_runtime_call_wasm_a(exec_env, wasm_init_func, 1, results, 2,
                                   arguments)) {
-        if (strcmp(wasm_runtime_get_exception(module_inst), "Exception: env.exit(0)") ==
-            0) {
+        if (strcmp(wasm_runtime_get_exception(module_inst),
+                   "Exception: env.exit(0)")
+            == 0) {
             return 0;
         }
         printf("call wasm function init failed. error: %s\n",
@@ -129,9 +130,9 @@ ewasm_program::call_wasm_init(std::string &json_env)
 }
 
 void
-ewasm_program::process_event(const char *e)
+ewasm_program::process_event(const char *e, size_t size)
 {
-    int res = call_wasm_process_event(e);
+    int res = call_wasm_process_event(e, size);
     if (res < 0) {
         return;
     }
@@ -141,21 +142,24 @@ ewasm_program::process_event(const char *e)
 }
 
 int
-ewasm_program::call_wasm_process_event(const char *e)
+ewasm_program::call_wasm_process_event(const char *e, size_t size)
 {
     if (!wasm_process_event_func) {
         // ignore the process event and return.
         return 0;
     }
-    // TODO: handle event size
-    memcpy(event_data_buffer, e, 32);
+    if (size > EVENT_BUFFER_SIZE) {
+        printf("Event size is too big. size: %ld\n", size);
+        return 0;
+    }
+    memcpy(event_data_buffer, e, size);
     wasm_val_t arguments[3];
     arguments[0].kind = WASM_I32;
     arguments[0].of.i32 = (int32_t)wasm_process_ctx;
     arguments[1].kind = WASM_I32;
     arguments[1].of.i32 = (int32_t)event_wasm_buffer;
     arguments[2].kind = WASM_I32;
-    arguments[2].of.i32 = (int)strnlen(e, EVENT_BUFFER_SIZE);
+    arguments[2].of.i32 = (int)size;
 
     if (!wasm_runtime_call_wasm_a(exec_env, wasm_process_event_func, 1, results,
                                   3, arguments)) {
@@ -191,14 +195,18 @@ struct ewasm_bpf {
     ewasm_program prog;
 };
 
-struct ewasm_bpf* new_ewasm_bpf(){
+struct ewasm_bpf *
+new_ewasm_bpf()
+{
     return new ewasm_bpf{};
 }
 
-int ewasm_bpf_start(struct ewasm_bpf* ewasm,char* buff, int buff_size, char* json_env){
+int
+ewasm_bpf_start(struct ewasm_bpf *ewasm, char *buff, int buff_size,
+                char *json_env)
+{
     std::vector<char> buff_vec(buff, buff + buff_size);
     std::string env(json_env);
-    return ewasm->prog.start(buff_vec,env);
+    return ewasm->prog.start(buff_vec, env);
 }
-
 }
