@@ -3,14 +3,8 @@ name: Build and test wasm-runtime on Ubuntu
 on:
   push:
     branches: "*"
-    paths:
-      - "wasm-runtime/**"
-      - ".github/**"
   pull_request:
     branches: "*"
-    paths:
-      - "wasm-runtime/**"
-      - ".github/**"
 env:
   BUILD_TYPE: Release
   INSTALL_LOCATION: .local
