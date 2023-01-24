@@ -4,11 +4,11 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "sigsnoop.h"
 #include "eunomia-include/wasm-app.h"
 #include "eunomia-include/entry.h"
 #include "eunomia-include/argp.h"
-#include "sigsnoop.bpf.h"
-#include "ewasm-skel.h"
+#include "eunomia-include/struct-bindings.h"
 #include "eunomia-include/sigsnoop.skel.h"
 #define PERF_BUFFER_PAGES	16
 #define PERF_POLL_TIMEOUT_MS	100
