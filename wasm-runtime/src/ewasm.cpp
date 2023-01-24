@@ -147,7 +147,8 @@ ewasm_program::call_wasm_process_event(const char *e)
         // ignore the process event and return.
         return 0;
     }
-    strncpy(event_data_buffer, e, EVENT_BUFFER_SIZE);
+    // TODO: handle event size
+    memcpy(event_data_buffer, e, 32);
     wasm_val_t arguments[3];
     arguments[0].kind = WASM_I32;
     arguments[0].of.i32 = (int32_t)wasm_process_ctx;
