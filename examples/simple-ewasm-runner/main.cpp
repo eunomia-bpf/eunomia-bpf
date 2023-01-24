@@ -14,35 +14,39 @@
 #include "ewasm/ewasm.hpp"
 #include "wasm_export.h"
 
-int
-main(int argc, char *argv_main[])
+int main(int argc, char *argv_main[])
 {
-    if (argc != 2 && argc !=3) {
+    if (argc != 2 && argc != 3)
+    {
         std::cout << "usage: " << argv_main[0] << " [path of wasm file]  [-j path of json file]" << std::endl;
         return 1;
     }
-    if (argc == 2){
+    if (argc == 2)
+    {
         // run wasm file
         std::vector<char> buffer_vector;
         std::ifstream wasm_file(argv_main[1]);
         buffer_vector =
             std::vector<char>((std::istreambuf_iterator<char>(wasm_file)),
-                            std::istreambuf_iterator<char>());
+                              std::istreambuf_iterator<char>());
         ewasm_program p;
-        std::string json_env =  "{}";
+        std::string json_env = "{}";
         int res = p.start(buffer_vector, json_env);
-        if (res != 0) {
+        if (res != 0)
+        {
             return 1;
         }
         return 0;
-    } else if (argc == 3 && std::strcmp(argv_main[1], "-j")==0){
+    }
+    else if (argc == 3 && std::strcmp(argv_main[1], "-j") == 0)
+    {
         // run json file
         std::ifstream json_file(argv_main[2]);
         std::string json_str = std::string((std::istreambuf_iterator<char>(json_file)), std::istreambuf_iterator<char>());
         ewasm_program p;
-        
+
         int id = p.create_bpf_program(json_str.data());
-        if ( id < 0)
+        if (id < 0)
         {
             std::cerr << "load json config failed" << std::endl;
             return -1;
@@ -58,5 +62,5 @@ main(int argc, char *argv_main[])
             exit(1);
         }
         return 0;
-    } 
+    }
 }

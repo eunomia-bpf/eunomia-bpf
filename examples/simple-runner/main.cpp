@@ -4,7 +4,7 @@
 
 using namespace eunomia;
 
-void print_event(void *ctx, const char *e)
+void print_event(void *ctx, const char *e, size_t size)
 {
     std::cout << e << std::endl;
 }
