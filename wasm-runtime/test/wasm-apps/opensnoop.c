@@ -42,6 +42,6 @@ int
 process_event(int ctx, char *e, int str_len)
 {
     cJSON *json = cJSON_Parse(e);
-    printf("%s\n", e);
+    printf("TODO: fix parse JSON\n");
     return -1;
 }
