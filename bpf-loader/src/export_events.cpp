@@ -335,19 +335,19 @@ event_exporter::check_and_create_export_format(
         {
             internal_event_processor =
                 std::bind(&event_exporter::print_export_event_to_json, this,
-                          std::placeholders::_1);
+                          std::placeholders::_1, std::placeholders::_2);
         } break;
         case export_format_type::EXPORT_RAW_EVENT:
             internal_event_processor =
                 std::bind(&event_exporter::raw_event_handler, this,
-                          std::placeholders::_1);
+                          std::placeholders::_1, std::placeholders::_2);
             break;
         case export_format_type::EXPORT_PLANT_TEXT:
             [[fallthrough]];
         default:
             internal_event_processor = std::bind(
                 &event_exporter::print_export_event_to_plant_text_with_time,
-                this, std::placeholders::_1);
+                this, std::placeholders::_1, std::placeholders::_2);
             std::string time_header = "TIME     ";
             // print header for plant text events
             auto header = get_plant_text_checked_types_header(
@@ -407,7 +407,7 @@ event_exporter::sprintf_printer::export_to_handler_or_print(
     void *user_ctx, export_event_handler &user_export_event_handler)
 {
     if (user_export_event_handler != nullptr) {
-        user_export_event_handler(user_ctx, buffer.data());
+        user_export_event_handler(user_ctx, buffer.data(), buffer.size());
     }
     else {
         // print to stdout if handler not exists
@@ -479,7 +479,7 @@ event_exporter::dump_value_members_to_json(
 }
 
 void
-event_exporter::print_export_event_to_json(const char *event)
+event_exporter::print_export_event_to_json(const char *event, size_t size)
 {
     printer.reset();
     dump_value_members_to_json(event, checked_export_value_member_types);
@@ -487,11 +487,11 @@ event_exporter::print_export_event_to_json(const char *event)
 }
 
 void
-event_exporter::raw_event_handler(const char *event)
+event_exporter::raw_event_handler(const char *event, size_t size)
 {
     printer.reset();
     if (user_export_event_handler) {
-        user_export_event_handler(user_ctx, event);
+        user_export_event_handler(user_ctx, event, size);
     }
 }
 
@@ -569,7 +569,8 @@ event_exporter::raw_sample_handler(std::vector<char> &key_buffer,
     printer.reset();
     if (user_export_event_handler) {
         // TODO: use key value for raw event
-        user_export_event_handler(user_ctx, value_buffer.data());
+        user_export_event_handler(user_ctx, value_buffer.data(),
+                                  value_buffer.size());
     }
     return 0;
 }
@@ -615,7 +616,8 @@ event_exporter::dump_value_members_to_plant_text(
 }
 
 void
-event_exporter::print_export_event_to_plant_text_with_time(const char *event)
+event_exporter::print_export_event_to_plant_text_with_time(const char *event,
+                                                           size_t size)
 {
     struct tm tm;
     char ts[32];
@@ -632,13 +634,13 @@ event_exporter::print_export_event_to_plant_text_with_time(const char *event)
 }
 
 void
-event_exporter::handler_export_events(const char *event) const
+event_exporter::handler_export_events(const char *event, size_t size) const
 {
     if (!event) {
         return;
     }
     if (internal_event_processor) {
-        internal_event_processor(event);
+        internal_event_processor(event, size);
         return;
     }
     else {
@@ -669,9 +671,9 @@ event_exporter::set_export_type(export_format_type type,
 }
 
 void
-bpf_skeleton::handler_export_events(const char *event) const
+bpf_skeleton::handler_export_events(const char *event, size_t size) const
 {
-    exporter.handler_export_events(event);
+    exporter.handler_export_events(event, size);
 }
 
 int
