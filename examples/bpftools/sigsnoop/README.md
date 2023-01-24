@@ -13,9 +13,11 @@ summary: Trace signals generated system wide, from syscalls and others.
 
 origin from:
 
-https://github.com/iovisor/bcc/blob/master/libbpf-tools/sigsnoop.bpf.c
+<https://github.com/iovisor/bcc/blob/master/libbpf-tools/sigsnoop.bpf.c>
 
-## Compile and Run
+This example include a eBPF program and a WASM module in user space.
+
+## Compile and Run eBPF only
 
 Compile:
 
@@ -61,7 +63,7 @@ Built with eunomia-bpf framework.
 See https://github.com/eunomia-bpf/eunomia-bpf for more information.
 ```
 
-## WASM example
+## compile and run WASM example
 
 Generate WASM skel:
 
@@ -79,6 +81,12 @@ Build WASM module
 
 ```shell
 docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest build-wasm
+```
+
+or install the [WASI SDK](https://github.com/WebAssembly/wasi-sdk/releases/download), and use the build script:
+
+```shell
+./build.sh
 ```
 
 Run:
@@ -110,8 +118,8 @@ running and waiting for the ebpf events from perf event...
 
 Demonstrations of sigsnoop.
 
-
 This traces signals generated system wide. For example:
+
 ```console
 # ./sigsnoop -n
 TIME     PID     COMM             SIG       TPID    RESULT
@@ -119,6 +127,7 @@ TIME     PID     COMM             SIG       TPID    RESULT
 19:56:14 3204808 a.out            SIGPIPE   3204808 0
 19:56:14 3204808 a.out            SIGCHLD   3204722 0
 ```
+
 The first line showed that a.out (a test program) deliver a SIGSEGV signal.
 The result, 0, means success.
 
@@ -126,6 +135,7 @@ The second and third lines showed that a.out also deliver SIGPIPE/SIGCHLD
 signals successively.
 
 USAGE message:
+
 ```console
 # ./sigsnoop -h
 Usage: sigsnoop [OPTION...]
@@ -149,7 +159,8 @@ EXAMPLES:
       --usage                Give a short usage message
   -V, --version              Print program version
 ```
+
 Mandatory or optional arguments to long options are also mandatory or optional
 for any corresponding short options.
 
-Report bugs to https://github.com/iovisor/bcc/tree/master/libbpf-tools.
+Report bugs to <https://github.com/iovisor/bcc/tree/master/libbpf-tools>.
