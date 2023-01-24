@@ -2,8 +2,6 @@
 #
 # Copyright (C) 2019 Intel Corporation.  All rights reserved.
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-
-WAMR_DIR=${PWD}/../../../third_party/wasm-micro-runtime
 INCLUDE_DIR=${PWD}/eunomia-include/
 
 OUT_FILE=sigsnoop.wasm
