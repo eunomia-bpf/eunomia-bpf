@@ -35,10 +35,9 @@ load_and_attach_eunomia_skel(struct eunomia_bpf *prog);
 /// to user space, the program will help load the map info and poll the
 /// events automatically.
 int
-wait_and_poll_events_to_handler(struct eunomia_bpf *prog,
-                                enum export_format_type type,
-                                void (*handler)(void *, const char *),
-                                void *ctx);
+wait_and_poll_events_to_handler(
+    struct eunomia_bpf *prog, enum export_format_type type,
+    void (*handler)(void *, const char *, size_t size), void *ctx);
 
 /// @brief stop, detach, and free the memory
 /// @warning this function will free the memory of the program

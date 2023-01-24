@@ -123,7 +123,7 @@ handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
         std::cerr << "empty ctx or events" << std::endl;
         return -1;
     }
-    p->handler_export_events(e);
+    p->handler_export_events(e, data_sz);
     return 0;
 }
 
@@ -275,7 +275,7 @@ handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
         std::cerr << "empty ctx or events" << std::endl;
         return;
     }
-    p->handler_export_events(e);
+    p->handler_export_events(e, data_sz);
 }
 
 static void
@@ -516,16 +516,21 @@ bpf_skeleton::get_fd(const char *name) const noexcept
     return -1;
 }
 extern "C" {
-const char* libbpf_version_string(void);
+const char *
+libbpf_version_string(void);
 }
-std::string get_eunomia_version() {
+std::string
+get_eunomia_version()
+{
     return std::string(EUNOMIA_VERSION);
 }
-std::string generate_version_info() {
+std::string
+generate_version_info()
+{
     using std::endl;
     std::ostringstream ss;
     utsname uname_st;
-    uname(&uname_st);  // It won't fault
+    uname(&uname_st); // It won't fault
     ss << "eunomia-bpf version: " << get_eunomia_version() << endl;
     ss << "Linux version: " << uname_st.sysname << " " << uname_st.release
        << " " << uname_st.version << " " << uname_st.nodename << " "
@@ -583,10 +588,9 @@ load_and_attach_eunomia_skel(struct eunomia_bpf *prog)
 }
 
 int
-wait_and_poll_events_to_handler(struct eunomia_bpf *prog,
-                                enum export_format_type type,
-                                void (*handler)(void *, const char *),
-                                void *ctx)
+wait_and_poll_events_to_handler(
+    struct eunomia_bpf *prog, enum export_format_type type,
+    void (*handler)(void *, const char *, size_t size), void *ctx)
 {
     if (!prog || !handler) {
         return -1;

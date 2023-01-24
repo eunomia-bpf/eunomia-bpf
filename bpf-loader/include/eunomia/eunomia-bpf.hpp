@@ -34,9 +34,11 @@ perf_buffer__free(perf_buffer *pb);
 
 namespace eunomia {
 
-std::string get_eunomia_version();
+std::string
+get_eunomia_version();
 
-std::string generate_version_info();
+std::string
+generate_version_info();
 
 enum class ebpf_program_state {
     /// @brief The config is set but the program is not loaded
@@ -163,7 +165,7 @@ class bpf_skeleton
     /// @brief  event with meta data;
     /// @details  for export call backs: ring buffer and perf events
     /// provide a common interface to print the event data
-    void handler_export_events(const char *event) const;
+    void handler_export_events(const char *event, size_t size) const;
 
     // @brief get map or prog fd by name
     // @details get map or prog fd by name, and basic libbpf API

@@ -21,7 +21,8 @@ btf_dump__free(struct btf_dump *d);
 }
 
 namespace eunomia {
-using export_event_handler = std::function<void(void *ctx, const char *event)>;
+using export_event_handler =
+    std::function<void(void *ctx, const char *event, size_t size)>;
 
 /// @brief dump export event in user space
 class event_exporter
@@ -56,7 +57,8 @@ class event_exporter
         std::uint32_t bit_size;
         std::size_t output_header_offset;
     };
-    using internal_event_handler = std::function<void(const char *event)>;
+    using internal_event_handler =
+        std::function<void(const char *event, size_t size)>;
     using internal_sample_map_handler = std::function<int(
         std::vector<char> &key_buffer, std::vector<char> &value_buffer)>;
 
@@ -107,11 +109,12 @@ class event_exporter
         const char *event, std::vector<checked_export_member> &checker_members);
 
     /// a default printer to print event data
-    void print_export_event_to_plant_text_with_time(const char *event);
+    void print_export_event_to_plant_text_with_time(const char *event,
+                                                    size_t size);
     /// a default printer to pass event data to user defined handler
-    void raw_event_handler(const char *event);
+    void raw_event_handler(const char *event, size_t size);
     ///  printer to print event data to json
-    void print_export_event_to_json(const char *event);
+    void print_export_event_to_json(const char *event, size_t size);
 
     /// a default printer to print event data
     int print_sample_event_to_plant_text(std::vector<char> &key_buffer,
@@ -133,7 +136,7 @@ class event_exporter
     /// print event with meta data;
     /// used for export call backs: ring buffer and perf events
     /// provide a common interface to print the event data
-    void handler_export_events(const char *event) const;
+    void handler_export_events(const char *event, size_t size) const;
 
     // handle values from sample map events
     int handler_sample_key_value(std::vector<char> &key_buffer,
