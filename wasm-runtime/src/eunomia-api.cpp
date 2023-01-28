@@ -55,31 +55,31 @@ ewasm_program::wait_and_poll_bpf_program(int id)
         export_format_type::EXPORT_RAW_EVENT, handle_eunomia_event, this);
 }
 
-extern "C" {
-int
-create_bpf(wasm_exec_env_t exec_env, char *ebpf_json, int str_len)
-{
-    ewasm_program *program =
-        (ewasm_program *)wasm_runtime_get_user_data(exec_env);
-    assert("program is null" && program != nullptr);
-    return program->create_bpf_program(ebpf_json);
-}
+// extern "C" {
+// int
+// create_bpf(wasm_exec_env_t exec_env, char *ebpf_json, int str_len)
+// {
+//     ewasm_program *program =
+//         (ewasm_program *)wasm_runtime_get_user_data(exec_env);
+//     assert("program is null" && program != nullptr);
+//     return program->create_bpf_program(ebpf_json);
+// }
 
-int
-run_bpf(wasm_exec_env_t exec_env, int id)
-{
-    ewasm_program *program =
-        (ewasm_program *)wasm_runtime_get_user_data(exec_env);
-    assert("program is null" && program != nullptr);
-    return program->run_bpf_program(id);
-}
+// int
+// run_bpf(wasm_exec_env_t exec_env, int id)
+// {
+//     ewasm_program *program =
+//         (ewasm_program *)wasm_runtime_get_user_data(exec_env);
+//     assert("program is null" && program != nullptr);
+//     return program->run_bpf_program(id);
+// }
 
-int
-wait_and_poll_bpf(wasm_exec_env_t exec_env, int id)
-{
-    ewasm_program *program =
-        (ewasm_program *)wasm_runtime_get_user_data(exec_env);
-    assert("program is null" && program != nullptr);
-    return program->wait_and_poll_bpf_program(id);
-}
-}
+// int
+// wait_and_poll_bpf(wasm_exec_env_t exec_env, int id)
+// {
+//     ewasm_program *program =
+//         (ewasm_program *)wasm_runtime_get_user_data(exec_env);
+//     assert("program is null" && program != nullptr);
+//     return program->wait_and_poll_bpf_program(id);
+// }
+// }

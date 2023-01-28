@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "ewasm/ewasm.hpp"
-#include "wasm_export.h"
 
 void
 print_usage(void)

@@ -50,6 +50,10 @@ test: ## run tests quickly with ctest
 	tar -zxf wasi-sdk-17.0-linux.tar.gz
 	sudo mkdir -p /opt/wasi-sdk/ && sudo mv wasi-sdk-17.0/* /opt/wasi-sdk/
 
+wasm-c-api:
+	make -C ../third_party/wasm-c-api/ v8-checkout
+	make -C ../third_party/wasm-c-api/ v8
+
 test-wasm: /opt/wasi-sdk
 	make -C test/wasm-apps
 

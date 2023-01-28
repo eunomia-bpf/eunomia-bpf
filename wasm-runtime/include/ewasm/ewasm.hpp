@@ -6,8 +6,8 @@
 #include <string>
 #include <memory>
 #include <map>
-#include "wasm_export.h"
 #include "eunomia/eunomia-bpf.hpp"
+#include "wasm.h"
 
 /// @brief ewasm program runtime base on WSMR
 class ewasm_program
@@ -31,13 +31,13 @@ class ewasm_program
 
   private:
     std::map<int, std::unique_ptr<eunomia::bpf_skeleton>> bpf_program_map;
-    wasm_module_t module = nullptr;
-    wasm_module_inst_t module_inst = nullptr;
-    wasm_exec_env_t exec_env = nullptr;
+    // wasm_module_t module = nullptr;
+    // wasm_module_inst_t module_inst = nullptr;
+    // wasm_exec_env_t exec_env = nullptr;
     uint32_t buf_size, stack_size = 1024 * 128, heap_size = 1024 * 1024 * 2;
 
-    wasm_function_inst_t wasm_process_event_func = nullptr;
-    wasm_function_inst_t wasm_init_func = nullptr;
+    // wasm_function_inst_t wasm_process_event_func = nullptr;
+    // wasm_function_inst_t wasm_init_func = nullptr;
 
     wasm_val_t results[1];
 
@@ -61,6 +61,15 @@ class ewasm_program
     int init_wasm_functions();
 
     int default_bpf_main();
+  private:
+    wasm_engine_t* engine;
+    wasm_store_t* store;
+    wasm_byte_vec_t binary;
+    wasm_instance_t* instance;
+    wasm_module_t* module = nullptr;
+    const wasm_func_t* run_func;
+    wasm_extern_vec_t exports;
+
 };
 
 #endif // EUNOMIA_EWASM
