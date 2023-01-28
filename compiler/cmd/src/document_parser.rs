@@ -10,11 +10,11 @@ use serde_json::{json, Value};
 
 fn parse_source_files<'a>(
     index: &'a Index<'a>,
-    args: &'a CompileOptions,
+    args: &'a Options,
     source_path: &'a str,
 ) -> Result<TranslationUnit<'a>> {
-    let bpf_sys_include = get_bpf_sys_include(args)?;
-    let target_arch = get_target_arch(args)?;
+    let bpf_sys_include = get_bpf_sys_include(&args.compile_opts)?;
+    let target_arch = get_target_arch(&args.compile_opts)?;
     let target_arch = String::from("-D__TARGET_ARCH_") + &target_arch;
     let eunomia_include = get_eunomia_include(args)?;
     let base_dir_include = get_base_dir_include(source_path)?;
@@ -22,7 +22,14 @@ fn parse_source_files<'a>(
     compile_args.append(&mut bpf_sys_include.split(' ').collect::<Vec<&str>>());
     compile_args.append(&mut eunomia_include.split(' ').collect::<Vec<&str>>());
     compile_args.push(&base_dir_include);
-    compile_args.append(&mut args.additional_cflags.split(' ').collect::<Vec<&str>>());
+    compile_args.append(
+        &mut args
+            .compile_opts
+            .parameters
+            .additional_cflags
+            .split(' ')
+            .collect::<Vec<&str>>(),
+    );
 
     // Parse a source file into a translation unit
     let tu = index
@@ -220,7 +227,7 @@ fn resolve_bpf_skel_entities(entities: &Vec<Entity>, bpf_skel_json: Value) -> Re
 
 /// Get documentations from source file
 pub fn parse_source_documents(
-    args: &CompileOptions,
+    args: &Options,
     source_path: &str,
     bpf_skel_json: Value,
 ) -> Result<Value> {
@@ -263,13 +270,20 @@ pub fn parse_source_documents(
 #[cfg(test)]
 mod test {
     use super::*;
-    const SOURCE_PATH: &str = "./compiler/cmd/test/client.bpf.c";
+    use crate::TempDir;
+    const SOURCE_PATH: &str = "/tmp/test/client.bpf.c";
 
     #[test]
     fn test_parse_variables() {
-        let args = CompileOptions {
-            ..Default::default()
+        let tmp_workspace = TempDir::new().unwrap();
+        init_eunomia_workspace(&tmp_workspace).unwrap();
+        let args = Options {
+            tmpdir: tmp_workspace,
+            compile_opts: CompileOptions {
+                ..Default::default()
+            },
         };
+
         let test_case_res = json!({
             "name": ".rodata",
             "variables": [
@@ -327,8 +341,13 @@ mod test {
 
     #[test]
     fn test_parse_progss() {
-        let args = CompileOptions {
-            ..Default::default()
+        let tmp_workspace = TempDir::new().unwrap();
+        init_eunomia_workspace(&tmp_workspace).unwrap();
+        let args = Options {
+            tmpdir: tmp_workspace,
+            compile_opts: CompileOptions {
+                ..Default::default()
+            },
         };
         let test_case_res = json!([{
             "attach": "tp/sched/sched_process_exec",
@@ -375,15 +394,21 @@ mod test {
 
     #[test]
     fn test_parse_maps() {
-        let args = CompileOptions {
-            ..Default::default()
-        };
         let test_case_res = json!({
             "ident": "exec_start",
             "name": "exec_start",
             "sample": {"interval": 1000}
         });
 
+        let tmp_workspace = TempDir::new().unwrap();
+        init_eunomia_workspace(&tmp_workspace).unwrap();
+
+        let args = Options {
+            tmpdir: tmp_workspace,
+            compile_opts: CompileOptions {
+                ..Default::default()
+            },
+        };
         let skel = parse_source_documents(
             &args,
             SOURCE_PATH,
@@ -411,8 +436,13 @@ mod test {
 
     #[test]
     fn test_parse_empty() {
-        let args = CompileOptions {
-            ..Default::default()
+        let tmp_workspace = TempDir::new().unwrap();
+        init_eunomia_workspace(&tmp_workspace).unwrap();
+        let args = Options {
+            tmpdir: tmp_workspace,
+            compile_opts: CompileOptions {
+                ..Default::default()
+            },
         };
         let _ = parse_source_documents(&args, SOURCE_PATH, json!({}));
     }

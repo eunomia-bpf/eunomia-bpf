@@ -55,7 +55,7 @@ mod test {
     use super::*;
     #[test]
     fn test_match_struct() {
-        let tmp_file = "tmp_test_event.h";
+        let tmp_file = "/tmp/tmp_test_event.h";
         let arg = CompileOptions {
             export_event_header: tmp_file.to_string(),
             ..Default::default()
