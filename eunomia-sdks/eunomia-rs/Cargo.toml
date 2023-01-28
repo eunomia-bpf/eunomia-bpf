@@ -8,6 +8,7 @@ license = "MIT"
 [dependencies]
 anyhow = "1.0"
 home = "0.5.4"
+fastrand = "1.6.0"
 
 [lib]
 crate-type = ["lib", "staticlib"]
