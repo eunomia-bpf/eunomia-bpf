@@ -269,20 +269,39 @@ pub fn parse_source_documents(
 
 #[cfg(test)]
 mod test {
+    use std::fs;
+
     use super::*;
-    use crate::TempDir;
-    const SOURCE_PATH: &str = "/tmp/test/client.bpf.c";
+    use eunomia_rs::TempDir;
+    const TEMP_EUNOMIA_DIR: &str = "/tmp/eunomia";
+
+    fn create_args() -> Options {
+        let tmp_workspace = TempDir::new().unwrap();
+        init_eunomia_workspace(&tmp_workspace).unwrap();
+        let tmp_dir = Path::new(TEMP_EUNOMIA_DIR);
+        let tmp_dir = tmp_dir.join("test_compile_bpf");
+        fs::create_dir_all(&tmp_dir).unwrap();
+        fs::write(
+            tmp_dir.join("other_header.h"),
+            include_str!("../test/other_header.h"),
+        )
+        .unwrap();
+        let source_path = tmp_dir.join("client.bpf.c");
+        fs::write(&source_path, include_str!("../test/client.bpf.c")).unwrap();
+        let event_path = tmp_dir.join("event.h");
+        fs::write(&event_path, include_str!("../test/event.h")).unwrap();
+        Options {
+            tmpdir: tmp_workspace,
+            compile_opts: CompileOptions {
+                source_path: source_path.to_str().unwrap().to_string(),
+                ..Default::default()
+            },
+        }
+    }
 
     #[test]
     fn test_parse_variables() {
-        let tmp_workspace = TempDir::new().unwrap();
-        init_eunomia_workspace(&tmp_workspace).unwrap();
-        let args = Options {
-            tmpdir: tmp_workspace,
-            compile_opts: CompileOptions {
-                ..Default::default()
-            },
-        };
+        let args = create_args();
 
         let test_case_res = json!({
             "name": ".rodata",
@@ -306,7 +325,7 @@ mod test {
         });
         let skel = parse_source_documents(
             &args,
-            SOURCE_PATH,
+            args.compile_opts.source_path.as_str(),
             json!({"data_sections": [
                 {
                     "name": ".rodata",
@@ -341,14 +360,7 @@ mod test {
 
     #[test]
     fn test_parse_progss() {
-        let tmp_workspace = TempDir::new().unwrap();
-        init_eunomia_workspace(&tmp_workspace).unwrap();
-        let args = Options {
-            tmpdir: tmp_workspace,
-            compile_opts: CompileOptions {
-                ..Default::default()
-            },
-        };
+        let args = create_args();
         let test_case_res = json!([{
             "attach": "tp/sched/sched_process_exec",
             "link": true,
@@ -363,7 +375,7 @@ mod test {
         }]);
         let skel = parse_source_documents(
             &args,
-            SOURCE_PATH,
+            args.compile_opts.source_path.as_str(),
             json!({"progs": [
                 {
                     "attach": "tp/sched/sched_process_exec",
@@ -399,19 +411,10 @@ mod test {
             "name": "exec_start",
             "sample": {"interval": 1000}
         });
-
-        let tmp_workspace = TempDir::new().unwrap();
-        init_eunomia_workspace(&tmp_workspace).unwrap();
-
-        let args = Options {
-            tmpdir: tmp_workspace,
-            compile_opts: CompileOptions {
-                ..Default::default()
-            },
-        };
+        let args = create_args();
         let skel = parse_source_documents(
             &args,
-            SOURCE_PATH,
+            args.compile_opts.source_path.as_str(),
             json!({"maps": [
                 {
                     "ident": "exec_start",
@@ -436,14 +439,7 @@ mod test {
 
     #[test]
     fn test_parse_empty() {
-        let tmp_workspace = TempDir::new().unwrap();
-        init_eunomia_workspace(&tmp_workspace).unwrap();
-        let args = Options {
-            tmpdir: tmp_workspace,
-            compile_opts: CompileOptions {
-                ..Default::default()
-            },
-        };
-        let _ = parse_source_documents(&args, SOURCE_PATH, json!({}));
+        let args = create_args();
+        let _ = parse_source_documents(&args, args.compile_opts.source_path.as_str(), json!({}));
     }
 }
