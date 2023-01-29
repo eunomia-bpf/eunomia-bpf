@@ -53,18 +53,16 @@ ewasm_program::wait_and_poll_bpf_program(int id)
 }
 
 extern "C" {
-// 传入两个参数，一个共享的program，一个临时的char *ebpf_json
 wasm_trap_t* 
 create_bpf(void* env, const wasm_val_vec_t* args, wasm_val_vec_t* results) {
     ewasm_program *program = (ewasm_program *)env;
     assert("program is null" && program != nullptr);
-    char *ebpf_json = (char *)args->data[0].of.ref;
+    char *ebpf_json = (char *)args->data[0].of.i32;
     results->data[0].kind = WASM_I32;
     results->data[0].of.i32 = program->create_bpf_program(ebpf_json);
     return NULL;
 }
 
-// 传入两个参数，一个共享的program，一个临时的int id
 wasm_trap_t*
 run_bpf(void* env, const wasm_val_vec_t* args, wasm_val_vec_t* results) {
     ewasm_program *program = (ewasm_program *)env;
@@ -75,7 +73,6 @@ run_bpf(void* env, const wasm_val_vec_t* args, wasm_val_vec_t* results) {
     return NULL;
 }
 
-// 传入两个参数，一个共享的program，一个临时的int id
 wasm_trap_t* 
 wait_and_poll_bpf(void* env, const wasm_val_vec_t* args, wasm_val_vec_t* results)
 {

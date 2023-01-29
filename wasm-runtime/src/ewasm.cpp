@@ -24,8 +24,8 @@ ewasm_program::start(std::vector<char> &buffer_vector, std::string &json_env)
         return 1;
     }
 
-    wasm_functype_t* create_bpf_type = wasm_functype_new_1_1(
-        wasm_valtype_new_anyref(), wasm_valtype_new_i32());
+    wasm_functype_t* create_bpf_type = wasm_functype_new_2_1(
+        wasm_valtype_new_i32(), wasm_valtype_new_i32(), wasm_valtype_new_i32());
     wasm_func_t* create_bpf_func = wasm_func_new_with_env(
         store, create_bpf_type, create_bpf, this, NULL);
 
@@ -44,7 +44,7 @@ ewasm_program::start(std::vector<char> &buffer_vector, std::string &json_env)
     wasm_functype_delete(wait_and_poll_bpf_type);
 
     // Instantiate.
-    wasm_extern_t* externs[] = {
+    wasm_extern_t* externs[3] = {
         wasm_func_as_extern(create_bpf_func),
         wasm_func_as_extern(run_bpf_func),
         wasm_func_as_extern(wait_and_poll_bpf_func) };
@@ -59,7 +59,6 @@ ewasm_program::start(std::vector<char> &buffer_vector, std::string &json_env)
     wasm_func_delete(run_bpf_func);
     wasm_func_delete(wait_and_poll_bpf_func);
 
-    // Extract export.
     wasm_instance_exports(instance, &exports);
     if (exports.size == 0) {
         printf("> Error accessing exports!\n");
