@@ -1,8 +1,9 @@
 use std::{fs, path};
 
+use crate::compile_bpf::pack_object_in_config;
 use anyhow::Result;
 use clap::Parser;
-use eunomia_rs::TempDir;
+use eunomia_rs::{copy_dir_all, TempDir};
 use rust_embed::RustEmbed;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
@@ -10,6 +11,51 @@ use std::path::Path;
 pub struct Options {
     pub tmpdir: TempDir,
     pub compile_opts: CompileOptions,
+}
+
+impl Options {
+    fn check_compile_opts(opts: &mut CompileOptions) -> Result<()> {
+        if opts.header_only {
+            // treat header as a source file
+            opts.export_event_header = opts.source_path.clone();
+        }
+        Ok(())
+    }
+    pub fn init(mut opts: CompileOptions, tmp_workspace: TempDir) -> Result<Options> {
+        Self::check_compile_opts(&mut opts)?;
+        Ok(Options {
+            compile_opts: opts.clone(),
+            tmpdir: tmp_workspace,
+        })
+    }
+}
+
+pub struct EunomiaWorkspace {
+    pub options: Options,
+}
+
+impl EunomiaWorkspace {
+    pub fn init(opts: CompileOptions) -> Result<EunomiaWorkspace> {
+        // create workspace
+        let tmp_workspace = TempDir::new().unwrap();
+        if let Some(ref p) = opts.parameters.workspace_path {
+            let src = Path::new(p);
+            copy_dir_all(src, tmp_workspace.path())?;
+        } else {
+            init_eunomia_workspace(&tmp_workspace)?
+        }
+        Ok(EunomiaWorkspace {
+            options: Options::init(opts, tmp_workspace)?,
+        })
+    }
+}
+
+impl Drop for EunomiaWorkspace {
+    fn drop(&mut self) {
+        if !self.options.compile_opts.parameters.subskeleton {
+            pack_object_in_config(&self.options).unwrap();
+        }
+    }
 }
 
 /// The eunomia-bpf compile tool
@@ -46,6 +92,11 @@ pub struct CompileOptions {
     /// output config skel file in yaml
     #[arg(short, long, default_value_t = false)]
     pub yaml: bool,
+
+    /// generate a bpf object for struct definition
+    /// in header file only
+    #[arg(long, default_value_t = false)]
+    pub header_only: bool,
 }
 
 #[derive(Parser, Debug, Default, Clone)]
@@ -212,11 +263,6 @@ struct Workspace;
 pub fn init_eunomia_workspace(tmp_workspace: &TempDir) -> Result<()> {
     let eunomia_tmp_workspace = tmp_workspace.path();
 
-    println!(
-        "Initializing eunomia workspace dir: {:?}",
-        &eunomia_tmp_workspace
-    );
-
     for file in Workspace::iter() {
         let file_path = format!(
             "{}/{}",
@@ -239,14 +285,55 @@ mod test {
     use super::*;
     use clap::Parser;
 
+    fn init_options(copt: CompileOptions) {
+        let mut opts = Options::init(copt, TempDir::new().unwrap()).unwrap();
+        opts.compile_opts.parameters.subskeleton = true;
+    }
+
     #[test]
     fn test_parse_args() {
-        let _ = CompileOptions::parse_from(&["ecc", "test.c"]);
-        let _ = CompileOptions::parse_from(&["ecc", "test.c", "-o", "test.o"]);
-        let _ = CompileOptions::parse_from(&["ecc", "test.c", "test.h", "-v"]);
-        let _ = CompileOptions::parse_from(&["ecc", "test.c", "test.h", "-y"]);
-        let _ = CompileOptions::parse_from(&["ecc", "test.c", "-c", "clang"]);
-        let _ = CompileOptions::parse_from(&["ecc", "test.c", "-l", "llvm-strip"]);
+        init_options(CompileOptions::parse_from(&["ecc", "../test/client.bpf.c"]));
+        init_options(CompileOptions::parse_from(&[
+            "ecc",
+            "../test/client.bpf.c",
+            "-o",
+            "test.o",
+        ]));
+        init_options(CompileOptions::parse_from(&[
+            "ecc",
+            "../test/client.bpf.c",
+            "test.h",
+            "-v",
+        ]));
+        init_options(CompileOptions::parse_from(&[
+            "ecc",
+            "../test/client.bpf.c",
+            "test.h",
+            "-y",
+        ]));
+        init_options(CompileOptions::parse_from(&[
+            "ecc",
+            "../test/client.bpf.c",
+            "-c",
+            "clang",
+        ]));
+        init_options(CompileOptions::parse_from(&[
+            "ecc",
+            "../test/client.bpf.c",
+            "-l",
+            "llvm-strip",
+        ]));
+        init_options(CompileOptions::parse_from(&[
+            "ecc",
+            "../test/client.bpf.c",
+            "--header-only",
+        ]));
+        init_options(CompileOptions::parse_from(&[
+            "ecc",
+            "../test/client.bpf.c",
+            "-w",
+            "/tmp/test",
+        ]));
     }
 
     #[test]
