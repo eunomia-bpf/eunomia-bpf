@@ -8,23 +8,23 @@ extern "C" {
 /// @brief create a ebpf program with json data
 /// @param ebpf_json
 /// @return id on success, -1 on failure
-// int
-// create_bpf(char *ebpf_json, int str_len);
+wasm_trap_t* 
+create_bpf(void* env, const wasm_val_vec_t* args, wasm_val_vec_t* results);
 
 /// @brief start running the ebpf program
 /// @details load and attach the ebpf program to the kernel to run the ebpf
 /// program if the ebpf program has maps to export to user space, you need to
 /// call the wait and export.
-// int
-// run_bpf(int id);
+wasm_trap_t* 
+run_bpf(void* env, const wasm_val_vec_t* args, wasm_val_vec_t* results);
 
 /// @brief wait for the program to exit and receive data from export maps and
 /// print the data
 /// @details if the program has a ring buffer or perf event to export data
 /// to user space, the program will help load the map info and poll the
 /// events automatically.
-// int
-// wait_and_poll_bpf(int id);
+wasm_trap_t* 
+wait_and_poll_bpf(void* env, const wasm_val_vec_t* args, wasm_val_vec_t* results);
 #ifdef __cplusplus
 }
 #endif

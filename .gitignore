@@ -6,4 +6,3 @@ docs/
 third_party/wasmtime/
 eunomia.tar.gz
 .eunomia
-third_party/wasm-c-api/

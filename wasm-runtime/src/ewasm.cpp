@@ -6,60 +6,17 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
-#include "wasm.h"
 #include "wasm-app/native-ewasm.h"
-
-extern "C" {
-// 传入两个参数，一个共享的program，一个临时的char *ebpf_json
-wasm_trap_t* 
-create_bpf(void* env, const wasm_val_vec_t* args, wasm_val_vec_t* results) {
-    ewasm_program *program = (ewasm_program *)env;
-    assert("program is null" && program != nullptr);
-    char *ebpf_json = (char *)args->data[0].of.ref;     //?
-    results->data[0].kind = WASM_I32;
-    results->data[0].of.i32 = program->create_bpf_program(ebpf_json);
-    return NULL;
-}
-
-// 传入两个参数，一个共享的program，一个临时的int id
-wasm_trap_t* 
-run_bpf(void* env, const wasm_val_vec_t* args, wasm_val_vec_t* results) {
-    ewasm_program *program = (ewasm_program *)env;
-    assert("program is null" && program != nullptr);
-    int id = (int)args->data[0].of.i32;     //?
-    results->data[0].kind = WASM_I32;
-    results->data[0].of.i32 = program->run_bpf_program(id);
-    return NULL;
-}
-
-// 传入两个参数，一个共享的program，一个临时的int id
-wasm_trap_t* 
-wait_and_poll_bpf(void* env, const wasm_val_vec_t* args, wasm_val_vec_t* results)
-{
-    ewasm_program *program = (ewasm_program *)env;
-    assert("program is null" && program != nullptr);
-    int id = (int)args->data[0].of.i32;         //?
-    results->data[0].kind = WASM_I32;
-    results->data[0].of.i32 = program->wait_and_poll_bpf_program(id);
-    return NULL;
-}
-}
-
+#include "wasm_c_api.h"
 
 int
 ewasm_program::start(std::vector<char> &buffer_vector, std::string &json_env)
 {
     engine = wasm_engine_new();
     store = wasm_store_new(engine);
-
     buf_size = (uint32_t)buffer_vector.size();
     wasm_byte_vec_new_uninitialized(&binary, buf_size);
     binary.data = buffer_vector.data();
-
-    if (!wasm_module_validate(store, &binary)) {
-        printf("> Error validating module!\n");
-        return 1;
-    }
 
     module = wasm_module_new(store, &binary);
     if (!module) {
@@ -67,32 +24,32 @@ ewasm_program::start(std::vector<char> &buffer_vector, std::string &json_env)
         return 1;
     }
 
-    // Create external print functions.
-    // 分别为create_bpf, run_bpf, wait_and_poll_bpf创建对应的三个函数
     wasm_functype_t* create_bpf_type = wasm_functype_new_1_1(
-            wasm_valtype_new_anyref(), wasm_valtype_new_i32());
-    wasm_func_t* create_bpf_func = wasm_func_new_with_env(store, create_bpf_type, create_bpf, this, NULL);
+        wasm_valtype_new_anyref(), wasm_valtype_new_i32());
+    wasm_func_t* create_bpf_func = wasm_func_new_with_env(
+        store, create_bpf_type, create_bpf, this, NULL);
 
     wasm_functype_t* run_bpf_type = wasm_functype_new_1_1(
-            wasm_valtype_new_i32(), wasm_valtype_new_i32());
-    wasm_func_t* run_bpf_func = wasm_func_new_with_env(store, run_bpf_type, run_bpf, this, NULL);
+        wasm_valtype_new_i32(), wasm_valtype_new_i32());
+    wasm_func_t* run_bpf_func = wasm_func_new_with_env(
+        store, run_bpf_type, run_bpf, this, NULL);
 
     wasm_functype_t* wait_and_poll_bpf_type = wasm_functype_new_1_1(
-            wasm_valtype_new_i32(), wasm_valtype_new_i32());
-    wasm_func_t* wait_and_poll_bpf_func = wasm_func_new_with_env(store, wait_and_poll_bpf_type, wait_and_poll_bpf, this, NULL);
+        wasm_valtype_new_i32(), wasm_valtype_new_i32());
+    wasm_func_t* wait_and_poll_bpf_func = wasm_func_new_with_env(
+        store, wait_and_poll_bpf_type, wait_and_poll_bpf, this, NULL);
 
     wasm_functype_delete(create_bpf_type);
     wasm_functype_delete(run_bpf_type);
     wasm_functype_delete(wait_and_poll_bpf_type);
 
     // Instantiate.
-    wasm_extern_t* externs[] = { 
-        wasm_func_as_extern(create_bpf_func), 
-        wasm_func_as_extern(run_bpf_func), 
+    wasm_extern_t* externs[] = {
+        wasm_func_as_extern(create_bpf_func),
+        wasm_func_as_extern(run_bpf_func),
         wasm_func_as_extern(wait_and_poll_bpf_func) };
     wasm_extern_vec_t imports = WASM_ARRAY_VEC(externs);
-    wasm_instance_t* instance =
-        wasm_instance_new(store, module, &imports, NULL);
+    instance = wasm_instance_new(store, module, &imports, NULL);
     if (!instance) {
         printf("> Error instantiating module!\n");
         return 1;
@@ -114,18 +71,18 @@ ewasm_program::start(std::vector<char> &buffer_vector, std::string &json_env)
         return 1;
     }
 
-    // if (init_wasm_functions() < 0) {
-    //     printf("Init wasm functions failed.\n");
-    //     return -1;
-    // }
+    if (init_wasm_functions() < 0) {
+        printf("Init wasm functions failed.\n");
+        return -1;
+    }
     return call_wasm_init(json_env);
 }
 
 int
 ewasm_program::init_wasm_functions()
 {
-    // // must allocate buffer from wasm instance memory space (never use pointer
-    // // from host runtime)
+    // must allocate buffer from wasm instance memory space (never use pointer
+    // from host runtime)
     // json_data_wasm_buffer = wasm_runtime_module_malloc(
     //     module_inst, PROGRAM_BUFFER_SIZE, (void **)&json_data_buffer);
     // if (!json_data_wasm_buffer) {
@@ -162,17 +119,16 @@ ewasm_program::call_wasm_init(std::string &json_env)
     as[0].of.i32 = (int32_t)json_data_wasm_buffer;
     as[1].kind = WASM_I32;
     as[1].of.i32 = (int)json_env.size();
-    wasm_val_t rs[1] = { WASM_INIT_VAL};        // ?
-    wasm_val_vec_t args = WASM_ARRAY_VEC(as);   // ?
-    wasm_val_vec_t results = WASM_ARRAY_VEC(rs);
+    wasm_val_vec_t args = WASM_ARRAY_VEC(as);
+    wasm_val_vec_t results_ = WASM_ARRAY_VEC(results);
     // todo: add code about getting runtime excaption
-    if (wasm_func_call(run_func, &args, &results)) {
+    if (wasm_func_call(run_func, &args, &results_)) {
         printf("> Error calling function!\n");
         return 1;
     }
 
     int ret_val;
-    ret_val = results.data[0].of.i32;
+    ret_val = results_.data[0].of.i32;
     return ret_val;
 }
 
@@ -230,7 +186,6 @@ ewasm_program::~ewasm_program()
     wasm_extern_vec_delete(&exports);
     wasm_store_delete(store);
     wasm_engine_delete(engine);
-
 }
 
 // simple wrappers for C API

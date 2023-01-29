@@ -7,7 +7,7 @@
 #include <memory>
 #include <map>
 #include "eunomia/eunomia-bpf.hpp"
-#include "wasm.h"
+#include "wasm_c_api.h"
 
 /// @brief ewasm program runtime base on WSMR
 class ewasm_program
