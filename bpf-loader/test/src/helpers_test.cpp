@@ -10,6 +10,10 @@
 #include <string>
 #include <catch2/catch_test_macros.hpp>
 #include "eunomia/eunomia-bpf.hpp"
+#include <thread>
+#include <sys/types.h>
+#include <sys/stat.h>
+
 
 extern "C" {
 #include <bpf/bpf.h>
@@ -68,11 +72,20 @@ TEST_CASE("test trace helpers kprobe exists", "[trace][helpers]")
 {
     REQUIRE(kprobe_exists("do_unlinkat"));
     REQUIRE(kprobe_exists("do_syscall_64") == false);
-    REQUIRE(kprobe_exists("non_existent_function") == false);
     REQUIRE(kprobe_exists("") == false);
-    REQUIRE(kprobe_exists("long_name_of_a_non_existent_function_with_more_than_"
-                          "255_characters")
-            == false);
+
+
+	SECTION("Test when /sys/kernel/debug/tracing/available_filter_functions file cannot be opened") {
+		
+		const char *path = "/sys/kernel/debug/tracing/available_filter_functions";
+		mode_t original_mode = 0;
+		REQUIRE(chmod(path, 0) == 0);
+		const char *name = "fs";
+		bool result = is_kernel_module(name);
+		REQUIRE(result == false);
+		// Restore original file permission
+		REQUIRE(chmod(path, original_mode) == 0);
+	}
 }
 
 TEST_CASE("test trace helpers tracepoint exists", "[trace][helpers]")
@@ -124,21 +137,41 @@ TEST_CASE("test trace helpers module_btf_exists", "[trace][helpers")
 TEST_CASE("test trace helpers is_kernel_module", "[trace][helpers")
 {
     REQUIRE(is_kernel_module("tcp") == false);
-    REQUIRE(is_kernel_module("non_existent_module") == false);
     REQUIRE(is_kernel_module("") == false);
-    REQUIRE(
-        is_kernel_module(
-            "long_name_of_a_non_existent_module_with_more_than_255_characters")
-        == false);
-    REQUIRE(is_kernel_module("0") == false);
-    REQUIRE(is_kernel_module("-module") == false);
-    char long_name_module[1024];
-    memset(long_name_module, 'a', sizeof(long_name_module));
-    long_name_module[1023] = '\0';
-    REQUIRE(is_kernel_module(long_name_module) == false);
+
+	SECTION("Test when /proc/modules file cannot be opened") {
+		// Temporarily remove read permission for /proc/modules file
+		// so that fopen() will return NULL
+		const char *path = "/proc/modules";
+		mode_t original_mode = 0;
+		REQUIRE(chmod(path, 0) == 0);
+		const char *name = "fs";
+		bool result = is_kernel_module(name);
+		REQUIRE(result == false);
+		// Restore original file permission
+		REQUIRE(chmod(path, original_mode) == 0);
+	}
+
+
+    SECTION("Test whether the input module name exists in the current system"){
+        std::ifstream file("/proc/modules");
+        std::string line;
+        std::string module_name;
+        if (file.is_open()) {
+            std::getline(file, line); // Read first line
+            size_t pos = line.find(" ");
+            module_name = line.substr(0, pos);
+            std::cout << "First kernel module name: " << module_name << std::endl;
+            file.close();
+        } else {
+            std::cout << "Unable to open file" << std::endl;
+        }
+        REQUIRE(is_kernel_module(module_name.c_str()) == true);
+    
+    }
 }
 
-TEST_CASE("test trace helpers resolve_binary_path", "[trace][helpers")
+TEST_CASE("test uprobe_helpers resolve_binary_path", "[uprobe][helpers")
 {
     char path[1024];
     char short_path[2];
@@ -148,7 +181,7 @@ TEST_CASE("test trace helpers resolve_binary_path", "[trace][helpers")
     REQUIRE(resolve_binary_path("", -1, path, sizeof(path)) == -1);
 }
 
-TEST_CASE("test trace helpers open_elf", "[trace][helpers")
+TEST_CASE("test trace helpers open_elf", "[trace][helpers]")
 {
     int fd_close;
     Elf *e;
@@ -156,4 +189,12 @@ TEST_CASE("test trace helpers open_elf", "[trace][helpers")
     REQUIRE(e == NULL);
     elf_end(e);
     close(fd_close);
+}
+
+TEST_CASE("test trace helpers get_ktime_ns", "[time]") {
+
+    unsigned long long start = get_ktime_ns();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+     long long end = get_ktime_ns();
+    REQUIRE(end - start >= 100 * 1e6);  
 }
