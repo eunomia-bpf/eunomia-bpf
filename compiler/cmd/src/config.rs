@@ -340,7 +340,7 @@ mod test {
         // check if workspace and file successfully created
         let bpftool_path = tmp_workspace.path().join("bin/bpftool");
         assert!(bpftool_path.exists());
-        let _ = fs::create_dir("/tmp/test_workspace");
+        let _ = fs::create_dir_all("/tmp/test_workspace");
         // test specifiy workspace
         let _w1 = EunomiaWorkspace::init(CompileOptions::parse_from(&[
             "ecc",
