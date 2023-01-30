@@ -17,7 +17,7 @@ impl Options {
     fn check_compile_opts(opts: &mut CompileOptions) -> Result<()> {
         if opts.header_only {
             // treat header as a source file
-            opts.export_event_header = opts.source_path.clone();
+            opts.export_event_header.clone_from(&opts.source_path);
         }
         Ok(())
     }
