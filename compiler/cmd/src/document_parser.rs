@@ -18,7 +18,13 @@ fn parse_source_files<'a>(
     let target_arch = String::from("-D__TARGET_ARCH_") + &target_arch;
     let eunomia_include = get_eunomia_include(args)?;
     let base_dir_include = get_base_dir_include(source_path)?;
-    let mut compile_args = vec!["-g", "-O2", "-target bpf", &target_arch];
+    let mut compile_args = vec![
+        "-g",
+        "-O2",
+        "-target bpf",
+        "-Wno-unknown-attributes ",
+        &target_arch,
+    ];
     compile_args.append(&mut bpf_sys_include.split(' ').collect::<Vec<&str>>());
     compile_args.append(&mut eunomia_include.split(' ').collect::<Vec<&str>>());
     compile_args.push(&base_dir_include);
