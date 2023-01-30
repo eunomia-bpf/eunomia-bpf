@@ -1,6 +1,5 @@
 use std::{fs, path};
 
-use crate::compile_bpf::pack_object_in_config;
 use anyhow::Result;
 use clap::Parser;
 use eunomia_rs::{copy_dir_all, TempDir};
@@ -47,14 +46,6 @@ impl EunomiaWorkspace {
         Ok(EunomiaWorkspace {
             options: Options::init(opts, tmp_workspace)?,
         })
-    }
-}
-
-impl Drop for EunomiaWorkspace {
-    fn drop(&mut self) {
-        if !self.options.compile_opts.parameters.subskeleton {
-            pack_object_in_config(&self.options).unwrap();
-        }
     }
 }
 
@@ -349,5 +340,19 @@ mod test {
         // check if workspace and file successfully created
         let bpftool_path = tmp_workspace.path().join("bin/bpftool");
         assert!(bpftool_path.exists());
+        let _ = fs::create_dir("/tmp/test_workspace");
+        // test specifiy workspace
+        let _w1 = EunomiaWorkspace::init(CompileOptions::parse_from(&[
+            "ecc",
+            "../test/client.bpf.c",
+            "-w",
+            "/tmp/test_workspace",
+        ]))
+        .unwrap();
+
+        // test default workspace
+        let _w2 =
+            EunomiaWorkspace::init(CompileOptions::parse_from(&["ecc", "../test/client.bpf.c"]))
+                .unwrap();
     }
 }

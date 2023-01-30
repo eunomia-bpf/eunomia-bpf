@@ -161,11 +161,14 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
     if !args.compile_opts.export_event_header.is_empty() {
         fs::remove_file(temp_source_file)?;
     }
+    if !args.compile_opts.parameters.subskeleton {
+        pack_object_in_config(&args).unwrap();
+    }
     res
 }
 
 /// pack the object file into a package.json
-pub fn pack_object_in_config(args: &Options) -> Result<()> {
+fn pack_object_in_config(args: &Options) -> Result<()> {
     let output_bpf_object_path = get_output_object_path(args);
     let bpf_object = fs::read(output_bpf_object_path)?;
 
