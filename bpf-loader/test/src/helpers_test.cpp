@@ -65,7 +65,41 @@ TEST_CASE("test trace helpers print hist", "[trace][helpers]")
     linear_hist h = {};
     h.slots[0] = 1;
     print_linear_hist(h.slots, MAX_SLOTS, 0, HIST_STEP_SIZE, "test comm");
+    print_linear_hist(h.slots, 0, 0, HIST_STEP_SIZE, "test comm");
     print_log2_hist(h.slots, MAX_SLOTS, "test unit");
+    print_log2_hist(h.slots, 0, "test unit");
+    h.slots[0] = 0;
+    print_linear_hist(h.slots, MAX_SLOTS, 0, HIST_STEP_SIZE, "test comm");
+
+    SECTION("Test print_log2_hist with idx_max > 32") {
+    unsigned int vals[100];
+    for (int i = 0; i < 100; i++) {
+        vals[i] = i;
+    }
+    const char *val_type = "Test";
+
+    print_log2_hist(vals, 100, val_type);
+
+    int stars_max = 40, idx_max = -1;
+    unsigned int val, val_max = 0;
+    unsigned long long low, high;
+    int stars, width, i;
+
+    for (i = 0; i < 100; i++) {
+        val = vals[i];
+        if (val > 0)
+        idx_max = i;
+        if (val > val_max)
+        val_max = val;
+    }
+    if (idx_max <= 32)
+		stars = stars_max;
+	else
+		stars = stars_max / 2;
+        
+    REQUIRE(idx_max == 99);
+    REQUIRE(stars == stars_max / 2);
+    }
 }
 
 TEST_CASE("test trace helpers kprobe exists", "[trace][helpers]")
@@ -126,6 +160,19 @@ TEST_CASE("test trace helpers fentry_can_attach", "[trace][helpers")
     REQUIRE(fentry_can_attach("tcp_v4_connect", NULL) == true);
     REQUIRE(fentry_can_attach("tcp_rcv_established", NULL) == true);
     REQUIRE(fentry_can_attach("blk_account_io_start", NULL) == true);
+
+	SECTION("Test when/sys/kernel/btf/vmlinuxbe opened") {
+		// Temporarily remove read permission for /proc/modules file
+		// so that fopen() will return NULL
+		const char *path = "/sys/kernel/btf/vmlinux";
+		mode_t original_mode = 0;
+		REQUIRE(chmod(path, 0) == 0);
+		REQUIRE(fentry_can_attach("tcp_v4_syn_recv_sock", NULL) == false);
+		// Restore original file permission
+		REQUIRE(chmod(path, original_mode) == 0);
+	}
+
+    
 }
 
 TEST_CASE("test trace helpers module_btf_exists", "[trace][helpers")
