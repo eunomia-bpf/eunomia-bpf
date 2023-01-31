@@ -1,4 +1,4 @@
-# eunomia-bpf: libraries and tools to help you build and distribute eBPF program easier
+# eunomia-bpf
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
@@ -6,25 +6,68 @@
 [![DeepSource](https://deepsource.io/gh/eunomia-bpf/eunomia-bpf.svg/?label=active+issues&show_trend=true&token=rcSI3J1-gpwLIgZWtKZC-N6C)](https://deepsource.io/gh/eunomia-bpf/eunomia-bpf/?ref=repository-badge)
 [![CodeFactor](https://www.codefactor.io/repository/github/eunomia-bpf/eunomia-bpf/badge)](https://www.codefactor.io/repository/github/eunomia-bpf/eunomia-bpf)
 
+**A compiler and runtime framework to help you build and distribute eBPF program easier.**
+
 ## Introduction
 
 `eunomia-bpf` is a dynamic loading library/runtime and a compile toolchain framework, aim at helping you build and distribute eBPF programs easier.
 
 With eunnomia-bpf, you can:
 
-- [Write eBPF kernel code only to build simple `CO-RE` libbpf eBPF applications](#write-ebpf-kernel-code-only-to-build-co-re-libbpf-ebpf-applications)
-- [Write eBPF kernel code in multiple format, `BCC` and `libbpf` style are both accepted](compiler)
-- [Write user space code for your eBPF program with `WebAssembly` in C++/C/Go/Rust...etc](#write-user-space-code-for-your-ebpf-program-in-webassembly)
-- [Compile and pack eBPF program to a `JSON` or `YAML` config file, or a WASM module, run it with `CO-RE` libbpf support](#compile-and-pack-co-re-ebpf-kernel-code-to-a-config-file)
+- simplify the process of `writing` eBPF programs:
+  - simplify building CO-RE `libbpf` eBPF applications: [write eBPF kernel code only](#simplify-building-co-re-libbpf-ebpf-applications) and automatically exposing your data with `perf event` or `ring buffer` from kernel.
+  - [Automatically sample the data](#automatically-sample-the-data-and-print-hists-in-userspace) from hash maps and print `hists` in userspace.
+  - [Automatically generate](#automatically-generate-and-config-command-line-arguments) and config `command line arguments` for eBPF programs.
+- writing the kernel part in both `BCC` and `libbpf` styles:
+  - enable CO-RE to BCC-style eBPF programs without depending on the LLVM library.
+  - a [converter](https://github.com/eunomia-bpf/bcc/tree/master/src/cc/converter) to convert BCC stype source code to libbpf style source code.
+- Build eBPF programs with `Wasm`:
+  - [Write eBPF with Wasm](#write-user-space-code-for-your-ebpf-program-in-webassembly) in C/C++, Rust, Go...Any language you like in [WebAssembly](https://webassembly.org/).
+  - A [bindgen tool](https://github.com/eunomia-bpf/c-struct-bindgen) to generate Wasm bindings for eBPF programs.
+  - A [runtime](wasm-runtime) for running eBPF program in Wasm module.
+- simplify the process of `distributing` eBPF programs:
+  - A [tool](ecli/ecli-rs/) for push, pull and run pre-compiled eBPF programs as `OCI` images in Wasm module
+  - Run eBPF programs from `cloud` or `URL` within [`1` line of bash](#dynamic-load-and-run-co-re-ebpf-kernel-code-from-the-cloud-with-url-or-oci-image) without recompiling, kernel version and architecture independent.
+  - [Dynamically load](bpf-loader) eBPF programs with `JSON` config file or `Wasm` module.
 
-Tools are also provided:
+## build or install the project
 
-- [convert BCC stype source code to libbpf style source code](https://github.com/eunomia-bpf/bcc/tree/master/src/cc/converter)
-- [push or pull pre-compiled eBPF program as an `OCI` image](ecli/ecli-rs)
+- Install the `ecli` tool for running eBPF program from the cloud:
 
-### Write eBPF kernel code only to build CO-RE libbpf eBPF applications
+    ```console
+    $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
+    $ ./ecli -h
+    Usage: ecli [--help] [--version] [--json] [--no-cache] url-and-args
+    ....
+    ```
 
-- Write libbpf eBPF kernel code only and automatically exposing your data with `perf event` or `ring buffer` from kernel:
+- Install the `ecc` compiler-toolchain for compiling eBPF kernel code to a `config` file or `WASM` module(`clang`, `llvm`, and `libclang` should be installed for compiling):
+
+    ```console
+    $ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecc && chmod +x ./ecc
+    $ ./ecc -h
+    eunomia-bpf compiler
+    Usage: ecc [OPTIONS] <SOURCE_PATH> [EXPORT_EVENT_HEADER]
+    ....
+    ```
+
+  or use the docker image for compile:
+
+    ```bash
+    docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest # compile with docker. `pwd` should contains *.bpf.c files and *.h files.
+    ```
+
+- build the compiler, runtime library and tools:
+
+  see [build](documents/build.md) for building details.
+
+### Simplify building CO-RE libbpf eBPF applications
+
+Just Write libbpf eBPF kernel code only, auto config the userspace part!
+
+#### Automatically exposing your data from kernel
+
+- Get data automatically from `perf event` or `ring buffer` to userspace:
 
     ```c
     struct {
@@ -62,7 +105,9 @@ Tools are also provided:
 
     see [bootstrap](examples/bpftools/bootstrap/bootstrap.bpf.c) for example. This is exactly the same as [bootstrap.bpf.c](https://github.com/libbpf/libbpf-bootstrap/blob/master/examples/c/bootstrap.bpf.c) in [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap) project, but only kernel code is needed.
 
-- Automatically sample the data from hash maps and print them in human readable format with comments:
+#### Automatically sample the data and print `hists` in userspace
+
+- Sample the data from hash maps and print them in human readable format with comments:
 
     ```c
     /// @sample {"interval": 1000, "type" : "log2_hist"}
@@ -94,6 +139,8 @@ Tools are also provided:
     ```
 
     see [examples/bpftools/mdflush.bpf.c](examples/bpftools/runqlat/runqlat.bpf.c) for example.
+
+#### Automatically generate and config command line arguments
 
 - Automatically generate and config command line arguments for your eBPF program from the comments in your kernel code:
 
@@ -145,37 +192,7 @@ Tools are also provided:
 
     You can modify the config file and config the eBPF program behavior to your need.
 
-```yaml
-bpf_skel:
-  data_sections:
-  - name: .rodata
-    variables:
-    - name: min_duration_ns
-      type: unsigned long long
-      value: 100
-  maps:
-  - ident: exec_start
-    name: exec_start
-    data:
-      - key: 123
-        value: 456
-  progs:
-  - attach: tp/sched/sched_process_exec
-    link: true
-    name: handle_exec
-export_types:
-- members:
-  - name: pid
-    type: int
-  - name: ppid
-    type: int
-  - name: comm
-    type: char[16]
-  - name: exit_event
-    type: bool
-  name: event
-  type_id: 613
-```
+### Dynamic load and run CO-RE eBPF kernel code from the cloud with URL or OCI image
 
 - you can dynamically load it on different kernel version without recompile, and without clang/llvm dependency:
 
@@ -196,7 +213,7 @@ export_types:
     22:58:29  69094  3168    0       0       cpptools-srv
     ```
 
-- Get pre-compiled eBPF programs running from the cloud to the kernel in `1` line of bash, kernel version and architecture independent!
+- Get pre-compiled eBPF programs running from the cloud to the kernel in `1` line of bash, kernel version and architecture independent:
 
     ```bash
     # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
@@ -238,37 +255,6 @@ Powered by WASM, an eBPF program may be able to:
 - Write eBPF programs with the language you favor, distribute and run the programs on another kernel or arch.
 
 We have tested on `x86` and `arm` platform, more Architecture tests will be added soon.
-
-## build or install the project
-
-- Install the `ecli` tool for running eBPF program from the cloud:
-
-    ```console
-    $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
-    $ ./ecli -h
-    Usage: ecli [--help] [--version] [--json] [--no-cache] url-and-args
-    ....
-    ```
-
-- Install the compiler-toolchain for compiling eBPF kernel code to a `config` file or `WASM` module(`clang` and `llvm` should be installed already):
-
-    ```console
-    $ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecc && chmod +x ./ecc
-    $ ./ecc -h
-    eunomia-bpf compiler
-    Usage: ecc [OPTIONS] <SOURCE_PATH> [EXPORT_EVENT_HEADER]
-    ....
-    ```
-
-  or use the docker image for compile:
-
-    ```bash
-    docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest # compile with docker. `pwd` should contains *.bpf.c files and *.h files.
-    ```
-
-- build the compiler, runtime library and tools:
-
-  see [build](documents/build.md) for details.
 
 ## Project Arch
 
