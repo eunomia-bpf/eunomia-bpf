@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: MIT
+ *
+ * Copyright (c) 2023, eunomia-bpf
+ * All rights reserved.
+ */
 use opentelemetry_prometheus::PrometheusExporter;
 use prometheus::proto::MetricFamily;
 use tokio::runtime::{Builder, Runtime};

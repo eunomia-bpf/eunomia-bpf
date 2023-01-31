@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: MIT
+ *
+ * Copyright (c) 2023, eunomia-bpf
+ * All rights reserved.
+ */
 #include "ecli/url_resolver.h"
 #include <unistd.h>
 #include <filesystem>

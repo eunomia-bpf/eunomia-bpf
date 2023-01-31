@@ -3,7 +3,11 @@
  * Copyright (c) 2022, zys
  * All rights reserved.
  */
-
+/* SPDX-License-Identifier: MIT
+ *
+ * Copyright (c) 2023, eunomia-bpf
+ * All rights reserved.
+ */
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
