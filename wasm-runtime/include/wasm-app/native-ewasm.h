@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: MIT
+ *
+ * Copyright (c) 2023, eunomia-bpf
+ * All rights reserved.
+ */
 #ifndef EWASM_NATIVE_API_H_
 #define EWASM_NATIVE_API_H_
 

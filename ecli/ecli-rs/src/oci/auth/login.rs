@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: MIT
+ *
+ * Copyright (c) 2023, eunomia-bpf
+ * All rights reserved.
+ */
 use std::io::{stdin, stdout, Write};
 
 use oci_distribution::{secrets::RegistryAuth, Reference, RegistryOperation};

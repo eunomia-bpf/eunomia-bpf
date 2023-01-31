@@ -1,4 +1,9 @@
 // auto generated. do not edit.
+/* SPDX-License-Identifier: MIT
+ *
+ * Copyright (c) 2023, eunomia-bpf
+ * All rights reserved.
+ */
 #ifndef EWASM_JSON_INCLUDE_H_
 #define EWASM_JSON_INCLUDE_H_
 

@@ -3,6 +3,11 @@
 //! develop an approach to compile, transmit, and run most
 //! libbpf CO-RE objects with some user space config meta
 //! data to help us load and operator the eBPF byte code.
+/* SPDX-License-Identifier: MIT
+ *
+ * Copyright (c) 2023, eunomia-bpf
+ * All rights reserved.
+ */
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]

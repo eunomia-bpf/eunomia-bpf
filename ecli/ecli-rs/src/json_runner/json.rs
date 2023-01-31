@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: MIT
+ *
+ * Copyright (c) 2023, eunomia-bpf
+ * All rights reserved.
+ */
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::os::raw::c_char;
