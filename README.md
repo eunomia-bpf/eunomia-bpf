@@ -1,4 +1,4 @@
-# eunomia-bpf
+# eunomia-bpf: simplify and enhance eBPF with CO-RE and Wasm
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
@@ -29,6 +29,12 @@ With eunnomia-bpf, you can:
   - A [tool](ecli/ecli-rs/) for push, pull and run pre-compiled eBPF programs as `OCI` images in Wasm module
   - Run eBPF programs from `cloud` or `URL` within [`1` line of bash](#dynamic-load-and-run-co-re-ebpf-kernel-code-from-the-cloud-with-url-or-oci-image) without recompiling, kernel version and architecture independent.
   - [Dynamically load](bpf-loader) eBPF programs with `JSON` config file or `Wasm` module.
+
+## Getting Started
+
+- Github Template：[eunomia-bpf/ebpm-template](https://github.com/eunomia-bpf/ebpm-template)
+- example bpf programs: [examples/bpftools](examples/bpftools/)
+- tutorial: [eunomia-bpf/bpf-developer-tutorial](https://github.com/eunomia-bpf/bpf-developer-tutorial)
 
 ## build or install the project
 
@@ -337,14 +343,9 @@ see [benchmark](documents/benchmark.md) for details.
 
 ## Road-map
 
-- [X] support `tracepoints`, `fentry`, `kprobe`, `uprobe`, `lsm` etc, and `ring buffer` / `perf event` output in userspace.
-- [X] add simple pacakage manager in `OCI` `and` ORAS for eunomia-bpf: in [LMP](https://github.com/linuxkerneltravel/lmp) community
-- [X] use WASM for ebpf package load config and add more user space support
-- [X] support running in `ARM` and `x86`
-- [X] add more helper functions from `libbpf`
+- [ ] `riscv` and other arch support
 - [ ] Android support
-- [ ] `riscv` support
-- [ ] provide python, go and others sdk with wasm
+- [ ] provide python, go and rust sdk with wasm
 
 ## License
 
