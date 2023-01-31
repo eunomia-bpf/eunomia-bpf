@@ -7,8 +7,12 @@
 #include "opensnoop.h"
 
 int
-bpf_main(char *env_json, int str_len)
+main(int argc, char **args)
 {
+    if (argc != 3)
+        printf("error: the number of parameters passed is not equal to 2.");
+    int str_len = atoi(args[2]);
+    char *env_json = args[1];
     return start_bpf_program(program_data);
 }
 
