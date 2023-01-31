@@ -112,13 +112,9 @@ TEST_CASE("test trace helpers kprobe exists", "[trace][helpers]")
 	SECTION("Test when /sys/kernel/debug/tracing/available_filter_functions file cannot be opened") {
 		
 		const char *path = "/sys/kernel/debug/tracing/available_filter_functions";
-		mode_t original_mode = 0;
-		REQUIRE(chmod(path, 0) == 0);
 		const char *name = "fs";
 		bool result = is_kernel_module(name);
 		REQUIRE(result == false);
-		// Restore original file permission
-		REQUIRE(chmod(path, original_mode) == 0);
 	}
 }
 
@@ -162,14 +158,9 @@ TEST_CASE("test trace helpers fentry_can_attach", "[trace][helpers")
     REQUIRE(fentry_can_attach("blk_account_io_start", NULL) == true);
 
 	SECTION("Test when/sys/kernel/btf/vmlinuxbe opened") {
-		// Temporarily remove read permission for /proc/modules file
-		// so that fopen() will return NULL
+		
 		const char *path = "/sys/kernel/btf/vmlinux";
-		mode_t original_mode = 0;
-		REQUIRE(chmod(path, 0) == 0);
 		REQUIRE(fentry_can_attach("tcp_v4_syn_recv_sock", NULL) == false);
-		// Restore original file permission
-		REQUIRE(chmod(path, original_mode) == 0);
 	}
 
     
