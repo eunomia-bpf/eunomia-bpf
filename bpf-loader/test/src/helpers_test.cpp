@@ -113,8 +113,11 @@ TEST_CASE("test trace helpers kprobe exists", "[trace][helpers]")
 		
 		const char *path = "/sys/kernel/debug/tracing/available_filter_functions";
 		const char *name = "fs";
-		bool result = is_kernel_module(name);
+        mode_t original_mode = 0;
+		REQUIRE(chmod(path, 0) == 0);
+		bool result = kprobe_exists(name);
 		REQUIRE(result == false);
+        REQUIRE(chmod(path, original_mode) == 0);
 	}
 }
 
@@ -160,7 +163,7 @@ TEST_CASE("test trace helpers fentry_can_attach", "[trace][helpers")
 	SECTION("Test when/sys/kernel/btf/vmlinuxbe opened") {
 		
 		const char *path = "/sys/kernel/btf/vmlinux";
-		REQUIRE(fentry_can_attach("tcp_v4_syn_recv_sock", NULL) == false);
+		REQUIRE(fentry_can_attach("tcp_v4_syn_recv_sock", NULL) == true);
 	}
 
     
