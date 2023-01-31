@@ -1,8 +1,8 @@
-/* SPDX-License-Identifier: MIT
- *
- * Copyright (c) 2023, eunomia-bpf
- * All rights reserved.
- */
+//!  SPDX-License-Identifier: MIT
+//!
+//! Copyright (c) 2023, eunomia-bpf
+//! All rights reserved.
+//!
 use anyhow::Result;
 use hyper::{
     body::Buf,
