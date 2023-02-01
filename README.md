@@ -265,7 +265,7 @@ Powered by WASM, an eBPF program may be able to:
 
 We have tested on `x86` and `arm` platform, more Architecture tests will be added soon.
 
-## Project Arch
+## Project Architecture
 
 we have a loader library, a compile toolchain, and some additional tools like cli and a custom metrics exporter.
 
