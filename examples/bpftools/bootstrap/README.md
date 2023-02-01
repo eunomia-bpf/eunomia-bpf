@@ -63,7 +63,7 @@ TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT
 - Compile:
 
   ```shell
-  docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+  docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
   ```
 
   or

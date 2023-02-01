@@ -22,7 +22,7 @@ This example include a eBPF program and a WASM module in user space.
 Compile:
 
 ```shell
-docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
 ```
 
 Or compile with `ecc`:
@@ -68,7 +68,7 @@ See https://github.com/eunomia-bpf/eunomia-bpf for more information.
 Generate WASM skel:
 
 ```shell
-docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest gen-wasm-skel
+docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest gen-wasm-skel
 ```
 
 > The skel is generated and commit, so you don't need to generate it again.
@@ -80,7 +80,7 @@ docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest gen-wasm-skel
 Build WASM module
 
 ```shell
-docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest build-wasm
+docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest build-wasm
 ```
 
 or install the [WASI SDK](https://github.com/WebAssembly/wasi-sdk/releases/download), and use the build script:

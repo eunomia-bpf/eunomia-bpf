@@ -58,7 +58,7 @@ TIME     TS      PID     UID     RET     FLAGS   COMM    FNAME
 Compile with docker:
 
 ```shell
-docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
 ```
 
 or compile with `ecc`:
