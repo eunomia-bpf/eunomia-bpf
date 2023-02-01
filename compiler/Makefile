@@ -106,10 +106,16 @@ build:
 .PHONY: docker
 docker: wasi-sdk-16.0-linux.tar.gz
 	sudo docker build -t ghcr.io/eunomia-bpf/ecc-$(shell uname -m):latest .
+ifeq ("$(shell uname -m)", "x86_64")
+	docker build -t yunwei37/ebpm:latest .
+endif
 
 .PHONY: docker-push
 docker-push:
 	sudo docker push ghcr.io/eunomia-bpf/ecc-$(shell uname -m):latest
+ifeq ("$(shell uname -m)", "x86_64")
+	docker push yunwei37/ebpm:latest
+endif
 
 .PHONY: install-deps
 install-deps:
