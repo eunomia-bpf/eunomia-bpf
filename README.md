@@ -343,9 +343,11 @@ see [benchmark](documents/benchmark.md) for details.
 
 ## Road-map
 
+- [ ] Rust SDK in Wasm
+- [ ] Go SDK in Wasm
+- [ ] Python SDK with BCC
 - [ ] `riscv` and other arch support
 - [ ] Android support
-- [ ] provide python, go and rust sdk with wasm
 
 ## License
 
