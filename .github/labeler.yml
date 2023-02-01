@@ -1,0 +1,17 @@
+# Add 'label1' to any changes within 'example' folder or any subfolders
+bpf-loader:
+- example/**/*
+
+# Add 'label2' to any file changes within 'example2' folder
+wasm-runtime:
+- wasm-runtime/**/*
+
+# Add label3 to any change to .txt files within the entire repository. Quotation marks are required for the leading asterisk
+doc:
+- '**/*.md'
+
+example:
+- example/**/*
+
+compiler:
+- compiler/**/*
