@@ -46,3 +46,23 @@ jobs:
       run: |
         cd ecli
         make test
+    - name: Package ecli
+        run: |
+        cd ecli
+        make package
+    -name: Upload release asset
+        uses: actions/upload-artifact@v2
+        with:
+        name: ecli-${{ env.TAG_NAME }}.tar.gz
+        path: ecli/ecli-${{ env.TAG_NAME }}.tar.gz
+    -name: Create release
+        uses: actions/create-release@v1
+        env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+        tag_name: ${{ env.TAG_NAME }}
+        release_name: Release ${{ env.TAG_NAME }}
+        draft: false
+        prerelease: false
+        artifacts: ecli-${{ env.TAG_NAME }}.tar.gz
+
