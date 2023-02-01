@@ -23,7 +23,7 @@ echo "${INCLUDE_DIR}"
         -I "${INCLUDE_DIR}" \
         -Wl,--allow-undefined-file=${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot/share/defined-symbols.txt \
         -Wl,--export=all \
-        -Wl,--export=bpf_main \
+        -Wl,--export=main \
         -Wl,--export=process_event \
         -Wl,--strip-all,--no-entry \
         -Wl,--allow-undefined \
@@ -52,7 +52,7 @@ OUT_FILE=${i%.*}.wasm
         -I "${INCLUDE_DIR}" \
         -Wl,--allow-undefined-file=${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot/share/defined-symbols.txt \
         -Wl,--export=all \
-        -Wl,--export=bpf_main \
+        -Wl,--export=main \
         -Wl,--export=process_event \
         -Wl,--strip-all,--no-entry \
         -Wl,--allow-undefined \

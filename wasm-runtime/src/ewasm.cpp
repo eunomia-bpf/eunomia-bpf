@@ -67,7 +67,8 @@ ewasm_program::start(std::vector<char> &buffer_vector, std::string &json_env)
         printf("Init wasm functions failed.\n");
         return -1;
     }
-    return call_wasm_init(json_env);
+    wasm_application_execute_main(module_inst, 0, NULL);
+    // return call_wasm_init(json_env);
 }
 
 int
