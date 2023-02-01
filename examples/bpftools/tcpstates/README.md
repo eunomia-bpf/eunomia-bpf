@@ -20,7 +20,7 @@ origin from:
 Compile:
 
 ```shell
-docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
 ```
 
 Or compile with `ecc`:

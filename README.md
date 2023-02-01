@@ -63,7 +63,7 @@ With eunnomia-bpf, you can:
   or use the docker image for compile:
 
     ```bash
-    docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest # compile with docker. `pwd` should contains *.bpf.c files and *.h files.
+    docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest # compile with docker. `pwd` should contains *.bpf.c files and *.h files.
     ```
 
 - build the compiler, runtime library and tools:
@@ -195,7 +195,7 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
     Compiling bpf object...
     Generating export types...
     Packing ebpf object and config into package.json...
-    $ docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest # build with docker
+    $ docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest # build with docker
     Packing ebpf object and config into package.json...
     ```
 
@@ -302,8 +302,8 @@ sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/app.wasm
 You can also generate a WASM program template for eBPF or build WASM module with `compiler` container:
 
 ```shell
-docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest gen-wasm-skel # generate WASM app template for eBPF
-docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest build-wasm    # Build WASM module
+docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest gen-wasm-skel # generate WASM app template for eBPF
+docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest build-wasm    # Build WASM module
 ```
 
 see [sigsnoop example](examples/bpftools/sigsnoop) for more detail.

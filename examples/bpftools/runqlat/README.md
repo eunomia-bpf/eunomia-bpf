@@ -23,7 +23,7 @@ how long tasks spent waiting their turn to run on-CPU.
 Compile:
 
 ```shell
-docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
 ```
 
 ```console

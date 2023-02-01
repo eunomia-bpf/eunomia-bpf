@@ -47,7 +47,7 @@ $ sudo cat /sys/kernel/debug/tracing/trace_pipe
 - Compile:
 
     ```console
-    docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+    docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
     ```
 
     or
