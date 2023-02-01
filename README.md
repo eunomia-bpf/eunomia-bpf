@@ -1,4 +1,4 @@
-# eunomia-bpf: simplify and enhance eBPF with CO-RE and Wasm
+# eunomia-bpf: simplify and enhance eBPF with CO-RE and WebAssembly
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
