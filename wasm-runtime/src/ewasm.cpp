@@ -83,7 +83,7 @@ ewasm_program::init_wasm_functions()
         return -1;
     }
     if (!(wasm_init_func =
-              wasm_runtime_lookup_function(module_inst, "bpf_main", NULL))) {
+              wasm_runtime_lookup_function(module_inst, "_start", NULL))) {
         printf("The wasm function main wasm function is not found. Use default "
                "main function instead.\n");
         return -1;
