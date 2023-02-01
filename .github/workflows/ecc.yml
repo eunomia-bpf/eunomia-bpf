@@ -57,11 +57,6 @@ jobs:
     - name: Code coverage using Codecov
       run: bash <(curl -s https://codecov.io/bash)
 
-    - name: Build and Package ECC
-      run: |
-        cd compiler
-        make package
-
     - name: Upload release asset
       uses: actions/upload-artifact@v2
       with:

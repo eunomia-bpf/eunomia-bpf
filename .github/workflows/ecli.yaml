@@ -46,10 +46,7 @@ jobs:
       run: |
         cd ecli
         make test
-    - name: Package ecli
-        run: |
-        cd ecli
-        make package
+
     -name: Upload release asset
         uses: actions/upload-artifact@v2
         with:
