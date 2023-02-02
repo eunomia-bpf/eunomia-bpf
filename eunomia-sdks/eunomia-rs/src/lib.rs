@@ -3,8 +3,6 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use std::path;
-
 use anyhow::Result;
 use std::ffi::OsString;
 use std::fs::create_dir_all;

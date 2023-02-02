@@ -4,6 +4,7 @@
 //! All rights reserved.
 //!
 use crate::document_parser::*;
+use crate::wasm::pack_object_in_wasm_header;
 use crate::{config::*, export_types::*};
 use anyhow::Result;
 use flate2::write::ZlibEncoder;
@@ -168,6 +169,9 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
     }
     if !args.compile_opts.parameters.subskeleton {
         pack_object_in_config(&args).unwrap();
+    }
+    if args.compile_opts.wasm_header {
+        pack_object_in_wasm_header(&args).unwrap();
     }
     res
 }

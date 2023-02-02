@@ -7,6 +7,7 @@ mod compile_bpf;
 mod config;
 mod document_parser;
 mod export_types;
+mod wasm;
 
 use anyhow::Result;
 use clap::Parser;

@@ -93,6 +93,10 @@ pub struct CompileOptions {
     /// in header file only
     #[arg(long, default_value_t = false)]
     pub header_only: bool,
+
+    /// generate wasm include header
+    #[arg(long, default_value_t = false)]
+    pub wasm_header: bool,
 }
 
 #[derive(Parser, Debug, Default, Clone)]
@@ -249,6 +253,24 @@ pub fn get_base_dir_include(source_path: &str) -> Result<String> {
         }
     };
     Ok(format!("-I{}", base_dir.to_str().unwrap()))
+}
+
+pub fn get_output_package_config_path(args: &Options) -> String {
+    let output_json_path = get_output_config_path(args);
+    let output_package_config_path = Path::new(&output_json_path)
+        .parent()
+        .unwrap()
+        .join("package.json");
+    output_package_config_path.to_str().unwrap().to_string()
+}
+
+pub fn get_wasm_header_path(args: &Options) -> String {
+    let output_json_path = get_output_config_path(args);
+    let output_wasm_header_path = Path::new(&output_json_path)
+        .parent()
+        .unwrap()
+        .join("ewasm-skel.h");
+    output_wasm_header_path.to_str().unwrap().to_string()
 }
 
 /// embed workspace
