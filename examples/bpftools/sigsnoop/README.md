@@ -8,8 +8,7 @@ tags: [bpftools, syscall, kprobe, tracepoint]
 summary: Trace signals generated system wide, from syscalls and others.
 ---
 
-
-## origin
+## origin bcc code
 
 origin from:
 
@@ -17,53 +16,93 @@ origin from:
 
 This example include a eBPF program and a WASM module in user space.
 
-## Compile and Run eBPF only
+## compile and run eBPF+Wasm example
 
-Compile:
+### Download ecc compiler and ecli runtime tool
 
-```shell
-docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
-```
+- Install the `ecli` tool for running eBPF program:
 
-Or compile with `ecc`:
+    ```console
+    $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
+    $ ./ecli -h
+    Usage: ecli [--help] [--version] [--json] [--no-cache] url-and-args
+    ....
+    ```
+
+- Install the `ecc` compiler-toolchain for compiling eBPF kernel code to a `config` file or `WASM` module(`clang`, `llvm`, and `libclang` should be installed for compiling), and install `struct-bindgen` for generating the export event header:
+
+    ```console
+    $ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecc && chmod +x ./ecc
+    $ ./ecc -h
+    eunomia-bpf compiler
+    Usage: ecc [OPTIONS] <SOURCE_PATH> [EXPORT_EVENT_HEADER]
+    ....
+    $ wget https://github.com/eunomia-bpf/c-struct-bindgen/releases/download/v0.1.0/struct-bindgen && chmod +x ./struct-bindgen
+    ```
+
+- Install WASI:
+
+    ```console
+    wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-17/wasi-sdk-17.0-linux.tar.gz
+    tar -zxf wasi-sdk-17.0-linux.tar.gz
+    sudo mkdir -p /opt/wasi-sdk/ && sudo mv wasi-sdk-17.0/* /opt/wasi-sdk/
+    ```
+
+### compile
+
+Compile eBPF program:
 
 ```console
-$ ecc sigsnoop.bpf.c sigsnoop.h
+$ ./ecc sigsnoop.bpf.c sigsnoop.h
 Compiling bpf object...
 Generating export types...
 Packing ebpf object and config into package.json...
 ```
 
-Run:
+A `package.json` file is generated, which contains the compiled eBPF program and the config file.
 
-```console
-$ sudo ./ecli examples/bpftools/sigsnoop/package.json
-TIME     PID     TPID    SIG     RET     COMM    
-20:43:44  21276  3054    0       0       cpptools-srv
-20:43:44  22407  3054    0       0       cpptools-srv
-20:43:44  20222  3054    0       0       cpptools-srv
-20:43:44  8933   3054    0       0       cpptools-srv
-20:43:44  2915   2803    0       0       node
-20:43:44  2943   2803    0       0       node
-20:43:44  31453  3054    0       0       cpptools-srv
-$ sudo ./ecli examples/bpftools/sigsnoop/package.json  -h
-Usage: sigsnoop_bpf [--help] [--version] [--verbose] [--filtered_pid VAR] [--target_signal VAR] [--failed_only]
+Generate WASM skel:
 
-A simple eBPF program
-
-Optional arguments:
-  -h, --help            shows help message and exits 
-  -v, --version         prints version information and exits 
-  --verbose             prints libbpf debug information 
-  --filtered_pid        set value of pid_t variable filtered_pid 
-  --target_signal       set value of int variable target_signal 
-  --failed_only         set value of bool variable failed_only 
-
-Built with eunomia-bpf framework.
-See https://github.com/eunomia-bpf/eunomia-bpf for more information.
+```shell
+./ecc sigsnoop.bpf.c sigsnoop.h --wasm-header
+./ecc sigsnoop.h --header-only
+./struct-bindgen sigsnoop.h > sigsnoop.wasm.h
 ```
 
-## compile and run WASM example
+A `ewasm-skel.h` file is generated, which contains the WASM skel for eBPF, and A `sigsnoop.wasm.h` for accessing event passed from eBPF in Wasm.
+
+Run build.sh to build WASM module:
+
+```shell
+./build.sh
+```
+
+### Run eBPF-Wasm program
+
+```console
+$ sudo ./ecli run sigsnoop.wasm -h
+Usage: sigsnoop [-h] [-x] [-k] [-n] [-p PID] [-s SIGNAL]
+Trace standard and real-time signals.
+
+
+    -h, --help  show this help message and exit
+    -x, --failed  failed signals only
+    -k, --killed  kill only
+    -p, --pid=<int>  target pid
+    -s, --signal=<int>  target signal
+
+$ sudo ./ecli run sigsnoop.wasm                                                                     
+running and waiting for the ebpf events from perf event...
+{"pid":185539,"tpid":185538,"sig":17,"ret":0,"comm":"cat","sig_name":"SIGCHLD"}
+{"pid":185540,"tpid":185538,"sig":17,"ret":0,"comm":"grep","sig_name":"SIGCHLD"}
+
+$ sudo ./ecli run sigsnoop.wasm -p 1641
+running and waiting for the ebpf events from perf event...
+{"pid":1641,"tpid":2368,"sig":23,"ret":0,"comm":"YDLive","sig_name":"SIGURG"}
+{"pid":1641,"tpid":2368,"sig":23,"ret":0,"comm":"YDLive","sig_name":"SIGURG"}
+```
+
+## compile and run WASM example with docker
 
 Generate WASM skel:
 
@@ -112,6 +151,53 @@ $ sudo ./ecli run app.wasm -p 1641
 running and waiting for the ebpf events from perf event...
 {"pid":1641,"tpid":2368,"sig":23,"ret":0,"comm":"YDLive","sig_name":"SIGURG"}
 {"pid":1641,"tpid":2368,"sig":23,"ret":0,"comm":"YDLive","sig_name":"SIGURG"}
+```
+
+
+## Compile and Run eBPF only
+
+Compile:
+
+```shell
+docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
+```
+
+Or compile with `ecc`:
+
+```console
+$ ecc sigsnoop.bpf.c sigsnoop.h
+Compiling bpf object...
+Generating export types...
+Packing ebpf object and config into package.json...
+```
+
+Run:
+
+```console
+$ sudo ./ecli examples/bpftools/sigsnoop/package.json
+TIME     PID     TPID    SIG     RET     COMM    
+20:43:44  21276  3054    0       0       cpptools-srv
+20:43:44  22407  3054    0       0       cpptools-srv
+20:43:44  20222  3054    0       0       cpptools-srv
+20:43:44  8933   3054    0       0       cpptools-srv
+20:43:44  2915   2803    0       0       node
+20:43:44  2943   2803    0       0       node
+20:43:44  31453  3054    0       0       cpptools-srv
+$ sudo ./ecli examples/bpftools/sigsnoop/package.json  -h
+Usage: sigsnoop_bpf [--help] [--version] [--verbose] [--filtered_pid VAR] [--target_signal VAR] [--failed_only]
+
+A simple eBPF program
+
+Optional arguments:
+  -h, --help            shows help message and exits 
+  -v, --version         prints version information and exits 
+  --verbose             prints libbpf debug information 
+  --filtered_pid        set value of pid_t variable filtered_pid 
+  --target_signal       set value of int variable target_signal 
+  --failed_only         set value of bool variable failed_only 
+
+Built with eunomia-bpf framework.
+See https://github.com/eunomia-bpf/eunomia-bpf for more information.
 ```
 
 ## details in bcc
