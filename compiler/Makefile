@@ -70,6 +70,7 @@ $(ECC): $(BPFTOOL)
 	cp -r ../third_party/vmlinux workspace/include/vmlinux
 	cd cmd && cargo build --release
 	cp $(ECC) workspace/bin/ecc
+	cp -r ../wasm-runtime/scripts workspace/scripts
 
 install:
 	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia
@@ -91,12 +92,12 @@ wasm-runtime_BUILD_DIR ?= $(wasm-runtime_DIR)/build
 .PHONY: build-wasm
 build-wasm: build
 	$(call msg,BUILD-WASM)
-	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C eunomia-bpf/wasm-runtime/scripts build
+	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C workspace/scripts build
 
 .PHONY: generate_wasm_skel
 gen-wasm-skel: build
 	$(call msg,GEN-WASM-SKEL)
-	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C eunomia-bpf/wasm-runtime/scripts generate
+	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C workspace/scripts generate
 
 .PHONY: build
 build:
@@ -105,6 +106,7 @@ build:
 
 .PHONY: docker
 docker: wasi-sdk-16.0-linux.tar.gz
+	$(MAKE)
 	sudo docker build -t ghcr.io/eunomia-bpf/ecc-$(shell uname -m):latest .
 ifeq ("$(shell uname -m)", "x86_64")
 	docker build -t yunwei37/ebpm:latest .
