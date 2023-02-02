@@ -64,9 +64,6 @@ typedef int error_t;
 # endif
 #endif
 
-
-#define assert(expr) ((void)(expr))
-
 #ifdef  __cplusplus
 extern "C" {
 #endif

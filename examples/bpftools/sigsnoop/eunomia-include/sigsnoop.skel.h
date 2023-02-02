@@ -84,12 +84,22 @@ sigsnoop_bpf__open_opts(const struct bpf_object_open_opts *opts)
 static inline struct sigsnoop_bpf *
 sigsnoop_bpf__open(void)
 {
-    return sigsnoop_bpf__open_opts(NULL);
+	int res = create_bpf(program_data, strlen(program_data));
+    if (res < 0) {
+        printf("create_bpf failed %d", res);
+        return NULL;
+    }
+	return (struct sigsnoop_bpf *)program_data;
 }
 
 static inline int
 sigsnoop_bpf__load(struct sigsnoop_bpf *obj)
 {
+	int res = run_bpf(res);
+    if (res < 0) {
+        printf("run_bpf failed %d\n", res);
+        return -1;
+    }
 	return 0;
 }
 
@@ -146,7 +156,12 @@ struct perf_buffer;
 void perf_buffer__free(struct perf_buffer *pb) {
 }
 int perf_buffer__poll(struct perf_buffer *pb, int timeout_ms) {
-	return start_bpf_program(program_data);
+	int res = wait_and_poll_bpf(res);
+    if (res < 0) {
+        printf("wait_and_poll_bpf failed %d\n", res);
+        return -1;
+    }
+	return 0;
 }
 int bpf_program__set_autoload(struct bpf_program *prog, bool autoload) {
     return 0;
@@ -176,16 +191,6 @@ perf_buffer__new(int map_fd, size_t page_cnt,
 int process_event(int ctx, char *e, int str_len)
 {
     struct event eve = {0};
-    unmarshal_event__from_binary(&eve, e);
-	// for(int i = 0; i < 32; i++) {
-	// 	printf("%d ", (int)e[i]);
-	// }
-	// putchar('\n');
-	// char* wasm_struct = (char*)(void*)&eve;
-	// for(int i = 0; i < 32; i++) {
-	// 	printf("%d ", (int)wasm_struct[i]);
-	// }
-	// putchar('\n');
 	global_cb((void*)ctx, 0, &eve, str_len);
 	return 0;
 }
