@@ -11,7 +11,7 @@ on:
       - "v*"
 
 env:
-  TAG_NAME: ${{ git.ref }}
+  TAG_NAME: ${{git.ref}}
   BUILD_TYPE: Release
   INSTALL_LOCATION: .local
 
