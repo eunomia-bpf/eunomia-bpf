@@ -22,7 +22,7 @@ With eunnomia-bpf, you can:
   - enable CO-RE[^1] to BCC-style eBPF programs without depending on the LLVM library.
   - a [converter](https://github.com/eunomia-bpf/bcc/tree/master/src/cc/converter) to convert BCC stype source code to libbpf style source code.
 - Build eBPF programs with `Wasm`[^2]:
-  - [Write eBPF with Wasm](#write-user-space-code-for-your-ebpf-program-in-webassembly) in C/C++, Rust, Go...Any language you like in WebAssembly[^2].
+  - [Write eBPF with Wasm](#write-user-space-code-for-your-ebpf-program-in-webassembly) in C/C++, Rust, Go...Any language you like in WebAssembly[^2], see [example](examples/bpftools/sigsnoop).
   - A [bindgen tool](https://github.com/eunomia-bpf/c-struct-bindgen) to generate Wasm bindings for eBPF programs.
   - A [runtime](wasm-runtime) for running eBPF program in Wasm module.
 - simplify the process of `distributing` eBPF programs:
