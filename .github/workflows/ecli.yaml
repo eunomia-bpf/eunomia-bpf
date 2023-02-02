@@ -3,16 +3,21 @@ name: Build and test ecli on Ubuntu
 on:
   push:
     branches: "*"
+    tags:
+      - "v*"
     paths:
       - "ecli/**"
       - ".github/**"
   pull_request:
     branches: "*"
+    tags:
+      - "v*"
     paths:
       - "ecli/**"
       - ".github/**"
 
 env:
+  TAG_NAME: ${{ github.ref }}
   BUILD_TYPE: Release
   INSTALL_LOCATION: .local
 
@@ -46,3 +51,20 @@ jobs:
       run: |
         cd ecli
         make test
+
+    -name: Upload release asset
+        uses: actions/upload-artifact@v2
+        with:
+        name: ecli-${{ env.TAG_NAME }}
+        path: ecli/build/bin/Release/ecli-${{ env.TAG_NAME }}
+    -name: Create release
+        uses: actions/create-release@v1
+        env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+        tag_name: ${{ env.TAG_NAME }}
+        release_name: Release ${{ env.TAG_NAME }}
+        draft: false
+        prerelease: false
+        artifacts: ecli-${{ env.TAG_NAME }}
+

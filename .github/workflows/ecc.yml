@@ -3,10 +3,15 @@ name: Build and test compiler on Ubuntu
 on:
   push:
     branches: "*"
+    tags:
+      - "v*"
   pull_request:
     branches: "*"
+    tags:
+      - "v*"
 
 env:
+  TAG_NAME: ${{github.ref}}
   BUILD_TYPE: Release
   INSTALL_LOCATION: .local
 
@@ -56,4 +61,22 @@ jobs:
 
     - name: Code coverage using Codecov
       run: bash <(curl -s https://codecov.io/bash)
+
+    - name: Upload release asset
+      uses: actions/upload-artifact@v2
+      with:
+        name: ECC-${{ env.TAG_NAME }}
+        path: compiler/workspace/bin/ecc-${{ env.TAG_NAME }}
+
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.TAG_NAME }}
+        release_name: ecc Release ${{ env.TAG_NAME }}
+        draft: false
+        prerelease: false
+        assets_path: compiler/workspace/bin/ecc-${{ env.TAG_NAME }}
+        assets_name: ecc-${{ env.TAG_NAME }}
 
