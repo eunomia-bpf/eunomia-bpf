@@ -176,6 +176,7 @@ int main(int argc, char **argv)
 	};
 	struct perf_buffer *pb = NULL;
 	struct sigsnoop_bpf *obj;
+	int obj_id;
 	int err;
 
 	alias_parse(argv[0]);
@@ -183,8 +184,8 @@ int main(int argc, char **argv)
 	if (err)
 		return err;
 
-	obj = sigsnoop_bpf__open();
-	if (!obj) {
+	obj_id = sigsnoop_bpf__open();
+	if (obj_id < 0) {
 		warn("failed to open BPF object\n");
 		return 1;
 	}
@@ -204,7 +205,7 @@ int main(int argc, char **argv)
 		bpf_program__set_autoload(obj->progs.tgkill_exit, false);
 	}
 
-	err = sigsnoop_bpf__load(obj);
+	err = sigsnoop_bpf__load(obj_id);
 	if (err) {
 		warn("failed to load BPF object: %d\n", err);
 		goto cleanup;
@@ -227,7 +228,7 @@ int main(int argc, char **argv)
 	       "TIME", "PID", "COMM", "SIG", "TPID", "RESULT");
 
 	while (!exiting) {
-		err = perf_buffer__poll(pb, PERF_POLL_TIMEOUT_MS);
+		err = perf_buffer__poll(pb, obj_id);
 		if (err < 0 && err != -EINTR) {
 			warn("error polling perf buffer: %s\n", strerror(-err));
 			goto cleanup;

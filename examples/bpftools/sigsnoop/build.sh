@@ -17,5 +17,5 @@ OUT_FILE=sigsnoop.wasm
         -Wl,--export=process_event \
         -Wl,--strip-all,--no-entry \
         -Wl,--allow-undefined \
-        -o "${OUT_FILE}" app.c
+        -o "${OUT_FILE}" sigsnoop.c
 

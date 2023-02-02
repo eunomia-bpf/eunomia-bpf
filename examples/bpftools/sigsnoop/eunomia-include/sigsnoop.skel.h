@@ -81,21 +81,21 @@ sigsnoop_bpf__open_opts(const struct bpf_object_open_opts *opts)
 	return obj;
 }
 
-static inline struct sigsnoop_bpf *
+static inline int
 sigsnoop_bpf__open(void)
 {
 	int res = create_bpf(program_data, strlen(program_data));
     if (res < 0) {
         printf("create_bpf failed %d", res);
-        return NULL;
+        return -1;
     }
-	return (struct sigsnoop_bpf *)program_data;
+	return res;
 }
 
 static inline int
-sigsnoop_bpf__load(struct sigsnoop_bpf *obj)
+sigsnoop_bpf__load(int obj_id)
 {
-	int res = run_bpf(res);
+	int res = run_bpf(obj_id);
     if (res < 0) {
         printf("run_bpf failed %d\n", res);
         return -1;
@@ -155,8 +155,8 @@ sigsnoop_bpf__assert(struct sigsnoop_bpf *s __attribute__((unused)))
 struct perf_buffer;
 void perf_buffer__free(struct perf_buffer *pb) {
 }
-int perf_buffer__poll(struct perf_buffer *pb, int timeout_ms) {
-	int res = wait_and_poll_bpf(res);
+int perf_buffer__poll(struct perf_buffer *pb, int obj_id) {
+	int res = wait_and_poll_bpf(obj_id);
     if (res < 0) {
         printf("wait_and_poll_bpf failed %d\n", res);
         return -1;
