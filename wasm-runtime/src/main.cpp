@@ -34,6 +34,13 @@ wasm_load_bpf_object(wasm_exec_env_t exec_env, void *obj_buf, size_t obj_buf_sz)
 }
 
 int
+wasm_close_bpf_object(wasm_exec_env_t exec_env, wasm_bpf_program *program)
+{
+    delete program;
+    return 0;
+}
+
+int
 wasm_attach_bpf_program(wasm_exec_env_t exec_env, wasm_bpf_program *program,
                         const char *name, const char *attach_target)
 {
@@ -93,6 +100,7 @@ main(int argc, char *argv[])
         EXPORT_WASM_API_WITH_SIG(wasm_bpf_buffer_poll, "(ri*~ii)i"),
         EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_fd_by_name, "(ri)i"),
         EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_operate, "(iiiii)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_close_bpf_object, "(r)i"),
     };
 
     init_args.mem_alloc_type = Alloc_With_System_Allocator;

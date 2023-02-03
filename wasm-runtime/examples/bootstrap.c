@@ -100,7 +100,7 @@ main(int argc, char **argv)
     }
 
     /* Set up ring buffer polling */
-    rb = bpf_buffer__new(bpf_map__fd(skel->maps.rb), handle_event, NULL, NULL);
+    rb = bpf_buffer__open(skel->maps.rb, handle_event, NULL);
     if (!rb) {
         err = -1;
         fprintf(stderr, "Failed to create ring buffer\n");
@@ -111,7 +111,7 @@ main(int argc, char **argv)
     printf("%-8s %-5s %-16s %-7s %-7s %s\n", "TIME", "EVENT", "COMM", "PID",
            "PPID", "FILENAME/EXIT CODE");
     while (!exiting) {
-        err = ring_buffer__poll(rb, 100 /* timeout, ms */);
+        err = bpf_buffer__poll(rb, 100 /* timeout, ms */);
         /* Ctrl-C will cause -EINTR */
         if (err == -EINTR) {
             err = 0;
@@ -124,6 +124,7 @@ main(int argc, char **argv)
     }
 
 cleanup:
-	bpf_buffer__free(rb);
+    bpf_buffer__free(rb);
+    bootstrap_bpf__destroy(skel);
     return err < 0 ? -err : 0;
 }

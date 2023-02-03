@@ -133,7 +133,6 @@ bootstrap_bpf__create_skeleton(struct bootstrap_bpf *obj)
 
 	s->sz = sizeof(*s);
 	s->name = "bootstrap_bpf";
-	s->obj = &obj->obj;
 
 	/* maps */
 	s->map_cnt = 3;
