@@ -111,6 +111,7 @@ main(int argc, char **argv)
     printf("%-8s %-5s %-16s %-7s %-7s %s\n", "TIME", "EVENT", "COMM", "PID",
            "PPID", "FILENAME/EXIT CODE");
     while (!exiting) {
+        // poll buffer
         err = bpf_buffer__poll(rb, 100 /* timeout, ms */);
         /* Ctrl-C will cause -EINTR */
         if (err == -EINTR) {
@@ -121,6 +122,20 @@ main(int argc, char **argv)
             printf("Error polling perf buffer: %d\n", err);
             break;
         }
+        // // access maps
+        // int lookup_key = -2, next_key;
+        // uint64_t value;
+        // int err;
+        // int fd = wasm_bpf_map_fd_by_name(skel->skeleton->obj, "exec_start");
+        // while (!bpf_map_get_next_key(fd, &lookup_key, &next_key)) {
+        //     err = bpf_map_lookup_elem(fd, &next_key, &value);
+        //     if (err < 0) {
+        //         fprintf(stderr, "failed to lookup hist: %d\n", err);
+        //         return -1;
+        //     }
+        //     printf("\npid = %d time = %llu\n", next_key, value);
+        //     lookup_key = next_key;
+        // }
     }
 
 cleanup:

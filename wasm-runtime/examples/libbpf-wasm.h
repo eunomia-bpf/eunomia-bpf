@@ -34,7 +34,7 @@ enum bpf_map_cmd {
 };
 
 int
-bpf_map_operate(int fd, enum bpf_map_cmd cmd, void *key, void *value,
+wasm_bpf_map_operate(int fd, enum bpf_map_cmd cmd, void *key, void *value,
                 void *next_key);
 
 struct bpf_map {
@@ -229,37 +229,37 @@ bpf_buffer__free(struct bpf_buffer *buffer)
 int
 bpf_map_update_elem(int fd, const void *key, const void *value, uint64_t flags)
 {
-    return bpf_map_operate(fd, _BPF_MAP_UPDATE_ELEM, (void*)key, (void*)value, &flags);
+    return wasm_bpf_map_operate(fd, _BPF_MAP_UPDATE_ELEM, (void*)key, (void*)value, &flags);
 }
 
 int
 bpf_map_lookup_elem(int fd, const void *key, void *value)
 {
-    return bpf_map_operate(fd, _BPF_MAP_LOOKUP_ELEM, (void*)key, value, NULL);
+    return wasm_bpf_map_operate(fd, _BPF_MAP_LOOKUP_ELEM, (void*)key, value, NULL);
 }
 
 int
 bpf_map_lookup_elem_flags(int fd, const void *key, void *value, uint64_t flags)
 {
-    return bpf_map_operate(fd, _BPF_MAP_LOOKUP_ELEM, (void*)key, value, NULL);
+    return wasm_bpf_map_operate(fd, _BPF_MAP_LOOKUP_ELEM, (void*)key, value, NULL);
 }
 
 int
 bpf_map_delete_elem(int fd, const void *key)
 {
-    return bpf_map_operate(fd, _BPF_MAP_DELETE_ELEM, (void*)key, NULL, NULL);
+    return wasm_bpf_map_operate(fd, _BPF_MAP_DELETE_ELEM, (void*)key, NULL, NULL);
 }
 
 int
 bpf_map_delete_elem_flags(int fd, const void *key, uint64_t flags)
 {
-    return bpf_map_operate(fd, _BPF_MAP_DELETE_ELEM, (void*)key, NULL, NULL);
+    return wasm_bpf_map_operate(fd, _BPF_MAP_DELETE_ELEM, (void*)key, NULL, NULL);
 }
 
 int
 bpf_map_get_next_key(int fd, const void *key, void *next_key)
 {
-    return bpf_map_operate(fd, _BPF_MAP_GET_NEXT_KEY, (void*)key, NULL, (void*)next_key);
+    return wasm_bpf_map_operate(fd, _BPF_MAP_GET_NEXT_KEY, (void*)key, NULL, (void*)next_key);
 }
 
 #endif // _LIBBPF_WASM_H

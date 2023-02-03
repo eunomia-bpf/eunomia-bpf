@@ -24,8 +24,10 @@ extern "C" {
 uint64_t
 wasm_load_bpf_object(wasm_exec_env_t exec_env, void *obj_buf, int obj_buf_sz)
 {
+    if (obj_buf_sz <= 0)
+        return 0;
     wasm_bpf_program *program = new wasm_bpf_program();
-    int res = program->load_bpf_object(obj_buf, obj_buf_sz);
+    int res = program->load_bpf_object(obj_buf, (size_t)obj_buf_sz);
     if (res < 0) {
         delete program;
         return 0;
@@ -51,7 +53,7 @@ int
 wasm_bpf_buffer_poll(wasm_exec_env_t exec_env, uint64_t program,
                      int fd, char *data, int max_size, int timeout_ms)
 {
-    return  ((wasm_bpf_program *)program)->bpf_buffer_poll(fd, data, max_size, timeout_ms);
+    return  ((wasm_bpf_program *)program)->bpf_buffer_poll(fd, data, (size_t)max_size, timeout_ms);
 }
 
 int
@@ -62,10 +64,12 @@ wasm_bpf_map_fd_by_name(wasm_exec_env_t exec_env, uint64_t program,
 }
 
 int
-wasm_bpf_map_operate(wasm_exec_env_t exec_env, int fd, enum bpf_map_cmd cmd,
+wasm_bpf_map_operate(wasm_exec_env_t exec_env, int fd, int cmd,
                      void *key, void *value, void *next_key)
-{
-    return bpf_map_operate(fd, cmd, key, value, next_key);
+{   
+    if (cmd < _BPF_MAP_LOOKUP_ELEM || cmd > _BPF_MAP_GET_NEXT_KEY)
+        return -1;
+    return bpf_map_operate(fd, (bpf_map_cmd)cmd, key, value, next_key);
 }
 }
 
@@ -99,7 +103,7 @@ main(int argc, char *argv[])
         EXPORT_WASM_API_WITH_SIG(wasm_attach_bpf_program, "(I$$)i"),
         EXPORT_WASM_API_WITH_SIG(wasm_bpf_buffer_poll, "(Ii*~i)i"),
         EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_fd_by_name, "(I$)i"),
-        EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_operate, "(iiiii)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_operate, "(ii***)i"),
         EXPORT_WASM_API_WITH_SIG(wasm_close_bpf_object, "(I)i"),
     };
 
@@ -114,7 +118,7 @@ main(int argc, char *argv[])
         return -1;
     }
 
-    module = wasm_runtime_load(wasm_module.data(), wasm_module.size(),
+    module = wasm_runtime_load(wasm_module.data(), (uint32_t)wasm_module.size(),
                                error_buf, sizeof(error_buf));
     if (!module) {
         printf("Load wasm module failed. error: %s\n", error_buf);
