@@ -21,44 +21,44 @@
 #include "wasm_export.h"
 
 extern "C" {
-wasm_bpf_program *
-wasm_load_bpf_object(wasm_exec_env_t exec_env, void *obj_buf, size_t obj_buf_sz)
+uint64_t
+wasm_load_bpf_object(wasm_exec_env_t exec_env, void *obj_buf, int obj_buf_sz)
 {
     wasm_bpf_program *program = new wasm_bpf_program();
     int res = program->load_bpf_object(obj_buf, obj_buf_sz);
     if (res < 0) {
         delete program;
-        return NULL;
+        return 0;
     }
-    return program;
+    return (uint64_t)program;
 }
 
 int
-wasm_close_bpf_object(wasm_exec_env_t exec_env, wasm_bpf_program *program)
+wasm_close_bpf_object(wasm_exec_env_t exec_env, uint64_t program)
 {
-    delete program;
+    delete  ((wasm_bpf_program *)program);
     return 0;
 }
 
 int
-wasm_attach_bpf_program(wasm_exec_env_t exec_env, wasm_bpf_program *program,
-                        const char *name, const char *attach_target)
+wasm_attach_bpf_program(wasm_exec_env_t exec_env, uint64_t program,
+                        char *name, char *attach_target)
 {
-    return program->attach_bpf_program(name, attach_target);
+    return ((wasm_bpf_program *)program)->attach_bpf_program(name, attach_target);
 }
 
 int
-wasm_bpf_buffer_poll(wasm_exec_env_t exec_env, wasm_bpf_program *program,
-                     int fd, void *data, size_t max_size, int timeout_ms)
+wasm_bpf_buffer_poll(wasm_exec_env_t exec_env, uint64_t program,
+                     int fd, char *data, int max_size, int timeout_ms)
 {
-    return program->bpf_buffer_poll(fd, data, max_size, timeout_ms);
+    return  ((wasm_bpf_program *)program)->bpf_buffer_poll(fd, data, max_size, timeout_ms);
 }
 
 int
-wasm_bpf_map_fd_by_name(wasm_exec_env_t exec_env, wasm_bpf_program *program,
+wasm_bpf_map_fd_by_name(wasm_exec_env_t exec_env, uint64_t program,
                         const char *name)
 {
-    return program->bpf_map_fd_by_name(name);
+    return  ((wasm_bpf_program *)program)->bpf_map_fd_by_name(name);
 }
 
 int
@@ -95,12 +95,12 @@ main(int argc, char *argv[])
     memset(&init_args, 0, sizeof(RuntimeInitArgs));
 
     static NativeSymbol native_symbols[] = {
-        EXPORT_WASM_API_WITH_SIG(wasm_load_bpf_object, "(*~)r"),
-        EXPORT_WASM_API_WITH_SIG(wasm_attach_bpf_program, "(rii)i"),
-        EXPORT_WASM_API_WITH_SIG(wasm_bpf_buffer_poll, "(ri*~ii)i"),
-        EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_fd_by_name, "(ri)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_load_bpf_object, "(*~)I"),
+        EXPORT_WASM_API_WITH_SIG(wasm_attach_bpf_program, "(I$$)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_bpf_buffer_poll, "(Ii*~i)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_fd_by_name, "(I$)i"),
         EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_operate, "(iiiii)i"),
-        EXPORT_WASM_API_WITH_SIG(wasm_close_bpf_object, "(r)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_close_bpf_object, "(I)i"),
     };
 
     init_args.mem_alloc_type = Alloc_With_System_Allocator;

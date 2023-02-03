@@ -24,7 +24,7 @@ CLANG_BPF_SYS_INCLUDES = $(shell $(CLANG) -v -E - </dev/null 2>&1 \
 	| sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }')
 
 .PHONY: all
-all: bootstrap.skel.h
+all: bootstrap.skel.h bootstrap.bpf.o
 
 .PHONY: clean
 clean:

@@ -10,25 +10,20 @@
 #define POLL_TIMEOUT_MS 100
 
 typedef uint64_t bpf_object_skel;
-// 		   EXPORT_WASM_API_WITH_SIG(wasm_load_bpf_object, "(*~)r"),
-//         EXPORT_WASM_API_WITH_SIG(wasm_attach_bpf_program, "(rii)i"),
-//         EXPORT_WASM_API_WITH_SIG(wasm_bpf_buffer_poll, "(ri*~ii)i"),
-//         EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_fd_by_name, "(ri)i"),
-//         EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_operate, "(iiiii)i"),
-//         EXPORT_WASM_API_WITH_SIG(wasm_close_bpf_object, "(r)i"),
+
 int
 wasm_bpf_map_fd_by_name(bpf_object_skel obj, const char *name);
 int
 wasm_close_bpf_object(bpf_object_skel obj);
 bpf_object_skel
-wasm_load_bpf_object(const void *obj_buf, size_t obj_buf_sz);
+wasm_load_bpf_object(const void *obj_buf, int obj_buf_sz);
 
 int
 wasm_attach_bpf_program(bpf_object_skel obj, const char *name,
                         const char *attach_target);
 int
-wasm_bpf_buffer_poll(bpf_object_skel obj, int fd, void *data, size_t max_size,
-                int timeout_ms);
+wasm_bpf_buffer_poll(bpf_object_skel program,
+                     int fd, char *data, int max_size, int timeout_ms);
 
 enum bpf_map_cmd {
     // BPF_MAP_CREATE,
