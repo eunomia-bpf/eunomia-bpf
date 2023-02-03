@@ -28,8 +28,7 @@ all: bootstrap.skel.h bootstrap.bpf.o
 
 .PHONY: clean
 clean:
-	$(call msg,CLEAN)
-	$(Q)rm -rf opensnoop.bpf.o
+	rm -rf *.o *.json *.wasm
 
 # Build BPF code
 %.bpf.o: %.bpf.c $(wildcard %.h) $(VMLINUX)

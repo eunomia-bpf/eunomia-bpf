@@ -13,7 +13,7 @@ struct event {
 	unsigned long long duration_ns;
 	char comm[TASK_COMM_LEN];
 	char filename[MAX_FILENAME_LEN];
-	int exit_event;
+	char exit_event;
 };
 
 #endif /* __BOOTSTRAP_H */

@@ -2,3 +2,5 @@
 *.o
 *.json
 struct-bindgen
+bpftool
+.gitignore
