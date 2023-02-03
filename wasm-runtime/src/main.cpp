@@ -22,17 +22,23 @@
 #include "wasm_export.h"
 
 int
-main(int argc, char *argv_main[])
+main(int argc, char *argv[])
 {
-    static char global_heap_buf[512 * 1024];
-    char *buffer, error_buf[128];
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <wasm_object_file>" << std::endl;
+        return -1;
+    }
+    std::ifstream file(argv[1]);
+    std::vector<uint8_t> wasm_module((std::istreambuf_iterator<char>(file)),
+                                  std::istreambuf_iterator<char>());
+    char error_buf[128];
     int opt;
     char *wasm_path = NULL;
 
     wasm_module_t module = NULL;
     wasm_module_inst_t module_inst = NULL;
     wasm_exec_env_t exec_env = NULL;
-    uint32_t buf_size, stack_size = 8092, heap_size = 8092;
+    uint32_t stack_size = 8092, heap_size = 8092;
     wasm_function_inst_t start_func = NULL;
     char *native_buffer = NULL;
     uint32_t wasm_buffer = 0;
@@ -57,8 +63,6 @@ main(int argc, char *argv_main[])
     };
 
     init_args.mem_alloc_type = Alloc_With_System_Allocator;
-    init_args.mem_alloc_option.pool.heap_buf = global_heap_buf;
-    init_args.mem_alloc_option.pool.heap_size = sizeof(global_heap_buf);
 
     // Native symbols need below registration phase
     init_args.n_native_symbols = sizeof(native_symbols) / sizeof(NativeSymbol);
@@ -70,7 +74,8 @@ main(int argc, char *argv_main[])
         return -1;
     }
 
-    module = wasm_runtime_load(buffer, buf_size, error_buf, sizeof(error_buf));
+    module = wasm_runtime_load(wasm_module.data(), wasm_module.size(),
+                               error_buf, sizeof(error_buf));
     if (!module) {
         printf("Load wasm module failed. error: %s\n", error_buf);
         return -1;
@@ -99,7 +104,6 @@ main(int argc, char *argv_main[])
                wasm_runtime_get_exception(module_inst));
         return -1;
     }
-fail:
     if (exec_env)
         wasm_runtime_destroy_exec_env(exec_env);
     if (module_inst) {
