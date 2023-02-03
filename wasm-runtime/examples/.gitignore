@@ -1,2 +1,4 @@
 *.wasm
 *.o
+*.json
+struct-bindgen
