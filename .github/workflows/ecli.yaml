@@ -41,6 +41,12 @@ jobs:
 
     - name: make ecli
       run:  make ecli
+    
+    - name: upload ecli artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ecli
+        path: ${{ github.workspace }}/ecli/build/bin/Release/
 
     - name: run unit tests
       run: |

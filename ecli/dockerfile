@@ -1,0 +1,18 @@
+FROM ubuntu:latest
+
+ENV UBUNTU_SOURCE /etc/apt
+
+COPY ./ /root
+
+WORKDIR /root
+
+RUN apt-get update -y && \
+	apt-get install -y --no-install-recommends libelf1 libelf-dev zlib1g-dev clang make llvm wget tar libclang-13-dev && \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
+
+COPY ./build/bin/Release/ecli /usr/bin/
+RUN chmod +x /usr/bin/ecli
+
+#CMD ecli run /root/my/package.json
+CMD ["/bin/bash"]
