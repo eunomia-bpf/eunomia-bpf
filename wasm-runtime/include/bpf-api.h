@@ -44,10 +44,10 @@ struct wasm_bpf_program {
 
 enum bpf_map_cmd {
     // BPF_MAP_CREATE,
-    BPF_MAP_LOOKUP_ELEM = 1,
-    BPF_MAP_UPDATE_ELEM,
-    BPF_MAP_DELETE_ELEM,
-    BPF_MAP_GET_NEXT_KEY,
+    _BPF_MAP_LOOKUP_ELEM = 1,
+    _BPF_MAP_UPDATE_ELEM,
+    _BPF_MAP_DELETE_ELEM,
+    _BPF_MAP_GET_NEXT_KEY,
 };
 
 int

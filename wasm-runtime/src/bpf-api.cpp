@@ -11,11 +11,11 @@
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 #include <unistd.h>
-#include <sys/syscall.h>
 #include "bpf-api.h"
 #include <stdlib.h>
 #include <errno.h>
 #include <bpf/libbpf.h>
+#include <asm/unistd.h>
 
 using namespace std;
 
@@ -42,13 +42,7 @@ struct bpf_buffer {
     int type;
 };
 
-static void
-perfbuf_sample_fn(void *ctx, int cpu, void *data, __u32 size)
-{
-    bpf_buffer_sample(ctx, data, size);
-}
-
-int
+static int
 bpf_buffer_sample(void *ctx, void *data, size_t size)
 {
     wasm_bpf_program *program = (wasm_bpf_program *)ctx;
@@ -56,6 +50,12 @@ bpf_buffer_sample(void *ctx, void *data, size_t size)
         memcpy(program->poll_data, data, program->max_size);
     }
     memcpy(program->poll_data, data, size);
+}
+
+static void
+perfbuf_sample_fn(void *ctx, int cpu, void *data, __u32 size)
+{
+    bpf_buffer_sample(ctx, data, size);
 }
 
 struct bpf_map *
@@ -67,6 +67,7 @@ bpf_obj_get_map_by_fd(int fd, bpf_object *obj)
         if (bpf_map__fd(map) == fd)
             return map;
     }
+    return NULL;
 }
 
 struct bpf_buffer *
@@ -216,11 +217,11 @@ bpf_map_operate(int fd, enum bpf_map_cmd cmd, void *key, void *value,
     int ret;
 
     memset(&attr, 0, attr_sz);
-    attr.map_fd = fd;
+    attr.map_fd = (uint32_t)fd;
     attr.key = (uint64_t)key;
     attr.next_key = (uint64_t)next_key;
     attr.value = (uint64_t)value;
 
-    ret = syscall(__NR_bpf, cmd, attr, attr_sz);
+    ret = (int)syscall(__NR_bpf, cmd, attr, attr_sz);
     return ret < 0 ? -errno : ret;
 }
