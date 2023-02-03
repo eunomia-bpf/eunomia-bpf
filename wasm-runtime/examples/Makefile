@@ -24,16 +24,38 @@ CLANG_BPF_SYS_INCLUDES = $(shell $(CLANG) -v -E - </dev/null 2>&1 \
 	| sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }')
 
 .PHONY: all
-all: bootstrap.skel.h bootstrap.bpf.o
+all: bootstrap.wasm bootstrap.bpf.o
 
 .PHONY: clean
 clean:
-	rm -rf *.o *.json *.wasm
+	rm -rf *.o *.json *.wasm *.skel.h
 
 # Build BPF code
 %.bpf.o: %.bpf.c $(wildcard %.h) $(VMLINUX)
 	clang -g -O2 -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) -c $(filter %.c,$^) -o $@
 	llvm-strip -g $@ # strip useless DWARF info
 
-%.skel.h: %.bpf.o
-	bpftool gen skeleton $< > $@
+# clone wasm-bpftool
+bpftool:
+	git clone https://github.com/eunomia-bpf/bpftool --recursive
+
+# compile bpftool
+bpftool/src/bpftool: bpftool
+	cd bpftool && git checkout origin/wasm-bpftool
+	cd bpftool/src && make
+
+# generate c skeleton
+%.skel.h: %.bpf.o bpftool/src/bpftool
+	bpftool/src/bpftool gen skeleton -j $< > $@
+
+# generate wasm bpf header for pass struct event
+bootstrap.wasm.h: bootstrap.bpf.o bpftool/src/bpftool
+	ecc bootstrap.h --header-only
+	bpftool/src/bpftool btf dump file $< format c -j > $@
+
+# compile for wasm with wasi-sdk
+WASI_CLANG = /opt/wasi-sdk/bin/clang
+WASI_CFLAGS = -O2 --sysroot=/opt/wasi-sdk/share/wasi-sysroot -Wl,--allow-undefined
+
+bootstrap.wasm: bootstrap.c bootstrap.skel.h
+	$(WASI_CLANG) $(WASI_CFLAGS) -o $@ $<

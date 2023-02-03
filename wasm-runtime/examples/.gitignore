@@ -4,3 +4,4 @@
 struct-bindgen
 bpftool
 .gitignore
+*.skel.h
