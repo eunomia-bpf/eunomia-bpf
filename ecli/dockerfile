@@ -1,18 +1,26 @@
-FROM ubuntu:latest
+FROM ubuntu:22.04
 
 ENV UBUNTU_SOURCE /etc/apt
-
-COPY ./ /root
 
 WORKDIR /root
 
 RUN apt-get update -y && \
-	apt-get install -y --no-install-recommends libelf1 libelf-dev zlib1g-dev clang make llvm wget tar libclang-13-dev && \
+	apt-get install -y --no-install-recommends libelf1 libelf-dev \
+		zlib1g-dev clang llvm libclang-13-dev make cmake git  wget tar && \
 	apt-get clean && \
-	rm -rf /var/lib/apt/lists/*
+	curl https://sh.rustup.rs -sSf | sh -s	&& \
+	rm -rf /var/lib/apt/lists/*	&& \
+	apt-get update	&& \
+	apt-get install -y ca-certificates	&& \
+	update-ca-certificates
 
-COPY ./build/bin/Release/ecli /usr/bin/
-RUN chmod +x /usr/bin/ecli
+RUN git clone --recurse-submodules https://github.com/eunomia-bpf/eunomia-bpf.git	&& \
+	cd eunomia-bpf	&& \
+	make bpf-loader	&& \
+	make ecli
+
+RUN	cp /root/eunomia-bpf/ecli/build/bin/Release/ecli /usr/bin/	&& \
+	chmod +x /usr/bin/ecli
 
 #CMD ecli run /root/my/package.json
 CMD ["/bin/bash"]

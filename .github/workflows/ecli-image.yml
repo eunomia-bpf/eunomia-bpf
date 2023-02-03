@@ -1,10 +1,6 @@
 name: Build and public ecli docker image
 
 on:
-  workflow_run:
-    workflows: [Build and test ecli on Ubuntu]
-    types:
-      - completed
   push:
     branches: "*"
 
@@ -13,88 +9,32 @@ env:
   INSTALL_LOCATION: .local
 
 jobs:
-  build-ecli:
-
-    runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: get submodule
-      run:  git submodule update --init --recursive
-
-    - name: install deps
-      run: |
-          sudo make -C ecli install-deps
-    - name: cache dependencies
-      uses: actions/cache@v2
-      id: cache
-      with:
-        path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
-        key: ${{ runner.os }}-dependencies
-
-    - name: make ecli
-      run:  make ecli
-    
-    - name: pwd info
-      run: pwd && ls ${{ github.workspace }}/ecli/build/bin/Release/
-
-    - name: upload ecli artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: ecli
-        path: ${{ github.workspace }}/ecli/build/bin/Release/
-
-    - name: run unit tests
-      run: |
-        cd ecli
-        make test
-
   # define job to build and publish docker image
   build-and-push-ecli-image:
-    name: build Docker image and push to repositories
-    # run only when code is compiling and tests are passing
     runs-on: ubuntu-latest
-    needs: [ "build-ecli" ]
+    # run only when code is compiling and tests are passing
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
     # steps to perform in job
     steps:
-      - name: checkout code
+      - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: get submodule
+        run:  git submodule update --init --recursive
+
       # setup Docker buld action
-      - name: set up Docker Buildx
+      - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: login to Github Packages
+      - name: Login to Github Packages
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: mkdir dir
-        run: mkdir -p ${{ github.workspace }}/ecli/build/bin/Release/
-
-      - name: download ecli artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: ecli
-          path: ${{ github.workspace }}/ecli/build/bin/Release/
-
-      - name: build ecli-x86_64 image and push to GitHub Container Registry
-        uses: docker/build-push-action@v2
-        with:
-          # relative path to the place where source code with Dockerfile is located
-          context: ./ecli
-          platforms: linux/amd64
-          # Note: tags has to be all lower-case
-          tags: |
-            ghcr.io/try-agaaain/ecli-x86_64:latest
-          push: true
-
-      - name: build ecli-aarch64 image and push to GitHub Container Registry
+      - name: Build ecli-aarch64 image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
         with:
           # relative path to the place where source code with Dockerfile is located
@@ -105,5 +45,16 @@ jobs:
             ghcr.io/try-agaaain/ecli-aarch64:latest
           push: true
 
-      - name: image digest
+      - name: Build ecli-x86_64 image and push to GitHub Container Registry
+        uses: docker/build-push-action@v2
+        with:
+          # relative path to the place where source code with Dockerfile is located
+          context: ./ecli
+          platforms: linux/amd64
+          # Note: tags has to be all lower-case
+          tags: |
+            ghcr.io/try-agaaain/ecli-x86_64:latest
+          push: true
+
+      - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
