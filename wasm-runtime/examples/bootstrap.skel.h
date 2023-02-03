@@ -6,7 +6,7 @@
 
 #include <errno.h>
 #include <stdlib.h>
-#include <bpf/libbpf.h>
+#include <libbpf-wasm.h>
 
 struct bootstrap_bpf {
 	struct bpf_object_skeleton *skeleton;
@@ -20,10 +20,6 @@ struct bootstrap_bpf {
 		struct bpf_program *handle_exec;
 		struct bpf_program *handle_exit;
 	} progs;
-	struct {
-		struct bpf_link *handle_exec;
-		struct bpf_link *handle_exit;
-	} links;
 	struct bootstrap_bpf__rodata {
 		unsigned long long min_duration_ns;
 	} *rodata;

@@ -12,4 +12,4 @@
         -Wl,--export=process_event \
         -Wl,--strip-all,--no-entry \
         -Wl,--allow-undefined \
-        -o opensnoop.wasm opensnoop.c
+        -o bootstrap.wasm bootstrap.c
