@@ -19,55 +19,96 @@
 #include <sys/syscall.h>
 #include "bpf-api.h"
 
-struct event {
-	unsigned int pid;
-	unsigned int tpid;
-	int sig;
-	int ret;
-	char comm[13];
-};
-
+#include "wasm_export.h"
 
 int
-main(int argc, char **argv)
+main(int argc, char *argv_main[])
 {
-    int err;
-    init_libbpf();
+    static char global_heap_buf[512 * 1024];
+    char *buffer, error_buf[128];
+    int opt;
+    char *wasm_path = NULL;
 
-    std::ifstream file(
-        "/home/yunwei/eunomia-bpf/examples/bpftools/sigsnoop/sigsnoop.bpf.o");
-    std::vector<char> object_data((std::istreambuf_iterator<char>(file)),
-                                  std::istreambuf_iterator<char>());
-    wasm_bpf_program program;
-    if (program.load_bpf_object(object_data.data(), object_data.size()) != 0) {
-        std::cerr << "failed to load bpf object" << std::endl;
+    wasm_module_t module = NULL;
+    wasm_module_inst_t module_inst = NULL;
+    wasm_exec_env_t exec_env = NULL;
+    uint32_t buf_size, stack_size = 8092, heap_size = 8092;
+    wasm_function_inst_t start_func = NULL;
+    char *native_buffer = NULL;
+    uint32_t wasm_buffer = 0;
+
+    RuntimeInitArgs init_args;
+    memset(&init_args, 0, sizeof(RuntimeInitArgs));
+
+    static NativeSymbol native_symbols[] = {
+        // {
+        //     "intToStr", // the name of WASM function name
+        //     intToStr,   // the native function pointer
+        //     "(i*~i)i",  // the function prototype signature, avoid to use i32
+        //     NULL        // attachment is NULL
+        // },
+        // {
+        //     "get_pow", // the name of WASM function name
+        //     get_pow,   // the native function pointer
+        //     "(ii)i",   // the function prototype signature, avoid to use i32
+        //     NULL       // attachment is NULL
+        // },
+        // { "calculate_native", calculate_native, "(iii)i", NULL }
+    };
+
+    init_args.mem_alloc_type = Alloc_With_System_Allocator;
+    init_args.mem_alloc_option.pool.heap_buf = global_heap_buf;
+    init_args.mem_alloc_option.pool.heap_size = sizeof(global_heap_buf);
+
+    // Native symbols need below registration phase
+    init_args.n_native_symbols = sizeof(native_symbols) / sizeof(NativeSymbol);
+    init_args.native_module_name = "env";
+    init_args.native_symbols = native_symbols;
+
+    if (!wasm_runtime_full_init(&init_args)) {
+        printf("Init runtime environment failed.\n");
         return -1;
     }
-    if (program.attach_bpf_program("kill_entry", NULL) != 0) {
-        std::cerr << "failed to run ebpf program kill_entry" << std::endl;
+
+    module = wasm_runtime_load(buffer, buf_size, error_buf, sizeof(error_buf));
+    if (!module) {
+        printf("Load wasm module failed. error: %s\n", error_buf);
         return -1;
     }
-    if (program.attach_bpf_program("kill_exit", NULL) != 0) {
-        std::cerr << "failed to run ebpf program kill_exit" << std::endl;
+
+    module_inst = wasm_runtime_instantiate(module, stack_size, heap_size,
+                                           error_buf, sizeof(error_buf));
+
+    if (!module_inst) {
+        printf("Instantiate wasm module failed. error: %s\n", error_buf);
         return -1;
     }
-    if (program.attach_bpf_program("tkill_entry", NULL) != 0) {
-        std::cerr << "failed to run ebpf program tkill_entry" << std::endl;
+
+    exec_env = wasm_runtime_create_exec_env(module_inst, stack_size);
+    if (!exec_env) {
+        printf("Create wasm execution environment failed.\n");
         return -1;
     }
-    if (program.attach_bpf_program("tkill_exit", NULL) != 0) {
-        std::cerr << "failed to run ebpf program tkill_exit" << std::endl;
+
+    if (!(start_func = wasm_runtime_lookup_wasi_start_function(module_inst))) {
+        printf("The generate_float wasm function is not found.\n");
         return -1;
     }
-    int fd = program.bpf_map_fd_by_name("events");
-    char buf[4096];
-    for (int i = 0; i < 100; i++) {
-        if (program.bpf_buffer_poll(fd, buf, 4096, 100) != 0) {
-            std::cerr << "failed to wait and print rb" << std::endl;
-            return -1;
-        }
-        struct event *e = (struct event *)buf;
-        printf("%d %d %d %d %s\n", e->pid, e->tpid, e->sig, e->ret, e->comm);
+    if (!wasm_runtime_call_wasm(exec_env, start_func, 0, NULL)) {
+        printf("Call wasm function generate_float failed. %s\n",
+               wasm_runtime_get_exception(module_inst));
+        return -1;
     }
+fail:
+    if (exec_env)
+        wasm_runtime_destroy_exec_env(exec_env);
+    if (module_inst) {
+        if (wasm_buffer)
+            wasm_runtime_module_free(module_inst, wasm_buffer);
+        wasm_runtime_deinstantiate(module_inst);
+    }
+    if (module)
+        wasm_runtime_unload(module);
+    wasm_runtime_destroy();
     return 0;
 }
