@@ -107,6 +107,7 @@ running and waiting for the ebpf events from perf event...
 Generate WASM skel:
 
 ```shell
+# for x86_64 and aarch64
 docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest gen-wasm-skel
 ```
 
@@ -119,6 +120,7 @@ docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest gen-was
 Build WASM module
 
 ```shell
+# for x86_64 and aarch64
 docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest build-wasm
 ```
 
@@ -159,6 +161,7 @@ running and waiting for the ebpf events from perf event...
 Compile:
 
 ```shell
+# for x86_64 and aarch64
 docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
 ```
 

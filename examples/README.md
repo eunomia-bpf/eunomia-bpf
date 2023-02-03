@@ -64,12 +64,14 @@ Generate WASM skel:
 > - app.c: the WASM app. all library is header only.
 
 ```shell
+# for x86_64 and aarch64
 docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest gen-wasm-skel
 ```
 
 Build WASM module
 
 ```shell
+# for x86_64 and aarch64
 docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest build-wasm
 ```
 
