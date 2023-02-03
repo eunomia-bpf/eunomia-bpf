@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
-#include "bootstrap.h"
+#include "bootstrap.wasm.h"
 #include "bootstrap.skel.h"
 
 static struct env {
