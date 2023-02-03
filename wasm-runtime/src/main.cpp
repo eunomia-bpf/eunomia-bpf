@@ -3,7 +3,6 @@
  * Copyright (c) 2022, zys
  * All rights reserved.
  */
-
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -21,6 +20,49 @@
 
 #include "wasm_export.h"
 
+extern "C" {
+int
+wasm_load_bpf_object(wasm_exec_env_t exec_env, void *obj_buf, size_t obj_buf_sz)
+{
+    wasm_bpf_program *program = new wasm_bpf_program();
+    wasm_runtime_set_user_data(exec_env, program);
+    return program->load_bpf_object(obj_buf, obj_buf_sz);
+}
+
+int
+wasm_attach_bpf_program(wasm_exec_env_t exec_env, const char *name,
+                        const char *attach_target)
+{
+    wasm_bpf_program *program =
+        (wasm_bpf_program *)wasm_runtime_get_user_data(exec_env);
+    return program->attach_bpf_program(name, attach_target);
+}
+
+int
+wasm_bpf_buffer_poll(wasm_exec_env_t exec_env, int fd, void *data,
+                     size_t max_size, int timeout_ms)
+{
+    wasm_bpf_program *program =
+        (wasm_bpf_program *)wasm_runtime_get_user_data(exec_env);
+    return program->bpf_buffer_poll(fd, data, max_size, timeout_ms);
+}
+
+int
+wasm_bpf_map_fd_by_name(wasm_exec_env_t exec_env, const char *name)
+{
+    wasm_bpf_program *program =
+        (wasm_bpf_program *)wasm_runtime_get_user_data(exec_env);
+    return program->bpf_map_fd_by_name(name);
+}
+
+int
+wasm_bpf_map_operate(wasm_exec_env_t exec_env, int fd, enum bpf_map_cmd cmd,
+                     void *key, void *value, void *next_key)
+{
+    return bpf_map_operate(fd, cmd, key, value, next_key);
+}
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -30,7 +72,7 @@ main(int argc, char *argv[])
     }
     std::ifstream file(argv[1]);
     std::vector<uint8_t> wasm_module((std::istreambuf_iterator<char>(file)),
-                                  std::istreambuf_iterator<char>());
+                                     std::istreambuf_iterator<char>());
     char error_buf[128];
     int opt;
     char *wasm_path = NULL;
@@ -47,24 +89,15 @@ main(int argc, char *argv[])
     memset(&init_args, 0, sizeof(RuntimeInitArgs));
 
     static NativeSymbol native_symbols[] = {
-        // {
-        //     "intToStr", // the name of WASM function name
-        //     intToStr,   // the native function pointer
-        //     "(i*~i)i",  // the function prototype signature, avoid to use i32
-        //     NULL        // attachment is NULL
-        // },
-        // {
-        //     "get_pow", // the name of WASM function name
-        //     get_pow,   // the native function pointer
-        //     "(ii)i",   // the function prototype signature, avoid to use i32
-        //     NULL       // attachment is NULL
-        // },
-        // { "calculate_native", calculate_native, "(iii)i", NULL }
+        EXPORT_WASM_API_WITH_SIG(wasm_load_bpf_object, "(*~)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_attach_bpf_program, "(ii)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_bpf_buffer_poll, "(i*~ii)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_fd_by_name, "(i)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_operate, "(iiiii)i"),
     };
 
     init_args.mem_alloc_type = Alloc_With_System_Allocator;
 
-    // Native symbols need below registration phase
     init_args.n_native_symbols = sizeof(native_symbols) / sizeof(NativeSymbol);
     init_args.native_module_name = "env";
     init_args.native_symbols = native_symbols;
