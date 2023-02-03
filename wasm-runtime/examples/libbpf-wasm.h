@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 struct bpf_map {
-	int fd;
+	char name[64];
 };
 
 struct bpf_program {
@@ -28,6 +28,7 @@ struct bpf_prog_skeleton {
 };
 
 struct bpf_object_skeleton {
+	size_t sz; /* size of this struct, for forward/backward compatibility */
 	const char *name;
 	const void *data;
 	size_t data_sz;
@@ -42,5 +43,9 @@ struct bpf_object_skeleton {
 	int prog_skel_sz; /* sizeof(struct bpf_prog_skeleton) */
 	struct bpf_prog_skeleton *progs;
 };
+
+static int bpf_map__fd(const struct bpf_map *map) {
+	
+}
 
 #endif // _LIBBPF_WASM_H

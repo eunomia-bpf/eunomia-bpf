@@ -6,7 +6,7 @@
 
 #include <errno.h>
 #include <stdlib.h>
-#include <libbpf-wasm.h>
+#include "libbpf-wasm.h"
 
 struct bootstrap_bpf {
 	struct bpf_object_skeleton *skeleton;
@@ -165,11 +165,9 @@ bootstrap_bpf__create_skeleton(struct bootstrap_bpf *obj)
 
 	s->progs[0].name = "handle_exec";
 	s->progs[0].prog = &obj->progs.handle_exec;
-	s->progs[0].link = &obj->links.handle_exec;
 
 	s->progs[1].name = "handle_exit";
 	s->progs[1].prog = &obj->progs.handle_exit;
-	s->progs[1].link = &obj->links.handle_exit;
 
 	s->data = (void *)bootstrap_bpf__elf_bytes(&s->data_sz);
 

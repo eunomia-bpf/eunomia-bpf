@@ -21,37 +21,36 @@
 #include "wasm_export.h"
 
 extern "C" {
-int
+wasm_bpf_program *
 wasm_load_bpf_object(wasm_exec_env_t exec_env, void *obj_buf, size_t obj_buf_sz)
 {
     wasm_bpf_program *program = new wasm_bpf_program();
-    wasm_runtime_set_user_data(exec_env, program);
-    return program->load_bpf_object(obj_buf, obj_buf_sz);
+    int res = program->load_bpf_object(obj_buf, obj_buf_sz);
+    if (res < 0) {
+        delete program;
+        return NULL;
+    }
+    return program;
 }
 
 int
-wasm_attach_bpf_program(wasm_exec_env_t exec_env, const char *name,
-                        const char *attach_target)
+wasm_attach_bpf_program(wasm_exec_env_t exec_env, wasm_bpf_program *program,
+                        const char *name, const char *attach_target)
 {
-    wasm_bpf_program *program =
-        (wasm_bpf_program *)wasm_runtime_get_user_data(exec_env);
     return program->attach_bpf_program(name, attach_target);
 }
 
 int
-wasm_bpf_buffer_poll(wasm_exec_env_t exec_env, int fd, void *data,
-                     size_t max_size, int timeout_ms)
+wasm_bpf_buffer_poll(wasm_exec_env_t exec_env, wasm_bpf_program *program,
+                     int fd, void *data, size_t max_size, int timeout_ms)
 {
-    wasm_bpf_program *program =
-        (wasm_bpf_program *)wasm_runtime_get_user_data(exec_env);
     return program->bpf_buffer_poll(fd, data, max_size, timeout_ms);
 }
 
 int
-wasm_bpf_map_fd_by_name(wasm_exec_env_t exec_env, const char *name)
+wasm_bpf_map_fd_by_name(wasm_exec_env_t exec_env, wasm_bpf_program *program,
+                        const char *name)
 {
-    wasm_bpf_program *program =
-        (wasm_bpf_program *)wasm_runtime_get_user_data(exec_env);
     return program->bpf_map_fd_by_name(name);
 }
 
@@ -89,10 +88,10 @@ main(int argc, char *argv[])
     memset(&init_args, 0, sizeof(RuntimeInitArgs));
 
     static NativeSymbol native_symbols[] = {
-        EXPORT_WASM_API_WITH_SIG(wasm_load_bpf_object, "(*~)i"),
-        EXPORT_WASM_API_WITH_SIG(wasm_attach_bpf_program, "(ii)i"),
-        EXPORT_WASM_API_WITH_SIG(wasm_bpf_buffer_poll, "(i*~ii)i"),
-        EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_fd_by_name, "(i)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_load_bpf_object, "(*~)r"),
+        EXPORT_WASM_API_WITH_SIG(wasm_attach_bpf_program, "(rii)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_bpf_buffer_poll, "(ri*~ii)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_fd_by_name, "(ri)i"),
         EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_operate, "(iiiii)i"),
     };
 
