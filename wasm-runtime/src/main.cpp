@@ -10,34 +10,44 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-
-#include "ewasm/ewasm.hpp"
-#include "wasm_export.h"
-
-void
-print_usage(void)
-{
-    fprintf(stdout, "Options:\r\n");
-    fprintf(stdout, "  [path of wasm file]  [-j <json env>]\n");
-}
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/resource.h>
+#include <bpf/libbpf.h>
+#include <bpf/bpf.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+#include "bpf-api.h"
 
 int
-main(int argc, char *argv_main[])
+main(int argc, char **argv)
 {
-    std::vector<char> buffer_vector;
-    if (argc != 2) {
-        print_usage();
-        return 1;
+    int err;
+    init_libbpf();
+
+    std::ifstream file(
+        "/home/yunwei/eunomia-bpf/examples/bpftools/sigsnoop/sigsnoop.bpf.o");
+    std::vector<char> object_data((std::istreambuf_iterator<char>(file)),
+                                  std::istreambuf_iterator<char>());
+    wasm_bpf_program program;
+    if (program.load_bpf_object(object_data.data(), object_data.size()) != 0) {
+        std::cerr << "failed to load bpf object" << std::endl;
+        return -1;
     }
-    std::ifstream wasm_file(argv_main[1]);
-    buffer_vector =
-        std::vector<char>((std::istreambuf_iterator<char>(wasm_file)),
-                          std::istreambuf_iterator<char>());
-    ewasm_program p;
-    std::string json_env =  "{}";
-    int res = p.start(buffer_vector, json_env);
-    if (res != 0) {
-        return 1;
+    if (program.attach_bpf_program("kill_entry", NULL) != 0) {
+        std::cerr << "failed to run ebpf program kill_entry" << std::endl;
+        return -1;
     }
-    return 0;
+    if (program.attach_bpf_program("kill_exit", NULL) != 0) {
+        std::cerr << "failed to run ebpf program kill_exit" << std::endl;
+        return -1;
+    }
+    if (program.attach_bpf_program("tkill_entry", NULL) != 0) {
+        std::cerr << "failed to run ebpf program tkill_entry" << std::endl;
+        return -1;
+    }
+    if (program.attach_bpf_program("tkill_exit", NULL) != 0) {
+        std::cerr << "failed to run ebpf program tkill_exit" << std::endl;
+        return -1;
+    }
 }
