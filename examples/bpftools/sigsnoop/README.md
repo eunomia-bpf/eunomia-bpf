@@ -114,7 +114,7 @@ docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest gen-was
 > skel includes:
 >
 > - eunomia-include: include headers for WASM
-> - app.c: the WASM app. all library is header only.
+> - sigsnoop.c: the WASM app. all library is header only.
 
 Build WASM module
 
