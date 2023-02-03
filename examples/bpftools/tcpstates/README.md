@@ -20,6 +20,7 @@ origin from:
 Compile:
 
 ```shell
+# for x86_64 and aarch64
 docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
 ```
 
