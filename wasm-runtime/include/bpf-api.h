@@ -34,7 +34,7 @@ struct wasm_bpf_program {
         nullptr, bpf_buffer__free
     };
     void *poll_data;
-    size_t max_size;
+    size_t max_poll_size;
 
     int bpf_map_fd_by_name(const char *name);
     int load_bpf_object(const void *obj_buf, size_t obj_buf_sz);

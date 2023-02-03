@@ -46,10 +46,11 @@ static int
 bpf_buffer_sample(void *ctx, void *data, size_t size)
 {
     wasm_bpf_program *program = (wasm_bpf_program *)ctx;
-    if (program->max_size < size) {
-        memcpy(program->poll_data, data, program->max_size);
+    if (program->max_poll_size < size) {
+        memcpy(program->poll_data, data, program->max_poll_size);
     }
     memcpy(program->poll_data, data, size);
+    return 0;
 }
 
 static void
@@ -185,7 +186,9 @@ wasm_bpf_program::attach_bpf_program(const char *name,
     if (!attach_target) {
         bpf_program__attach(bpf_object__find_program_by_name(obj.get(), name));
     }
-    // attach bpf program by sec name
+    // TODO: attach bpf program by sec name
+    bpf_program__attach(bpf_object__find_program_by_name(obj.get(), name));
+    return 0;
 }
 
 int
@@ -199,6 +202,8 @@ wasm_bpf_program::bpf_buffer_poll(int fd, void *data, size_t max_size,
         bpf_buffer__open(buffer.get(), bpf_buffer_sample, this);
         return 0;
     }
+    max_poll_size = max_size;
+    poll_data = data;
     // poll the buffer
     int res = bpf_buffer__poll(buffer.get(), timeout_ms);
     if (res < 0) {

@@ -19,6 +19,15 @@
 #include <sys/syscall.h>
 #include "bpf-api.h"
 
+struct event {
+	unsigned int pid;
+	unsigned int tpid;
+	int sig;
+	int ret;
+	char comm[13];
+};
+
+
 int
 main(int argc, char **argv)
 {
@@ -50,4 +59,15 @@ main(int argc, char **argv)
         std::cerr << "failed to run ebpf program tkill_exit" << std::endl;
         return -1;
     }
+    int fd = program.bpf_map_fd_by_name("events");
+    char buf[4096];
+    for (int i = 0; i < 100; i++) {
+        if (program.bpf_buffer_poll(fd, buf, 4096, 100) != 0) {
+            std::cerr << "failed to wait and print rb" << std::endl;
+            return -1;
+        }
+        struct event *e = (struct event *)buf;
+        printf("%d %d %d %d %s\n", e->pid, e->tpid, e->sig, e->ret, e->comm);
+    }
+    return 0;
 }
