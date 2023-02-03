@@ -2,11 +2,9 @@ name: Build and public ecli docker image
 
 on:
   push:
-    branches: "*"
-
-env:
-  BUILD_TYPE: Release
-  INSTALL_LOCATION: .local
+    branches: "master"
+    paths:
+      - "VERSION"
 
 jobs:
   # define job to build and publish docker image
