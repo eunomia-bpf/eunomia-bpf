@@ -57,6 +57,6 @@ enum bpf_map_cmd {
 
 int
 bpf_map_operate(int fd, enum bpf_map_cmd cmd, void *key, void *value,
-                void *next_key);
+                void *next_key, uint64_t flags);
 
 #endif

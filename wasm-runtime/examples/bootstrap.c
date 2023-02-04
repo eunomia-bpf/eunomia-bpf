@@ -106,7 +106,11 @@ main(int argc, char **argv)
         fprintf(stderr, "Failed to create ring buffer\n");
         goto cleanup;
     }
-
+    // instert map 
+    int fd = bpf_map__fd(skel->maps.exec_start);
+    int lookup_key = 1, next_key;
+    uint64_t value;
+    bpf_map_update_elem(fd, &lookup_key, &value, BPF_ANY);
     /* Process events */
     printf("%-8s %-5s %-16s %-7s %-7s %s\n", "TIME", "EVENT", "COMM", "PID",
            "PPID", "FILENAME/EXIT CODE");
@@ -123,10 +127,8 @@ main(int argc, char **argv)
             break;
         }
         // // access maps
-        // int lookup_key = -2, next_key;
-        // uint64_t value;
         // int err;
-        // int fd = wasm_bpf_map_fd_by_name(skel->skeleton->obj, "exec_start");
+        // lookup_key = -2
         // while (!bpf_map_get_next_key(fd, &lookup_key, &next_key)) {
         //     err = bpf_map_lookup_elem(fd, &next_key, &value);
         //     if (err < 0) {

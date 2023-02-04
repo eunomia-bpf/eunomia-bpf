@@ -219,7 +219,7 @@ wasm_bpf_program::bpf_buffer_poll(wasm_exec_env_t exec_env, int fd,
     max_poll_size = max_size;
     poll_data = data;
     buffer->exec_env = exec_env;
-    buffer->wasm_sample_function = sample_func;
+    buffer->wasm_sample_function = (uint32_t)sample_func;
     buffer->ctx = ctx;
 
     // poll the buffer
@@ -232,9 +232,10 @@ wasm_bpf_program::bpf_buffer_poll(wasm_exec_env_t exec_env, int fd,
 
 int
 bpf_map_operate(int fd, enum bpf_map_cmd cmd, void *key, void *value,
-                void *next_key)
+                void *next_key, uint64_t flags)
 {
-
+    if (cmd < _BPF_MAP_LOOKUP_ELEM || cmd > _BPF_MAP_GET_NEXT_KEY)
+        return -1;
     const size_t attr_sz = offsetofend(union bpf_attr, next_key);
     union bpf_attr attr;
     int ret;
@@ -244,7 +245,7 @@ bpf_map_operate(int fd, enum bpf_map_cmd cmd, void *key, void *value,
     attr.key = (uint64_t)key;
     attr.next_key = (uint64_t)next_key;
     attr.value = (uint64_t)value;
-
+    attr.flags = flags;
     ret = (int)syscall(__NR_bpf, cmd, attr, attr_sz);
     return ret < 0 ? -errno : ret;
 }

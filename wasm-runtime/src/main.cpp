@@ -65,11 +65,9 @@ wasm_bpf_map_fd_by_name(wasm_exec_env_t exec_env, uint64_t program,
 
 int
 wasm_bpf_map_operate(wasm_exec_env_t exec_env, int fd, int cmd, void *key,
-                     void *value, void *next_key)
+                     void *value, void *next_key, uint64_t flags)
 {
-    if (cmd < _BPF_MAP_LOOKUP_ELEM || cmd > _BPF_MAP_GET_NEXT_KEY)
-        return -1;
-    return bpf_map_operate(fd, (bpf_map_cmd)cmd, key, value, next_key);
+    return bpf_map_operate(fd, (bpf_map_cmd)cmd, key, value, next_key, flags);
 }
 }
 
@@ -103,7 +101,7 @@ main(int argc, char *argv[])
         EXPORT_WASM_API_WITH_SIG(wasm_attach_bpf_program, "(I$$)i"),
         EXPORT_WASM_API_WITH_SIG(wasm_bpf_buffer_poll, "(Iiii*~i)i"),
         EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_fd_by_name, "(I$)i"),
-        EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_operate, "(ii***)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_operate, "(ii***I)i"),
         EXPORT_WASM_API_WITH_SIG(wasm_close_bpf_object, "(I)i"),
     };
 
