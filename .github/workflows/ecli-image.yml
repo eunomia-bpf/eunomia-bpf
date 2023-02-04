@@ -36,22 +36,24 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           # relative path to the place where source code with Dockerfile is located
-          context: ./ecli
+          context: ./
+          file: ./ecli/dockerfile
           platforms: linux/arm64
           # Note: tags has to be all lower-case
           tags: |
-            ghcr.io/try-agaaain/ecli-aarch64:latest
+            ghcr.io/${{ github.repository_owner }}/ecli-aarch64:latest
           push: true
 
       - name: Build ecli-x86_64 image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
         with:
           # relative path to the place where source code with Dockerfile is located
-          context: ./ecli
+          context: ./
+          file: ./ecli/dockerfile
           platforms: linux/amd64
           # Note: tags has to be all lower-case
           tags: |
-            ghcr.io/try-agaaain/ecli-x86_64:latest
+            ghcr.io/${{ github.repository_owner }}/ecli-x86_64:latest
           push: true
 
       - name: Image digest
