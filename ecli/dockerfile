@@ -14,8 +14,8 @@ RUN apt-get update -y && \
 	apt-get install -y ca-certificates	&& \
 	update-ca-certificates
 
-RUN git clone --recurse-submodules https://github.com/eunomia-bpf/eunomia-bpf.git	&& \
-	cd eunomia-bpf	&& \
+COPY ../../ /root/
+RUN cd eunomia-bpf	&& \
 	make bpf-loader	&& \
 	make ecli
 
