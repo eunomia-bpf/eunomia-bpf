@@ -1,31 +1,28 @@
-
-#include <cstdint>
-#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/resource.h>
-#include <bpf/libbpf.h>
-#include <bpf/bpf.h>
 #include <unistd.h>
 #include "bpf-api.h"
-#include <stdlib.h>
 #include <errno.h>
-#include <bpf/libbpf.h>
 #include <asm/unistd.h>
 
 using namespace std;
-
+extern "C" {
+#include <bpf/libbpf.h>
+#include <bpf/bpf.h>
+extern bool
+wasm_runtime_call_indirect(wasm_exec_env_t exec_env, uint32_t element_indices,
+                           uint32_t argc, uint32_t argv[]);
+}
 static int
 libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
 {
     return vfprintf(stderr, format, args);
 }
 
-void init_libbpf(void)
+void
+init_libbpf(void)
 {
     libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
     libbpf_set_print(libbpf_print_fn);
@@ -39,6 +36,9 @@ struct bpf_buffer {
     struct bpf_map *events;
     void *inner;
     bpf_buffer_sample_fn fn;
+    wasm_exec_env_t exec_env;
+    uint32_t ctx;
+    uint32_t wasm_sample_function;
     int type;
 };
 
@@ -46,10 +46,23 @@ static int
 bpf_buffer_sample(void *ctx, void *data, size_t size)
 {
     wasm_bpf_program *program = (wasm_bpf_program *)ctx;
+    size_t sample_size = size;
     if (program->max_poll_size < size) {
-        memcpy(program->poll_data, data, program->max_poll_size);
+        sample_size = program->max_poll_size;
     }
-    memcpy(program->poll_data, data, size);
+    memcpy(program->poll_data, data, sample_size);
+    wasm_module_inst_t module_inst =
+        wasm_runtime_get_module_inst(program->buffer->exec_env);
+    uint32_t argv[] = { program->buffer->ctx,
+                        wasm_runtime_addr_native_to_app(module_inst,
+                                                        program->poll_data),
+                        (uint32_t)size };
+    auto buffer = program->buffer.get();
+    if (!wasm_runtime_call_indirect(buffer->exec_env,
+                                    buffer->wasm_sample_function, 3, argv)) {
+        printf("call func1 failed\n");
+        return 0xDEAD;
+    }
     return 0;
 }
 
@@ -192,8 +205,9 @@ wasm_bpf_program::attach_bpf_program(const char *name,
 }
 
 int
-wasm_bpf_program::bpf_buffer_poll(int fd, void *data, size_t max_size,
-                                  int timeout_ms)
+wasm_bpf_program::bpf_buffer_poll(wasm_exec_env_t exec_env, int fd,
+                                  int32_t sample_func, uint32_t ctx, void *data,
+                                  size_t max_size, int timeout_ms)
 {
     if (buffer.get() == nullptr) {
         // create buffer
@@ -204,6 +218,10 @@ wasm_bpf_program::bpf_buffer_poll(int fd, void *data, size_t max_size,
     }
     max_poll_size = max_size;
     poll_data = data;
+    buffer->exec_env = exec_env;
+    buffer->wasm_sample_function = sample_func;
+    buffer->ctx = ctx;
+
     // poll the buffer
     int res = bpf_buffer__poll(buffer.get(), timeout_ms);
     if (res < 0) {

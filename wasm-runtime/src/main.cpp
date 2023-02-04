@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause
  *
- * Copyright (c) 2022, zys
+ * Copyright (c) 2022, eunomia-bpf org
  * All rights reserved.
  */
-#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -11,14 +10,11 @@
 #include <vector>
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/resource.h>
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 #include "bpf-api.h"
-
-#include "wasm_export.h"
 
 extern "C" {
 uint64_t
@@ -38,35 +34,39 @@ wasm_load_bpf_object(wasm_exec_env_t exec_env, void *obj_buf, int obj_buf_sz)
 int
 wasm_close_bpf_object(wasm_exec_env_t exec_env, uint64_t program)
 {
-    delete  ((wasm_bpf_program *)program);
+    delete ((wasm_bpf_program *)program);
     return 0;
 }
 
 int
-wasm_attach_bpf_program(wasm_exec_env_t exec_env, uint64_t program,
-                        char *name, char *attach_target)
+wasm_attach_bpf_program(wasm_exec_env_t exec_env, uint64_t program, char *name,
+                        char *attach_target)
 {
-    return ((wasm_bpf_program *)program)->attach_bpf_program(name, attach_target);
+    return ((wasm_bpf_program *)program)
+        ->attach_bpf_program(name, attach_target);
 }
 
 int
-wasm_bpf_buffer_poll(wasm_exec_env_t exec_env, uint64_t program,
-                     int fd, char *data, int max_size, int timeout_ms)
+wasm_bpf_buffer_poll(wasm_exec_env_t exec_env, uint64_t program, int fd,
+                     int32_t sample_func, uint32_t ctx, char *data,
+                     int max_size, int timeout_ms)
 {
-    return  ((wasm_bpf_program *)program)->bpf_buffer_poll(fd, data, (size_t)max_size, timeout_ms);
+    return ((wasm_bpf_program *)program)
+        ->bpf_buffer_poll(exec_env, fd, sample_func, ctx, data,
+                          (size_t)max_size, timeout_ms);
 }
 
 int
 wasm_bpf_map_fd_by_name(wasm_exec_env_t exec_env, uint64_t program,
                         const char *name)
 {
-    return  ((wasm_bpf_program *)program)->bpf_map_fd_by_name(name);
+    return ((wasm_bpf_program *)program)->bpf_map_fd_by_name(name);
 }
 
 int
-wasm_bpf_map_operate(wasm_exec_env_t exec_env, int fd, int cmd,
-                     void *key, void *value, void *next_key)
-{   
+wasm_bpf_map_operate(wasm_exec_env_t exec_env, int fd, int cmd, void *key,
+                     void *value, void *next_key)
+{
     if (cmd < _BPF_MAP_LOOKUP_ELEM || cmd > _BPF_MAP_GET_NEXT_KEY)
         return -1;
     return bpf_map_operate(fd, (bpf_map_cmd)cmd, key, value, next_key);
@@ -101,14 +101,13 @@ main(int argc, char *argv[])
     static NativeSymbol native_symbols[] = {
         EXPORT_WASM_API_WITH_SIG(wasm_load_bpf_object, "(*~)I"),
         EXPORT_WASM_API_WITH_SIG(wasm_attach_bpf_program, "(I$$)i"),
-        EXPORT_WASM_API_WITH_SIG(wasm_bpf_buffer_poll, "(Ii*~i)i"),
+        EXPORT_WASM_API_WITH_SIG(wasm_bpf_buffer_poll, "(Iiii*~i)i"),
         EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_fd_by_name, "(I$)i"),
         EXPORT_WASM_API_WITH_SIG(wasm_bpf_map_operate, "(ii***)i"),
         EXPORT_WASM_API_WITH_SIG(wasm_close_bpf_object, "(I)i"),
     };
 
     init_args.mem_alloc_type = Alloc_With_System_Allocator;
-
     init_args.n_native_symbols = sizeof(native_symbols) / sizeof(NativeSymbol);
     init_args.native_module_name = "env";
     init_args.native_symbols = native_symbols;
@@ -117,28 +116,24 @@ main(int argc, char *argv[])
         printf("Init runtime environment failed.\n");
         return -1;
     }
-
     module = wasm_runtime_load(wasm_module.data(), (uint32_t)wasm_module.size(),
                                error_buf, sizeof(error_buf));
     if (!module) {
         printf("Load wasm module failed. error: %s\n", error_buf);
         return -1;
     }
-
     module_inst = wasm_runtime_instantiate(module, stack_size, heap_size,
                                            error_buf, sizeof(error_buf));
-
     if (!module_inst) {
         printf("Instantiate wasm module failed. error: %s\n", error_buf);
         return -1;
     }
-
     exec_env = wasm_runtime_create_exec_env(module_inst, stack_size);
     if (!exec_env) {
         printf("Create wasm execution environment failed.\n");
         return -1;
     }
-
+    wasm_runtime_set_module_inst(exec_env, module_inst);
     if (!(start_func = wasm_runtime_lookup_wasi_start_function(module_inst))) {
         printf("The generate_float wasm function is not found.\n");
         return -1;

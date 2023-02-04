@@ -13,19 +13,22 @@
 #include <limits.h>
 #include <memory>
 
+#include "wasm_export.h"
+
 #define POLL_TIMEOUT_MS 100
 
+extern "C" {
 struct bpf_buffer;
 struct bpf_map;
-
-void
-bpf_buffer__free(struct bpf_buffer *);
-
 struct bpf_object;
 void
-bpf_object__close(bpf_object *object);
-void init_libbpf(void);
+bpf_buffer__free(struct bpf_buffer *);
+void
+bpf_object__close(struct bpf_object *object);
+}
 
+void
+init_libbpf(void);
 struct wasm_bpf_program {
     std::unique_ptr<bpf_object, void (*)(bpf_object *obj)> obj{
         nullptr, bpf_object__close
@@ -39,7 +42,9 @@ struct wasm_bpf_program {
     int bpf_map_fd_by_name(const char *name);
     int load_bpf_object(const void *obj_buf, size_t obj_buf_sz);
     int attach_bpf_program(const char *name, const char *attach_target);
-    int bpf_buffer_poll(int fd, void *data, size_t max_size, int timeout_ms);
+    int bpf_buffer_poll(wasm_exec_env_t exec_env, int fd, int32_t sample_func,
+                        uint32_t ctx, void *data, size_t max_size,
+                        int timeout_ms);
 };
 
 enum bpf_map_cmd {

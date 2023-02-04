@@ -216,29 +216,60 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBBPF_LIBRARIES} -lelf -lz)
 
 set (WAMR_BUILD_PLATFORM "linux")
 set (WAMR_BUILD_INTERP 1)
-set (WAMR_BUILD_FAST_INTERP 1)
 set (WAMR_BUILD_AOT 1)
+set (WAMR_BUILD_JIT 0)
 set (WAMR_BUILD_LIBC_BUILTIN 1)
-set (WAMR_BUILD_LIBC_WASI 1)
-set(WASM_ENABLE_LIBC_WASI 1)
-set (WAMR_BUILD_SIMD 0)
 set (WAMR_ROOT_DIR ../third_party/wasm-micro-runtime)
-if (NOT WAMR_BUILD_TARGET)
-  if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+
+if (NOT MSVC)
+  set (WAMR_BUILD_LIBC_WASI 1)
+endif ()
+
+if (NOT MSVC)
+  # linker flags
+  if (NOT (CMAKE_C_COMPILER MATCHES ".*clang.*" OR CMAKE_C_COMPILER_ID MATCHES ".*Clang"))
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
+  endif ()
+  set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wformat -Wformat-security")
+  if (WAMR_BUILD_TARGET MATCHES "X86_.*" OR WAMR_BUILD_TARGET STREQUAL "AMD_64")
+    if (NOT (CMAKE_C_COMPILER MATCHES ".*clang.*" OR CMAKE_C_COMPILER_ID MATCHES ".*Clang"))
+      set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mindirect-branch-register")
+    endif ()
+  endif ()
+endif ()
+
+# WAMR features switch
+
+# Set WAMR_BUILD_TARGET, currently values supported:
+# "X86_64", "AMD_64", "X86_32", "AARCH64[sub]", "ARM[sub]", "THUMB[sub]",
+# "MIPS", "XTENSA", "RISCV64[sub]", "RISCV32[sub]"
+if (NOT DEFINED WAMR_BUILD_TARGET)
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)")
     set (WAMR_BUILD_TARGET "AARCH64")
-  elseif (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "aarch64")
-    set (WAMR_BUILD_TARGET "AARCH64")
-  elseif(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+  elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "riscv64")
+    set (WAMR_BUILD_TARGET "RISCV64")
+  elseif (CMAKE_SIZEOF_VOID_P EQUAL 8)
+    # Build as X86_64 by default in 64-bit platform
     set (WAMR_BUILD_TARGET "X86_64")
-  else()
-    message(FATAL_ERROR "Unsupported host system processor: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+  elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
+    # Build as X86_32 by default in 32-bit platform
+    set (WAMR_BUILD_TARGET "X86_32")
+  else ()
+    message(SEND_ERROR "Unsupported build target platform!")
   endif ()
 endif ()
 
 include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
 add_library(vmlib ${WAMR_RUNTIME_LIB_SOURCE})
+include (${SHARED_DIR}/utils/uncommon/shared_uncommon.cmake)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE vmlib -lpthread)
+set_target_properties (${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+if (APPLE)
+  target_link_libraries (${PROJECT_NAME} PRIVATE vmlib -lm -ldl -lpthread)
+else ()
+  target_link_libraries (${PROJECT_NAME} PRIVATE vmlib -lm -ldl -lpthread -lrt)
+endif ()
 
 # Allow usage of header files in the `src` directory, but only for utilities
 if(${PROJECT_NAME}_BUILD_HEADERS_ONLY)

@@ -22,8 +22,8 @@ int
 wasm_attach_bpf_program(bpf_object_skel obj, const char *name,
                         const char *attach_target);
 int
-wasm_bpf_buffer_poll(bpf_object_skel program, int fd, char *data, int max_size,
-                     int timeout_ms);
+wasm_bpf_buffer_poll(bpf_object_skel program, int fd, int32_t sample_func,
+                     uint32_t ctx, char *data, int max_size, int timeout_ms);
 
 enum bpf_map_cmd {
     // BPF_MAP_CREATE,
@@ -35,7 +35,7 @@ enum bpf_map_cmd {
 
 int
 wasm_bpf_map_operate(int fd, enum bpf_map_cmd cmd, void *key, void *value,
-                void *next_key);
+                     void *next_key);
 
 struct bpf_map {
     bpf_object_skel obj_ptr;
@@ -175,7 +175,7 @@ typedef int (*bpf_buffer_sample_fn)(void *ctx, void *data, size_t size);
 struct bpf_buffer {
     struct bpf_map *events;
     int fd;
-    void *inner;
+    void *ctx;
     bpf_buffer_sample_fn sample_fn;
 };
 
@@ -197,7 +197,7 @@ bpf_buffer__open(struct bpf_map *events, bpf_buffer_sample_fn sample_cb,
     if (!buffer)
         return NULL;
     buffer->events = events;
-    buffer->inner = ctx;
+    buffer->ctx = ctx;
     buffer->fd = bpf_map__fd(buffer->events);
     buffer->sample_fn = sample_cb;
     return buffer;
@@ -210,12 +210,9 @@ bpf_buffer__poll(struct bpf_buffer *buffer, int timeout_ms)
     if (timeout_ms <= 0)
         timeout_ms = POLL_TIMEOUT_MS;
     char event_buffer[4096];
-    int res = wasm_bpf_buffer_poll(buffer->events->obj_ptr, buffer->fd,
-                                   event_buffer, 4096, timeout_ms);
-    if (res < 0) {
-        return res;
-    }
-    buffer->sample_fn(buffer->inner, event_buffer, res);
+    int res = wasm_bpf_buffer_poll(
+        buffer->events->obj_ptr, buffer->fd, (int32_t)buffer->sample_fn,
+        (uint32_t)buffer->ctx, event_buffer, 4096, timeout_ms);
     return res;
 }
 
@@ -229,37 +226,43 @@ bpf_buffer__free(struct bpf_buffer *buffer)
 int
 bpf_map_update_elem(int fd, const void *key, const void *value, uint64_t flags)
 {
-    return wasm_bpf_map_operate(fd, _BPF_MAP_UPDATE_ELEM, (void*)key, (void*)value, &flags);
+    return wasm_bpf_map_operate(fd, _BPF_MAP_UPDATE_ELEM, (void *)key,
+                                (void *)value, &flags);
 }
 
 int
 bpf_map_lookup_elem(int fd, const void *key, void *value)
 {
-    return wasm_bpf_map_operate(fd, _BPF_MAP_LOOKUP_ELEM, (void*)key, value, NULL);
+    return wasm_bpf_map_operate(fd, _BPF_MAP_LOOKUP_ELEM, (void *)key, value,
+                                NULL);
 }
 
 int
 bpf_map_lookup_elem_flags(int fd, const void *key, void *value, uint64_t flags)
 {
-    return wasm_bpf_map_operate(fd, _BPF_MAP_LOOKUP_ELEM, (void*)key, value, NULL);
+    return wasm_bpf_map_operate(fd, _BPF_MAP_LOOKUP_ELEM, (void *)key, value,
+                                NULL);
 }
 
 int
 bpf_map_delete_elem(int fd, const void *key)
 {
-    return wasm_bpf_map_operate(fd, _BPF_MAP_DELETE_ELEM, (void*)key, NULL, NULL);
+    return wasm_bpf_map_operate(fd, _BPF_MAP_DELETE_ELEM, (void *)key, NULL,
+                                NULL);
 }
 
 int
 bpf_map_delete_elem_flags(int fd, const void *key, uint64_t flags)
 {
-    return wasm_bpf_map_operate(fd, _BPF_MAP_DELETE_ELEM, (void*)key, NULL, NULL);
+    return wasm_bpf_map_operate(fd, _BPF_MAP_DELETE_ELEM, (void *)key, NULL,
+                                NULL);
 }
 
 int
 bpf_map_get_next_key(int fd, const void *key, void *next_key)
 {
-    return wasm_bpf_map_operate(fd, _BPF_MAP_GET_NEXT_KEY, (void*)key, NULL, (void*)next_key);
+    return wasm_bpf_map_operate(fd, _BPF_MAP_GET_NEXT_KEY, (void *)key, NULL,
+                                (void *)next_key);
 }
 
 #endif // _LIBBPF_WASM_H
