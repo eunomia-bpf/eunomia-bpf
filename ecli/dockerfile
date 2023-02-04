@@ -1,7 +1,5 @@
 FROM ubuntu:22.04
 
-ENV UBUNTU_SOURCE /etc/apt
-
 WORKDIR /root
 
 RUN apt-get update -y && \
@@ -14,13 +12,12 @@ RUN apt-get update -y && \
 	apt-get install -y ca-certificates	&& \
 	update-ca-certificates
 
-COPY ../../ /root/
-RUN cd eunomia-bpf	&& \
-	make bpf-loader	&& \
-	make ecli
+COPY . /root/eunomia-bpf
+RUN	cd /root/eunomia-bpf && \
+	make -C /root/eunomia-bpf bpf-loader	&& \
+	make -C /root/eunomia-bpf ecli
 
 RUN	cp /root/eunomia-bpf/ecli/build/bin/Release/ecli /usr/bin/	&& \
 	chmod +x /usr/bin/ecli
 
-#CMD ecli run /root/my/package.json
 CMD ["/bin/bash"]
