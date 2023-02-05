@@ -21,16 +21,16 @@ echo "${INCLUDE_DIR}"
         -O0 -z stack-size=4096 -Wl,--initial-memory=65536 \
         --sysroot=/opt/wasi-sdk/share/wasi-sysroot  \
         -I "${INCLUDE_DIR}" \
-        -Wl,--allow-undefined-file=${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot/share/defined-symbols.txt \
+        -Wl,--allow-undefined-file="${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot/share/defined-symbols.txt" \
         -Wl,--export=all \
         -Wl,--export=bpf_main \
         -Wl,--export=process_event \
         -Wl,--strip-all,--no-entry \
         -Wl,--allow-undefined \
-        -o ${OUT_FILE} ${APP_SRC}
+        -o "${OUT_FILE}" "${APP_SRC}"
 
 
-if [ -f ${OUT_FILE} ]; then
+if [ -f "${OUT_FILE}" ]; then
         echo "build ${OUT_FILE} success"
 else
         echo "build ${OUT_FILE} fail"
@@ -50,16 +50,16 @@ OUT_FILE=${i%.*}.wasm
         -O0 -z stack-size=4096 -Wl,--initial-memory=65536 \
         --sysroot=/opt/wasi-sdk/share/wasi-sysroot  \
         -I "${INCLUDE_DIR}" \
-        -Wl,--allow-undefined-file=${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot/share/defined-symbols.txt \
+        -Wl,--allow-undefined-file="${WAMR_DIR}/wamr-sdk/app/libc-builtin-sysroot/share/defined-symbols.txt" \
         -Wl,--export=all \
         -Wl,--export=bpf_main \
         -Wl,--export=process_event \
         -Wl,--strip-all,--no-entry \
         -Wl,--allow-undefined \
-        -o ${OUT_FILE} ${APP_SRC}
+        -o "${OUT_FILE}" "${APP_SRC}"
 
 
-if [ -f ${OUT_FILE} ]; then
+if [ -f "${OUT_FILE}" ]; then
         echo "build ${OUT_FILE} success"
 else
         echo "build ${OUT_FILE} fail"
