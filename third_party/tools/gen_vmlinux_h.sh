@@ -5,4 +5,4 @@
 #
 # 10-Apr-2017   Brendan Gregg   Created this.
 
-./bpftool btf dump file ${1:-/sys/kernel/btf/vmlinux} format c
+./bpftool btf dump file "${1:-/sys/kernel/btf/vmlinux}" format c

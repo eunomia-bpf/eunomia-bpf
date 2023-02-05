@@ -28,7 +28,7 @@ pid=1
 read name < /proc/$pid/comm
 printf "%-14s %-20.20s %6d %-16.16s" "host" "$(hostname)" "$pid" "$name"
 for n in $namespaces; do
-    id=$(stat --format="%N" /proc/$pid/ns/$n)
+    id=$(stat --format="%N" "/proc/$pid/ns/$n")
     id=${id#*[}
     id=${id%]*}
     hostns[$n]=$id
@@ -39,15 +39,15 @@ echo
 # print containers
 for UUID in $(docker ps -q); do
     # docker info:
-    pid=$(docker inspect -f '{{.State.Pid}}' $UUID)
-    name=$(docker inspect -f '{{.Name}}' $UUID)
-    path=$(docker inspect -f '{{.Path}}' $UUID)
+    pid=$(docker inspect -f '{{.State.Pid}}' "$UUID")
+    name=$(docker inspect -f '{{.Name}}' "$UUID")
+    path=$(docker inspect -f '{{.Path}}' "$UUID")
     name=${name#/}
-    printf "%-14s %-20.20s %6d %-16.16s" $UUID $name $pid $path
+    printf "%-14s %-20.20s %6d %-16.16s" "$UUID" "$name" "$pid" "$path"
 
     # namespace info:
     for n in $namespaces; do
-        id=$(stat --format="%N" /proc/$pid/ns/$n)
+        id=$(stat --format="%N" "/proc/$pid/ns/$n")
         id=${id#*[}
         id=${id%]*}
         docolor=0
