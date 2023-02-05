@@ -50,9 +50,9 @@ for UUID in $(docker ps -q); do
         id=$(stat --format="%N" "/proc/$pid/ns/$n")
         id=${id#*[}
         id=${id%]*}
-        docolor=0
+        #docolor=0
         if (( color )); then
-            [[ "${hostns[$n]}" == "$id" ]] && docolor=1
+            [[ "${hostns[$n]}" == "$id" ]] # && docolor=1
         fi
         #(( docolor )) && echo -e "\e[31;1m\c"
         printf " %-10s" "$id"
