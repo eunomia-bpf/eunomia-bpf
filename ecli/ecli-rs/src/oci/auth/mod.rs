@@ -61,7 +61,7 @@ pub struct AuthInfo(Vec<LoginInfo>);
 impl AuthInfo {
     pub fn get() -> EcliResult<Self> {
         AuthInfo::read_from_file(&mut get_auth_save_file()?).map_err(|e| {
-            if let EcliError::SerializeError(_) = e {
+            if matches!(e, EcliError::SerializeError(_)) {
                 EcliError::SerializeError(
                     "serialize auth config file fail, maybe the file corrupt".to_string(),
                 )

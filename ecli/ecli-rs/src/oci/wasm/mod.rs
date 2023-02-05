@@ -31,7 +31,7 @@ pub fn parse_img_url(url: &str) -> EcliResult<(Client, RegistryAuth, Reference, 
             RegistryAuth::Basic(username, password)
         }
         Err(err) => {
-            if let EcliError::LoginInfoNotFoundError(_) = err {
+            if matches!(err, EcliError::LoginInfoNotFoundError(_)) {
                 RegistryAuth::Anonymous
             } else {
                 return Err(err);
