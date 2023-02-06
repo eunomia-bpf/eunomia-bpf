@@ -14,17 +14,17 @@
 
 With eunnomia-bpf, you can:
 
-- simplify the process of `writing` eBPF programs:
+- simplify and enhance the process of `writing` eBPF programs:
   - simplify building CO-RE[^1] `libbpf` eBPF applications: [write eBPF kernel code only](#simplify-building-co-re-libbpf-ebpf-applications) and automatically exposing your data with `perf event` or `ring buffer` from kernel.
   - [Automatically sample the data](#automatically-sample-the-data-and-print-hists-in-userspace) from hash maps and print `hists` in userspace.
   - [Automatically generate](#automatically-generate-and-config-command-line-arguments) and config `command line arguments` for eBPF programs.
-- writing the kernel part in both `BCC` and `libbpf` styles:
-  - enable CO-RE[^1] to BCC-style eBPF programs without depending on the LLVM library.
-  - a [converter](https://github.com/eunomia-bpf/bcc/tree/master/src/cc/converter) to convert BCC stype source code to libbpf style source code.
+  - You can writing the kernel part in both `BCC` and `libbpf` styles:
+    - enable CO-RE[^1] to BCC-style eBPF programs without depending on the LLVM library.
+    - a [converter](https://github.com/eunomia-bpf/bcc/tree/master/src/cc/converter) to convert BCC stype source code to libbpf style source code.
 - Build eBPF programs with `Wasm`[^2]:
-  - [Write eBPF with Wasm](#write-user-space-code-for-your-ebpf-program-in-webassembly) in C/C++, Rust, Go...Any language you like in WebAssembly[^2], see [example](examples/bpftools/sigsnoop).
-  - A [bindgen tool](https://github.com/eunomia-bpf/c-struct-bindgen) to generate Wasm bindings for eBPF programs.
-  - A [runtime](wasm-runtime) for running eBPF program in Wasm module.
+  - [Write eBPF with Wasm](https://github.com/eunomia-bpf/wasm-bpf) in C/C++, Rust, Go...Any language you like in WebAssembly[^2], see the [`Wasm-bpf`](https://github.com/eunomia-bpf/wasm-bpf) project.
+  - A runtime module for providing most abilities from kernel eBPF to userspace Wasm, covering the use cases from `tracing`, `networking`, `security`.
+  - Toolchains and libraries for building eBPF programs to Wasm, provide a similar developing experience as the [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap).
 - simplify the process of `distributing` eBPF programs:
   - A [tool](ecli/ecli-rs/) for push, pull and run pre-compiled eBPF programs as `OCI` images in Wasm module
   - Run eBPF programs from `cloud` or `URL` within [`1` line of bash](#dynamic-load-and-run-co-re-ebpf-kernel-code-from-the-cloud-with-url-or-oci-image) without recompiling, kernel version and architecture independent.
