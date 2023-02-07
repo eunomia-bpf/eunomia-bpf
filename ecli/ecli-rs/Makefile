@@ -1,14 +1,14 @@
 LIBEUNOMIA := ../../bpf-loader/build/lib/Release/libeunomia.a
-LIBEWASM := ../../wasm-runtime/build/lib/Release/libewasm.a
+LIBWASM_BPF := ../../wasm-runtime/build/libwasm-bpf_LIB.a
 
 .PHONY: build
-build: $(LIBEUNOMIA) $(LIBEWASM)
+build: $(LIBEUNOMIA) $(LIBWASM_BPF)
 	cargo build --release
 
 $(LIBEUNOMIA):
 	$(MAKE) -C ../../bpf-loader install
 
-$(LIBEWASM):
+$(LIBWASM_BPF):
 	$(MAKE) -C ../../wasm-runtime install
 
 install-deps:

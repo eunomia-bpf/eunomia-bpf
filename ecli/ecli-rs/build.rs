@@ -13,7 +13,7 @@ fn main() {
     println!("cargo:rustc-link-search=../../bpf-loader/build/libbpf");
 
     println!("cargo:rustc-link-lib=static=eunomia");
-    println!("cargo:rustc-link-lib=static=ewasm");
+    println!("cargo:rustc-link-lib=static=wasm-bpf");
     println!("cargo:rustc-link-lib=static=vmlib");
     println!("cargo:rustc-link-lib=static=stdc++");
     println!("cargo:rustc-link-lib=static=bpf");
@@ -29,18 +29,18 @@ fn main() {
     let wasm_bindings = bindgen::Builder::default()
         // The input header we would like to generate
         // bindings for.
-        .header("../../wasm-runtime/include/ewasm/ewasm.h")
+        .header("../../wasm-runtime/include/bpf-api.h")
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         // Finish the builder and generate the bindings.
         .generate()
         // Unwrap the Result and panic on failure.
-        .expect("Unable to generate ewasm bindings");
+        .expect("Unable to generate wasm-bpf bindings");
 
     wasm_bindings
-        .write_to_file("src/ewasm_runner/ewasm_bpf.rs")
-        .expect("Couldn't write ewasm bindings!");
+        .write_to_file("src/wasm_bpf_runner/wasm_bpf.rs")
+        .expect("Couldn't write wasm-bpf bindings!");
 
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for
@@ -59,5 +59,5 @@ fn main() {
 
     json_bindings
         .write_to_file("src/json_runner/eunomia_bpf.rs")
-        .expect("Couldn't write ewasm bindings!");
+        .expect("Couldn't write wasm-bpf bindings!");
 }

@@ -13,7 +13,7 @@
 
 #include "config.h"
 #include "eunomia/eunomia-bpf.hpp"
-#include "ewasm/ewasm.hpp"
+#include "bpf-api.h"
 
 class program_runner_base
 {
@@ -45,24 +45,24 @@ class eunomia_program_runner : public program_runner_base
 };
 
 /// @brief  wasm program include kernel and user space
-class ewasm_program_runner : public program_runner_base
+class wasm_program_runner : public program_runner_base
 {
-    ewasm_program program;
+    wasm_bpf_program program;
     friend class eunomia_runner;
 
   public:
-    ewasm_program_runner(const program_config_data &config)
+    wasm_program_runner(const program_config_data &config)
       : program_runner_base(config){};
     int load_and_attach_eunomia_skel();
     std::string get_name()
     { // FIXME: get program name from wasm file
-        return "ewasm module";
+        return "wasm module";
     }
     void stop()
     {
-        // FIXME: stop ewasm program
+        // FIXME: stop wasm program
     }
-    virtual ~ewasm_program_runner() = default;
+    virtual ~wasm_program_runner() = default;
 };
 
 class eunomia_runner
@@ -89,7 +89,7 @@ class eunomia_runner
         }
         else if (config.prog_type
                  == program_config_data::program_type::WASM_MODULE) {
-            program_runner = std::make_unique<ewasm_program_runner>(config);
+            program_runner = std::make_unique<wasm_program_runner>(config);
         }
     };
     ~eunomia_runner() { stop_tracker(); }

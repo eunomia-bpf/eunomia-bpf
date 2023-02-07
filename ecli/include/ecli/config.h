@@ -19,7 +19,7 @@ struct program_config_data {
     /// @brief  use cache or not
     bool use_cache;
     /// @brief program data buffer: wasm module or json
-    std::vector<char> program_data_buffer;
+    std::vector<unsigned char> program_data_buffer;
     /// @brief  type of the program: wasm or json, of others
     enum class program_type { UNDEFINE, JSON_EUNOMIA, WASM_MODULE } prog_type;
     std::vector<std::string> args;

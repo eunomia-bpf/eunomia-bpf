@@ -70,7 +70,7 @@ $(ECC): $(BPFTOOL)
 	cp -r ../third_party/vmlinux workspace/include/vmlinux
 	cd cmd && cargo build --release
 	cp $(ECC) workspace/bin/ecc
-	cp -r ../wasm-runtime/scripts workspace/scripts
+	# cp -r ../wasm-runtime/scripts workspace/scripts
 
 install:
 	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia
@@ -89,15 +89,17 @@ test:
 wasm-runtime_DIR ?= eunomia-bpf/wasm-runtime
 wasm-runtime_BUILD_DIR ?= $(wasm-runtime_DIR)/build
 
-.PHONY: build-wasm
-build-wasm: build
-	$(call msg,BUILD-WASM)
-	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C workspace/scripts build
-
-.PHONY: generate_wasm_skel
-gen-wasm-skel: build
-	$(call msg,GEN-WASM-SKEL)
-	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C workspace/scripts generate
+# TODO Waiting to discuss how to handle scripts
+#
+# .PHONY: build-wasm
+# build-wasm: build
+# 	$(call msg,BUILD-WASM)
+# 	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C workspace/scripts build
+#
+# .PHONY: generate_wasm_skel
+# gen-wasm-skel: build
+# 	$(call msg,GEN-WASM-SKEL)
+# 	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C workspace/scripts generate
 
 .PHONY: build
 build:

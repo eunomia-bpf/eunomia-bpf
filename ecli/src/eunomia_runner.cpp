@@ -10,6 +10,8 @@
 
 #include "eunomia/eunomia-bpf.hpp"
 
+#include <cstddef>
+
 using json = nlohmann::json;
 
 int
@@ -47,14 +49,7 @@ eunomia_program_runner::load_and_attach_eunomia_skel()
 }
 
 int
-ewasm_program_runner::load_and_attach_eunomia_skel()
+wasm_program_runner::load_and_attach_eunomia_skel()
 {
-    ewasm_program p;
-    std::string json_env = "[\"app\"]";
-    json j;
-    for (auto &arg : current_config.args) {
-        j.push_back(arg);
-    }
-    json_env = j.dump();
-    return p.start(current_config.program_data_buffer, json_env);
+    return wasm_main(current_config.program_data_buffer, 0, NULL);
 }

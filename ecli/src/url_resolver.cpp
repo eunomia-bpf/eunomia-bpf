@@ -26,11 +26,11 @@ str_ends_with(const std::string &str, const std::string &suffix)
     return str.compare(totalSize - suffixSize, suffixSize, suffix) == 0;
 }
 
-static std::vector<char>
+static std::vector<unsigned char>
 get_file_contents(const std::string &path)
 {
     std::ifstream json_file(path);
-    return std::vector<char>((std::istreambuf_iterator<char>(json_file)),
+    return std::vector<unsigned char>((std::istreambuf_iterator<char>(json_file)),
                              std::istreambuf_iterator<char>());
 }
 

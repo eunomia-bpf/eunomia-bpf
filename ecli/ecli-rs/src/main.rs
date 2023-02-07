@@ -5,7 +5,7 @@
 //!
 mod config;
 mod error;
-mod ewasm_runner;
+mod wasm_bpf_runner;
 mod json_runner;
 mod oci;
 mod runner;
