@@ -2,14 +2,15 @@ FROM ubuntu:22.04
 
 WORKDIR /root
 
-RUN apt-get update --no-install-recommends && \
+RUN apt-get update && \
 	apt-get install -y --no-install-recommends libelf1 libelf-dev \
 		zlib1g-dev clang llvm libclang-13-dev make cmake git  wget tar && \
 	apt-get clean && \
 	curl https://sh.rustup.rs -sSf | sh -s	&& \
-	rm -rf /var/lib/apt/lists/*	&& \
-	apt-get update	&& \
-	apt-get install -y ca-certificates	&& \
+	rm -rf /var/lib/apt/lists/*
+
+RUN	apt-get update	&& \
+	apt-get install -y --no-install-recommends ca-certificates	&& \
 	update-ca-certificates
 
 COPY . /root/eunomia-bpf
