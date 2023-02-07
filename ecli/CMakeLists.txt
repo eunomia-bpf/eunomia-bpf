@@ -160,17 +160,18 @@ set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
 # Set the build/user include directories
 #
 set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../bpf-loader)
-set(EWASM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../wasm-runtime)
+set(WASM_BPF_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../wasm-runtime)
 set(WAMR_ROOT_DIR ../third_party/wasm-micro-runtime)
 include_directories(${EUNOMIA_DIR}/include)
 include_directories(${THIRD_PARTY_DIR}/includes/)
 include_directories(${WAMR_ROOT_DIR}/core/iwasm/include/)
-include_directories(${EWASM_DIR}/include)
+include_directories(${WASM_BPF_DIR}/include)
 
-add_subdirectory(${EWASM_DIR} ${CMAKE_CURRENT_BINARY_DIR}/wasm-runtime)
-add_dependencies(ewasm libbpf-build)
-add_dependencies(${PROJECT_NAME} ewasm)
-target_link_libraries(${PROJECT_NAME} PUBLIC ewasm -lpthread)
+add_subdirectory(${WASM_BPF_DIR} ${CMAKE_CURRENT_BINARY_DIR}/wasm-runtime)
+add_dependencies(wasm-bpf libbpf-build)
+add_dependencies(${PROJECT_NAME} wasm-bpf)
+set_property(TARGET wasm-bpf PROPERTY ENABLE_EXPORTS 1)
+target_link_libraries(${PROJECT_NAME} PUBLIC wasm-bpf -lpthread)
 
 # Allow usage of header files in the `src` directory, but only for utilities
 if(${PROJECT_NAME}_BUILD_HEADERS_ONLY)

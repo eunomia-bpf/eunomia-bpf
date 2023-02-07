@@ -16,7 +16,7 @@ use url::Url;
 use crate::{
     config::{ProgramConfigData, ProgramType},
     error::{EcliError, EcliResult},
-    ewasm_runner::wasm::handle_wasm,
+    wasm_bpf_runner::wasm::handle_wasm,
     json_runner::json::handle_json,
     oci::{default_schema_port, parse_img_url, wasm_pull},
     Action,
