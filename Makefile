@@ -36,7 +36,7 @@ install-deps: ## install deps
 	apt-get install libcurl4-openssl-dev libelf-dev clang llvm cmake zlib1g-dev
 
 ecli: ## build the command line tool for eunomia-bpf
-	make -C ecli install
+	make -C ecli
 
 ewasm: ## build the command line tool for eunomia-bpf
 	make -C wasm-runtime build
