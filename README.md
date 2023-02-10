@@ -14,18 +14,14 @@
 
 With eunnomia-bpf, you can:
 
-- simplify and enhance the process of `writing` eBPF programs:
+- A library to simplify `writing` eBPF programs:
   - simplify building CO-RE[^1] `libbpf` eBPF applications: [write eBPF kernel code only](#simplify-building-co-re-libbpf-ebpf-applications) and automatically exposing your data with `perf event` or `ring buffer` from kernel.
   - [Automatically sample the data](#automatically-sample-the-data-and-print-hists-in-userspace) from hash maps and print `hists` in userspace.
   - [Automatically generate](#automatically-generate-and-config-command-line-arguments) and config `command line arguments` for eBPF programs.
-  - You can writing the kernel part in both `BCC` and `libbpf` styles:
-    - enable CO-RE[^1] to BCC-style eBPF programs without depending on the LLVM library.
-    - a [converter](https://github.com/eunomia-bpf/bcc/tree/master/src/cc/converter) to convert BCC stype source code to libbpf style source code.
-- Build eBPF programs with `Wasm`[^2]:
-  - [Write eBPF with Wasm](https://github.com/eunomia-bpf/wasm-bpf) in C/C++, Rust, Go...Any language you like in WebAssembly[^2], see the [`Wasm-bpf`](https://github.com/eunomia-bpf/wasm-bpf) project.
-  - A runtime module for providing most abilities from kernel eBPF to userspace Wasm, covering the use cases from `tracing`, `networking`, `security`.
-  - Toolchains and libraries for building eBPF programs to Wasm, provide a similar developing experience as the [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap).
-- simplify the process of `distributing` eBPF programs:
+  - You can writing the kernel part in both `BCC` and `libbpf` styles.
+- Build eBPF programs with `Wasm`[^2]: see [`Wasm-bpf`](https://github.com/eunomia-bpf/wasm-bpf) project
+  - Runtime, libraries and toolchains to [write eBPF with Wasm](https://github.com/eunomia-bpf/wasm-bpf) in C/C++, Rust, Go...covering the use cases from `tracing`, `networking`, `security`.
+- simplify `distributing` eBPF programs:
   - A [tool](ecli/ecli-rs/) for push, pull and run pre-compiled eBPF programs as `OCI` images in Wasm module
   - Run eBPF programs from `cloud` or `URL` within [`1` line of bash](#dynamic-load-and-run-co-re-ebpf-kernel-code-from-the-cloud-with-url-or-oci-image) without recompiling, kernel version and architecture independent.
   - [Dynamically load](bpf-loader) eBPF programs with `JSON` config file or `Wasm` module.
@@ -237,34 +233,18 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
 
 Base on `eunomia-bpf`, we have an eBPF pacakge manager in [LMP](https://github.com/linuxkerneltravel/lmp) project, with OCI images and [ORAS](https://github.com/oras-project/oras) for distribution.
 
-### Write user space code for your eBPF program in WebAssembly
+### [wasm-bpf](https://github.com/eunomia-bpf/wasm-bpf): Write user space code for your eBPF program in WebAssembly
 
-You can write and compile user space code for your eBPF program in WebAssembly, and run it with `eunomia-bpf`:
-
-```bash
-$ sudo ./ecli run app.wasm -h
-Usage: sigsnoop [-h] [-x] [-k] [-n] [-p PID] [-s SIGNAL]
-Trace standard and real-time signals.
+see [wasm-bpf](https://github.com/eunomia-bpf/wasm-bpf) project:
 
 
-    -h, --help  show this help message and exit
-    -x, --failed  failed signals only
-    -k, --killed  kill only
-    -p, --pid=<int>  target pid
-    -s, --signal=<int>  target signal
-```
+A WebAssembly eBPF library, toolchain and runtime powered by [CO-RE](https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html)(Compile Once – Run Everywhere) [libbpf](https://github.com/libbpf/libbpf) and [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime).
 
-See [sigsnoop](examples/bpftools/sigsnoop/app.c), we port the user space code of `sigsnoop` tool from [BCC](https://github.com/iovisor/bcc/blob/master/libbpf-tools/sigsnoop.c) to our project as an example.
+- **`General purpose`**: provide most abilities from eBPF to Wasm, `polling` from the ring buffer or perf buffer, bidirectional communications between `kernel` eBPF and `userspace` Wasm using `maps`, dynamically `loading`, `attaching` or `detaching`, etc. Supports a large number of eBPF program types and map types, covering the use cases from `tracing`, `networking`, `security`.
+- **`High performance`**: No `serialization` overhead for complex data types, using `shared memory` to avoid copy overhead between host and Wasm.
+- **`Easy to use`**: provide a similar developing experience as the [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap), `auto generate` the Wasm-eBPF skeleton headers and type definitions for bindings.
+- **`Ultralightweight`**: the sample runtime has only `300+` lines of code, binary only `1.5 MB` in size. Compiled Wasm module would be only `~90K`. With the same toolchain, you can easily build your own Wasm-eBPF runtime in any languages and platforms!
 
-You can operate the eBPF kernel program or process the data in user space `WASM` runtime.
-
-Powered by WASM, an eBPF program may be able to:
-
-- have isolation and protection for operating system resources, both user-space and kernel-space
-- safely execute user-defined or community-contributed eBPF code as plug-ins in a software product
-- Write eBPF programs with the language you favor, distribute and run the programs on another kernel or arch.
-
-We have tested on `x86` and `arm` platform, more Architecture tests will be added soon.
 
 ## Project Architecture
 
