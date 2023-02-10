@@ -63,6 +63,7 @@ docs: ## generate Doxygen HTML documentation, including API docs
 	$(BROWSER) docs/html/index.html
 
 install: ## install the package to the `INSTALL_LOCATION`
+	mkdir -p ../wasm-runtime/include/wasm-bpf
 	rm -rf build/
 	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION) -DCMAKE_BUILD_TYPE=Release  -Deunomia_ENABLE_UNIT_TESTING=0 -Deunomia_USE_GTEST=0
 	cmake --build build --config Release
