@@ -167,11 +167,18 @@ include_directories(${THIRD_PARTY_DIR}/includes/)
 include_directories(${WAMR_ROOT_DIR}/core/iwasm/include/)
 include_directories(${WASM_BPF_DIR}/include)
 
+set(EUNOMIA_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
+include_directories(${EUNOMIA_DIR}/include)
+
+add_subdirectory(${EUNOMIA_DIR} ${CMAKE_CURRENT_BINARY_DIR}/eunomia)
+add_dependencies(${PROJECT_NAME} eunomia)
+
+set(wasm-bpf_BUILD_EXECUTABLE OFF)
 add_subdirectory(${WASM_BPF_DIR} ${CMAKE_CURRENT_BINARY_DIR}/wasm-runtime)
 add_dependencies(wasm-bpf libbpf-build)
 add_dependencies(${PROJECT_NAME} wasm-bpf)
 set_property(TARGET wasm-bpf PROPERTY ENABLE_EXPORTS 1)
-target_link_libraries(${PROJECT_NAME} PUBLIC wasm-bpf -lpthread)
+target_link_libraries(${PROJECT_NAME} PUBLIC wasm-bpf eunomia -lpthread)
 
 # Allow usage of header files in the `src` directory, but only for utilities
 if(${PROJECT_NAME}_BUILD_HEADERS_ONLY)

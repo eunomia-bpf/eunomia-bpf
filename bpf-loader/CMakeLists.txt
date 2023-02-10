@@ -182,7 +182,7 @@ endif()
 
 # Build vendored libbpf
 include(ExternalProject)
-ExternalProject_Add(libbpf
+ExternalProject_Add(libbpf-eunomia
   PREFIX libbpf
   SOURCE_DIR ${LIBBPF_SOURCE_DIR}
   CONFIGURE_COMMAND ""
@@ -207,7 +207,7 @@ set(LIBBPF_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/libbpf)
 set(LIBBPF_LIBRARIES ${CMAKE_CURRENT_BINARY_DIR}/libbpf/libbpf.a)
 find_package(BpfObject REQUIRED)
 
-add_dependencies(${PROJECT_NAME} libbpf-build)
+add_dependencies(${PROJECT_NAME} libbpf-eunomia-build)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBBPF_LIBRARIES} -lelf -lz)
 
 # For Windows, it is necessary to link with the MultiThreaded library.
