@@ -60,7 +60,7 @@ fn bindgen_test_layout_max_align_t() {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct wasm_bpf {
-    _unused: [u8; 0],
+    _unused: Vec<u8>,
 }
 extern "C" {
     pub fn new_wasm_bpf() -> *mut wasm_bpf;
