@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.10)
+project(wasm-bpf-demo)
+set(PROJECT_NAME wasm_bpf_demo)
+set(CMAKE_BUILD_TYPE Release)
+add_executable(${PROJECT_NAME} main.cpp)
+
+set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../bpf-loader)
+set(WASM_BPF_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../wasm-runtime)
+set(WAMR_ROOT_DIR ../../third_party/wasm-micro-runtime)
+include_directories(${EUNOMIA_DIR}/include)
+include_directories(${WAMR_ROOT_DIR}/core/iwasm/include/)
+include_directories(${WASM_BPF_DIR}/include)
+
+set(wasm-bpf_BUILD_EXECUTABLE OFF)
+add_subdirectory(${WASM_BPF_DIR} ${CMAKE_CURRENT_BINARY_DIR}/wasm-runtime)
+set_property(TARGET wasm-bpf PROPERTY ENABLE_EXPORTS 1)
+target_link_libraries(${PROJECT_NAME} PUBLIC wasm-bpf -lpthread)
