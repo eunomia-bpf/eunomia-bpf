@@ -155,13 +155,13 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
 verbose_message("Successfully added all dependencies and linked against them.")
 
-set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
+set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
 #
 # Set the build/user include directories
 #
-set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../bpf-loader)
-set(WASM_BPF_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../wasm-runtime)
-set(WAMR_ROOT_DIR ../third_party/wasm-micro-runtime)
+set(EUNOMIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../bpf-loader)
+set(EWASM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../wasm-runtime)
+set(WAMR_ROOT_DIR ../../third_party/wasm-micro-runtime)
 include_directories(${EUNOMIA_DIR}/include)
 include_directories(${THIRD_PARTY_DIR}/includes/)
 include_directories(${WAMR_ROOT_DIR}/core/iwasm/include/)

@@ -1,6 +1,6 @@
 FROM ubuntu:22.04
 
-WORKDIR /root
+WORKDIR /root/eunomia-bpf
 
 RUN apt-get update && \
 	apt-get install -y --no-install-recommends libelf1 libelf-dev \
@@ -12,11 +12,9 @@ RUN apt-get update && \
 	rm -rf /var/lib/apt/lists/*
 
 COPY . /root/eunomia-bpf
-RUN	cd /root/eunomia-bpf && \
-	make -C /root/eunomia-bpf bpf-loader	&& \
-	make -C /root/eunomia-bpf ecli
+RUN	make bpf-loader && make ecli
 
-RUN	cp /root/eunomia-bpf/ecli/build/bin/Release/ecli /usr/bin/	&& \
+RUN	cp /root/eunomia-bpf/ecli/minimal/build/bin/Release/ecli /usr/bin/	&& \
 	chmod +x /usr/bin/ecli
 
 CMD ["/bin/bash"]
