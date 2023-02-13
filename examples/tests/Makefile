@@ -1,6 +1,6 @@
 TEST_EXAMPLE_DIR ?= ../bpftools/
 TEST_TIME ?= 2
-ECLI_DIR ?= ../../ecli/
+ECLI_DIR ?= ../../ecli/minimal/
 ECC_DIR ?= ../../compiler/
 ECC_BIN ?= ../../compiler/workspace/bin/ecc
 
