@@ -36,7 +36,7 @@ install-deps: ## install deps
 	apt-get install libcurl4-openssl-dev libelf-dev clang llvm cmake zlib1g-dev
 
 ecli: ## build the command line tool for eunomia-bpf
-	make -C ecli
+	make -C ecli/minimal install
 
 ewasm: ## build the command line tool for eunomia-bpf
 	make -C wasm-runtime build
@@ -49,14 +49,14 @@ ecc: ## build the core library for eunomia-bpf
 
 clean: ## clean all build projects
 	make -C bpf-loader clean
-	make -C ecli clean
+	make -C ecli/minimal clean
 
 eunomia-exporter: ## build the exporter for custom metric
 	make -C bpf-loader
 	cd eunomia-exporter && cargo build --release
 
 release:
-	make -C ecli install
+	make -C ecli/minimal install
 	make -C compiler install
 	cp -R ~/.eunomia .eunomia
 	tar -czvf eunomia.tar.gz .eunomia

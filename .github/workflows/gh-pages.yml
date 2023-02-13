@@ -35,7 +35,7 @@ jobs:
 
       - name: install deps
         run: |
-             sudo make -C ecli install-deps
+             sudo make -C ecli/minimal install-deps
 
       - name: install test deps
         run:  |

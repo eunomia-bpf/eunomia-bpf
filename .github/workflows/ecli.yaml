@@ -30,7 +30,7 @@ jobs:
 
     - name: install deps
       run: |
-          sudo make -C ecli install-deps
+          sudo make -C ecli/minimal install-deps
 
     - name: cache dependencies
       uses: actions/cache@v2
@@ -44,5 +44,5 @@ jobs:
 
     - name: run unit tests
       run: |
-        cd ecli
+        cd ecli/minimal
         make test
