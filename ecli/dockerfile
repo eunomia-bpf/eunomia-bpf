@@ -14,7 +14,7 @@ RUN apt-get update && \
 COPY . /root/eunomia-bpf
 RUN	make bpf-loader && make ecli
 
-RUN	cp /root/eunomia-bpf/ecli/minimal/build/bin/Release/ecli /usr/bin/	&& \
+RUN	cp /root/eunomia-bpf/ecli/build/bin/Release/ecli /usr/bin/	&& \
 	chmod +x /usr/bin/ecli
 
 CMD ["/bin/bash"]

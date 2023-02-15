@@ -9,7 +9,7 @@ build = "build.rs"
 [dependencies]
 base64 = "0.21.0"
 clap = { version = "4.0.32", features = ["derive"] }
-eunomia-rs = {path = "../../eunomia-sdks/eunomia-rs"}
+eunomia-rs = {path = "../eunomia-sdks/eunomia-rs"}
 env_logger = "0.9.0"
 log = "0.4.17"
 rpassword = "7.2.0"
