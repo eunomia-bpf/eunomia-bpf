@@ -1,29 +1,35 @@
-# ecli
+# oci-compatible tooling for eunomia-bpf runner
 
-a simple cli interface for eunomia-bpf library, which you can use it to start any eBPF program from a url in a command.
+## examples
 
-## Install and Run
-
-To install, just download and use the `binary`:
+pull an image from a registry
 
 ```bash
-$ # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
-$ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ecli
+ecli pull https://ghcr.io/eunomia-bpf/sigsnoop:latest
 ```
 
-see [bpf-loader](../ebpf-loader folder for details. With the library, we have provide [a simple cli](https://github.com/eunomia-bpf/eunomia-bpf/releases/), you can simply run pre-compiled ebpf data with a url or path, on most eBPF supported kernel versions:
+push an image to a registry
 
 ```bash
-$ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url
+ecli push https://ghcr.io/eunomia-bpf/sigsnoop:latest
+ecli push https://yunwei37:[password]@ghcr.io/eunomia-bpf/sigsnoop:latest
 ```
 
-And you can compile and run the program, the only thing you need to do is write the [libbpf kernel C code](examples/bpftools/bootstrap/bootstrap.bpf.c):
+Run the program:
+
+```console
+$ sudo ./ecli examples/bpftools/bootstrap/package.json
+TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT  
+22:01:04  46310  2915    0          0            sh      /bin/sh   0
+22:01:04  46311  46310   0          0            which   /usr/bin/which 0
+22:01:04  46311  46310   0          2823776      which             1
+22:01:04  46310  2915    0          6288891      sh                1
+22:01:04  46312  2915    0          0            sh      /bin/sh   0
+22:01:04  46313  46312   0          0            ps      /usr/bin/ps 0
+```
+
+## build
 
 ```bash
-$ docker run -it -v /path/to/repo/examples/bpftools/bootstrap:/src yunwei37/ebpm:latest
-$ sudo ./ecli run examples/bpftools/bootstrap/package.json              # run the compiled ebpf code
+make
 ```
-
-The cli tool can also run as a simple server to receive requests, or as a client to send requests to another server. see [doc/ecli-usage.md](https://eunomia-bpf.github.io/ecli/index.html) for more usages.
-
-For more examples, see [../examples/bpftools](examples/bpftools) directory.
