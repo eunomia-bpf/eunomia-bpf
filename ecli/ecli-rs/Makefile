@@ -3,12 +3,13 @@ LIBWASM_BPF := ../../wasm-runtime/build/libwasm-bpf_LIB.a
 
 .PHONY: build
 build: $(LIBEUNOMIA) $(LIBWASM_BPF)
-	cargo build --release
+	cargo build
 
 $(LIBEUNOMIA):
 	$(MAKE) -C ../../bpf-loader install
 
 $(LIBWASM_BPF):
+	mkdir -p ../../wasm-runtime/include/wasm-bpf
 	$(MAKE) -C ../../wasm-runtime install
 
 install-deps:

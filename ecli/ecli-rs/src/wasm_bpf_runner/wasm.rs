@@ -13,18 +13,23 @@ use crate::{
     error::{EcliError, EcliResult},
 };
 
-use super::wasm_bpf::{wasm_bpf_start, new_wasm_bpf};
+use super::wasm_bpf::{wasm_main};
 
 pub fn handle_wasm(mut conf: ProgramConfigData) -> EcliResult<()> {
     unsafe {
-        let p = new_wasm_bpf();
-        let env = CString::new("").unwrap();
-
-        if wasm_bpf_start(
-            p,
-            conf.program_data_buf.as_mut_ptr() as *mut c_char,
-            conf.program_data_buf.len() as c_int,
-            env.into_raw() as *mut c_char,
+        let mut extra_arg_raw = vec![];
+        let mut cstr_vec = vec![];
+        let arg = CString::new(conf.url.as_bytes()).unwrap();
+        extra_arg_raw.push(arg.as_ptr() as *mut c_char);
+        for arg in conf.extra_arg {
+            cstr_vec.push(CString::new(arg.as_bytes()).unwrap());
+            extra_arg_raw.push(cstr_vec.last().unwrap().as_ptr() as *mut c_char);
+        }
+        if wasm_main(
+            conf.program_data_buf.as_mut_ptr() as *mut u8,
+            conf.program_data_buf.len() as u32,
+            extra_arg_raw.len() as i32,
+            extra_arg_raw.as_mut_ptr(),
         ) < 0
         {
             return Err(EcliError::WasmError("start wasm-bpf fail".to_string()));
