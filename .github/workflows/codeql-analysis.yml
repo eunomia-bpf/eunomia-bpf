@@ -43,7 +43,7 @@ jobs:
       run:  git submodule update --init --recursive
     - name: install deps
       run: |
-          sudo make -C ecli/minimal install-deps
+          sudo make -C bpf-loader install-deps
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL

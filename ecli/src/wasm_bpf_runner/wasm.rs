@@ -5,7 +5,7 @@
 //!
 use std::{
     ffi::CString,
-    os::raw::{c_char, c_int},
+    os::raw::c_char,
 };
 
 use crate::{
@@ -13,7 +13,7 @@ use crate::{
     error::{EcliError, EcliResult},
 };
 
-use super::wasm_bpf::{wasm_main};
+use super::wasm_bpf::wasm_main;
 
 pub fn handle_wasm(mut conf: ProgramConfigData) -> EcliResult<()> {
     unsafe {

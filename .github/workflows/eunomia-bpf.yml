@@ -23,7 +23,7 @@ jobs:
 
     - name: install deps
       run: |
-          sudo make -C ecli/minimal install-deps
+          sudo make -C bpf-loader install-deps
 
     - name: cache dependencies
       uses: actions/cache@v2

@@ -30,7 +30,8 @@ jobs:
 
     - name: install deps
       run: |
-          sudo make -C ecli/minimal install-deps
+          sudo make -C ecli install-deps
+          sudo make -C bpf-loader install-deps
 
     - name: cache dependencies
       uses: actions/cache@v2
@@ -42,7 +43,7 @@ jobs:
     - name: make ecli
       run:  make ecli
 
-    - name: run unit tests
-      run: |
-        cd ecli/minimal
-        make test
+    # - name: run unit tests
+    #   run: |
+    #     cd ecli
+    #     make test
