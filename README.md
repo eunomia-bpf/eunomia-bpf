@@ -22,7 +22,7 @@ With eunnomia-bpf, you can:
 - Build eBPF programs with `Wasm`[^2]: see [`Wasm-bpf`](https://github.com/eunomia-bpf/wasm-bpf) project
   - Runtime, libraries and toolchains to [write eBPF with Wasm](https://github.com/eunomia-bpf/wasm-bpf) in C/C++, Rust, Go...covering the use cases from `tracing`, `networking`, `security`.
 - simplify `distributing` eBPF programs:
-  - A [tool](ecli/ecli-rs/) for push, pull and run pre-compiled eBPF programs as `OCI` images in Wasm module
+  - A [tool](ecli/) for push, pull and run pre-compiled eBPF programs as `OCI` images in Wasm module
   - Run eBPF programs from `cloud` or `URL` within [`1` line of bash](#dynamic-load-and-run-co-re-ebpf-kernel-code-from-the-cloud-with-url-or-oci-image) without recompiling, kernel version and architecture independent.
   - [Dynamically load](bpf-loader) eBPF programs with `JSON` config file or `Wasm` module.
 
