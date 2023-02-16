@@ -9,7 +9,10 @@ mod wasm_bpf_runner;
 mod json_runner;
 mod oci;
 mod runner;
-
+use std::io;
+use std::error::Error;
+use signal_hook::{consts::SIGINT, iterator::Signals};
+use std::{thread, process};
 use clap::{Parser, Subcommand};
 use env_logger::{Builder, Target};
 use error::EcliResult;
@@ -69,6 +72,21 @@ fn init_log() {
 
 #[tokio::main]
 async fn main() -> EcliResult<()> {
+    let mut signals = Signals::new(&[SIGINT]);
+    thread::spawn(move || {
+        match signals {
+            Ok(mut signals_info) => {
+                for sig in signals_info.forever() {
+                    println!("Received signal {:?}", sig);
+                    process::exit(0);
+                }
+                println!("Got signals info: {:?}", signals_info);
+            },
+            Err(error) => {
+                eprintln!("Error getting signals info: {}", error);
+            }
+        }
+    });
     init_log();
     let args = Args::parse();
     match args.action {
@@ -78,4 +96,5 @@ async fn main() -> EcliResult<()> {
         Action::Login { url } => login(url).await,
         Action::Logout { url } => logout(url),
     }
+    
 }
