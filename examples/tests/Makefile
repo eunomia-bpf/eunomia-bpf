@@ -14,7 +14,7 @@ install-deps:
 	make -C $(ECC_DIR)
 	make -C $(ECC_DIR) install
 	make -C $(ECLI_DIR) install
-	cp $(ECLI_DIR)build/bin/Release/ecli ./ecli
+	cp $(ECLI_DIR)target/release/ecli ./ecli
 
 # test with the files in bpf-loader
 TEST_CASES_DIRS=$(shell ls -l $(TEST_EXAMPLE_DIR) | grep ^d | awk '{print $$9}')
@@ -22,7 +22,7 @@ test: $(TEST_CASES_DIRS)
 
 .PHONY:$(TEST_CASES_DIRS)
 # build the test cases
-$(TEST_CASES_DIRS):
+$(TEST_CASES_DIRS):install-deps
 	ls $(TEST_EXAMPLE_DIR)$@/$@.h && $(ECC_BIN) $(TEST_EXAMPLE_DIR)$@/$@.bpf.c $(TEST_EXAMPLE_DIR)$@/$@.h \
 	|| $(ECC_BIN) $(TEST_EXAMPLE_DIR)$@/$@.bpf.c
 	sudo timeout --preserve-status -s 2 $(TEST_TIME) ./ecli run $(TEST_EXAMPLE_DIR)$@/package.json

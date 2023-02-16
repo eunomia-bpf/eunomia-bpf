@@ -27,12 +27,10 @@ int main(int argc, char *argv_main[]) {
     }
     if (argc == 2) {
         // run wasm file
-        std::vector<unsigned char> buffer_vector;
-        std::ifstream wasm_file(argv_main[1]);
-        buffer_vector =
-            std::vector<unsigned char>((std::istreambuf_iterator<char>(wasm_file)),
-                              std::istreambuf_iterator<char>());
-        int res = wasm_main(buffer_vector, 0, NULL);
+        std::ifstream file(argv_main[1]);
+        std::vector<uint8_t> wasm_module((std::istreambuf_iterator<char>(file)),
+                                        std::istreambuf_iterator<char>());
+        int res = wasm_main(wasm_module.data(), wasm_module.size(), argc - 1, argv_main + 1);
         if (res != 0) {
             return 1;
         }
