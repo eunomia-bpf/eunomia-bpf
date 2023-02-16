@@ -32,7 +32,7 @@ curl https://sh.rustup.rs -sSf | sh -s
 bpf-loader is our core library written in C++17. It has no other dependencies except libbpf.
 
 ```shell
-$ git submodule update --init --recursive       # check out libbpf
+$ git submodule update --init --recursive --remote       # check out libbpf
 $ make bpf-loader                              # build ebpf-loader
 ```
 

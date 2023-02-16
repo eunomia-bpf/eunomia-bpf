@@ -40,7 +40,7 @@ apt install clang cmake libelf1 libelf-dev zlib1g-dev
 ```sh
 git clone https://github.com/eunomia-bpf/eunomia-bpf.git
 cd eunomia-bpf
-git submodule update --init --recursive
+git submodule update --init --recursive --remote
 ```
 
 2.配置环境变量
