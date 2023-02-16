@@ -40,7 +40,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
     - name: get submodule
-      run:  git submodule update --init --recursive
+      run:  git submodule update --init --recursive --remote
     - name: install deps
       run: |
           sudo make -C bpf-loader install-deps

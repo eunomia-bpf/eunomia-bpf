@@ -37,7 +37,7 @@ dnf install clang elfutils-libelf elfutils-libelf-devel zlib-devel
 Makefile build the toolchain:
 
 ```shell
-git submodule update --init --recursive       # check out libbpf
+git submodule update --init --recursive --remote       # check out libbpf
 make
 make install
 export PATH=$PATH:~/.eunomia/bin
