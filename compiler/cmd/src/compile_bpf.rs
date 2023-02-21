@@ -176,6 +176,7 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
     if args.compile_opts.btfgen {
         fetch_btfhub_repo(&args.compile_opts).unwrap();
         generate_tailored_btf(&args).unwrap();
+        package_btfhub_tar(&args).unwrap();
     }
     res
 }
