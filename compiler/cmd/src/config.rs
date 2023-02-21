@@ -97,6 +97,14 @@ pub struct CompileOptions {
     /// generate wasm include header
     #[arg(long, default_value_t = false)]
     pub wasm_header: bool,
+
+    /// fetch costom btfhub archive file
+    #[arg(short, long, default_value_t = false)]
+    pub btfgen: bool,
+
+    /// directory to save btfhub archive file
+    #[arg(long, default_value_t = format!("{}/.eunomia/btfhub-archive", home::home_dir().unwrap().to_string_lossy()))]
+    pub btfhub_archive: String,
 }
 
 #[derive(Parser, Debug, Default, Clone)]
@@ -146,6 +154,65 @@ pub fn get_output_object_path(args: &Options) -> String {
     };
     let output_object_path = output_path.with_extension("bpf.o");
     output_object_path.to_str().unwrap().to_string()
+}
+
+pub fn fetch_btfhub_repo(args: &CompileOptions) -> Result<String> {
+    if Path::new(&args.btfhub_archive).exists() {
+        Ok(format!(
+            "spik: btfhub-archive directory already exist in {}",
+            &args.btfhub_archive
+        ))
+    } else {
+        let command = format!(
+            "git clone --depth 1 https://github.com/aquasecurity/btfhub-archive {}",
+            &args.btfhub_archive
+        );
+        let (code, output, error) = run_script::run_script!(command).unwrap();
+
+        if code != 0 {
+            println!("{}", error);
+            return Err(anyhow::anyhow!("failed to fetch btfhub archive"));
+        }
+        Ok(output)
+    }
+}
+
+pub fn generate_tailored_btf(args: &Options) -> Result<String> {
+    let bpftool_path = get_bpftool_path(&args.tmpdir).unwrap();
+
+    let btf_archive_path = Path::new(&args.compile_opts.btfhub_archive);
+    let btf_tmp = args.tmpdir.path();
+    let opts = fs_extra::dir::CopyOptions::new();
+    fs_extra::dir::copy(btf_archive_path, &btf_tmp, &opts)?;
+
+    // failed with copy_dir_all (fix needed)
+    // copy_dir_all(btf_archive_path, &btf_tmp)?;
+
+    let custom_archive_path = Path::new(&args.compile_opts.output_path).join("custom-archive");
+    let command = format!(
+        r#"
+        find {} -name "*.tar.xz" | \
+        xargs -P 8 -I fileName sh -c 'tar xvfJ "fileName" -C "$(dirname "fileName")" && rm "fileName"'
+        find {} -name "*.btf" | \
+        xargs -P 8 -I fileName sh -c '{} gen min_core_btf "fileName" "fileName" {}'
+        cp -r {}/btfhub-archive {}
+        "#,
+        btf_tmp.to_string_lossy(),
+        btf_tmp.to_string_lossy(),
+        bpftool_path,
+        get_output_object_path(&args),
+        btf_tmp.to_string_lossy(),
+        custom_archive_path.to_string_lossy()
+    );
+
+    let (code, output, error) = run_script::run_script!(command).unwrap();
+
+    if code != 0 {
+        println!("$ {}\n {}", command, error);
+        return Err(anyhow::anyhow!("failed to generate tailored btf files"));
+    }
+
+    Ok(output)
 }
 
 pub fn get_source_file_temp_path(args: &Options) -> String {

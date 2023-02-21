@@ -30,7 +30,7 @@ fn compile_bpf_object(args: &Options, source_path: &str, output_path: &str) -> R
     let target_arch = get_target_arch(&args.compile_opts)?;
 
     let command = format!(
-        "{} -g -O2 -target bpf -Wno-unknown-attributes -D__TARGET_ARCH_{} {} {} {} {} -c {} -o {}",
+        "{} -g -O2 -fstack-protector -target bpf -Wno-unknown-attributes -D__TARGET_ARCH_{} {} {} {} {} -c {} -o {}",
         args.compile_opts.parameters.clang_bin,
         target_arch,
         bpf_sys_include,
@@ -172,6 +172,10 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
     }
     if args.compile_opts.wasm_header {
         pack_object_in_wasm_header(&args).unwrap();
+    }
+    if args.compile_opts.btfgen {
+        fetch_btfhub_repo(&args.compile_opts).unwrap();
+        generate_tailored_btf(&args).unwrap();
     }
     res
 }

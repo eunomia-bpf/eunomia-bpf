@@ -23,7 +23,7 @@ use super::eunomia_bpf::wait_and_poll_events_to_handler;
 unsafe extern "C" fn handler(
     _ctx: *mut ::std::os::raw::c_void,
     event: *const ::std::os::raw::c_char,
-    size: super::eunomia_bpf::size_t,
+    _size: super::eunomia_bpf::size_t,
 ) {
     println!("{}", CStr::from_ptr(event).to_string_lossy().to_string());
 }
