@@ -7,8 +7,7 @@ extern crate bindgen;
 
 fn main() {
     println!("cargo:rustc-link-search=../bpf-loader/build/lib/Release");
-    println!("cargo:rustc-link-search=../wasm-runtime/build/lib/Release");
-    println!("cargo:rustc-link-search=../wasm-runtime/build");
+    println!("cargo:rustc-link-search=../wasm-runtime/runtime/cpp/build");
     println!("cargo:rustc-link-search=/lib/x86_64-linux-gnu");
     println!("cargo:rustc-link-search=../bpf-loader/build/libbpf");
 
