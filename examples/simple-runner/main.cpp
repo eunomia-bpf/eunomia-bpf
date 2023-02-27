@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
         std::cerr << "Failed to run ebpf program" << std::endl;
         exit(1);
     }
-    if (ebpf_program.wait_and_poll_to_handler(export_format_type::EXPORT_JSON, print_event) < 0)
+    if (ebpf_program.wait_and_poll_to_handler(export_format_type::EXPORT_PLANT_TEXT, print_event) < 0)
     {
         std::cerr << "Failed to wait and print rb" << std::endl;
         exit(1);

@@ -141,7 +141,7 @@ bpf_skeleton::export_kv_map(struct bpf_map *hists,
         btf__resolve_size(get_btf_data(), bpf_map__btf_key_type_id(hists)));
 
     while (!bpf_map_get_next_key(fd, &lookup_key, key_buffer.data())) {
-        err = bpf_map_lookup_elem(fd, &next_key, value_buffer.data());
+        err = bpf_map_lookup_elem(fd, key_buffer.data(), value_buffer.data());
         if (err < 0) {
             break;
         }
