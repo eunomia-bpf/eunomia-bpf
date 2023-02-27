@@ -180,6 +180,10 @@ else()
   set(LIBBPF_SOURCE_DIR ${THIRD_PARTY_DIR}/bpftool/libbpf/src)
 endif()
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)")
+  set(LIBBPF_CFLAGS_LIST "-g -O2 -Werror -Wall -std=gnu89 -fPIC")
+endif()
+
 # Build vendored libbpf
 include(ExternalProject)
 ExternalProject_Add(libbpf-eunomia
@@ -187,6 +191,7 @@ ExternalProject_Add(libbpf-eunomia
   SOURCE_DIR ${LIBBPF_SOURCE_DIR}
   CONFIGURE_COMMAND ""
   BUILD_COMMAND make
+    CFLAGS=${LIBBPF_CFLAGS_LIST}
     BUILD_STATIC_ONLY=1
     OBJDIR=${CMAKE_CURRENT_BINARY_DIR}/libbpf/libbpf
     DESTDIR=${CMAKE_CURRENT_BINARY_DIR}/libbpf
