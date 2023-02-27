@@ -10,7 +10,7 @@ $(LIBEUNOMIA):
 
 $(LIBWASM_BPF):
 	mkdir -p ../wasm-runtime/include/wasm-bpf
-	$(MAKE) -C ../wasm-runtime install
+	$(MAKE) -C ../wasm-runtime build-cpp
 
 install: $(LIBEUNOMIA) $(LIBWASM_BPF)## install the package to the `INSTALL_LOCATION`
 	mkdir -p ../wasm-runtime/include/wasm-bpf
