@@ -244,7 +244,7 @@ pub fn package_btfhub_tar(args: &Options) -> Result<()> {
     let mut tar = Builder::new(package);
     let mut object = fs::File::open(&get_output_object_path(args)).unwrap();
 
-    tar.append_dir_all(".", btf_path).unwrap();
+    tar.append_dir_all("btf", btf_path).unwrap();
     tar.append_file(&get_object_name(args), &mut object)
         .unwrap();
     tar.finish().unwrap();

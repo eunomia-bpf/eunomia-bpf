@@ -20,6 +20,7 @@ extern "C" {
 #include <stdlib.h>
 #include <unistd.h>
 #include "helpers/trace_helpers.h"
+#include "helpers/btf_helpers.h"
 #include <sys/utsname.h>
 }
 
@@ -51,6 +52,9 @@ bpf_skeleton::load_and_attach_prog(void)
     }
     auto additional_btf_file = getenv("BTF_FILE_PATH");
     DECLARE_LIBBPF_OPTS(bpf_object_open_opts, openopts);
+    if (custom_btf_path != NULL) {
+      openopts.btf_custom_path = custom_btf_path;
+    }
     if (additional_btf_file != NULL) {
         openopts.btf_custom_path = strdup(additional_btf_file);
     }
@@ -578,6 +582,20 @@ open_eunomia_skel_from_json_package(const char *json_data)
     return bpf;
 }
 
+struct eunomia_bpf *
+open_eunomia_skel_from_path(const char *path, const char *bpf_object_buffer)
+{
+    struct eunomia_bpf *bpf = new eunomia_bpf{ eunomia::bpf_skeleton() };
+    if (!bpf) {
+        return nullptr;
+    }
+    if (bpf->program.open_from_path(path, bpf_object_buffer) < 0) {
+        delete bpf;
+        return nullptr;
+    }
+    return bpf;
+}
+
 int
 load_and_attach_eunomia_skel(struct eunomia_bpf *prog)
 {
@@ -654,6 +672,7 @@ open_eunomia_skel_from_json_package_with_args(const char *json_data,
     std::string meta_config_str = meta_config.dump();
     std::string new_config;
 
+    // Why use res here?
     if ((res = eunomia::parse_args_for_json_config(meta_config_str, new_config,
                                                    args_vec))
         != 0) {

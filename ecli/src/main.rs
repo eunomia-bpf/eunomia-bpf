@@ -7,6 +7,7 @@ mod config;
 mod error;
 mod wasm_bpf_runner;
 mod json_runner;
+mod tar_runner;
 mod oci;
 mod runner;
 use signal_hook::{consts::SIGINT, iterator::Signals};
@@ -27,6 +28,8 @@ pub enum Action {
         no_cache: Option<bool>,
         #[arg(long, short = 'j')]
         json: Option<bool>,
+        #[arg(long, short = 't')]
+        tar: Option<bool>,
         #[arg(allow_hyphen_values = true)]
         prog: Vec<String>,
     },

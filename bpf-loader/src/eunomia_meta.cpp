@@ -4,6 +4,7 @@
  * All rights reserved.
  */
 
+#include <btf_helpers.h>
 #include <iostream>
 #include <thread>
 
@@ -183,6 +184,22 @@ bpf_skeleton::open_from_json_config(
 }
 
 int
+bpf_skeleton::open_from_path(const char *btf_path,
+                             std::vector<char> bpf_object_buffer) noexcept
+{
+    try {
+        state = ebpf_program_state::INIT;
+        __bpf_object_buffer = bpf_object_buffer;
+        custom_btf_path = get_btf_path(btf_path);
+        return 0;
+    } catch (std::runtime_error &e) {
+        std::cerr << "failed to parse json " << e.what() << std::endl;
+        state = ebpf_program_state::INVALID;
+        return -1;
+    }
+}
+
+int
 bpf_skeleton::open_from_json_config(const std::string &json_package) noexcept
 {
     std::vector<char> bpf_object_buffer;
@@ -212,4 +229,19 @@ bpf_skeleton::open_from_json_config(const std::string &json_package) noexcept
     }
     return open_from_json_config(json_str, bpf_object_buffer);
 }
+
+int
+bpf_skeleton::open_from_buffer(std::vector<char> bpf_object_buffer) noexcept
+{
+    try {
+        state = ebpf_program_state::INIT;
+        __bpf_object_buffer = bpf_object_buffer;
+        return 0;
+    } catch (std::runtime_error &e) {
+        std::cerr << "failed to open bpf buffer" << e.what() << std::endl;
+        state = ebpf_program_state::INVALID;
+        return -1;
+    }
+}
+
 } // namespace eunomia

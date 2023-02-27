@@ -17,6 +17,7 @@ pub enum ProgramType {
     Undefine,
     JsonEunomia,
     WasmModule,
+    TarModule,
 }
 
 impl TryFrom<&str> for ProgramType {
@@ -26,6 +27,7 @@ impl TryFrom<&str> for ProgramType {
         match "" {
             _ if path.ends_with(".json") => Ok(ProgramType::JsonEunomia),
             _ if path.ends_with(".wasm") => Ok(ProgramType::WasmModule),
+            _ if path.ends_with(".tar") => Ok(ProgramType::TarModule),
             _ => {
                 return Err(EcliError::UnknownSuffix(format!(
                     "{} suffix incorrect, must end with .json or .wasm",
@@ -39,7 +41,7 @@ impl TryFrom<&str> for ProgramType {
 pub struct ProgramConfigData {
     pub url: String,
     pub use_cache: bool,
-    //program data buffer: wasm module or json
+    //program data buffer: wasm module, json or tar
     pub program_data_buf: Vec<u8>,
     pub extra_arg: Vec<String>,
     pub prog_type: ProgramType,
