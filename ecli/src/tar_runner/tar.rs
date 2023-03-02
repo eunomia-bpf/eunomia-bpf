@@ -64,7 +64,11 @@ unsafe extern "C" fn handler(
 
 pub fn handle_tar(conf: ProgramConfigData) -> EcliResult<()> {
     let tar_data = conf.program_data_buf.as_slice();
+
+    // How to use one archive read buffer and unpack?
+    // both operates will change archive entry.
     let mut archive = Archive::new(tar_data);
+    let mut archive_clone = Archive::new(tar_data);
 
     let tmpdir = TempDir::new().unwrap();
     let tmpdir_path = tmpdir.path();
@@ -73,6 +77,9 @@ pub fn handle_tar(conf: ProgramConfigData) -> EcliResult<()> {
     for entry in archive.entries().unwrap() {
         let mut entry = entry.unwrap();
         let path = entry.path().unwrap();
+        if path.is_dir() {
+            continue;
+        }
         if path
             .file_name()
             .unwrap()
@@ -84,8 +91,7 @@ pub fn handle_tar(conf: ProgramConfigData) -> EcliResult<()> {
             break;
         }
     }
-
-    archive.unpack(tmpdir_path).unwrap();
+    archive_clone.unpack(tmpdir_path).unwrap();
 
     let bpf = unsafe {
         open_eunomia_skel_from_path(

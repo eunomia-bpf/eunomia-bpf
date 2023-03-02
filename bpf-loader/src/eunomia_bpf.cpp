@@ -52,7 +52,7 @@ bpf_skeleton::load_and_attach_prog(void)
     }
     auto additional_btf_file = getenv("BTF_FILE_PATH");
     DECLARE_LIBBPF_OPTS(bpf_object_open_opts, openopts);
-    if (custom_btf_path != NULL) {
+    if (custom_btf_path != NULL && !vmlinux_btf_exists()) {
         openopts.btf_custom_path = custom_btf_path;
     }
     if (additional_btf_file != NULL) {

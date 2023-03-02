@@ -1,4 +1,5 @@
 target
 src/json_runner/eunomia_bpf.rs
+src/tar_runner/eunomia_bpf.rs
 src/ewasm_runner/ewasm_bpf.rs
 app.wasm
