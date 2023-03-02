@@ -66,7 +66,7 @@ out:
     return info;
 }
 
-static char *
+char *
 get_btf_path(const char *path)
 {
     struct os_info *info = NULL;

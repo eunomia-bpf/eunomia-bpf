@@ -2,9 +2,11 @@
 #ifndef __BTF_HELPERS_H
 #define __BTF_HELPERS_H
 
-#include <bpf/libbpf.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <gelf.h>
 
-static char *
+char *
 get_btf_path(const char *path);
 
 #endif /* __BTF_HELPERS_H */

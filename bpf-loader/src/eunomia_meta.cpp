@@ -4,7 +4,6 @@
  * All rights reserved.
  */
 
-#include <btf_helpers.h>
 #include <iostream>
 #include <thread>
 
@@ -17,6 +16,7 @@ extern "C" {
 #include <bpf/libbpf.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "helpers/btf_helpers.h"
 }
 
 using json = nlohmann::json;
@@ -228,20 +228,6 @@ bpf_skeleton::open_from_json_config(const std::string &json_package) noexcept
         return -1;
     }
     return open_from_json_config(json_str, bpf_object_buffer);
-}
-
-int
-bpf_skeleton::open_from_buffer(std::vector<char> bpf_object_buffer) noexcept
-{
-    try {
-        state = ebpf_program_state::INIT;
-        __bpf_object_buffer = bpf_object_buffer;
-        return 0;
-    } catch (std::runtime_error &e) {
-        std::cerr << "failed to open bpf buffer" << e.what() << std::endl;
-        state = ebpf_program_state::INVALID;
-        return -1;
-    }
 }
 
 } // namespace eunomia

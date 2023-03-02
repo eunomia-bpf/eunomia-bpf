@@ -88,10 +88,18 @@ extern "C" {
     ) -> *mut eunomia_bpf;
 }
 extern "C" {
+    pub fn open_eunomia_skel_from_path(
+        path: *const ::std::os::raw::c_char,
+        bpf_object_buffer: *const ::std::os::raw::c_char,
+        buffer_size: size_t,
+    ) -> *mut eunomia_bpf;
+}
+extern "C" {
     #[doc = " @brief start running the ebpf program"]
     #[doc = " @details load and attach the ebpf program to the kernel to run the ebpf"]
     #[doc = " program if the ebpf program has maps to export to user space, you need to"]
     #[doc = " call the wait and export."]
+    #[doc = ""]
     pub fn load_and_attach_eunomia_skel(prog: *mut eunomia_bpf) -> ::std::os::raw::c_int;
 }
 extern "C" {

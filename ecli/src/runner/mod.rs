@@ -16,9 +16,10 @@ use url::Url;
 use crate::{
     config::{ProgramConfigData, ProgramType},
     error::{EcliError, EcliResult},
-    wasm_bpf_runner::wasm::handle_wasm,
     json_runner::json::handle_json,
     oci::{default_schema_port, parse_img_url, wasm_pull},
+    tar_runner::tar::handle_tar,
+    wasm_bpf_runner::wasm::handle_wasm,
     Action,
 };
 
@@ -112,7 +113,7 @@ impl TryFrom<Action> for RunArgs {
     type Error = EcliError;
 
     fn try_from(act: Action) -> Result<Self, Self::Error> {
-        let Action::Run { no_cache, json, mut prog } = act else {
+        let Action::Run { no_cache, json, tar, mut prog } = act else {
             unreachable!()
         };
         if prog.len() == 0 {
@@ -133,6 +134,7 @@ pub async fn run(mut arg: RunArgs) -> EcliResult<()> {
     match arg.prog_type {
         ProgramType::JsonEunomia => handle_json(conf),
         ProgramType::WasmModule => handle_wasm(conf),
+        ProgramType::TarModule => handle_tar(conf),
         _ => unreachable!(),
     }
 }

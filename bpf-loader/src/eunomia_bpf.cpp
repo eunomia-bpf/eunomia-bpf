@@ -53,7 +53,7 @@ bpf_skeleton::load_and_attach_prog(void)
     auto additional_btf_file = getenv("BTF_FILE_PATH");
     DECLARE_LIBBPF_OPTS(bpf_object_open_opts, openopts);
     if (custom_btf_path != NULL) {
-      openopts.btf_custom_path = custom_btf_path;
+        openopts.btf_custom_path = custom_btf_path;
     }
     if (additional_btf_file != NULL) {
         openopts.btf_custom_path = strdup(additional_btf_file);
@@ -583,13 +583,17 @@ open_eunomia_skel_from_json_package(const char *json_data)
 }
 
 struct eunomia_bpf *
-open_eunomia_skel_from_path(const char *path, const char *bpf_object_buffer)
+open_eunomia_skel_from_path(const char *path, const char *bpf_object_buffer,
+                            size_t buffer_size)
 {
     struct eunomia_bpf *bpf = new eunomia_bpf{ eunomia::bpf_skeleton() };
     if (!bpf) {
         return nullptr;
     }
-    if (bpf->program.open_from_path(path, bpf_object_buffer) < 0) {
+    if (bpf->program.open_from_path(
+            path, std::vector<char>{ bpf_object_buffer,
+                                     bpf_object_buffer + buffer_size })
+        < 0) {
         delete bpf;
         return nullptr;
     }
