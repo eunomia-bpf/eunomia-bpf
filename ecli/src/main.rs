@@ -9,8 +9,6 @@ mod wasm_bpf_runner;
 mod json_runner;
 mod oci;
 mod runner;
-use std::io;
-use std::error::Error;
 use signal_hook::{consts::SIGINT, iterator::Signals};
 use std::{thread, process};
 use clap::{Parser, Subcommand};
@@ -72,7 +70,7 @@ fn init_log() {
 
 #[tokio::main]
 async fn main() -> EcliResult<()> {
-    let mut signals = Signals::new(&[SIGINT]);
+    let signals = Signals::new(&[SIGINT]);
     thread::spawn(move || {
         match signals {
             Ok(mut signals_info) => {
