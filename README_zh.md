@@ -1,4 +1,4 @@
-# eunomia-bpf: 一个基于 WASM 的 CO-RE eBPF 程序动态加载框架
+# eunomia-bpf: 一个基于 JSON 配置信息或 Wasm 的 CO-RE eBPF 程序动态加载框架
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
@@ -12,7 +12,7 @@
 
 - 只编写内核态代码即可构建完整的运行 `CO-RE` 的 eBPF 应用程序
 - 只编写 eBPF 内核代码并且编译为 JSON，即可动态加载到另一台机器上而不需要重新编译
-- 将eBPF程序编译为 `WASM` 模块，就可以在用户空间 `WASM` 运行时中控制eBPF程序或处理数据
+- 将eBPF程序编译为 `Wasm` 模块，就可以在用户空间 `Wasm` 运行时中控制eBPF程序或处理数据
 - 拥有非常小和简单的可执行程序, 库本身小于 `1MB` 且不依赖 `LLVM/Clang`，可以轻松嵌入到其他的项目中
 - 以小于 `100ms` 的时间动态加载和运行任何eBPF程序，比 `bcc` 更迅速
 
@@ -36,15 +36,15 @@ $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
 $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url
 ```
 
-### 一个从WASM模块加载eBPF程序的库
+### 一个从Wasm模块加载eBPF程序的库
 
-使用 `bpf-loader` 库从`WASM`模块加载eBPF程序，您可以编写`WASM`模块来操作eBPF程序或在用户空间`WASM`运行时处理数据。这个想法很简单:
+使用 `bpf-loader` 库从`Wasm`模块加载eBPF程序，您可以编写`Wasm`模块来操作eBPF程序或在用户空间`Wasm`运行时处理数据。这个想法很简单:
 
 1. 使用 `eunomia-cc` 工具链将 `eBPF` 代码骨架编译成 `JSON` 格式
-2. 在 `WASM` 模块中嵌入 `JSON` 数据，并为操作eBPF程序框架提供一些API
-3. 从 `WASM` 模块加载 `JSON` 数据，并使用 `bpf-loader` 库运行eBPF程序框架
+2. 在 `Wasm` 模块中嵌入 `JSON` 数据，并为操作eBPF程序框架提供一些API
+3. 从 `Wasm` 模块加载 `JSON` 数据，并使用 `bpf-loader` 库运行eBPF程序框架
 
-在单个 `WASM` 模块中可以有多个 `eBPF` 程序。
+在单个 `Wasm` 模块中可以有多个 `eBPF` 程序。
 
 您可以在 [wasm-runtime](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/wasm-runtime) 中看到更多细节
 
@@ -75,7 +75,7 @@ $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # sim
 - [X] 支持用户空间中的`tracepoints`、`fentry`、`kprobe`、`lsm`和`ring buffer`/`perf event`输出。
 - [X] 使编译更容易使用，更灵活，完全兼容其他 libbpf 程序；
 - [X] 添加可配置的可观测性导出器
-- [X] 使用 WASM 进行 ebpf 包加载配置，并添加更多 ebpf 程序类型支持
+- [X] 使用 Wasm 进行 ebpf 包加载配置，并添加更多 ebpf 程序类型支持
 - [X] 支持更多的 ebpf 程序类型：
 - [X] 为 eunomia-bpf 添加简单的包管理器: LMP
 - [ ] 从 `libbpf` 添加更多功能
