@@ -16,9 +16,9 @@ use url::Url;
 use crate::{
     config::{ProgramConfigData, ProgramType},
     error::{EcliError, EcliResult},
-    wasm_bpf_runner::wasm::handle_wasm,
     json_runner::json::handle_json,
     oci::{default_schema_port, parse_img_url, wasm_pull},
+    wasm_bpf_runner::wasm::handle_wasm,
     Action,
 };
 
@@ -97,12 +97,12 @@ impl RunArgs {
         );
 
         self.prog_type = ProgramType::try_from(url.path())?;
-        ureq::get(url.as_str())
-            .call()
+
+        content = reqwest::blocking::get(url.as_str())
             .map_err(|e| EcliError::HttpError(e.to_string()))?
-            .into_reader()
-            .read_to_end(&mut content)
-            .map_err(|e| EcliError::IOErr(e))?;
+            .bytes()
+            .unwrap()
+            .to_vec();
 
         Ok(content)
     }
