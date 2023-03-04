@@ -179,7 +179,8 @@ pub fn get_bpf_sys_include(args: &CompileOptions) -> Result<String> {
 
 /// Get target arch: x86 or arm, etc
 pub fn get_target_arch(args: &CompileOptions) -> Result<String> {
-    let command = r#" uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/'
+    let command = r#" uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' \
+                               | sed 's/mips.*/mips/' | sed 's/riscv64/riscv/'
      "#;
     let (code, mut output, error) = run_script::run_script!(command).unwrap();
     if code != 0 {
