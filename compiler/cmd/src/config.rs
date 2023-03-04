@@ -179,19 +179,20 @@ pub fn get_bpf_sys_include(args: &CompileOptions) -> Result<String> {
 
 /// Get target arch: x86 or arm, etc
 pub fn get_target_arch(args: &CompileOptions) -> Result<String> {
-    let command = r#" uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' \
-                               | sed 's/mips.*/mips/' | sed 's/riscv64/riscv/'
-     "#;
-    let (code, mut output, error) = run_script::run_script!(command).unwrap();
-    if code != 0 {
-        println!("$ {}\n {}", command, error);
-        return Err(anyhow::anyhow!("failed to get target arch"));
-    }
+    let arch = match std::env::consts::ARCH {
+        "x86_64" => "x86",
+        "aarch64" => "arm64",
+        "powerpc64" => "powerpc",
+        "mips64" => "mips",
+        "riscv64" => "riscv",
+        arch => arch,
+    };
+
     if args.verbose {
-        println!("$ {}\n{}", command, output);
+        println!("Target architecture: {arch}")
     }
-    output.retain(|x| x != '\n');
-    Ok(output)
+
+    Ok(arch.to_string())
 }
 
 /// Get eunomia home include dirs
@@ -202,7 +203,7 @@ pub fn get_eunomia_include(args: &Options) -> Result<String> {
         Ok(path) => path,
         Err(e) => {
             return Err(anyhow::anyhow!(
-                e.to_string() + ": failed to find eunomia home"
+                e.to_string() + ": failed to find eunomia workspace"
             ))
         }
     };
