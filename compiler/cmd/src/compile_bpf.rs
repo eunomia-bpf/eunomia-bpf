@@ -168,10 +168,10 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
         fs::remove_file(temp_source_file)?;
     }
     if !args.compile_opts.parameters.subskeleton {
-        pack_object_in_config(&args).unwrap();
+        pack_object_in_config(args).unwrap();
     }
     if args.compile_opts.wasm_header {
-        pack_object_in_wasm_header(&args).unwrap();
+        pack_object_in_wasm_header(args).unwrap();
     }
     res
 }
