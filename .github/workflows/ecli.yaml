@@ -43,6 +43,9 @@ jobs:
     - name: make ecli
       run:  make ecli
 
+    - name: make minimal ecli
+      run:  make -C ecli/minimal
+
     # - name: run unit tests
     #   run: |
     #     cd ecli
