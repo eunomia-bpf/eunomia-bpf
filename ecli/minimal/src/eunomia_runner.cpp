@@ -51,5 +51,7 @@ eunomia_program_runner::load_and_attach_eunomia_skel()
 int
 wasm_program_runner::load_and_attach_eunomia_skel()
 {
-    return wasm_main(current_config.program_data_buffer, 0, NULL);
+    return wasm_main(current_config.program_data_buffer.data(),
+                     (unsigned int)current_config.program_data_buffer.size(), 0,
+                     nullptr);
 }
