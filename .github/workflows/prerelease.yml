@@ -1,0 +1,66 @@
+name: Build and prerelease
+
+on:
+  push:
+    branches: ["master"]
+
+env:
+  BUILD_TYPE: Release
+  INSTALL_LOCATION: .local
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [ x86_64-unknown-linux-gnu ]
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: get submodule
+      run:  git submodule update --init --recursive --remote
+
+    - name: install deps
+      run: |
+          sudo make -C compiler install-deps
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: cache dependencies
+      uses: actions/cache@v2
+      id: cache
+      with:
+        path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
+        key: ${{ runner.os }}-dependencies
+
+    - name: build ecc
+      run:  make ecc
+
+    - name: build ecli
+      run:  make ecli
+
+    - name: Package
+      shell: bash
+      run: |
+        mkdir release
+        cp {compiler/workspace/bin/ecc,ecli/target/release/ecli} ./release/
+        cd release
+        tar czvf ./eunomia-bpf-${{ matrix.target }}.tar.gz *
+
+    - name: Publish
+      uses: softprops/action-gh-release@v1
+      with:
+          files: |
+            release/eunomia-bpf-${{ matrix.target }}.tar.gz
+          prerelease: true
+          tag_name: 'latest'
+          generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+ 
