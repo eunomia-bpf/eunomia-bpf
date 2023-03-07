@@ -3,14 +3,15 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use std::{fs, path};
-
 use anyhow::Result;
 use clap::Parser;
 use eunomia_rs::{copy_dir_all, TempDir};
 use rust_embed::RustEmbed;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
+use std::result::Result::Ok;
+use std::{fs, path};
+use tar::Builder;
 
 pub struct Options {
     pub tmpdir: TempDir,
@@ -97,6 +98,14 @@ pub struct CompileOptions {
     /// generate wasm include header
     #[arg(long, default_value_t = false)]
     pub wasm_header: bool,
+
+    /// fetch custom btfhub archive file
+    #[arg(short, long, default_value_t = false)]
+    pub btfgen: bool,
+
+    /// directory to save btfhub archive file
+    #[arg(long, default_value_t = format!("{}/.eunomia/btfhub-archive", home::home_dir().unwrap().to_string_lossy()))]
+    pub btfhub_archive: String,
 }
 
 #[derive(Parser, Debug, Default, Clone)]
@@ -146,6 +155,102 @@ pub fn get_output_object_path(args: &Options) -> String {
     };
     let output_object_path = output_path.with_extension("bpf.o");
     output_object_path.to_str().unwrap().to_string()
+}
+
+pub fn get_object_name(args: &Options) -> String {
+    let object_path = &get_output_object_path(args);
+    let name = object_path.split('/').last().unwrap();
+    name.to_string()
+}
+
+pub fn get_output_tar_path(args: &Options) -> String {
+    let output_path = if args.compile_opts.output_path.is_empty() {
+        path::Path::new(&args.compile_opts.source_path).with_extension("")
+    } else {
+        path::Path::new(&args.compile_opts.output_path).to_path_buf()
+    };
+    let output_object_path = output_path.with_extension("tar");
+    output_object_path.to_str().unwrap().to_string()
+}
+
+pub fn fetch_btfhub_repo(args: &CompileOptions) -> Result<String> {
+    if Path::new(&args.btfhub_archive).exists() {
+        Ok(format!(
+            "spik: btfhub-archive directory already exist in {}",
+            &args.btfhub_archive
+        ))
+    } else {
+        let command = format!(
+            "git clone --depth 1 https://github.com/aquasecurity/btfhub-archive {}",
+            &args.btfhub_archive
+        );
+        let (code, output, error) = run_script::run_script!(command).unwrap();
+
+        if code != 0 {
+            println!("{}", error);
+            return Err(anyhow::anyhow!("failed to fetch btfhub archive"));
+        }
+        Ok(output)
+    }
+}
+
+pub fn generate_tailored_btf(args: &Options) -> Result<String> {
+    let bpftool_path = get_bpftool_path(&args.tmpdir).unwrap();
+
+    let btf_archive_path = Path::new(&args.compile_opts.btfhub_archive);
+    let btf_tmp = args.tmpdir.path();
+    let opts = fs_extra::dir::CopyOptions::new();
+    fs_extra::dir::copy(btf_archive_path, &btf_tmp, &opts)?;
+
+    // TODO: use copy_dir_all instead fs_extra create.
+    // failed with copy_dir_all (fix needed)
+    // copy_dir_all(btf_archive_path, &btf_tmp)?;
+
+    let custom_archive_path = Path::new(&args.compile_opts.output_path).join("custom-archive");
+    let command = format!(
+        r#"
+        find {} -name "*.tar.xz" | \
+        xargs -P 8 -I fileName sh -c 'tar xvfJ "fileName" -C "$(dirname "fileName")" && rm "fileName"'
+        find {} -name "*.btf" | \
+        xargs -P 8 -I fileName sh -c '{} gen min_core_btf "fileName" "fileName" {}'
+        rm -rf {}
+        cp -r {}/btfhub-archive {}
+        "#,
+        btf_tmp.to_string_lossy(),
+        btf_tmp.to_string_lossy(),
+        bpftool_path,
+        get_output_object_path(&args),
+        custom_archive_path.to_string_lossy(),
+        btf_tmp.to_string_lossy(),
+        custom_archive_path.to_string_lossy()
+    );
+
+    let (code, output, error) = run_script::run_script!(command).unwrap();
+
+    if code != 0 {
+        println!("$ {}\n {}", command, error);
+        return Err(anyhow::anyhow!("failed to generate tailored btf files"));
+    }
+
+    Ok(output)
+}
+
+pub fn package_btfhub_tar(args: &Options) -> Result<()> {
+    let tar = &get_output_tar_path(args);
+    let tar_path = Path::new(tar);
+    let btf_path = Path::new(&args.compile_opts.output_path).join("custom-archive");
+    let package = fs::File::create(&tar_path).unwrap();
+
+    let mut tar = Builder::new(package);
+    let mut object = fs::File::open(&get_output_object_path(args)).unwrap();
+    let mut json = fs::File::open(&get_output_package_config_path(args)).unwrap();
+
+    tar.append_dir_all("btf", btf_path).unwrap();
+    tar.append_file("package.json", &mut json).unwrap();
+    tar.append_file(&get_object_name(args), &mut object)
+        .unwrap();
+    tar.finish().unwrap();
+    Ok(())
 }
 
 pub fn get_source_file_temp_path(args: &Options) -> String {

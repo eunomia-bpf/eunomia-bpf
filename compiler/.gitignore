@@ -3,6 +3,7 @@
 build/
 client
 *.o
+*.tar
 eunomia-bpf/
 wasi-sdk-16.0-linux.tar.gz
 wasi-sdk-16.0
@@ -16,3 +17,4 @@ cmd/rust-clippy-results.sarif
 *.profraw
 cmd/lcov.info
 cmd/coverage
+cmd/test/custom-archive/
