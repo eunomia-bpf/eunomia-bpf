@@ -17,7 +17,7 @@ use tar::Archive;
 use super::eunomia_bpf::export_format_type_EXPORT_JSON;
 use super::eunomia_bpf::export_format_type_EXPORT_PLANT_TEXT;
 use super::eunomia_bpf::load_and_attach_eunomia_skel;
-use super::eunomia_bpf::open_eunomia_skel_from_path;
+use super::eunomia_bpf::open_eunomia_skel_with_btf;
 use super::eunomia_bpf::size_t;
 use super::eunomia_bpf::wait_and_poll_events_to_handler;
 use eunomia_rs::TempDir;
@@ -94,7 +94,7 @@ pub fn handle_tar(conf: ProgramConfigData) -> EcliResult<()> {
     archive_clone.unpack(tmpdir_path).unwrap();
 
     let bpf = unsafe {
-        open_eunomia_skel_from_path(
+        open_eunomia_skel_with_btf(
             tmpdir_path.to_str().unwrap().as_ptr() as *const c_char,
             bpf_object_buffer.as_ptr() as *const c_char,
             bpf_object_buffer.len() as size_t,

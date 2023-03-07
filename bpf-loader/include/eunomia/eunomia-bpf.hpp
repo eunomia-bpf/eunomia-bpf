@@ -138,7 +138,7 @@ class bpf_skeleton
         std::vector<char> bpf_object_buffer) noexcept;
     [[nodiscard]] int open_from_json_config(
         const std::string &json_package) noexcept;
-    [[nodiscard]] int open_from_path(
+    [[nodiscard]] int open_with_btf(
         const char *btf_path, std::vector<char> bpf_object_buffer) noexcept;
     bpf_skeleton(const bpf_skeleton &) = delete;
     bpf_skeleton(bpf_skeleton &&);

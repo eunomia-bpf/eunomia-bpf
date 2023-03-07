@@ -73,7 +73,7 @@ fn main() {
         // Unwrap the Result and panic on failure.
         .expect("Unable to generate json bindings");
 
-    json_bindings
+    tar_bindings
         .write_to_file("src/tar_runner/eunomia_bpf.rs")
         .expect("Couldn't write wasm-bpf bindings!");
 }

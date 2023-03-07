@@ -583,14 +583,14 @@ open_eunomia_skel_from_json_package(const char *json_data)
 }
 
 struct eunomia_bpf *
-open_eunomia_skel_from_path(const char *path, const char *bpf_object_buffer,
+open_eunomia_skel_with_btf(const char *path, const char *bpf_object_buffer,
                             size_t buffer_size)
 {
     struct eunomia_bpf *bpf = new eunomia_bpf{ eunomia::bpf_skeleton() };
     if (!bpf) {
         return nullptr;
     }
-    if (bpf->program.open_from_path(
+    if (bpf->program.open_with_btf(
             path, std::vector<char>{ bpf_object_buffer,
                                      bpf_object_buffer + buffer_size })
         < 0) {

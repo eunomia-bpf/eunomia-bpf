@@ -88,7 +88,7 @@ extern "C" {
     ) -> *mut eunomia_bpf;
 }
 extern "C" {
-    pub fn open_eunomia_skel_from_path(
+    pub fn open_eunomia_skel_with_btf(
         path: *const ::std::os::raw::c_char,
         bpf_object_buffer: *const ::std::os::raw::c_char,
         buffer_size: size_t,

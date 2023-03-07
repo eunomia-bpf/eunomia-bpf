@@ -28,12 +28,11 @@ struct eunomia_bpf *
 open_eunomia_skel_from_json_package_with_args(const char *json_data,
                                               char **args, int argc);
 struct eunomia_bpf *
-open_eunomia_skel_from_path(const char *path, const char *bpf_object_buffer, size_t buffer_size);
+open_eunomia_skel_with_btf(const char *path, const char *bpf_object_buffer, size_t buffer_size);
 /// @brief start running the ebpf program
 /// @details load and attach the ebpf program to the kernel to run the ebpf
 /// program if the ebpf program has maps to export to user space, you need to
 /// call the wait and export.
-///
 int
 load_and_attach_eunomia_skel(struct eunomia_bpf *prog);
 
