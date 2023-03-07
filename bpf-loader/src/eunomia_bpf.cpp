@@ -136,35 +136,37 @@ bpf_skeleton::export_kv_map(struct bpf_map *hists,
                             const map_sample_meta &sample_config)
 {
     int err, fd = bpf_map__fd(hists);
-    __u32 lookup_key = -2, next_key;
-    std::vector<char> key_buffer = {};
+    std::vector<char> key_buffer = {}, lookup_key_buffer = {};
     std::vector<char> value_buffer = {};
     key_buffer.resize(
         btf__resolve_size(get_btf_data(), bpf_map__btf_key_type_id(hists)));
     value_buffer.resize(
-        btf__resolve_size(get_btf_data(), bpf_map__btf_key_type_id(hists)));
+        btf__resolve_size(get_btf_data(), bpf_map__btf_value_type_id(hists)));
+    lookup_key_buffer = key_buffer;
 
-    while (!bpf_map_get_next_key(fd, &lookup_key, key_buffer.data())) {
-        err = bpf_map_lookup_elem(fd, &next_key, value_buffer.data());
+    while (!bpf_map_get_next_key(fd, lookup_key_buffer.data(),
+                                 key_buffer.data())) {
+        err = bpf_map_lookup_elem(fd, key_buffer.data(), value_buffer.data());
         if (err < 0) {
             break;
         }
         exporter.handler_sample_key_value(key_buffer, value_buffer);
-        lookup_key = next_key;
+        lookup_key_buffer = key_buffer;
     }
     if (!sample_config.clear_map) {
         return 0;
     }
 
     // cleanup maps
-    lookup_key = -2;
-    while (!bpf_map_get_next_key(fd, &lookup_key, &next_key)) {
-        err = bpf_map_delete_elem(fd, &next_key);
+    lookup_key_buffer = {};
+    while (!bpf_map_get_next_key(fd, lookup_key_buffer.data(),
+                                 key_buffer.data())) {
+        err = bpf_map_delete_elem(fd, key_buffer.data());
         if (err < 0) {
             fprintf(stderr, "failed to cleanup map : %d\n", err);
             return -1;
         }
-        lookup_key = next_key;
+        lookup_key_buffer = key_buffer;
     }
     return 0;
 }

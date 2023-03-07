@@ -98,12 +98,12 @@ impl RunArgs {
         );
 
         self.prog_type = ProgramType::try_from(url.path())?;
-        ureq::get(url.as_str())
-            .call()
+
+        content = reqwest::blocking::get(url.as_str())
             .map_err(|e| EcliError::HttpError(e.to_string()))?
-            .into_reader()
-            .read_to_end(&mut content)
-            .map_err(|e| EcliError::IOErr(e))?;
+            .bytes()
+            .unwrap()
+            .to_vec();
 
         Ok(content)
     }
