@@ -173,6 +173,11 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
     if args.compile_opts.wasm_header {
         pack_object_in_wasm_header(args).unwrap();
     }
+    if args.compile_opts.btfgen {
+        fetch_btfhub_repo(&args.compile_opts).unwrap();
+        generate_tailored_btf(&args).unwrap();
+        package_btfhub_tar(&args).unwrap();
+    }
     res
 }
 
@@ -248,6 +253,47 @@ mod test {
         println!("{}", target_arch);
         let eunomia_include = get_eunomia_include(&args).unwrap();
         println!("{}", eunomia_include);
+    }
+
+    #[test]
+    fn test_generate_custom_btf() {
+        let test_bpf = include_str!("../test/client.bpf.c");
+        let test_event = include_str!("../test/event.h");
+        let tmp_dir = path::Path::new(TEMP_EUNOMIA_DIR);
+        let tmp_dir = tmp_dir.join("test_compile_bpf");
+        fs::create_dir_all(&tmp_dir).unwrap();
+        fs::write(
+            tmp_dir.join("other_header.h"),
+            include_str!("../test/other_header.h"),
+        )
+        .unwrap();
+        let source_path = tmp_dir.join("client.bpf.c");
+        println!("source_path: {}", source_path.to_str().unwrap());
+        fs::write(&source_path, test_bpf).unwrap();
+        let event_path = tmp_dir.join("event.h");
+        fs::write(&event_path, test_event).unwrap();
+        let tmp_workspace = TempDir::new().unwrap();
+        init_eunomia_workspace(&tmp_workspace).unwrap();
+
+        let mut args = Options {
+            tmpdir: tmp_workspace,
+            compile_opts: CompileOptions {
+                btfgen: true,
+                source_path: source_path.to_str().unwrap().to_string(),
+                output_path: "/tmp/eunomia/test".to_string(),
+                export_event_header: event_path.to_str().unwrap().to_string(),
+                parameters: CompileParams {
+                    clang_bin: "clang".to_string(),
+                    llvm_strip_bin: "llvm-strip".to_string(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        };
+        compile_bpf(&args).unwrap();
+        args.compile_opts.yaml = true;
+        compile_bpf(&args).unwrap();
+        let _ = fs::remove_dir_all(tmp_dir);
     }
 
     #[test]

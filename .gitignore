@@ -6,3 +6,6 @@ docs/
 third_party/wasmtime/
 eunomia.tar.gz
 .eunomia
+shell.nix
+.direnv/
+.envrc
