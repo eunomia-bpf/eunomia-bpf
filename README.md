@@ -1,3 +1,5 @@
+![logo](documents/images/logo.png)
+
 # eunomia-bpf: simplify and enhance eBPF with CO-RE[^1] and WebAssembly[^2]
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
