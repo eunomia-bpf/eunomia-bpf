@@ -16,7 +16,7 @@ jobs:
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: get submodule
       run:  git submodule update --init --recursive --remote
@@ -26,7 +26,7 @@ jobs:
           sudo make -C bpf-loader install-deps
 
     - name: cache dependencies
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       id: cache
       with:
         path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}

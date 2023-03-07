@@ -2,9 +2,26 @@ name: Build and test compiler on Ubuntu
 
 on:
   push:
-    branches: "*"
+    branches: ["*"]
+    paths:
+      - "ecli/**"
+      - "compiler/**"  # Ensure ecc and ecli releasing at same time
+      - "wasm-rumtime/**"  # Release when dependencies updated
+      - "third_party/**"
+      - "bpf-loader/**"
+      - "eunomia-sdk/**"
+      - ".github/**"
+
   pull_request:
-    branches: "*"
+    branches: ["*"]
+    paths:
+      - "ecli/**"
+      - "compiler/**"
+      - "wasm-rumtime/**"
+      - "third_party/**"
+      - "bpf-loader/**"
+      - "eunomia-sdk/**"
+      - ".github/**"
 
 env:
   BUILD_TYPE: Release
@@ -15,9 +32,45 @@ jobs:
 
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+    strategy:
+      matrix:
+        target: [ x86_64-unknown-linux-gnu ]
+
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+
+    - name: Set latest release version
+      if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
+      id: set_version
+      uses: actions/github-script@v6
+      with:
+        result-encoding: string
+        script: |
+          const { data: releases } = await github.rest.repos.listReleases({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+          });
+          
+          const { data: tags } = await github.rest.repos.listTags({
+            owner: context.repo.owner,
+            repo: context.repo.repo
+          });
+          
+          if (releases.length === 0) { return "v0.0.1"; }
+         
+          function increase_v(version) {
+            const parts = version.split(".");
+            const last = parseInt(parts[2]) + 1;
+            const next_version = `${parts[0]}.${parts[1]}.${last.toString()}`;
+            return next_version;
+          }
+          
+          const latest_release_tag = releases[0].tag_name;
+          
+          const tag = tags.find(tag => tag.commit.sha === context.sha);
+          
+          return tag ? tag.name : increase_v(latest_release_tag)
 
     - name: get submodule
       run:  git submodule update --init --recursive --remote
@@ -37,7 +90,7 @@ jobs:
         override: true
 
     - name: cache dependencies
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       id: cache
       with:
         path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
@@ -49,7 +102,7 @@ jobs:
     - name: test ecc
       run:  cd compiler && make test
     - name: Upload analysis results to GitHub
-      uses: github/codeql-action/upload-sarif@v1
+      uses: github/codeql-action/upload-sarif@v2
       with:
         sarif_file: compiler/cmd/rust-clippy-results.sarif
         wait-for-processing: true
@@ -57,3 +110,25 @@ jobs:
     - name: Code coverage using Codecov
       run: bash <(curl -s https://codecov.io/bash)
 
+    - name: Package
+      if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
+      shell: bash
+      run: |
+        mkdir release
+        cp compiler/workspace/bin/ecc ./release/
+        cd release
+        tar czvf ./ecc-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz ecc
+
+    - name: Publish
+      if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
+      uses: softprops/action-gh-release@v1
+      with:
+          files: |
+            release/ecc-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz
+            release/ecc
+          prerelease: false
+          tag_name: ${{ steps.set_version.outputs.result }}
+          generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+ 
