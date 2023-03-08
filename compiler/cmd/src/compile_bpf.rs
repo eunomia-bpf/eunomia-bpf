@@ -256,6 +256,8 @@ mod test {
     }
 
     #[test]
+    #[ignore]
+    // This test will take over 20 mins, ignored by default.
     fn test_generate_custom_btf() {
         let test_bpf = include_str!("../test/client.bpf.c");
         let test_event = include_str!("../test/event.h");
