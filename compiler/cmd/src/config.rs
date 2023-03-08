@@ -176,7 +176,7 @@ pub fn get_output_tar_path(args: &Options) -> String {
 pub fn fetch_btfhub_repo(args: &CompileOptions) -> Result<String> {
     if Path::new(&args.btfhub_archive).exists() {
         Ok(format!(
-            "spik: btfhub-archive directory already exist in {}",
+            "skip: btfhub-archive directory already exist in {}",
             &args.btfhub_archive
         ))
     } else {
