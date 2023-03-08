@@ -20,13 +20,20 @@ struct eunomia_bpf;
 /// create a new eunomia bpf program from a json file
 struct eunomia_bpf *
 open_eunomia_skel_from_json(const char *json_data,
-                            const char *bpf_object_buffer, size_t object_size);
+                            const char *bpf_object_buffer, size_t object_size,
+                            char *btf_archive_path);
 /// create a new eunomia bpf program from a json file
 struct eunomia_bpf *
 open_eunomia_skel_from_json_package(const char *json_data);
+/// create a new eunomia bpf program from a json with btf archive
+struct eunomia_bpf *
+open_eunomia_skel_from_json_package_with_btf(const char *json_data,
+                                             char *btf_archive_path);
+/// create a new eunomia bpf program from a json with args
 struct eunomia_bpf *
 open_eunomia_skel_from_json_package_with_args(const char *json_data,
-                                              char **args, int argc);
+                                              char **args, int argc,
+                                              char *btf_archive_path);
 /// @brief start running the ebpf program
 /// @details load and attach the ebpf program to the kernel to run the ebpf
 /// program if the ebpf program has maps to export to user space, you need to

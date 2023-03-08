@@ -117,6 +117,7 @@ class bpf_skeleton
     std::vector<bpf_map *> maps = {};
     std::vector<bpf_program *> progs = {};
     std::vector<bpf_link *> links = {};
+    char *custom_btf_path = nullptr;
     char *bss_buffer = nullptr;
     char *rodata_buffer = nullptr;
     std::unique_ptr<bpf_object_skeleton, void (*)(bpf_object_skeleton *btf)>
@@ -133,10 +134,11 @@ class bpf_skeleton
   public:
     bpf_skeleton() = default;
     [[nodiscard]] int open_from_json_config(
-        const std::string &json_str,
-        std::vector<char> bpf_object_buffer) noexcept;
+        const std::string &json_str, std::vector<char> bpf_object_buffer,
+        char *btf_archive_path = nullptr) noexcept;
     [[nodiscard]] int open_from_json_config(
-        const std::string &json_package) noexcept;
+        const std::string &json_package,
+        char *btf_archive_path = nullptr) noexcept;
     bpf_skeleton(const bpf_skeleton &) = delete;
     bpf_skeleton(bpf_skeleton &&);
     ~bpf_skeleton() { destroy(); }

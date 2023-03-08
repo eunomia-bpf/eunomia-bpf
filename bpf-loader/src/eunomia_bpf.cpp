@@ -51,6 +51,9 @@ bpf_skeleton::load_and_attach_prog(void)
     }
     auto additional_btf_file = getenv("BTF_FILE_PATH");
     DECLARE_LIBBPF_OPTS(bpf_object_open_opts, openopts);
+    if (custom_btf_path != NULL && !vmlinux_btf_exists()) {
+        openopts.btf_custom_path = custom_btf_path;
+    }
     if (additional_btf_file != NULL) {
         openopts.btf_custom_path = strdup(additional_btf_file);
     }
@@ -550,15 +553,18 @@ struct eunomia_bpf {
 };
 struct eunomia_bpf *
 open_eunomia_skel_from_json(const char *json_data,
-                            const char *bpf_object_buffer, size_t object_size)
+                            const char *bpf_object_buffer, size_t object_size,
+                            char *btf_archive_path = nullptr)
 {
     struct eunomia_bpf *bpf = new eunomia_bpf{ eunomia::bpf_skeleton() };
     if (!bpf) {
         return nullptr;
     }
     if (bpf->program.open_from_json_config(
-            json_data, std::vector<char>{ bpf_object_buffer,
-                                          bpf_object_buffer + object_size })
+            json_data,
+            std::vector<char>{ bpf_object_buffer,
+                               bpf_object_buffer + object_size },
+            btf_archive_path)
         < 0) {
         delete bpf;
         return nullptr;
@@ -569,11 +575,18 @@ open_eunomia_skel_from_json(const char *json_data,
 struct eunomia_bpf *
 open_eunomia_skel_from_json_package(const char *json_data)
 {
+    return open_eunomia_skel_from_json_package_with_btf(json_data, nullptr);
+}
+
+struct eunomia_bpf *
+open_eunomia_skel_from_json_package_with_btf(const char *json_data,
+                                             char *btf_archive_path)
+{
     struct eunomia_bpf *bpf = new eunomia_bpf{ eunomia::bpf_skeleton() };
     if (!bpf) {
         return nullptr;
     }
-    if (bpf->program.open_from_json_config(json_data) < 0) {
+    if (bpf->program.open_from_json_config(json_data, btf_archive_path) < 0) {
         delete bpf;
         return nullptr;
     }
@@ -640,11 +653,10 @@ get_bpf_fd(struct eunomia_bpf *prog, const char *name)
 
 struct eunomia_bpf *
 open_eunomia_skel_from_json_package_with_args(const char *json_data,
-                                              char **args, int argc)
+                                              char **args, int argc,
+                                              char *btf_archive_path)
 {
-    assert(json_data);
-    assert(args);
-    assert(argc > 0);
+    assert(json_data && args && argc > 0);
     std::vector<std::string> args_vec;
     int res;
     for (int i = 0; i < argc; i++) {
@@ -662,7 +674,8 @@ open_eunomia_skel_from_json_package_with_args(const char *json_data,
         return nullptr;
     }
     j["meta"] = json::parse(new_config);
-    return open_eunomia_skel_from_json_package(j.dump().c_str());
+    return open_eunomia_skel_from_json_package_with_btf(j.dump().c_str(),
+                                                        btf_archive_path);
 }
 
 int

@@ -15,6 +15,7 @@
 extern "C" {
 #include <bpf/libbpf.h>
 #include <stdio.h>
+#include "helpers/btf_helpers.h"
 #include <stdlib.h>
 }
 
@@ -167,12 +168,16 @@ eunomia_object_meta::from_json_str(const std::string &j_str)
 }
 
 int
-bpf_skeleton::open_from_json_config(
-    const std::string &json_str, std::vector<char> bpf_object_buffer) noexcept
+bpf_skeleton::open_from_json_config(const std::string &json_str,
+                                    std::vector<char> bpf_object_buffer,
+                                    char *btf_archive_path) noexcept
 {
     try {
         state = ebpf_program_state::INIT;
         meta_data.from_json_str(json_str);
+        if (btf_archive_path != nullptr) {
+            custom_btf_path = get_btf_path(btf_archive_path);
+        };
         __bpf_object_buffer = bpf_object_buffer;
         return 0;
     } catch (std::runtime_error &e) {
@@ -183,7 +188,8 @@ bpf_skeleton::open_from_json_config(
 }
 
 int
-bpf_skeleton::open_from_json_config(const std::string &json_package) noexcept
+bpf_skeleton::open_from_json_config(const std::string &json_package,
+                                    char *btf_archive_path) noexcept
 {
     std::vector<char> bpf_object_buffer;
     std::string json_str;
@@ -210,6 +216,6 @@ bpf_skeleton::open_from_json_config(const std::string &json_package) noexcept
         state = ebpf_program_state::INVALID;
         return -1;
     }
-    return open_from_json_config(json_str, bpf_object_buffer);
+    return open_from_json_config(json_str, bpf_object_buffer, btf_archive_path);
 }
 } // namespace eunomia

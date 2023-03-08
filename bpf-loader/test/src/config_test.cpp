@@ -25,9 +25,9 @@ TEST_CASE("test load config", "[eunomia_object_meta]")
                              std::istreambuf_iterator<char>());
     json config = json::parse(json_package);
     bpf_skeleton ebpf_program;
-    REQUIRE(ebpf_program.open_from_json_config(json_package) == 0);
-    REQUIRE(ebpf_program.open_from_json_config(json_package) == 0);
-    REQUIRE(ebpf_program.open_from_json_config(config["meta"].dump(), {}) == 0);
+    REQUIRE(ebpf_program.open_from_json_config(json_package, NULL) == 0);
+    REQUIRE(ebpf_program.open_from_json_config(json_package, NULL) == 0);
+    REQUIRE(ebpf_program.open_from_json_config(config["meta"].dump(), {}, NULL) == 0);
 }
 
 extern "C" {
