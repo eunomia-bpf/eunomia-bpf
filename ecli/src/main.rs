@@ -9,6 +9,7 @@ mod wasm_bpf_runner;
 mod json_runner;
 mod oci;
 mod runner;
+mod tar_reader;
 use signal_hook::{consts::SIGINT, iterator::Signals};
 use std::{thread, process};
 use clap::{Parser, Subcommand};
