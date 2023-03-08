@@ -183,7 +183,7 @@ pub fn fetch_btfhub_repo(args: &CompileOptions) -> Result<String> {
     } else {
         let command = format!(
             "git clone --depth 1 https://github.com/aquasecurity/btfhub-archive {} && rm -rf {}/.git",
-            &args.btfhub_archive
+            &args.btfhub_archive, &args.btfhub_archive
         );
         let (code, output, error) = run_script::run_script!(command).unwrap();
 

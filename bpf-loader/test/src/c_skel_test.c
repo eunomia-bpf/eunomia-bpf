@@ -48,10 +48,10 @@ test_create_args_and_stop()
     char *args[] = { "boostraps", "value1", "--arg2", "value2" };
     const char *data = read_file_data("../../test/asserts/bootstrap.json");
     struct eunomia_bpf *ctx =
-        open_eunomia_skel_from_json_package_with_args(data, args, 1);
+        open_eunomia_skel_from_json_package_with_args(data, args, 1, NULL);
     assert(ctx);
     destroy_eunomia_skel(ctx);
-    ctx = open_eunomia_skel_from_json_package_with_args(data, args, 2);
+    ctx = open_eunomia_skel_from_json_package_with_args(data, args, 2, NULL);
     assert(!ctx);
 
     char outbuffer[1024];
