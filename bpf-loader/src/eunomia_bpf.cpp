@@ -659,10 +659,6 @@ open_eunomia_skel_from_json_package_with_args(const char *json_data,
     assert(json_data && args && argc > 0);
     std::vector<std::string> args_vec;
     int res;
-    for (int i = 0; i < argc; i++) {
-        args_vec.push_back(args[i]);
-        std::cout << "arg: " << args[i] << std::endl;
-    }
     json j = json::parse(json_data);
     json meta_config = j["meta"];
     std::string meta_config_str = meta_config.dump();
