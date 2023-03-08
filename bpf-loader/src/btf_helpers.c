@@ -13,8 +13,6 @@
 #include "btf_helpers.h"
 
 #define FIELD_LEN 65
-#define ID_FMT "ID=%64s"
-#define VERSION_FMT "VERSION_ID=\"%64s"
 
 // sources: bcc btf_helpers
 // https://github.com/iovisor/bcc/blob/master/libbpf-tools/btf_helpers.c
@@ -51,10 +49,10 @@ get_os_info()
     strncpy(info->arch, u.machine, FIELD_LEN);
 
     while ((read = getline(&line, &len, f)) != -1) {
-        if (sscanf(line, ID_FMT, info->id) == 1)
+        if (sscanf(line, "ID=%64s", info->id) == 1)
             continue;
 
-        if (sscanf(line, VERSION_FMT, info->version) == 1) {
+        if (sscanf(line, "VERSION_ID=\"%64s", info->version) == 1) {
             info->version[strlen(info->version) - 1] = 0;
             continue;
         }
