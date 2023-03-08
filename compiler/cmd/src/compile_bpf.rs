@@ -233,6 +233,7 @@ mod test {
     const TEMP_EUNOMIA_DIR: &str = "/tmp/eunomia";
     use eunomia_rs::TempDir;
     use std::path;
+    use std::process::Command;
 
     use super::*;
 
@@ -256,13 +257,11 @@ mod test {
     }
 
     #[test]
-    #[ignore]
-    // This test will take over 20 mins, ignored by default.
     fn test_generate_custom_btf() {
         let test_bpf = include_str!("../test/client.bpf.c");
         let test_event = include_str!("../test/event.h");
         let tmp_dir = path::Path::new(TEMP_EUNOMIA_DIR);
-        let tmp_dir = tmp_dir.join("test_compile_bpf");
+        let tmp_dir = tmp_dir.join("_test_generate_custom_btf");
         fs::create_dir_all(&tmp_dir).unwrap();
         fs::write(
             tmp_dir.join("other_header.h"),
@@ -276,11 +275,20 @@ mod test {
         fs::write(&event_path, test_event).unwrap();
         let tmp_workspace = TempDir::new().unwrap();
         init_eunomia_workspace(&tmp_workspace).unwrap();
+        // create a fake btfhub archive
+        let btfhub_archive_path = "/tmp/eunomia/test_btfhub_archive".to_string();
+        fs::create_dir_all(&btfhub_archive_path).unwrap();
+        let tar_path = btfhub_archive_path.clone() + "/4.10.0-1004-gcp.btf.tar.xz";
+        Command::new("wget")
+            .args(["https://github.com/aquasecurity/btfhub-archive/raw/main/ubuntu/16.04/x86_64/4.10.0-1004-gcp.btf.tar.xz", "-O", &tar_path])
+            .output()
+            .expect("failed to get btfhub file");
 
         let mut args = Options {
             tmpdir: tmp_workspace,
             compile_opts: CompileOptions {
                 btfgen: true,
+                btfhub_archive: btfhub_archive_path,
                 source_path: source_path.to_str().unwrap().to_string(),
                 output_path: "/tmp/eunomia/test".to_string(),
                 export_event_header: event_path.to_str().unwrap().to_string(),

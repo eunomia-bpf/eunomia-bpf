@@ -173,6 +173,7 @@ pub fn get_output_tar_path(args: &Options) -> String {
     output_object_path.to_str().unwrap().to_string()
 }
 
+/// download the btfhub archives
 pub fn fetch_btfhub_repo(args: &CompileOptions) -> Result<String> {
     if Path::new(&args.btfhub_archive).exists() {
         Ok(format!(
@@ -181,7 +182,7 @@ pub fn fetch_btfhub_repo(args: &CompileOptions) -> Result<String> {
         ))
     } else {
         let command = format!(
-            "git clone --depth 1 https://github.com/aquasecurity/btfhub-archive {}",
+            "git clone --depth 1 https://github.com/aquasecurity/btfhub-archive {} && rm -rf {}/.git",
             &args.btfhub_archive
         );
         let (code, output, error) = run_script::run_script!(command).unwrap();
@@ -199,23 +200,19 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
 
     let btf_archive_path = Path::new(&args.compile_opts.btfhub_archive);
     let btf_tmp = args.tmpdir.path();
-    let opts = fs_extra::dir::CopyOptions::new();
-    fs_extra::dir::copy(btf_archive_path, &btf_tmp, &opts)?;
-
-    // TODO: use copy_dir_all instead fs_extra create.
-    // failed with copy_dir_all (fix needed)
-    // copy_dir_all(btf_archive_path, &btf_tmp)?;
 
     let custom_archive_path = Path::new(&args.compile_opts.output_path).join("custom-archive");
     let command = format!(
         r#"
+        cp -r {} {}/btfhub-archive
         find {} -name "*.tar.xz" | \
         xargs -P 8 -I fileName sh -c 'tar xvfJ "fileName" -C "$(dirname "fileName")" && rm "fileName"'
         find {} -name "*.btf" | \
         xargs -P 8 -I fileName sh -c '{} gen min_core_btf "fileName" "fileName" {}'
-        rm -rf {}
-        cp -r {}/btfhub-archive {}
+        mkdir -p {} && cp -r {}/btfhub-archive {}
         "#,
+        btf_archive_path.to_string_lossy(),
+        btf_tmp.to_string_lossy(),
         btf_tmp.to_string_lossy(),
         btf_tmp.to_string_lossy(),
         bpftool_path,
