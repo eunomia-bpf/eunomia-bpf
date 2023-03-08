@@ -132,6 +132,7 @@ pub async fn run(mut arg: RunArgs) -> EcliResult<()> {
     let conf = ProgramConfigData::async_try_from(&mut arg).await?;
     match arg.prog_type {
         ProgramType::JsonEunomia => handle_json(conf),
+        ProgramType::Tar => handle_json(conf),
         ProgramType::WasmModule => handle_wasm(conf),
         _ => unreachable!(),
     }

@@ -44,7 +44,10 @@ pub fn handle_json(conf: ProgramConfigData) -> EcliResult<()> {
             json_data.as_ptr() as *const c_char,
             extra_arg_raw.as_mut_ptr(),
             extra_arg_raw.len() as i32,
-            std::ptr::null_mut(),
+            match conf.btf_path {
+                Some(path) => path.as_ptr() as *mut c_char,
+                _ => std::ptr::null_mut(),
+            },
         )
     };
     if bpf.is_null() {
