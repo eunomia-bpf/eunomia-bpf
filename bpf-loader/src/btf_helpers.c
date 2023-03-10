@@ -68,7 +68,7 @@ char *
 get_btf_path(const char *path)
 {
     struct os_info *info = NULL;
-    char name_fmt[] = "btf/%s/%s/%s/%s.btf";
+    char name_fmt[] = "%s/%s/%s/%s.btf";
     char name[100];
     int ret;
 
