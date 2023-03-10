@@ -1,4 +1,4 @@
-![logo](documents/images/logo.png)
+![logo](docs/src/img/logo.png)
 
 # eunomia-bpf: simplify and enhance eBPF with CO-RE[^1] and WebAssembly[^2]
 
