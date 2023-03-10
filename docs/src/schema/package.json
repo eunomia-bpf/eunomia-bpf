@@ -1,0 +1,150 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Eunomia BPF Package Schema",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "\\d+.\\d+.\\d+"
+    },
+    "load_ebpf_script": {
+      "type": "string"
+    },
+    "license": {
+      "type": "string"
+    },
+    "author": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "data_sz": {
+      "type": "number",
+      "minimum": 0
+    },
+    "data": {
+      "type": "string"
+    },
+    "maps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/definition"
+      }
+    },
+    "progs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/program"
+      }
+    }
+  },
+  "required": [
+    "name",
+    "version",
+    "load_ebpf_script",
+    "license",
+    "author",
+    "url",
+    "description",
+    "data_sz",
+    "data",
+    "maps",
+    "progs"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "program": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "definition": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "ring_buffer_export": {
+          "$ref": "#/definitions/ring-buffer-export"
+        },
+        "additionalProperties": false
+      },
+      "required": [
+        "name",
+        "type"
+      ]
+    },
+    "ring-buffer-export": {
+      "type": "object",
+      "properties": {
+        "Fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ring-buffer-field"
+          }
+        },
+        "Struct Name": {
+          "type": "string"
+        },
+        "Size": {
+          "type": "number"
+        },
+        "DataSize": {
+          "type": "number"
+        },
+        "Alignment": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "Fields",
+        "Struct Name",
+        "Size",
+        "DataSize",
+        "Alignment"
+      ],
+      "additionalProperties": false
+    },
+    "ring-buffer-field": {
+      "type": "object",
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Type": {
+          "type": "string"
+        },
+        "LLVMType": {
+          "type": "string"
+        },
+        "FieldOffset": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "Name",
+        "Type",
+        "LLVMType",
+        "FieldOffset"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
