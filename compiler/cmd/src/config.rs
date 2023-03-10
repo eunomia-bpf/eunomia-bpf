@@ -242,7 +242,7 @@ pub fn package_btfhub_tar(args: &Options) -> Result<()> {
     let mut object = fs::File::open(&get_output_object_path(args)).unwrap();
     let mut json = fs::File::open(&get_output_package_config_path(args)).unwrap();
 
-    tar.append_dir_all("btf", btf_path).unwrap();
+    tar.append_dir_all(".", btf_path).unwrap();
     tar.append_file("package.json", &mut json).unwrap();
     tar.append_file(&get_object_name(args), &mut object)
         .unwrap();
