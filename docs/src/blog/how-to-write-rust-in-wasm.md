@@ -132,7 +132,7 @@ struct Event {
 
 ```rust
 #[export_name = "__main_argc_argv"]
-fn main(_env_json: u32, _str_len: i32) -> i32 {
+fn exam_main(_env_json: u32, _str_len: i32) -> i32 {
 
     return 0;
 }
@@ -140,7 +140,7 @@ fn main(_env_json: u32, _str_len: i32) -> i32 {
 
 用户态加载和挂载代码，和 C/C++ 中类似：
 
-```rust
+```rust,ignore
     let obj_ptr =
         binding::wasm_load_bpf_object(bpf_object.as_ptr() as u32, bpf_object.len() as i32);
     if obj_ptr == 0 {
@@ -152,12 +152,12 @@ fn main(_env_json: u32, _str_len: i32) -> i32 {
         "handle_exec\0".as_ptr() as u32,
         "\0".as_ptr() as u32,
     );
-    ...
+    ..
 ```
 
 polling ring buffer：
 
-```rust
+```rust,ignore
     let map_fd = binding::wasm_bpf_map_fd_by_name(obj_ptr, "rb\0".as_ptr() as u32);
     if map_fd < 0 {
         println!("Failed to get map fd: {}", map_fd);
@@ -181,7 +181,7 @@ polling ring buffer：
 
 使用 handler 接收返回值：
 
-```rust
+```rust,ignore
 
 extern "C" fn handle_event(_ctx: u32, data: u32, _data_sz: u32) {
     let event_slice = unsafe { slice::from_raw_parts(data as *const Event, 1) };
@@ -201,7 +201,7 @@ extern "C" fn handle_event(_ctx: u32, data: u32, _data_sz: u32) {
             ppid,
             exit_code
         );
-        ...
+        ..
 }
 ```
 

@@ -2,7 +2,7 @@
 
 1.确认内核BTF选项已经打开
 
-```
+```conf
 CONFIG_DEBUG_INFO=y
 CONFIG_DEBUG_INFO_BTF=y
 ```
@@ -14,9 +14,9 @@ CONFIG_DEBUG_INFO_BTF=y
 若/sys/kernel/btf/vmlinux存在，则BTF可用，可通过bpftool生成vmlinux.h
 
 ```sh
- apt install linux-tools-(uname -r)-generic
- apt install linux-tools-generic
- bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
+apt install linux-tools-(uname -r)-generic
+apt install linux-tools-generic
+bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
 ```
 
 若/sys/kernel/btf/vmlinux不存在，则BTF不可用，可通过[btfhub](https://github.com/aquasecurity/btfhub)添加外源BTF信息或生成当前内核的定制化BTF信息
@@ -45,7 +45,7 @@ total size is 144,419  speedup is 1,622.69
 
 之后就可以根据某个对应的eBPF 对象生成定制的BTF 文件
 
-```
+```sh
 #生成定制的 eBPF 对象的 BTF 文件:
 $ ./tools/btfgen.sh -a AARCH64 -o $HOME/****.bpf.core.o
 ```
