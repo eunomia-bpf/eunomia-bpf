@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Eunomia BPF Configuration Schema",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string" },
+    "version": { "type": "string", "pattern": "\\d+.\\d+.\\d+" },
+    "load_ebpf_script": { "type": "string" },
+    "license": { "type": "string" },
+    "author": { "type": "string" },
+    "url": { "type": "string" },
+    "description": { "type": "string" }
+  },
+  "required": [
+    "name",
+    "version",
+    "load_ebpf_script",
+    "license",
+    "author",
+    "url",
+    "description"
+  ],
+  "additionalProperties": false
+}

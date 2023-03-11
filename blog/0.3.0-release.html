@@ -1,0 +1,645 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>eunomia-bpf 0.3.0 发布：只需编写内核态代码，轻松构建、打包、发布完整的 eBPF 应用 - Eunomia-bpf Documents</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item "><a href="../introduction/index.html"><strong aria-hidden="true">1.</strong> Introduction</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../introduction/introduction.html"><strong aria-hidden="true">1.1.</strong> Detail introduction</a></li><li class="chapter-item "><a href="../wasm-bpf.html"><strong aria-hidden="true">1.2.</strong> Wasm-bpf subproject</a></li></ol></li><li class="chapter-item "><li class="part-title">User Manual</li><li class="chapter-item "><a href="../installation/index.html"><strong aria-hidden="true">2.</strong> Installation</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../installation/build.html"><strong aria-hidden="true">2.1.</strong> Build</a></li><li class="chapter-item "><a href="../installation/build-android-arm.html"><strong aria-hidden="true">2.2.</strong> Build on Android or ARM</a></li></ol></li><li class="chapter-item "><a href="../quickstart.html"><strong aria-hidden="true">3.</strong> Quick Start</a></li><li class="chapter-item "><a href="../ecli-dockerfile-usage.html"><strong aria-hidden="true">4.</strong> Docker manual</a></li><li class="chapter-item "><a href="../mannual.html"><strong aria-hidden="true">5.</strong> Manual (Chinese)</a></li><li class="chapter-item "><a href="../online.html"><strong aria-hidden="true">6.</strong> Online Demo</a></li><li class="chapter-item "><a href="../common_problems.html"><strong aria-hidden="true">7.</strong> Common problems</a></li><li class="chapter-item "><a href="../supporting-external-BTF.html"><strong aria-hidden="true">8.</strong> External BTF support</a></li><li class="chapter-item "><a href="../benchmark.html"><strong aria-hidden="true">9.</strong> Benchmark</a></li><li class="chapter-item affix "><li class="part-title">videos</li><li class="chapter-item "><a href="../video.html"><strong aria-hidden="true">10.</strong> Public talk video</a></li><li class="chapter-item expanded "><a href="../blog/index.html"><strong aria-hidden="true">11.</strong> Blog</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../blog/introduce-to-wasm-bpf-bpf-community.html"><strong aria-hidden="true">11.1.</strong> Wasm-bpf: 架起 Webassembly 和 eBPF 内核可编程的桥梁</a></li><li class="chapter-item "><a href="../blog/how-to-write-c-in-wasm.html"><strong aria-hidden="true">11.2.</strong> 在 WebAssembly 中使用 C/C++ 和 libbpf 编写 eBPF 程序</a></li><li class="chapter-item "><a href="../blog/how-to-write-rust-in-wasm.html"><strong aria-hidden="true">11.3.</strong> 在 WebAssembly 中使用 Rust 编写 eBPF 程序并发布 OCI 镜像</a></li><li class="chapter-item "><a href="../blog/GPTtrace.html"><strong aria-hidden="true">11.4.</strong> 使用 ChatGPT ，通过自然语言编写 eBPF 程序和追踪 Linux 系统</a></li><li class="chapter-item "><a href="../blog/ebpf-wasm.html"><strong aria-hidden="true">11.5.</strong> 当 Wasm 遇见 eBPF ：使用 WebAssembly 编写、分发、加载运行 eBPF 程序</a></li><li class="chapter-item "><a href="../blog/lmp-eunomia.html"><strong aria-hidden="true">11.6.</strong> 如何在 Linux 显微镜（LMP）项目中开启 eBPF 之旅</a></li><li class="chapter-item expanded "><a href="../blog/0.3.0-release.html" class="active"><strong aria-hidden="true">11.7.</strong> eunomia-bpf 0.3.0 发布：只需编写内核态代码，轻松构建、打包、发布完整的 eBPF 应用</a></li><li class="chapter-item "><a href="../blog/coolbpf-eunomia.html"><strong aria-hidden="true">11.8.</strong> eunomia-bpf：展望 2023，让 eBPF 插上 Wasm 的翅膀</a></li><li class="chapter-item "><a href="../blog/bpf-news.html"><strong aria-hidden="true">11.9.</strong> eBPF 进阶: 内核新特性进展一览</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Eunomia-bpf Documents</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/eunomia-bpf/eunomia-bpf" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <p>#! https://zhuanlan.zhihu.com/p/589784295</p>
+<h1 id="eunomia-bpf-030-发布只需编写内核态代码轻松构建打包发布完整的-ebpf-应用"><a class="header" href="#eunomia-bpf-030-发布只需编写内核态代码轻松构建打包发布完整的-ebpf-应用">eunomia-bpf 0.3.0 发布：只需编写内核态代码，轻松构建、打包、发布完整的 eBPF 应用</a></h1>
+<h2 id="eunomia-bpf-简介"><a class="header" href="#eunomia-bpf-简介">eunomia-bpf 简介</a></h2>
+<p>eBPF 源于 BPF，本质上是处于内核中的一个高效与灵活的虚拟机组件，以一种安全的方式在许多内核 hook 点执行字节码，开发者可基于 eBPF 开发性能分析工具、软件定义网络、安全等诸多场景。但是，目前对于开发和使用 eBPF 应用而言还可能存在一些不够方便的地方：</p>
+<ul>
+<li>搭建和开发 eBPF 程序是一个门槛比较高、比较复杂的工作，必须同时关注内核态和用户态两个方面的交互和信息处理，有时还要配置环境和编写对应的构建脚本；</li>
+<li>目前不同用户态语言如 C、Go、Rust 等编写的工具难以兼容、难以统一管理，多种开发生态难以整合：如何跨架构、跨语言和内核版本，使用标准化的方式方便又快捷的打包、分发、发布二进制 eBPF 程序，同时还需要能很方便地动态调整 eBPF 程序的挂载点、参数等等？</li>
+<li>如何更方便地使用 eBPF 的工具：有没有可能从云端一行命令拉下来就使用，类似 docker 那样？或者把 eBPF 程序作为服务运行，通过 HTTP 请求和 URL 即可热更新、动态插拔运行任意一个 eBPF 程序？</li>
+</ul>
+<p><a href="https://github.com/eunomia-bpf/eunomia-bpf">eunomia-bpf</a> 是一个开源的 eBPF 动态加载运行时和开发工具链，是为了简化 eBPF 程序的开发、构建、分发、运行而设计的，基于 libbpf 的 CO-RE 轻量级开发框架。</p>
+<p>使用 eunomia-bpf ，可以：</p>
+<ul>
+<li>在编写 eBPF 程序或工具时只编写内核态代码，自动获取内核态导出信息；</li>
+<li>使用 Wasm 进行用户态交互程序的开发，在 Wasm 虚拟机内部控制整个 eBPF 程序的加载和执行，以及处理相关数据；</li>
+<li>eunomia-bpf 可以将预编译的 eBPF 程序打包为通用的 JSON 或 Wasm 模块，跨架构和内核版本进行分发，无需重新编译即可动态加载运行。</li>
+</ul>
+<p>eunomia-bpf 由一个编译工具链和一个运行时库组成, 对比传统的 BCC、原生 libbpf 等框架，大幅简化了 eBPF 程序的开发流程，在大多数时候只需编写内核态代码，即可轻松构建、打包、发布完整的 eBPF 应用，同时内核态 eBPF 代码保证和主流的 libbpf, libbpfgo, libbpf-rs 等开发框架的 100% 兼容性。需要编写用户态代码的时候，也可以借助 Webassembly(Wasm) 实现通过多种语言进行用户态开发。和 bpftrace 等脚本工具相比, eunomia-bpf 保留了类似的便捷性, 同时不仅局限于 trace 方面, 可以用于更多的场景, 如网络、安全等等。</p>
+<blockquote>
+<ul>
+<li>eunomia-bpf 项目 Github 地址: <a href="https://github.com/eunomia-bpf/eunomia-bpf">https://github.com/eunomia-bpf/eunomia-bpf</a></li>
+<li>gitee 镜像: <a href="https://gitee.com/anolis/eunomia">https://gitee.com/anolis/eunomia</a></li>
+</ul>
+</blockquote>
+<p>我们发布了最新的 0.3 版本, 对于整体的开发和使用流程进行了优化，同时也支持了更多的 eBPF 程序和 maps 类型。</p>
+<h2 id="运行时优化增强功能性-增加多种程序类型"><a class="header" href="#运行时优化增强功能性-增加多种程序类型">运行时优化：增强功能性, 增加多种程序类型</a></h2>
+<ol>
+<li>
+<p>只需编写内核态代码, 即可获得对应的输出信息, 以可读、规整的方式打印到标准输出. 以一个简单的 eBPF 程序, 跟踪所有 open 类型系统调用的 opensnoop 为例:</p>
+<p>头文件 opensnoop.h</p>
+<pre><code class="language-c">#ifndef __OPENSNOOP_H
+#define __OPENSNOOP_H
+
+#define TASK_COMM_LEN 16
+#define NAME_MAX 255
+#define INVALID_UID ((uid_t)-1)
+
+// used for export event
+struct event {
+  /* user terminology for pid: */
+  unsigned long long ts;
+  int pid;
+  int uid;
+  int ret;
+  int flags;
+  char comm[TASK_COMM_LEN];
+  char fname[NAME_MAX];
+};
+
+#endif /* __OPENSNOOP_H */
+</code></pre>
+<p>内核态代码 opensnoop.bpf.c</p>
+<pre><code class="language-c">#include &lt;vmlinux.h&gt;
+#include &lt;bpf/bpf_helpers.h&gt;
+#include &quot;opensnoop.h&quot;
+
+struct args_t {
+  const char *fname;
+  int flags;
+};
+
+/// Process ID to trace
+const volatile int pid_target = 0;
+/// Thread ID to trace
+const volatile int tgid_target = 0;
+/// @description User ID to trace
+const volatile int uid_target = 0;
+/// @cmdarg {&quot;default&quot;: false, &quot;short&quot;: &quot;f&quot;, &quot;long&quot;: &quot;failed&quot;}
+const volatile bool targ_failed = false;
+
+struct {
+  __uint(type, BPF_MAP_TYPE_HASH);
+  __uint(max_entries, 10240);
+  __type(key, u32);
+  __type(value, struct args_t);
+} start SEC(&quot;.maps&quot;);
+
+struct {
+  __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
+  __uint(key_size, sizeof(u32));
+  __uint(value_size, sizeof(u32));
+} events SEC(&quot;.maps&quot;);
+
+static __always_inline bool valid_uid(uid_t uid) {
+  return uid != INVALID_UID;
+}
+
+static __always_inline
+bool trace_allowed(u32 tgid, u32 pid)
+{
+  u32 uid;
+
+  /* filters */
+  if (tgid_target &amp;&amp; tgid_target != tgid)
+    return false;
+  if (pid_target &amp;&amp; pid_target != pid)
+    return false;
+  if (valid_uid(uid_target)) {
+    uid = (u32)bpf_get_current_uid_gid();
+    if (uid_target != uid) {
+      return false;
+    }
+  }
+  return true;
+}
+
+SEC(&quot;tracepoint/syscalls/sys_enter_open&quot;)
+int tracepoint__syscalls__sys_enter_open(struct trace_event_raw_sys_enter* ctx)
+{
+  u64 id = bpf_get_current_pid_tgid();
+  /* use kernel terminology here for tgid/pid: */
+  u32 tgid = id &gt;&gt; 32;
+  u32 pid = id;
+
+  /* store arg info for later lookup */
+  if (trace_allowed(tgid, pid)) {
+    struct args_t args = {};
+    args.fname = (const char *)ctx-&gt;args[0];
+    args.flags = (int)ctx-&gt;args[1];
+    bpf_map_update_elem(&amp;start, &amp;pid, &amp;args, 0);
+  }
+  return 0;
+}
+
+SEC(&quot;tracepoint/syscalls/sys_enter_openat&quot;)
+int tracepoint__syscalls__sys_enter_openat(struct trace_event_raw_sys_enter* ctx)
+{
+  u64 id = bpf_get_current_pid_tgid();
+  /* use kernel terminology here for tgid/pid: */
+  u32 tgid = id &gt;&gt; 32;
+  u32 pid = id;
+
+  /* store arg info for later lookup */
+  if (trace_allowed(tgid, pid)) {
+    struct args_t args = {};
+    args.fname = (const char *)ctx-&gt;args[1];
+    args.flags = (int)ctx-&gt;args[2];
+    bpf_map_update_elem(&amp;start, &amp;pid, &amp;args, 0);
+  }
+  return 0;
+}
+
+static __always_inline
+int trace_exit(struct trace_event_raw_sys_exit* ctx)
+{
+  struct event event = {};
+  struct args_t *ap;
+  int ret;
+  u32 pid = bpf_get_current_pid_tgid();
+
+  ap = bpf_map_lookup_elem(&amp;start, &amp;pid);
+  if (!ap)
+    return 0; /* missed entry */
+  ret = ctx-&gt;ret;
+  if (targ_failed &amp;&amp; ret &gt;= 0)
+    goto cleanup; /* want failed only */
+
+  /* event data */
+  event.pid = bpf_get_current_pid_tgid() &gt;&gt; 32;
+  event.uid = bpf_get_current_uid_gid();
+  bpf_get_current_comm(&amp;event.comm, sizeof(event.comm));
+  bpf_probe_read_user_str(&amp;event.fname, sizeof(event.fname), ap-&gt;fname);
+  event.flags = ap-&gt;flags;
+  event.ret = ret;
+
+  /* emit event */
+  bpf_perf_event_output(ctx, &amp;events, BPF_F_CURRENT_CPU,
+            &amp;event, sizeof(event));
+
+cleanup:
+  bpf_map_delete_elem(&amp;start, &amp;pid);
+  return 0;
+}
+
+SEC(&quot;tracepoint/syscalls/sys_exit_open&quot;)
+int tracepoint__syscalls__sys_exit_open(struct trace_event_raw_sys_exit* ctx)
+{
+  return trace_exit(ctx);
+}
+
+SEC(&quot;tracepoint/syscalls/sys_exit_openat&quot;)
+int tracepoint__syscalls__sys_exit_openat(struct trace_event_raw_sys_exit* ctx)
+{
+  return trace_exit(ctx);
+}
+
+/// Trace open family syscalls.
+char LICENSE[] SEC(&quot;license&quot;) = &quot;GPL&quot;;
+</code></pre>
+<p>编译运行:</p>
+<pre><code class="language-console">$ ecc opensnoop.bpf.c opensnoop.h
+Compiling bpf object...
+Generating export types...
+Packing ebpf object and config into package.json...
+$ sudo ecli examples/bpftools/opensnoop/package.json
+TIME     TS      PID     UID     RET     FLAGS   COMM    FNAME
+20:31:50  0      1       0       51      524288  systemd /proc/614/cgroup
+20:31:50  0      33182   0       25      524288  ecli    /etc/localtime
+20:31:53  0      754     0       6       0       irqbalance /proc/interrupts
+20:31:53  0      754     0       6       0       irqbalance /proc/stat
+20:32:03  0      754     0       6       0       irqbalance /proc/interrupts
+20:32:03  0      754     0       6       0       irqbalance /proc/stat
+20:32:03  0      632     0       7       524288  vmtoolsd /etc/mtab
+20:32:03  0      632     0       9       0       vmtoolsd /proc/devices
+
+$ sudo ecli examples/bpftools/opensnoop/package.json --pid_target 754
+TIME     TS      PID     UID     RET     FLAGS   COMM    FNAME
+20:34:13  0      754     0       6       0       irqbalance /proc/interrupts
+20:34:13  0      754     0       6       0       irqbalance /proc/stat
+20:34:23  0      754     0       6       0       irqbalance /proc/interrupts
+20:34:23  0      754     0       6       0       irqbalance /proc/stat
+</code></pre>
+<p>或使用 docker 编译:</p>
+<pre><code class="language-shell">docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+</code></pre>
+<p>编译发布后, 也可以轻松从云端一行命令启动任意 eBPF 程序, 例如:</p>
+<pre><code class="language-bash">wget https://aka.pw/bpf-ecli -O ecli &amp;&amp; chmod +x ./ecli     # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
+sudo ./ecli https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json # simply run a pre-compiled ebpf code from a url
+sudo ./ecli sigsnoop:latest # run with a name and download the latest version bpf tool from our repo
+</code></pre>
+<p>完整代码在这里: <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/opensnoop">https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/opensnoop</a></p>
+</li>
+<li>
+<p>支持根据代码中的注释信息自动生成用户态命令行参数。</p>
+<p>比如需要实现一个 ebpf 程序里面的 pid 过滤器，只需要编写内核态代码，在 eBPF 中声明全局变量，即可自动生成命令行参数：</p>
+<pre><code class="language-c">/// Process ID to trace
+const volatile pid_t pid_target = 0;
+/// Thread ID to trace
+const volatile pid_t tgid_target = 0;
+/// @description User ID to trace
+const volatile uid_t uid_target = 0;
+/// @cmdarg {&quot;default&quot;: false, &quot;short&quot;: &quot;f&quot;, &quot;long&quot;: &quot;failed&quot;}
+/// @description target pid to trace
+const volatile bool targ_failed = false;
+</code></pre>
+<p>我们会将注释文档的描述信息提取，放在配置文件里面，并且变成 eBPF 应用的命令行参数. 使用方式以跟踪所有 open 系统调用的 opensnoop 为例：</p>
+<pre><code class="language-console">$ sudo ecli  examples/bpftools/opensnoop/package.json -h
+Usage: opensnoop_bpf [--help] [--version] [--verbose] [--pid_target VAR] [--tgid_target VAR] [--uid_target VAR] [--failed]
+
+Trace open family syscalls.
+
+Optional arguments:
+  -h, --help    shows help message and exits
+  -v, --version prints version information and exits
+  --verbose     prints libbpf debug information
+  --pid_target  Process ID to trace
+  --tgid_target Thread ID to trace
+
+$ sudo ecli examples/bpftools/opensnoop/package.json --pid_target 754
+TIME     TS      PID     UID     RET     FLAGS   COMM    FNAME
+20:34:13  0      754     0       6       0       irqbalance /proc/interrupts
+20:34:13  0      754     0       6       0       irqbalance /proc/stat
+20:34:23  0      754     0       6       0       irqbalance /proc/interrupts
+20:34:23  0      754     0       6       0       irqbalance /proc/stat
+</code></pre>
+</li>
+<li>
+<p>支持自动采集和综合非 ring buffer 和 perf event 的 map，比如 hash map，打印出信息或生成直方图。</p>
+<p>之前使用 ring buffer 和 perf event 的场景会稍微受限，因此需要有一种方法可以自动从 maps 里面采集数据，在源代码里面添加注释即可：</p>
+<pre><code class="language-c">/// @sample {&quot;interval&quot;: 1000, &quot;type&quot; : &quot;log2_hist&quot;}
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, MAX_ENTRIES);
+    __type(key, u32);
+    __type(value, struct hist);
+} hists SEC(&quot;.maps&quot;);
+</code></pre>
+<p>就会每隔一秒去采集一次 counters 里面的内容（print_map），以 runqlat 为例：</p>
+<pre><code class="language-console">$ sudo ecli examples/bpftools/runqlat/package.json -h
+Usage: runqlat_bpf [--help] [--version] [--verbose] [--filter_cg] [--targ_per_process] [--targ_per_thread] [--targ_per_pidns] [--targ_ms] [--targ_tgid VAR]
+
+Summarize run queue (scheduler) latency as a histogram.
+
+Optional arguments:
+  -h, --help            shows help message and exits
+  -v, --version         prints version information and exits
+  --verbose             prints libbpf debug information
+  --filter_cg           set value of bool variable filter_cg
+  --targ_per_process    set value of bool variable targ_per_process
+  --targ_per_thread     set value of bool variable targ_per_thread
+  --targ_per_pidns      set value of bool variable targ_per_pidns
+  --targ_ms             set value of bool variable targ_ms
+  --targ_tgid           set value of pid_t variable targ_tgid
+
+Built with eunomia-bpf framework.
+See https://github.com/eunomia-bpf/eunomia-bpf for more information.
+
+$ sudo ecli examples/bpftools/runqlat/package.json
+key =  4294967295
+comm = rcu_preempt
+
+    (unit)              : count    distribution
+        0 -&gt; 1          : 9        |****                                    |
+        2 -&gt; 3          : 6        |**                                      |
+        4 -&gt; 7          : 12       |*****                                   |
+        8 -&gt; 15         : 28       |*************                           |
+       16 -&gt; 31         : 40       |*******************                     |
+       32 -&gt; 63         : 83       |****************************************|
+       64 -&gt; 127        : 57       |***************************             |
+      128 -&gt; 255        : 19       |*********                               |
+      256 -&gt; 511        : 11       |*****                                   |
+      512 -&gt; 1023       : 2        |                                        |
+     1024 -&gt; 2047       : 2        |                                        |
+     2048 -&gt; 4095       : 0        |                                        |
+     4096 -&gt; 8191       : 0        |                                        |
+     8192 -&gt; 16383      : 0        |                                        |
+    16384 -&gt; 32767      : 1        |                                        |
+
+$ sudo ecli examples/bpftools/runqlat/package.json --targ_per_process
+key =  3189
+comm = cpptools
+
+    (unit)              : count    distribution
+        0 -&gt; 1          : 0        |                                        |
+        2 -&gt; 3          : 0        |                                        |
+        4 -&gt; 7          : 0        |                                        |
+        8 -&gt; 15         : 1        |***                                     |
+       16 -&gt; 31         : 2        |*******                                 |
+       32 -&gt; 63         : 11       |****************************************|
+       64 -&gt; 127        : 8        |*****************************           |
+      128 -&gt; 255        : 3        |**********                              |
+</code></pre>
+<p>完整代码在这里: <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/runqlat">https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/runqlat</a></p>
+</li>
+<li>
+<p>添加对 uprobe, tc 等多种类型 map 的支持, 允许用标记实现添加额外 attach 信息, 例如:</p>
+<pre><code class="language-c">
+/// @tchook {&quot;ifindex&quot;:1, &quot;attach_point&quot;:&quot;BPF_TC_INGRESS&quot;}
+/// @tcopts {&quot;handle&quot;:1,  &quot;priority&quot;:1}
+SEC(&quot;tc&quot;)
+int tc_ingress(struct __sk_buff *ctx)
+{
+    void *data_end = (void *)(__u64)ctx-&gt;data_end;
+    void *data = (void *)(__u64)ctx-&gt;data;
+    struct ethhdr *l2;
+    struct iphdr *l3;
+
+    if (ctx-&gt;protocol != bpf_htons(ETH_P_IP))
+        return TC_ACT_OK;
+
+    l2 = data;
+    if ((void *)(l2 + 1) &gt; data_end)
+        return TC_ACT_OK;
+
+    l3 = (struct iphdr *)(l2 + 1);
+    if ((void *)(l3 + 1) &gt; data_end)
+        return TC_ACT_OK;
+
+    bpf_printk(&quot;Got IP packet: tot_len: %d, ttl: %d&quot;, bpf_ntohs(l3-&gt;tot_len), l3-&gt;ttl);
+    return TC_ACT_OK;
+}
+</code></pre>
+</li>
+</ol>
+<h2 id="编译方面编译体验优化格式改进"><a class="header" href="#编译方面编译体验优化格式改进">编译方面：编译体验优化、格式改进</a></h2>
+<ol>
+<li>完全重构了编译工具链和配置文件格式，回归本质的配置文件 + ebpf 字节码 .o 的形式，不强制打包成 JSON 格式，对分发使用和人类编辑配置文件更友好，同时也可以更好地和 libbpf 相关工具链兼容;</li>
+<li>支持 JSON 和 YAML 两种形式的配置文件（xxx.skel.yaml 和 xxx.skel.json），或打包成 package.json 和 package.yaml 进行分发;</li>
+<li>尽可能使用 BTF 信息表达符号类型，并且把 BTF 信息隐藏在二进制文件中，让配置文件更可读和可编辑，同时复用 libbpf 提供的 BTF 处理机制，完善对于类型的处理；</li>
+<li>支持更多的数据导出类型：enum、struct、bool 等等</li>
+<li>编译部分可以不依赖于 docker 运行，可以安装二进制和头文件到 ~/.eunomia（对嵌入式或者国内网络更友好，更方便使用），原本 docker 的使用方式还是可以继续使用；</li>
+<li>文件名没有特定限制，不需要一定是 xxx.bpf.h 和 xxx.bpf.c，可以通过 ecc 指定当前目录下需要编译的文件;</li>
+<li>把 example 中旧的 xxx.bpf.h 头文件修改为 xxx.h，和 libbpf-tools 和 libbpf-boostrap 保持一致，确保 0 代码修改即可复用 libbpf 相关代码生态；</li>
+<li>大幅度优化编译速度和减少编译依赖，使用 Rust 重构了编译工具链，替换原先的 python 脚本;</li>
+</ol>
+<p>在配置文件中, 可以直接修改 progs/attach 控制挂载点，variables/value 控制全局变量，maps/data 控制在加载 ebpf 程序时往 map 里面放什么数据，export_types/members 控制往用户态传输什么数据格式，而不需要重新编译 eBPF 程序。配置文件和 bpf.o 二进制是配套的，应该搭配使用，或者打包成一个 package.json/yaml 分发。打包的时候会进行压缩，一般来说压缩后的配置文件和二进制合起来的大小在数十 kb 。</p>
+<p>配置文件举例:</p>
+<pre><code class="language-yaml">bpf_skel:
+  data_sections:
+  - name: .rodata
+    variables:
+    - name: min_duration_ns
+      type: unsigned long long
+      value: 100
+  maps:
+  - ident: exec_start
+    name: exec_start
+    data:
+      - key: 123
+        value: 456
+  - ident: rb
+    name: rb
+  - ident: rodata
+    mmaped: true
+    name: client_b.rodata
+  obj_name: client_bpf
+  progs:
+  - attach: tp/sched/sched_process_exec
+    link: true
+    name: handle_exec
+export_types:
+- members:
+  - name: pid
+    type: int
+  - name: ppid
+    type: int
+  - name: comm
+    type: char[16]
+  - name: filename
+    type: char[127]
+  - name: exit_event
+    type: bool
+  name: event
+  type_id: 613
+</code></pre>
+<h2 id="下载安装-eunomia-bpf"><a class="header" href="#下载安装-eunomia-bpf">下载安装 eunomia-bpf</a></h2>
+<ul>
+<li>
+<p>Install the <code>ecli</code> tool for running eBPF program from the cloud:</p>
+<pre><code class="language-console">$ wget https://aka.pw/bpf-ecli -O ecli &amp;&amp; chmod +x ./ecli
+$ ./ecli -h
+Usage: ecli [--help] [--version] [--json] [--no-cache] url-and-args
+....
+</code></pre>
+</li>
+<li>
+<p>Install the compiler-toolchain for compiling eBPF kernel code to a <code>config</code> file or <code>Wasm</code> module:</p>
+<pre><code class="language-console">$ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecc &amp;&amp; chmod +x ./ecc
+$ ./ecc -h
+eunomia-bpf compiler
+Usage: ecc [OPTIONS] &lt;SOURCE_PATH&gt; [EXPORT_EVENT_HEADER]
+....
+....
+</code></pre>
+<p>or use the docker image for compile:</p>
+<pre><code class="language-bash">docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest # compile with docker. `pwd` should contains *.bpf.c files and *.h files.
+</code></pre>
+</li>
+</ul>
+<h2 id="下一步发展的计划"><a class="header" href="#下一步发展的计划">下一步发展的计划</a></h2>
+<ol>
+<li>和更多的社区伙伴合作, 并逐步形成标准化的, 使用配置文件或 Wasm 二进制进行打包分发, 一次编译, 到处运行的 eBPF 程序格式;</li>
+<li>和 LMP 社区一起, 完善基于 ORAS, OCI 和 Wasm 的 eBPF 程序分发和运行时标准, 让任意 eBPF 应用均可从云端一行命令拉下来直接运行, 或轻松嵌入其他应用中使用, 无需关注架构, 内核版本等细节;</li>
+<li>尝试和 Coolbpf 社区一同完善远程编译, 低版本支持的特性, 以及支持 RPC 的 libbpf 库;</li>
+<li>完善用户态 Wasm 和 eBPF 程序之间的互操作性, 探索 WASI 的相关扩展;</li>
+</ol>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><a href="https://eunomia-bpf.github.io/blog/ebpf-wasm.html">当 Wasm 遇见 eBPF ：使用 WebAssembly 编写、分发、加载运行 eBPF 程序</a></li>
+<li><a href="https://eunomia-bpf.github.io/blog/lmp-eunomia.html">如何在 Linux 显微镜（LMP）项目中开启 eBPF 之旅？</a></li>
+<li><a href="https://openanolis.cn/sig/ebpfresearch/doc/640013458629853191">龙蜥社区 eunomia-bpf 项目主页</a></li>
+<li><a href="https://eunomia-bpf.github.io/">eunomia-bpf 项目文档</a></li>
+<li><a href="https://github.com/linuxkerneltravel/lmp">LMP 项目</a></li>
+</ol>
+<h2 id="我们的微信群"><a class="header" href="#我们的微信群">我们的微信群</a></h2>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../blog/lmp-eunomia.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../blog/coolbpf-eunomia.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../blog/lmp-eunomia.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../blog/coolbpf-eunomia.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

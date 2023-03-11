@@ -1,0 +1,255 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>使用 ChatGPT ，通过自然语言编写 eBPF 程序和追踪 Linux 系统 - Eunomia-bpf Documents</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item "><a href="../introduction/index.html"><strong aria-hidden="true">1.</strong> Introduction</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../introduction/introduction.html"><strong aria-hidden="true">1.1.</strong> Detail introduction</a></li><li class="chapter-item "><a href="../wasm-bpf.html"><strong aria-hidden="true">1.2.</strong> Wasm-bpf subproject</a></li></ol></li><li class="chapter-item "><li class="part-title">User Manual</li><li class="chapter-item "><a href="../installation/index.html"><strong aria-hidden="true">2.</strong> Installation</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../installation/build.html"><strong aria-hidden="true">2.1.</strong> Build</a></li><li class="chapter-item "><a href="../installation/build-android-arm.html"><strong aria-hidden="true">2.2.</strong> Build on Android or ARM</a></li></ol></li><li class="chapter-item "><a href="../quickstart.html"><strong aria-hidden="true">3.</strong> Quick Start</a></li><li class="chapter-item "><a href="../ecli-dockerfile-usage.html"><strong aria-hidden="true">4.</strong> Docker manual</a></li><li class="chapter-item "><a href="../mannual.html"><strong aria-hidden="true">5.</strong> Manual (Chinese)</a></li><li class="chapter-item "><a href="../online.html"><strong aria-hidden="true">6.</strong> Online Demo</a></li><li class="chapter-item "><a href="../common_problems.html"><strong aria-hidden="true">7.</strong> Common problems</a></li><li class="chapter-item "><a href="../supporting-external-BTF.html"><strong aria-hidden="true">8.</strong> External BTF support</a></li><li class="chapter-item "><a href="../benchmark.html"><strong aria-hidden="true">9.</strong> Benchmark</a></li><li class="chapter-item affix "><li class="part-title">videos</li><li class="chapter-item "><a href="../video.html"><strong aria-hidden="true">10.</strong> Public talk video</a></li><li class="chapter-item expanded "><a href="../blog/index.html"><strong aria-hidden="true">11.</strong> Blog</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../blog/introduce-to-wasm-bpf-bpf-community.html"><strong aria-hidden="true">11.1.</strong> Wasm-bpf: 架起 Webassembly 和 eBPF 内核可编程的桥梁</a></li><li class="chapter-item "><a href="../blog/how-to-write-c-in-wasm.html"><strong aria-hidden="true">11.2.</strong> 在 WebAssembly 中使用 C/C++ 和 libbpf 编写 eBPF 程序</a></li><li class="chapter-item "><a href="../blog/how-to-write-rust-in-wasm.html"><strong aria-hidden="true">11.3.</strong> 在 WebAssembly 中使用 Rust 编写 eBPF 程序并发布 OCI 镜像</a></li><li class="chapter-item expanded "><a href="../blog/GPTtrace.html" class="active"><strong aria-hidden="true">11.4.</strong> 使用 ChatGPT ，通过自然语言编写 eBPF 程序和追踪 Linux 系统</a></li><li class="chapter-item "><a href="../blog/ebpf-wasm.html"><strong aria-hidden="true">11.5.</strong> 当 Wasm 遇见 eBPF ：使用 WebAssembly 编写、分发、加载运行 eBPF 程序</a></li><li class="chapter-item "><a href="../blog/lmp-eunomia.html"><strong aria-hidden="true">11.6.</strong> 如何在 Linux 显微镜（LMP）项目中开启 eBPF 之旅</a></li><li class="chapter-item "><a href="../blog/0.3.0-release.html"><strong aria-hidden="true">11.7.</strong> eunomia-bpf 0.3.0 发布：只需编写内核态代码，轻松构建、打包、发布完整的 eBPF 应用</a></li><li class="chapter-item "><a href="../blog/coolbpf-eunomia.html"><strong aria-hidden="true">11.8.</strong> eunomia-bpf：展望 2023，让 eBPF 插上 Wasm 的翅膀</a></li><li class="chapter-item "><a href="../blog/bpf-news.html"><strong aria-hidden="true">11.9.</strong> eBPF 进阶: 内核新特性进展一览</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Eunomia-bpf Documents</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/eunomia-bpf/eunomia-bpf" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="使用-chatgpt-通过自然语言编写-ebpf-程序和追踪-linux-系统"><a class="header" href="#使用-chatgpt-通过自然语言编写-ebpf-程序和追踪-linux-系统">使用 ChatGPT ，通过自然语言编写 eBPF 程序和追踪 Linux 系统</a></h1>
+<p>eBPF 是一项革命性的技术，起源于 Linux 内核，可以在操作系统的内核中运行沙盒程序。它被用来安全和有效地扩展内核的功能，而不需要改变内核的源代码或加载内核模块。今天，eBPF被广泛用于各类场景：在现代数据中心和云原生环境中，可以提供高性能的网络包处理和负载均衡；以非常低的资源开销，做到对多种细粒度指标的可观测性，帮助应用程序开发人员跟踪应用程序，为性能故障排除提供洞察力；保障应用程序和容器运行时的安全执行，等等。eBPF 已经成为了一个越来越受欢迎的技术，它可以帮助我们更加高效地对内核和用户态的几乎所有应用进行追踪和分析。</p>
+<p>但是，eBPF 的开发，或者追踪内核产生的各类事件，需要一定的专业知识，对于一些不熟悉该技术的开发人员来说，可能会有一定的困难。这时，我们的 demo 工具 GPTtrace 所带来的一些新的思路，也许就可以帮助你解决这个问题。它使用 ChatGPT ，通过自然语言编写 eBPF 程序和追踪 Linux 内核：<a href="https://github.com/eunomia-bpf/GPTtrace">https://github.com/eunomia-bpf/GPTtrace</a></p>
+<p>如果你是一名开发人员，想要更加高效地进行追踪和分析，那么类似的方案绝对值得尝试：这种 ChatGPT 和 eBPF 技术的结合将在未来的软件开发、调试、以及可观测性场景中发挥更加重要的作用，同时它可能也会带来一种全新的、交互式地学习范式。</p>
+<h2 id="我们做了哪些尝试"><a class="header" href="#我们做了哪些尝试">我们做了哪些尝试？</a></h2>
+<p>GPTtrace 使用 ChatGPT 技术，允许开发人员通过自然语言编写 eBPF 程序和追踪 Linux 内核，无需事先了解该技术的专业知识。它使得开发人员可以更快、更准确地定位和解决软件中的问题。例如，根据进程名称统计 Page Faults 次数：</p>
+<p><img src="result.gif" alt="result" /></p>
+<p>我们还有一个视频演示与讲解，可以在这里观看：<a href="https://www.bilibili.com/video/BV1oM411J7gp/"><a href="https://www.bilibili.com/video/BV1oM411J7gp/">https://www.bilibili.com/video/BV1oM411J7gp/</a></a></p>
+<h2 id="我们是怎样做到的"><a class="header" href="#我们是怎样做到的">我们是怎样做到的？</a></h2>
+<p>我们目前的思路是通过预训练 eBPF 程序，让 ChatGPT 学会如何编写各种 eBPF 程序或 bpftrace 的 DSL。大概分为这几步：</p>
+<ol>
+<li>预训练 ebpf 程序，利用一些 ebpf 的开发资料，先和 ChatGPT 对话多次，让 ChatGPT 通过对话上下文如何写各种 eBPF 程序或者 bpftrace 的 DSL（其实我们在十二月份就做过一些类似的实践，产出了一份教程文档，但没有把它变成一份工具：<a href="https://github.com/eunomia-bpf/bpf-developer-tutorial">https://github.com/eunomia-bpf/bpf-developer-tutorial</a>）；</li>
+<li>调用 ChatGPT api，并把返回的结果解析之后作为命令输入 shell 执行，或者将 eBPF 程序写到文件里面编译运行</li>
+<li>如果编译和加载报错，把对应的报错信息返回给 ChatGPT，让它再生成一个新的 eBPF 程序或者命令</li>
+</ol>
+<p>我们使用了 ChatGPT 的 Python API，花了一个下午简单实现了这个小玩具，它可以使用中文或者英文等多种语言输入任意自然语言的描述，例如 “追踪进程打开的文件” &quot;Show per-second syscall rates&quot; 等等，正确率不是 100%，不过十次里面大概已经可以有七八次可以正确进行追踪了，遇到报错还会自行进行修正和调整。</p>
+<h2 id="进一步的优化"><a class="header" href="#进一步的优化">进一步的优化？</a></h2>
+<p>这个玩具项目本身只是想展示一下可能性，很快应该会有更好的类似 ChatGPT 这样的的 api，和更通用的训练/执行框架出来的，希望它能起到抛砖引玉的效果。目前看起来还有很多可以优化的空间:</p>
+<ol>
+<li>能联网搜索之后，让这个工具去获取 bcc/bpftrace 仓库里面的示例程序学习，效果应该还会好很多;</li>
+<li>或者让这个应用自己能联网搜索 Stack Overflow 之类的结果，查询如何编写 eBPF 程序，类似新 Bing 的搜索方式；</li>
+<li>提供更多高质量的文档和教程，看起来输出的准确度和教程、代码示例的质量密切相关；</li>
+<li>其实还可以多次调用其他工具执行命令返回结果，比如说 ChatGPT 输出命令，用 bpftrace 查询一下当前内核版本和支持的 tracepoint，然后返回输出（这也是一次对话），再给出程序，效果应该还要好不少</li>
+</ol>
+<p>短期来看，我们希望尝试基于这个工具构建一个交互式的、带有提示的内核追踪工具和学习 eBPF 程序的教程，帮助用户在编写 eBPF 程序时更快地了解语法和调试错误，并且可以根据用户的反馈调整提示和建议的质量；以及提供一个结构化的学习 eBPF 程序的教程，从基础的语法和 API 开始，结合通过用户最终想编写的 eBPF 程序的需求，逐步向用户介绍常用的 eBPF 应用场景和编写技巧。</p>
+<p>某种意义上来说，它甚至可以不仅仅是一种语言模型，借助简单的对话的交互模式，以及能操控各类工具、访问网络的手段，它也许可以起到一个巨大的、前无古人的知识库的作用：连接各行各业，根据自然语言输入而非关键词，给出综合概括的、无法被搜索引擎简单获取到的思考和答案。</p>
+<p>在当今信息爆炸的时代，我们可以轻易地获得各种海量的信息，但这也带来了另一个问题，就是信息的分散和碎片化，很难将这些信息整合起来，形成有价值的知识。而 ChatGPT 可以通过自然语言交互的方式，将各种信息和知识整合起来，乃至主动去获取知识和接收反馈（就像我们在 GPTtrace 中做的一样），形成一个巨大的知识库，为人们提供综合的思考和答案。</p>
+<p>这种方式可以连接各行各业，不受特定领域或行业的限制，根据自然语言输入而非关键词，给出更加准确、综合的概括。此外，由于 ChatGPT 可以操控各类工具和访问网络，它可以更加深入地了解各种知识和信息，并为用户提供更加全面和深入的解答。</p>
+<p>这种革命性的变化可能已经站在人类文明变革的前夜，我们获取知识和思考的方式将被颠覆，类似的大模型的出现将成为这个变革的重要推手。</p>
+<h2 id="未来在何方"><a class="header" href="#未来在何方">未来在何方？</a></h2>
+<p>其实这个模型本身的效果，并不算惊艳，甚至可以说还有非常多的成长空间。对于我这样的非 AI 专业研究人员（AI工具和模型的消费者）来说，和传统的训练深度学习模型的方式比起来：</p>
+<ul>
+<li>训练模型不需要整理数据集和清洗数据集，仅仅需要几篇高质量的文档和教程，数量非常少，使用自然语言描述即可；极大地减少了非专业人士的准备工作；</li>
+<li>只需要对话上下文即可直观和方便地进行训练，任何人都可以轻松理解（或者尝试类比）AI 是怎么进行学习的；</li>
+<li>可以适应非常多种不同领域的任务，只要任何任务能被转换成一段文本或指令；</li>
+</ul>
+<p>正如哈尔滨工业大学车万翔先生在青源Workshop中提及的，ChatGPT 时代，NLPer 的危与机中所说的那样：</p>
+<blockquote>
+<p>ChatGPT时代，为了应对当前的挑战，自然语言领域的研究者可以借鉴信息检索研究者的经验。首先，学术界可能不再进行系统级别的研究，主要集中在相对边缘的研究方向上；其次，使用工业界巨头提供的数据进行实验，并不一定能得出可靠的结论，由于存在隐私问题，数据的真实性存疑；通过调用公司提供的 API 进行研究，一旦模型被调整，其结论有可能也会改变。</p>
+</blockquote>
+<p>当使用 AI 解决特定问题的门槛变得足够的低廉，反而是 AI 更进一步普及、更进一步解决更多细分场景下的问题的巨大机会。另一方面可能是支撑 AI 的基础设施：当生成的内容（例如代码，文本，算法，音频视频）的成本变得更廉价，也许可编程、低代码的平台也会变得相对原先巨大的单体应用来说，变得更加具有可扩展性和可复用性。例如，从一段描述或交互式地对话中直接生成一个 FaaS 的接口发布，直接生成一个网页前端并部署，或使用 ChatGPT 生成的代码直接作为可观测的采集和数据处理程序，部署到大型的可观测性平台中。</p>
+<p>我们现在也在探索一些 eBPF 和 Wasm 结合的编译工具链和运行时，希望实现从内核态到用户态的可编程扩展效果：<a href="https://github.com/eunomia-bpf/wasm-bpf">https://github.com/eunomia-bpf/wasm-bpf</a></p>
+<h2 id="一些参考链接"><a class="header" href="#一些参考链接">一些参考链接</a></h2>
+<ul>
+<li>ChatGPT：<a href="https://chat.openai.com/chat">https://chat.openai.com/chat</a></li>
+<li>GPTtrace：<a href="https://github.com/eunomia-bpf/GPTtrace">https://github.com/eunomia-bpf/GPTtrace</a></li>
+<li>ChatGPT Python API: <a href="https://github.com/mmabrouk/chatgpt-wrapper">https://github.com/mmabrouk/chatgpt-wrapper</a></li>
+<li>基于 CO-RE (一次编写，到处运行） libbpf 的 eBPF 开发者教程：通过 20 个小工具一步步学习 eBPF（尝试教会 ChatGPT 编写 eBPF 程序）：<a href="https://github.com/eunomia-bpf/bpf-developer-tutorial">https://github.com/eunomia-bpf/bpf-developer-tutorial</a></li>
+<li>ChatGPT类工具如何实现「降维打击」| 聊天机器人闭门研讨观点总结：<a href="https://mp.weixin.qq.com/s/fB9rguy26ej-alm7l_i8iQ">https://mp.weixin.qq.com/s/fB9rguy26ej-alm7l_i8iQ</a></li>
+<li>eunomia-bpf 开源社区：<a href="https://github.com/eunomia-bpf">https://github.com/eunomia-bpf</a></li>
+</ul>
+<blockquote>
+<p>注：本文使用 ChatGPT 进行辅助写作完成。</p>
+</blockquote>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../blog/how-to-write-rust-in-wasm.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../blog/ebpf-wasm.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../blog/how-to-write-rust-in-wasm.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../blog/ebpf-wasm.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
