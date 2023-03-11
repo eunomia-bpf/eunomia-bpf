@@ -11,3 +11,6 @@ git-repository-icon = "fa-github"
 
 [output.html.fold]
 enable = true
+
+[output.linkcheck]
+follow-web-links = false
