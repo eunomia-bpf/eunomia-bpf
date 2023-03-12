@@ -89,9 +89,6 @@ jobs:
     - name: make ecli
       run:  make ecli
 
-    - name: make minimal ecli
-      run:  make -C ecli/minimal
-
     - name: Package
       if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
       shell: bash
