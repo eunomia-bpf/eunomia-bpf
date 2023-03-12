@@ -30,14 +30,14 @@ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ecli
 sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url
 ```
 
-可以使用容器进行编译, 仅需要专注于编写[内核态代码](examples/bpftools/bootstrap/bootstrap.bpf.c):
+可以使用容器进行编译, 仅需要专注于编写[内核态代码](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/examples/bpftools/bootstrap/bootstrap.bpf.c):
 
 ```bash
 docker run -it -v ./examples/bpftools/bootstrap:/src yunwei37/ebpm:latest
 sudo ./ecli run examples/bpftools/bootstrap/package.json              # run the compiled ebpf code
 ```
 
-更多的例子请参考 [examples/bpftools](examples/bpftools) 文件夹.
+更多的例子请参考 [examples/bpftools](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/examples) 文件夹.
 
 ### 用于生成预编译 eBPF 数据的编译工具链
 

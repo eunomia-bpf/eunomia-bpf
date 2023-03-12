@@ -2,7 +2,7 @@
 
 可使用 bolipi 提供的在线体验服务，在线编译，在线运行、在线获取可视化结果：[https://bolipi.com/ebpf/home/online](https://bolipi.com/ebpf/home/online)
 
-![imga](../img/online.png)
+![imga](img/online.png)
 
 ## 通过在线编译运行快速体验 eBPF 和可视化
 
@@ -19,7 +19,7 @@
 
 编写完成代码后，点击 `编译` 按钮即可编译成 eBPF 的内核态程序，在 `编译输出` 中查看编译输出：
 
-![imgb](../img/compile-output.png)
+![imgb](img/compile-output.png)
 
 更多信息请参考：[eunomia-bpf.github.io/mannual.html](https://eunomia-bpf.github.io/mannual.html)
 
@@ -29,7 +29,7 @@
 
 点击右侧的绿色运行按钮运行：
 
-![imgc](../img/run-ebpf.png)
+![imgc](img/run-ebpf.png)
 
 也可以通过 `下载编译后的文件` 查看编译好的程序，并在本地使用 `ecli` 直接运行：
 
@@ -44,11 +44,11 @@ $ sudo ./ecli run package.json
 
 点击 `运行可视化组件` 按钮，在弹出的窗口中配置 prometheus metrics 信息:
 
-![imgd](../img/prometheus-config.png)
+![imgd](img/prometheus-config.png)
 
 点击 `确定` 即可跳转到 Prometheus 界面，可通过选择 graph 查看可视化结果：
 
-![imgd](../img/prometheus-graph.png)
+![imgd](img/prometheus-graph.png)
 
 ## 关于 eunomia-bpf
 

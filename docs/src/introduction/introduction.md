@@ -44,7 +44,7 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
     22:01:04  46313  46312   0          0            ps      /usr/bin/ps 0
     ```
 
-    see [bootstrap](../examples/bpftools/bootstrap/bootstrap.bpf.c) for example. This is exactly the same as [bootstrap.bpf.c](https://github.com/libbpf/libbpf-bootstrap/blob/master/examples/c/bootstrap.bpf.c) in [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap) project, but only kernel code is needed.
+    see [bootstrap](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/examples/bpftools/bootstrap) for example. This is exactly the same as [bootstrap.bpf.c](https://github.com/libbpf/libbpf-bootstrap/blob/master/examples/c/bootstrap.bpf.c) in [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap) project, but only kernel code is needed.
 
 #### Automatically sample the data and print `hists` in userspace
 
@@ -79,7 +79,7 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
           256 -> 511        : 2        |*************                           |
     ```
 
-    see [examples/bpftools/mdflush.bpf.c](../examples/bpftools/runqlat/runqlat.bpf.c) for example.
+    see [examples/bpftools/mdflush.bpf.c](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/examples/bpftools/runqlat/runqlat.bpf.c) for example.
 
 #### Automatically generate and config command line arguments
 
@@ -113,7 +113,7 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
       --tgid_target Thread ID to trace
     ```
 
-    see [examples/bpftools/opensnoop/opensnoop.bpf.c](../examples/bpftools/opensnoop/opensnoop.bpf.c) for example.
+    see [examples/bpftools/opensnoop/opensnoop.bpf.c](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/examples/bpftools/opensnoop/opensnoop.bpf.c) for example.
 
 - `100%` compatible with `libbpf`, [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap/tree/master/examples/c) and `libbpf-rs`, etc: you can compile [libbpf-tools](https://github.com/iovisor/bcc/blob/master/libbpf-tools) kernel code with `eunomia-bpf` and run them without many modification!
 - Not limited to tracing: support `tracepoints`, `kprobe`, `uprobe`, `lsm`, `xdp`, `tc` etc...
@@ -185,17 +185,17 @@ A WebAssembly eBPF library, toolchain and runtime powered by [CO-RE](https://fac
 
 we have a loader library, a compile toolchain, and some additional tools like cli and a custom metrics exporter.
 
-![eunomia-arch.png](images/eunomia-arch.png)
+![eunomia-arch.png](../img/eunomia-arch.png)
 
 ### An bpf-loader library
 
 A wrapper of main functions of libbpf, provide the ability to dynamically load eBPF code to the kernel and run it with a simple JSON and a few API.
 
-see [bpf-loader](../bpf-loader) for details.
+see [bpf-loader](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/bpf-loader) for details.
 
-A [simple cli interface](../ecli) is provided for bpf-loader library, which you can use it to start any eBPF program from a url in a command. You can download it from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/).
+A [simple cli interface](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/ecli) is provided for bpf-loader library, which you can use it to start any eBPF program from a url in a command. You can download it from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/).
 
-see [examples](../examples) for more examples.
+see [examples](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples) for more examples.
 
 ### A library to load and operate eBPF program from a WASM module
 
@@ -207,7 +207,7 @@ Use the `eunomia-bpf` library to load `eBPF` program from a `WASM` module, you c
 
 You can have multiple `eBPF` program in a single `WASM` module.
 
-See [wasm-runtime](../wasm-runtime) for details. In fact, `ewasm` library only exports a few functions from `bpf-loader` library to the `VM`, so you can replace the `WASM` runtime with your own easily.
+See [wasm-runtime](https://github.com/eunomia-bpf/wasm-bpf) for details. In fact, `wasm-bpf` library only exports a few functions from `bpf-loader` library to the `VM`, so you can replace the `WASM` runtime with your own easily.
 
 For example, you can run an eBPF program with a WASM module for an URL:
 
@@ -223,13 +223,13 @@ docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest gen-was
 docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest build-wasm    # Build WASM module
 ```
 
-see [sigsnoop example](examples/bpftools/sigsnoop) for more detail.
+see [sigsnoop example](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/sigsnoop) for more detail.
 
 ### A compile toolchain to help you generate pre compiled eBPF data
 
 The toolchain can be used as a docker to generate pre-compiled eBPF data in one command:
 
-see the compile toolchains [compiler](compiler) for details.
+see the compile toolchains [compiler](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/compiler) for details.
 
 you can also simply use the [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) repo as a template in github, just push to it and github action can help you compile CO-RE ebpf code!
 
@@ -245,8 +245,8 @@ you can also simply use the [ebpm-template](https://github.com/eunomia-bpf/ebpm-
 
 - An Observability tool
 
-    > An prometheus and OpenTelemetry exporter for custom eBPF metrics, written in async rust: [eunomia-exporter](eunomia-exporter). You can compile it or download from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)
+    > An prometheus and OpenTelemetry exporter for custom eBPF metrics, written in async rust: [eunomia-exporter](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-sdks/eunomia-otel). You can compile it or download from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)
 
 ## build the project
 
-see [build](documents/build.md) for details.
+see [build](../installation/build.md) for details.
