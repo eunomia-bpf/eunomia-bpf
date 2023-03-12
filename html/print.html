@@ -148,7 +148,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <p><img src="introduction/img/logo.png" alt="logo" /></p>
+                        <p><img src="introduction/../img/logo.png" alt="logo" /></p>
 <h1 id="eunomia-bpf-simplify-and-enhance-ebpf-with-co-re1-and-webassembly2"><a class="header" href="#eunomia-bpf-simplify-and-enhance-ebpf-with-co-re1-and-webassembly2">eunomia-bpf: simplify and enhance eBPF with CO-RE<sup class="footnote-reference"><a href="#1">1</a></sup> and WebAssembly<sup class="footnote-reference"><a href="#2">2</a></sup></a></h1>
 <p><a href="https://github.com/eunomia-bpf/eunomia-bpf/actions"><img src="https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg" alt="Actions Status" /></a>
 <a href="https://github.com/eunomia-bpf/eunomia-bpf/releases"><img src="https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf" alt="GitHub release (latest by date)" /></a>
@@ -175,9 +175,9 @@
 </li>
 <li>simplify <code>distributing</code> eBPF programs:
 <ul>
-<li>A <a href="introduction/ecli/">tool</a> for push, pull and run pre-compiled eBPF programs as <code>OCI</code> images in Wasm module</li>
+<li>A <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/ecli">tool</a> for push, pull and run pre-compiled eBPF programs as <code>OCI</code> images in Wasm module</li>
 <li>Run eBPF programs from <code>cloud</code> or <code>URL</code> within <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/documents/introduction.md#dynamic-load-and-run-co-re-ebpf-kernel-code-from-the-cloud-with-url-or-oci-image"><code>1</code> line of bash</a> without recompiling, kernel version and architecture independent.</li>
-<li><a href="introduction/bpf-loader">Dynamically load</a> eBPF programs with <code>JSON</code> config file or <code>Wasm</code> module.</li>
+<li><a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/bpf-loader">Dynamically load</a> eBPF programs with <code>JSON</code> config file or <code>Wasm</code> module.</li>
 </ul>
 </li>
 </ul>
@@ -223,7 +223,7 @@ TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT
 22:01:04  46312  2915    0          0            sh      /bin/sh   0
 22:01:04  46313  46312   0          0            ps      /usr/bin/ps 0
 </code></pre>
-<p>see <a href="introduction/../examples/bpftools/bootstrap/bootstrap.bpf.c">bootstrap</a> for example. This is exactly the same as <a href="https://github.com/libbpf/libbpf-bootstrap/blob/master/examples/c/bootstrap.bpf.c">bootstrap.bpf.c</a> in <a href="https://github.com/libbpf/libbpf-bootstrap">libbpf-bootstrap</a> project, but only kernel code is needed.</p>
+<p>see <a href="https://github.com/eunomia-bpf/eunomia-bpf/blob/master/examples/bpftools/bootstrap">bootstrap</a> for example. This is exactly the same as <a href="https://github.com/libbpf/libbpf-bootstrap/blob/master/examples/c/bootstrap.bpf.c">bootstrap.bpf.c</a> in <a href="https://github.com/libbpf/libbpf-bootstrap">libbpf-bootstrap</a> project, but only kernel code is needed.</p>
 </li>
 </ul>
 <h4 id="automatically-sample-the-data-and-print-hists-in-userspace"><a class="header" href="#automatically-sample-the-data-and-print-hists-in-userspace">Automatically sample the data and print <code>hists</code> in userspace</a></h4>
@@ -254,7 +254,7 @@ comm = containerd
       128 -&gt; 255        : 0        |                                        |
       256 -&gt; 511        : 2        |*************                           |
 </code></pre>
-<p>see <a href="introduction/../examples/bpftools/runqlat/runqlat.bpf.c">examples/bpftools/mdflush.bpf.c</a> for example.</p>
+<p>see <a href="https://github.com/eunomia-bpf/eunomia-bpf/blob/master/examples/bpftools/runqlat/runqlat.bpf.c">examples/bpftools/mdflush.bpf.c</a> for example.</p>
 </li>
 </ul>
 <h4 id="automatically-generate-and-config-command-line-arguments"><a class="header" href="#automatically-generate-and-config-command-line-arguments">Automatically generate and config command line arguments</a></h4>
@@ -284,7 +284,7 @@ Optional arguments:
   --pid_target  Process ID to trace 
   --tgid_target Thread ID to trace
 </code></pre>
-<p>see <a href="introduction/../examples/bpftools/opensnoop/opensnoop.bpf.c">examples/bpftools/opensnoop/opensnoop.bpf.c</a> for example.</p>
+<p>see <a href="https://github.com/eunomia-bpf/eunomia-bpf/blob/master/examples/bpftools/opensnoop/opensnoop.bpf.c">examples/bpftools/opensnoop/opensnoop.bpf.c</a> for example.</p>
 </li>
 <li>
 <p><code>100%</code> compatible with <code>libbpf</code>, <a href="https://github.com/libbpf/libbpf-bootstrap/tree/master/examples/c">libbpf-bootstrap</a> and <code>libbpf-rs</code>, etc: you can compile <a href="https://github.com/iovisor/bcc/blob/master/libbpf-tools">libbpf-tools</a> kernel code with <code>eunomia-bpf</code> and run them without many modification!</p>
@@ -354,12 +354,12 @@ $ sudo ./ecli sigsnoop:latest # run with a name and download the latest version 
 </ul>
 <h2 id="project-architecture"><a class="header" href="#project-architecture">Project Architecture</a></h2>
 <p>we have a loader library, a compile toolchain, and some additional tools like cli and a custom metrics exporter.</p>
-<p><img src="introduction/images/eunomia-arch.png" alt="eunomia-arch.png" /></p>
+<p><img src="introduction/../img/eunomia-arch.png" alt="eunomia-arch.png" /></p>
 <h3 id="an-bpf-loader-library"><a class="header" href="#an-bpf-loader-library">An bpf-loader library</a></h3>
 <p>A wrapper of main functions of libbpf, provide the ability to dynamically load eBPF code to the kernel and run it with a simple JSON and a few API.</p>
-<p>see <a href="introduction/../bpf-loader">bpf-loader</a> for details.</p>
-<p>A <a href="introduction/../ecli">simple cli interface</a> is provided for bpf-loader library, which you can use it to start any eBPF program from a url in a command. You can download it from <a href="https://github.com/eunomia-bpf/eunomia-bpf/releases/">release</a>.</p>
-<p>see <a href="introduction/../examples">examples</a> for more examples.</p>
+<p>see <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/bpf-loader">bpf-loader</a> for details.</p>
+<p>A <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/ecli">simple cli interface</a> is provided for bpf-loader library, which you can use it to start any eBPF program from a url in a command. You can download it from <a href="https://github.com/eunomia-bpf/eunomia-bpf/releases/">release</a>.</p>
+<p>see <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples">examples</a> for more examples.</p>
 <h3 id="a-library-to-load-and-operate-ebpf-program-from-a-wasm-module"><a class="header" href="#a-library-to-load-and-operate-ebpf-program-from-a-wasm-module">A library to load and operate eBPF program from a WASM module</a></h3>
 <p>Use the <code>eunomia-bpf</code> library to load <code>eBPF</code> program from a <code>WASM</code> module, you can write a WASM module to operate the eBPF program or process the data in user space <code>WASM</code> runtime. The idea is simple:</p>
 <ol>
@@ -368,7 +368,7 @@ $ sudo ./ecli sigsnoop:latest # run with a name and download the latest version 
 <li>load the <code>JSON</code> data from the <code>WASM</code> module and run the eBPF program skeleton with <code>eunomia-bpf</code> library</li>
 </ol>
 <p>You can have multiple <code>eBPF</code> program in a single <code>WASM</code> module.</p>
-<p>See <a href="introduction/../wasm-runtime">wasm-runtime</a> for details. In fact, <code>ewasm</code> library only exports a few functions from <code>bpf-loader</code> library to the <code>VM</code>, so you can replace the <code>WASM</code> runtime with your own easily.</p>
+<p>See <a href="https://github.com/eunomia-bpf/wasm-bpf">wasm-runtime</a> for details. In fact, <code>wasm-bpf</code> library only exports a few functions from <code>bpf-loader</code> library to the <code>VM</code>, so you can replace the <code>WASM</code> runtime with your own easily.</p>
 <p>For example, you can run an eBPF program with a WASM module for an URL:</p>
 <pre><code class="language-bash">sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/app.wasm
 </code></pre>
@@ -377,10 +377,10 @@ $ sudo ./ecli sigsnoop:latest # run with a name and download the latest version 
 docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest gen-wasm-skel # generate WASM app template for eBPF
 docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest build-wasm    # Build WASM module
 </code></pre>
-<p>see <a href="introduction/examples/bpftools/sigsnoop">sigsnoop example</a> for more detail.</p>
+<p>see <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/sigsnoop">sigsnoop example</a> for more detail.</p>
 <h3 id="a-compile-toolchain-to-help-you-generate-pre-compiled-ebpf-data"><a class="header" href="#a-compile-toolchain-to-help-you-generate-pre-compiled-ebpf-data">A compile toolchain to help you generate pre compiled eBPF data</a></h3>
 <p>The toolchain can be used as a docker to generate pre-compiled eBPF data in one command:</p>
-<p>see the compile toolchains <a href="introduction/compiler">compiler</a> for details.</p>
+<p>see the compile toolchains <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/compiler">compiler</a> for details.</p>
 <p>you can also simply use the <a href="https://github.com/eunomia-bpf/ebpm-template">ebpm-template</a> repo as a template in github, just push to it and github action can help you compile CO-RE ebpf code!</p>
 <h3 id="other-related-projects"><a class="header" href="#other-related-projects">other related projects</a></h3>
 <ul>
@@ -399,12 +399,12 @@ docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest build-w
 <li>
 <p>An Observability tool</p>
 <blockquote>
-<p>An prometheus and OpenTelemetry exporter for custom eBPF metrics, written in async rust: <a href="introduction/eunomia-exporter">eunomia-exporter</a>. You can compile it or download from <a href="https://github.com/eunomia-bpf/eunomia-bpf/releases/">release</a></p>
+<p>An prometheus and OpenTelemetry exporter for custom eBPF metrics, written in async rust: <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-sdks/eunomia-otel">eunomia-exporter</a>. You can compile it or download from <a href="https://github.com/eunomia-bpf/eunomia-bpf/releases/">release</a></p>
 </blockquote>
 </li>
 </ul>
 <h2 id="build-the-project"><a class="header" href="#build-the-project">build the project</a></h2>
-<p>see <a href="introduction/documents/build.html">build</a> for details.</p>
+<p>see <a href="introduction/../installation/build.html">build</a> for details.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="-wasm-bpf-wasm-library-and-toolchain-for-ebpf"><a class="header" href="#-wasm-bpf-wasm-library-and-toolchain-for-ebpf">📦 Wasm-bpf: Wasm library and toolchain for eBPF</a></h1>
 <p><a href="https://github.com/eunomia-bpf/wasm-bpf/actions"><img src="https://github.com/eunomia-bpf/wasm-bpf/workflows/Ubuntu/badge.svg" alt="Actions Status" /></a>
 <a href="https://www.codefactor.io/repository/github/eunomia-bpf/wasm-bpf"><img src="https://www.codefactor.io/repository/github/eunomia-bpf/wasm-bpf/badge" alt="CodeFactor" /></a>
@@ -488,8 +488,8 @@ $ make bpf-loader                              # build ebpf-loader
 </code></pre>
 <h2 id="more-details"><a class="header" href="#more-details">more details</a></h2>
 <ul>
-<li>You can check the Makefile at project root for more details: <a href="installation/../Makefile">Makefile</a></li>
-<li>You may want to refer to our CI for more build info: <a href="installation/../.github/workflows/ubuntu.yml">.github/workflowsubuntu.yml</a></li>
+<li>You can check the Makefile at project root for more details: <a href="https://github.com/eunomia-bpf/eunomia-bpf/blob/master/compiler/Makefile">Makefile</a></li>
+<li>You may want to refer to our CI for more build info: <a href="https://github.com/eunomia-bpf/eunomia-bpf/blob/master/.github/workflows/ecc.yml">ecc.yml</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="build-on--android"><a class="header" href="#build-on--android">Build on  Android</a></h1>
 <p>Android上build需要先Installing Debian on Android in Termux </p>
@@ -542,7 +542,7 @@ ecli: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically 
 <div style="break-before: page; page-break-before: always;"></div><h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
 <ul>
 <li>Github Template：<a href="https://github.com/eunomia-bpf/ebpm-template">eunomia-bpf/ebpm-template</a></li>
-<li>example bpf programs: <a href="examples/bpftools/">examples/bpftools</a></li>
+<li>example bpf programs: <a href="https://github.com/eunomia-bpf/eunomia-bpf/blob/master/examples/bpftools">examples/bpftools</a></li>
 <li>tutorial: <a href="https://github.com/eunomia-bpf/bpf-developer-tutorial">eunomia-bpf/bpf-developer-tutorial</a></li>
 </ul>
 <p>You can get pre-compiled eBPF programs running from the cloud to the kernel in <code>1</code> line of bash:</p>
@@ -593,7 +593,7 @@ CMD [&quot;/bin/bash&quot;]
 
 </code></pre>
 <p>ubuntu.dockerfile构建时，同一级目录下的文件如下</p>
-<p><img src="images%5Cimage-20220905232754264.png" alt="image-20220905232754264" /></p>
+<p><img src="img/image-20220905232754264.png" alt="image-20220905232754264" /></p>
 <p>ecli可执行文件  sources.list Dockerfile这三个文件缺一不可，other文件可忽略。docker容器中wget无法连接外部网络，因此需要在docker构建时将ecli放入镜像中。使用镜像时只要挂载的本机目录中有package.json文件即可。</p>
 <h2 id="docker-alpine"><a class="header" href="#docker-alpine">docker alpine</a></h2>
 <pre><code class="language-shell">FROM alpine:latest
@@ -610,7 +610,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 </code></pre>
 <p>alpine.dockerfile构建镜像时，同一级目录下必须有ecli可执行文件。
 目前alpine.dockerfile仍存在以下问题</p>
-<p><img src="images%5Cimage-20220907195237651.png" alt="image-20220907195237651" /></p>
+<p><img src="img/image-20220907195237651.png" alt="image-20220907195237651" /></p>
 <h3 id="docker-build"><a class="header" href="#docker-build">docker build</a></h3>
 <p>dockerfile构建时使用如下命令</p>
 <pre><code class="language-shell">sudo docker build -t ecli:1.0.1 .
@@ -808,11 +808,11 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 </code></pre>
 <h2 id="通过-api-进行热插拔和分发"><a class="header" href="#通过-api-进行热插拔和分发">通过 API 进行热插拔和分发</a></h2>
 <p>由于 eunomia-cc 编译出来的 ebpf 程序代码和附加信息很小（约数十 kb），且不需要同时传递任何的额外依赖，因此我们可以非常方便地通过网络 API 直接进行分发，也可以在很短的时间（大约 100ms）内实现热插拔和热更新。我们提供了一个简单的 client 和 server，请参考;</p>
-<p><a href="https://github.com/eunomia-bpf/eunomia-bpf/blob/master/documents/ecli-usage.md">https://github.com/eunomia-bpf/eunomia-bpf/blob/master/documents/ecli-usage.md</a></p>
+<p><a href="ecli-dockerfile-usage.html">ecli-dockerfile-usage.md</a></p>
 <p>之前也有一篇比赛项目的可行性验证的文章：</p>
 <p><a href="https://zhuanlan.zhihu.com/p/555362934">https://zhuanlan.zhihu.com/p/555362934</a></p>
 <h2 id="使用-prometheus-或-opentelemetry-进行可观测性数据收集"><a class="header" href="#使用-prometheus-或-opentelemetry-进行可观测性数据收集">使用 Prometheus 或 OpenTelemetry 进行可观测性数据收集</a></h2>
-<p>基于 async Rust 的 Prometheus 或 OpenTelemetry 自定义可观测性数据收集器: <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-exporter">eunomia-exporter</a></p>
+<p>基于 async Rust 的 Prometheus 或 OpenTelemetry 自定义可观测性数据收集器: <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-sdks/eunomia-otel">eunomia-exporter</a></p>
 <p>可以自行编译或通过 <a href="https://github.com/eunomia-bpf/eunomia-bpf/releases/">release</a> 下载</p>
 <h3 id="example"><a class="header" href="#example">example</a></h3>
 <p>这是一个 <code>opensnoop</code> 程序，追踪所有的打开文件，源代码来自 <a href="https://github.com/iovisor/bcc/blob/master/libbpf-tools/opensnoop.bpf.c">bcc/libbpf-tools</a>, 我们修改过后的源代码在这里: <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/opensnoop">examples/bpftools/opensnoop</a></p>
@@ -832,7 +832,7 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 </code></pre>
 <p>然后，您可以在任何地方使用 <code>config.yaml</code> 和预编译的 eBPF 数据 <code>package.json</code> 启动 Prometheus 导出器，您可以看到如下指标：</p>
 <p><img src="https://oss.openanolis.cn/sig/stxfomyiiwdwkdrqwlnn" alt="prometheus" /></p>
-<p>您可以在任何内核版本上部署导出器，而无需依赖 <code>LLVM/Clang</code>。 有关详细信息，请参阅 <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-exporter">eunomia-exporter</a>。</p>
+<p>您可以在任何内核版本上部署导出器，而无需依赖 <code>LLVM/Clang</code>。 有关详细信息，请参阅 <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-sdks/eunomia-otel">eunomia-exporter</a>。</p>
 <h2 id="使用-wasm-模块分发动态加载-ebpf-程序"><a class="header" href="#使用-wasm-模块分发动态加载-ebpf-程序">使用 Wasm 模块分发、动态加载 eBPF 程序</a></h2>
 <p>借助 Wasm-bpf 编译工具链和运行时，我们可以使用 Wasm 将 eBPF 程序编写为跨平台的模块，同时使用 C/C++ 或 Rust 来编写 Wasm 程序。通过在 WebAssembly 中使用 eBPF 程序，我们不仅能让 Wasm 应用享受到 eBPF 的高性能和对系统接口的访问能力，还可以让 eBPF 程序使用到 Wasm 的沙箱、灵活性、跨平台性、和动态加载，并且使用 Wasm 的 OCI 镜像来方便、快捷地分发和管理 eBPF 程序。结合这两种技术，我们将会给 eBPF 和 Wasm 生态来一个全新的开发体验！</p>
 <p>Wasm-bpf 是一个新的开源项目：<a href="https://github.com/eunomia-bpf/wasm-bpf">https://github.com/eunomia-bpf/wasm-bpf</a>。它定义了一套 eBPF 相关系统接口的抽象，并提供了一套对应的开发工具链、库以及通用的 Wasm + eBPF 运行时实例。它可以提供和 libbpf-bootstrap 相似的开发体验，自动生成对应的 skeleton 头文件，以及用于在 Wasm 和 eBPF 之间无序列化通信的数据结构定义。你可以非常容易地使用任何语言，在任何平台上建立你自己的 Wasm-eBPF 运行时，使用相同的工具链来构建应用。更详细的介绍，请参考我们的上一篇博客：<a href="https://mp.weixin.qq.com/s/2InV7z1wcWic5ifmAXSiew">Wasm-bpf: 架起 Webassembly 和 eBPF 内核可编程的桥梁</a>。</p>
@@ -1274,10 +1274,10 @@ int path_rmdir(const struct path *dir, struct dentry *dentry) {
 <h2 id="演示视频"><a class="header" href="#演示视频">演示视频</a></h2>
 <p>我们也有一个在 B 站上的演示视频，演示了如何从 bcc/libbpf-tools 中移植一个 eBPF 工具程序到 eunomia-bpf 中，并且使用 Wasm 或 JSON 文件来分发、加载 eBPF 程序：<a href="https://www.bilibili.com/video/BV1JN4y1A76k">https://www.bilibili.com/video/BV1JN4y1A76k</a></p>
 <p><code>ecli</code> 是基于我们底层的 eunomia-bpf 库和运行时实现的一个简单的命令行工具。我们的项目架构如下图所示：</p>
-<p><img src="../img/eunomia-arch.png" alt="arch" /></p>
+<p><img src="img/eunomia-arch.png" alt="arch" /></p>
 <p><code>ecli</code> 工具基于 <code>ewasm</code> 库实现，<code>ewasm</code> 库包含一个 WAMR(wasm-micro-runtime) 运行时，以及基于 libbpf 库构建的 eBPF 动态装载模块。大致来说，我们在 <code>Wasm</code> 运行时和用户态的 <code>libbpf</code> 中间多加了一层抽象层（<code>eunomia-bpf</code> 库），使得一次编译、到处运行的 eBPF 代码可以从 JSON 对象中动态加载。JSON 对象会在编译时被包含在 Wasm 模块中，因此在运行时，我们可以通过解析 JSON 对象来获取 eBPF 程序的信息，然后动态加载 eBPF 程序。</p>
 <p>使用 Wasm 或 JSON 编译分发 eBPF 程序的流程图大致如下：</p>
-<p><img src="../img/eunomia-bpf-flow.png" alt="flow" /></p>
+<p><img src="img/eunomia-bpf-flow.png" alt="flow" /></p>
 <p>大致来说，整个 eBPF 程序的编写和加载分为三个部分：</p>
 <ol>
 <li>用 eunomia-cc 工具链将内核的 eBPF 代码骨架和字节码编译为 JSON 格式</li>
@@ -1289,7 +1289,7 @@ int path_rmdir(const struct path *dir, struct dentry *dentry) {
 <p>另外，对于 eunomia-bpf 库而言，不需要 Wasm 模块和运行时同样可以启动和动态加载 eBPF 程序，不过此时动态加载运行的就只是内核态的 eBPF 程序字节码。你可以手动或使用任意语言修改 JSON 对象来控制 eBPF 程序的加载和参数，并且通过 eunomia-bpf 自动获取内核态上报的返回数据。对于初学者而言，这可能比使用 WebAssembly 更加简单方便：只需要编写内核态的 eBPF 程序，然后使用 eunomia-cc 工具链将其编译为 JSON 格式，最后使用 eunomia-bpf 库加载和运行即可。完全不用考虑任何用户态的辅助程序，包括 Wasm 在内。具体可以参考我们的使用手册[7]或示例代码[8]。</p>
 <h2 id="原理"><a class="header" href="#原理">原理</a></h2>
 <p><code>ecli</code> 是基于我们底层的 eunomia-bpf 库和运行时实现的一个简单的命令行工具。我们的项目架构如下图所示：</p>
-<p><img src="../img/eunomia-arch.png" alt="arch" /></p>
+<p><img src="img/eunomia-arch.png" alt="arch" /></p>
 <p><code>ecli</code> 工具基于 <code>ewasm</code> 库实现，<code>ewasm</code> 库包含一个 WAMR(wasm-micro-runtime) 运行时，以及基于 libbpf 库构建的 eBPF 动态装载模块。大致来说，我们在 <code>Wasm</code> 运行时和用户态的 <code>libbpf</code> 中间多加了一层抽象层（<code>eunomia-bpf</code> 库），使得一次编译、到处运行的 eBPF 代码可以从 JSON 对象中动态加载。JSON 对象会在编译时被包含在 Wasm 模块中，因此在运行时，我们可以通过解析 JSON 对象来获取 eBPF 程序的信息，然后动态加载 eBPF 程序。</p>
 <p>使用 Wasm 或 JSON 编译分发 eBPF 程序的流程图大致如下：</p>
 <pre><code class="language-mermaid">graph TD
@@ -1341,14 +1341,14 @@ int path_rmdir(const struct path *dir, struct dentry *dentry) {
 </ul>
 <p>您可以帮助我们添加测试或者示例，可以参考：</p>
 <ul>
-<li><a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools">https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools</a></li>
-<li><a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/bpftools/tests">https://github.com/eunomia-bpf/eunomia-bpf/tree/master/bpftools/tests</a></li>
+<li><a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools">examples/bpftools</a></li>
+<li><a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/tests">bpftools/tests</a></li>
 </ul>
 <p>由于现在 API 还不稳定，如果您在试用中遇到任何问题或者任何流程/文档不完善的地方，请在 gitee 或 github issue 留言，
 我们会尽快修复；也非常欢迎进一步的 PR 提交和贡献！也非常希望您能提出一些宝贵的意见或者建议！</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="在线体验网站"><a class="header" href="#在线体验网站">在线体验网站</a></h1>
 <p>可使用 bolipi 提供的在线体验服务，在线编译，在线运行、在线获取可视化结果：<a href="https://bolipi.com/ebpf/home/online">https://bolipi.com/ebpf/home/online</a></p>
-<p><img src="../img/online.png" alt="imga" /></p>
+<p><img src="img/online.png" alt="imga" /></p>
 <h2 id="通过在线编译运行快速体验-ebpf-和可视化"><a class="header" href="#通过在线编译运行快速体验-ebpf-和可视化">通过在线编译运行快速体验 eBPF 和可视化</a></h2>
 <p>本在线编译平台由 <code>eunomia-bpf</code> 工具链提供支持，详细文档请参考 <a href="https://eunomia-bpf.github.io/">eunomia-bpf.github.io/</a></p>
 <h3 id="在线编译"><a class="header" href="#在线编译">在线编译</a></h3>
@@ -1359,12 +1359,12 @@ int path_rmdir(const struct path *dir, struct dentry *dentry) {
 </ul>
 <p>我们目前只支持使用基于 libbpf 的内核态代码，BCC 代码支持由于存在一些语法上的差异，还在开发中。</p>
 <p>编写完成代码后，点击 <code>编译</code> 按钮即可编译成 eBPF 的内核态程序，在 <code>编译输出</code> 中查看编译输出：</p>
-<p><img src="../img/compile-output.png" alt="imgb" /></p>
+<p><img src="img/compile-output.png" alt="imgb" /></p>
 <p>更多信息请参考：<a href="https://eunomia-bpf.github.io/mannual.html">eunomia-bpf.github.io/mannual.html</a></p>
 <p>更多例子请参考：<a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools">https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools</a></p>
 <h3 id="在线运行"><a class="header" href="#在线运行">在线运行</a></h3>
 <p>点击右侧的绿色运行按钮运行：</p>
-<p><img src="../img/run-ebpf.png" alt="imgc" /></p>
+<p><img src="img/run-ebpf.png" alt="imgc" /></p>
 <p>也可以通过 <code>下载编译后的文件</code> 查看编译好的程序，并在本地使用 <code>ecli</code> 直接运行：</p>
 <pre><code class="language-console">$ # 下载安装 ecli 二进制
 $ wget https://aka.pw/bpf-ecli -O ./ecli &amp;&amp; chmod +x ./ecli
@@ -1373,9 +1373,9 @@ $ sudo ./ecli run package.json
 </code></pre>
 <h3 id="使用-prometheus-在线获取可视化结果"><a class="header" href="#使用-prometheus-在线获取可视化结果">使用 Prometheus 在线获取可视化结果</a></h3>
 <p>点击 <code>运行可视化组件</code> 按钮，在弹出的窗口中配置 prometheus metrics 信息:</p>
-<p><img src="../img/prometheus-config.png" alt="imgd" /></p>
+<p><img src="img/prometheus-config.png" alt="imgd" /></p>
 <p>点击 <code>确定</code> 即可跳转到 Prometheus 界面，可通过选择 graph 查看可视化结果：</p>
-<p><img src="../img/prometheus-graph.png" alt="imgd" /></p>
+<p><img src="img/prometheus-graph.png" alt="imgd" /></p>
 <h2 id="关于-eunomia-bpf"><a class="header" href="#关于-eunomia-bpf">关于 eunomia-bpf</a></h2>
 <p>eunomia-bpf 是一套编译工具链和运行时，以及一些附加项目，我们希望做到让 eBPF 程序：</p>
 <ul>
@@ -1441,7 +1441,7 @@ $ sudo EXAMPLE_BTF_FILE=5.8.0-63-generic.btf ./example-c-static
 root      171562  0.0  0.0  15176  4576 pts/6    S+   01:08   0:00 sudo ./eunomia-exporter
 root      171605  0.1  0.0 350540  7740 pts/6    Sl+  01:08   0:00 ./eunomia-exporter
 </code></pre>
-<p>The memory usage and CPU usage is also low. see <a href="../eunomia-exporter">../eunomia-exporter</a> for more details.</p>
+<p>The memory usage and CPU usage is also low. see <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-sdks/eunomia-otel">eunomia-exporter</a> for more details.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="videos"><a class="header" href="#videos">videos</a></h1>
 <ul>
 <li><a href="https://www.bilibili.com/video/BV1DG4y1N76m/">eunomia-bpf: 一个开源的 ebpf 动态加载运行时和开发工具链</a></li>

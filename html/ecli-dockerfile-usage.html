@@ -189,7 +189,7 @@ CMD [&quot;/bin/bash&quot;]
 
 </code></pre>
 <p>ubuntu.dockerfile构建时，同一级目录下的文件如下</p>
-<p><img src="images%5Cimage-20220905232754264.png" alt="image-20220905232754264" /></p>
+<p><img src="img/image-20220905232754264.png" alt="image-20220905232754264" /></p>
 <p>ecli可执行文件  sources.list Dockerfile这三个文件缺一不可，other文件可忽略。docker容器中wget无法连接外部网络，因此需要在docker构建时将ecli放入镜像中。使用镜像时只要挂载的本机目录中有package.json文件即可。</p>
 <h2 id="docker-alpine"><a class="header" href="#docker-alpine">docker alpine</a></h2>
 <pre><code class="language-shell">FROM alpine:latest
@@ -206,7 +206,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 </code></pre>
 <p>alpine.dockerfile构建镜像时，同一级目录下必须有ecli可执行文件。
 目前alpine.dockerfile仍存在以下问题</p>
-<p><img src="images%5Cimage-20220907195237651.png" alt="image-20220907195237651" /></p>
+<p><img src="img/image-20220907195237651.png" alt="image-20220907195237651" /></p>
 <h3 id="docker-build"><a class="header" href="#docker-build">docker build</a></h3>
 <p>dockerfile构建时使用如下命令</p>
 <pre><code class="language-shell">sudo docker build -t ecli:1.0.1 .

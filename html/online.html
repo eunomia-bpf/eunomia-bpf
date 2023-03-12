@@ -149,7 +149,7 @@
                     <main>
                         <h1 id="在线体验网站"><a class="header" href="#在线体验网站">在线体验网站</a></h1>
 <p>可使用 bolipi 提供的在线体验服务，在线编译，在线运行、在线获取可视化结果：<a href="https://bolipi.com/ebpf/home/online">https://bolipi.com/ebpf/home/online</a></p>
-<p><img src="../img/online.png" alt="imga" /></p>
+<p><img src="img/online.png" alt="imga" /></p>
 <h2 id="通过在线编译运行快速体验-ebpf-和可视化"><a class="header" href="#通过在线编译运行快速体验-ebpf-和可视化">通过在线编译运行快速体验 eBPF 和可视化</a></h2>
 <p>本在线编译平台由 <code>eunomia-bpf</code> 工具链提供支持，详细文档请参考 <a href="https://eunomia-bpf.github.io/">eunomia-bpf.github.io/</a></p>
 <h3 id="在线编译"><a class="header" href="#在线编译">在线编译</a></h3>
@@ -160,12 +160,12 @@
 </ul>
 <p>我们目前只支持使用基于 libbpf 的内核态代码，BCC 代码支持由于存在一些语法上的差异，还在开发中。</p>
 <p>编写完成代码后，点击 <code>编译</code> 按钮即可编译成 eBPF 的内核态程序，在 <code>编译输出</code> 中查看编译输出：</p>
-<p><img src="../img/compile-output.png" alt="imgb" /></p>
+<p><img src="img/compile-output.png" alt="imgb" /></p>
 <p>更多信息请参考：<a href="https://eunomia-bpf.github.io/mannual.html">eunomia-bpf.github.io/mannual.html</a></p>
 <p>更多例子请参考：<a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools">https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools</a></p>
 <h3 id="在线运行"><a class="header" href="#在线运行">在线运行</a></h3>
 <p>点击右侧的绿色运行按钮运行：</p>
-<p><img src="../img/run-ebpf.png" alt="imgc" /></p>
+<p><img src="img/run-ebpf.png" alt="imgc" /></p>
 <p>也可以通过 <code>下载编译后的文件</code> 查看编译好的程序，并在本地使用 <code>ecli</code> 直接运行：</p>
 <pre><code class="language-console">$ # 下载安装 ecli 二进制
 $ wget https://aka.pw/bpf-ecli -O ./ecli &amp;&amp; chmod +x ./ecli
@@ -174,9 +174,9 @@ $ sudo ./ecli run package.json
 </code></pre>
 <h3 id="使用-prometheus-在线获取可视化结果"><a class="header" href="#使用-prometheus-在线获取可视化结果">使用 Prometheus 在线获取可视化结果</a></h3>
 <p>点击 <code>运行可视化组件</code> 按钮，在弹出的窗口中配置 prometheus metrics 信息:</p>
-<p><img src="../img/prometheus-config.png" alt="imgd" /></p>
+<p><img src="img/prometheus-config.png" alt="imgd" /></p>
 <p>点击 <code>确定</code> 即可跳转到 Prometheus 界面，可通过选择 graph 查看可视化结果：</p>
-<p><img src="../img/prometheus-graph.png" alt="imgd" /></p>
+<p><img src="img/prometheus-graph.png" alt="imgd" /></p>
 <h2 id="关于-eunomia-bpf"><a class="header" href="#关于-eunomia-bpf">关于 eunomia-bpf</a></h2>
 <p>eunomia-bpf 是一套编译工具链和运行时，以及一些附加项目，我们希望做到让 eBPF 程序：</p>
 <ul>

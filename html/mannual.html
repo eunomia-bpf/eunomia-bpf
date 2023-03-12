@@ -335,11 +335,11 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 </code></pre>
 <h2 id="通过-api-进行热插拔和分发"><a class="header" href="#通过-api-进行热插拔和分发">通过 API 进行热插拔和分发</a></h2>
 <p>由于 eunomia-cc 编译出来的 ebpf 程序代码和附加信息很小（约数十 kb），且不需要同时传递任何的额外依赖，因此我们可以非常方便地通过网络 API 直接进行分发，也可以在很短的时间（大约 100ms）内实现热插拔和热更新。我们提供了一个简单的 client 和 server，请参考;</p>
-<p><a href="https://github.com/eunomia-bpf/eunomia-bpf/blob/master/documents/ecli-usage.md">https://github.com/eunomia-bpf/eunomia-bpf/blob/master/documents/ecli-usage.md</a></p>
+<p><a href="ecli-dockerfile-usage.html">ecli-dockerfile-usage.md</a></p>
 <p>之前也有一篇比赛项目的可行性验证的文章：</p>
 <p><a href="https://zhuanlan.zhihu.com/p/555362934">https://zhuanlan.zhihu.com/p/555362934</a></p>
 <h2 id="使用-prometheus-或-opentelemetry-进行可观测性数据收集"><a class="header" href="#使用-prometheus-或-opentelemetry-进行可观测性数据收集">使用 Prometheus 或 OpenTelemetry 进行可观测性数据收集</a></h2>
-<p>基于 async Rust 的 Prometheus 或 OpenTelemetry 自定义可观测性数据收集器: <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-exporter">eunomia-exporter</a></p>
+<p>基于 async Rust 的 Prometheus 或 OpenTelemetry 自定义可观测性数据收集器: <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-sdks/eunomia-otel">eunomia-exporter</a></p>
 <p>可以自行编译或通过 <a href="https://github.com/eunomia-bpf/eunomia-bpf/releases/">release</a> 下载</p>
 <h3 id="example"><a class="header" href="#example">example</a></h3>
 <p>这是一个 <code>opensnoop</code> 程序，追踪所有的打开文件，源代码来自 <a href="https://github.com/iovisor/bcc/blob/master/libbpf-tools/opensnoop.bpf.c">bcc/libbpf-tools</a>, 我们修改过后的源代码在这里: <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/opensnoop">examples/bpftools/opensnoop</a></p>
@@ -359,7 +359,7 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 </code></pre>
 <p>然后，您可以在任何地方使用 <code>config.yaml</code> 和预编译的 eBPF 数据 <code>package.json</code> 启动 Prometheus 导出器，您可以看到如下指标：</p>
 <p><img src="https://oss.openanolis.cn/sig/stxfomyiiwdwkdrqwlnn" alt="prometheus" /></p>
-<p>您可以在任何内核版本上部署导出器，而无需依赖 <code>LLVM/Clang</code>。 有关详细信息，请参阅 <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-exporter">eunomia-exporter</a>。</p>
+<p>您可以在任何内核版本上部署导出器，而无需依赖 <code>LLVM/Clang</code>。 有关详细信息，请参阅 <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-sdks/eunomia-otel">eunomia-exporter</a>。</p>
 <h2 id="使用-wasm-模块分发动态加载-ebpf-程序"><a class="header" href="#使用-wasm-模块分发动态加载-ebpf-程序">使用 Wasm 模块分发、动态加载 eBPF 程序</a></h2>
 <p>借助 Wasm-bpf 编译工具链和运行时，我们可以使用 Wasm 将 eBPF 程序编写为跨平台的模块，同时使用 C/C++ 或 Rust 来编写 Wasm 程序。通过在 WebAssembly 中使用 eBPF 程序，我们不仅能让 Wasm 应用享受到 eBPF 的高性能和对系统接口的访问能力，还可以让 eBPF 程序使用到 Wasm 的沙箱、灵活性、跨平台性、和动态加载，并且使用 Wasm 的 OCI 镜像来方便、快捷地分发和管理 eBPF 程序。结合这两种技术，我们将会给 eBPF 和 Wasm 生态来一个全新的开发体验！</p>
 <p>Wasm-bpf 是一个新的开源项目：<a href="https://github.com/eunomia-bpf/wasm-bpf">https://github.com/eunomia-bpf/wasm-bpf</a>。它定义了一套 eBPF 相关系统接口的抽象，并提供了一套对应的开发工具链、库以及通用的 Wasm + eBPF 运行时实例。它可以提供和 libbpf-bootstrap 相似的开发体验，自动生成对应的 skeleton 头文件，以及用于在 Wasm 和 eBPF 之间无序列化通信的数据结构定义。你可以非常容易地使用任何语言，在任何平台上建立你自己的 Wasm-eBPF 运行时，使用相同的工具链来构建应用。更详细的介绍，请参考我们的上一篇博客：<a href="https://mp.weixin.qq.com/s/2InV7z1wcWic5ifmAXSiew">Wasm-bpf: 架起 Webassembly 和 eBPF 内核可编程的桥梁</a>。</p>
@@ -801,10 +801,10 @@ int path_rmdir(const struct path *dir, struct dentry *dentry) {
 <h2 id="演示视频"><a class="header" href="#演示视频">演示视频</a></h2>
 <p>我们也有一个在 B 站上的演示视频，演示了如何从 bcc/libbpf-tools 中移植一个 eBPF 工具程序到 eunomia-bpf 中，并且使用 Wasm 或 JSON 文件来分发、加载 eBPF 程序：<a href="https://www.bilibili.com/video/BV1JN4y1A76k">https://www.bilibili.com/video/BV1JN4y1A76k</a></p>
 <p><code>ecli</code> 是基于我们底层的 eunomia-bpf 库和运行时实现的一个简单的命令行工具。我们的项目架构如下图所示：</p>
-<p><img src="../img/eunomia-arch.png" alt="arch" /></p>
+<p><img src="img/eunomia-arch.png" alt="arch" /></p>
 <p><code>ecli</code> 工具基于 <code>ewasm</code> 库实现，<code>ewasm</code> 库包含一个 WAMR(wasm-micro-runtime) 运行时，以及基于 libbpf 库构建的 eBPF 动态装载模块。大致来说，我们在 <code>Wasm</code> 运行时和用户态的 <code>libbpf</code> 中间多加了一层抽象层（<code>eunomia-bpf</code> 库），使得一次编译、到处运行的 eBPF 代码可以从 JSON 对象中动态加载。JSON 对象会在编译时被包含在 Wasm 模块中，因此在运行时，我们可以通过解析 JSON 对象来获取 eBPF 程序的信息，然后动态加载 eBPF 程序。</p>
 <p>使用 Wasm 或 JSON 编译分发 eBPF 程序的流程图大致如下：</p>
-<p><img src="../img/eunomia-bpf-flow.png" alt="flow" /></p>
+<p><img src="img/eunomia-bpf-flow.png" alt="flow" /></p>
 <p>大致来说，整个 eBPF 程序的编写和加载分为三个部分：</p>
 <ol>
 <li>用 eunomia-cc 工具链将内核的 eBPF 代码骨架和字节码编译为 JSON 格式</li>
@@ -816,7 +816,7 @@ int path_rmdir(const struct path *dir, struct dentry *dentry) {
 <p>另外，对于 eunomia-bpf 库而言，不需要 Wasm 模块和运行时同样可以启动和动态加载 eBPF 程序，不过此时动态加载运行的就只是内核态的 eBPF 程序字节码。你可以手动或使用任意语言修改 JSON 对象来控制 eBPF 程序的加载和参数，并且通过 eunomia-bpf 自动获取内核态上报的返回数据。对于初学者而言，这可能比使用 WebAssembly 更加简单方便：只需要编写内核态的 eBPF 程序，然后使用 eunomia-cc 工具链将其编译为 JSON 格式，最后使用 eunomia-bpf 库加载和运行即可。完全不用考虑任何用户态的辅助程序，包括 Wasm 在内。具体可以参考我们的使用手册[7]或示例代码[8]。</p>
 <h2 id="原理"><a class="header" href="#原理">原理</a></h2>
 <p><code>ecli</code> 是基于我们底层的 eunomia-bpf 库和运行时实现的一个简单的命令行工具。我们的项目架构如下图所示：</p>
-<p><img src="../img/eunomia-arch.png" alt="arch" /></p>
+<p><img src="img/eunomia-arch.png" alt="arch" /></p>
 <p><code>ecli</code> 工具基于 <code>ewasm</code> 库实现，<code>ewasm</code> 库包含一个 WAMR(wasm-micro-runtime) 运行时，以及基于 libbpf 库构建的 eBPF 动态装载模块。大致来说，我们在 <code>Wasm</code> 运行时和用户态的 <code>libbpf</code> 中间多加了一层抽象层（<code>eunomia-bpf</code> 库），使得一次编译、到处运行的 eBPF 代码可以从 JSON 对象中动态加载。JSON 对象会在编译时被包含在 Wasm 模块中，因此在运行时，我们可以通过解析 JSON 对象来获取 eBPF 程序的信息，然后动态加载 eBPF 程序。</p>
 <p>使用 Wasm 或 JSON 编译分发 eBPF 程序的流程图大致如下：</p>
 <pre><code class="language-mermaid">graph TD
@@ -868,8 +868,8 @@ int path_rmdir(const struct path *dir, struct dentry *dentry) {
 </ul>
 <p>您可以帮助我们添加测试或者示例，可以参考：</p>
 <ul>
-<li><a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools">https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools</a></li>
-<li><a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/bpftools/tests">https://github.com/eunomia-bpf/eunomia-bpf/tree/master/bpftools/tests</a></li>
+<li><a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools">examples/bpftools</a></li>
+<li><a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/tests">bpftools/tests</a></li>
 </ul>
 <p>由于现在 API 还不稳定，如果您在试用中遇到任何问题或者任何流程/文档不完善的地方，请在 gitee 或 github issue 留言，
 我们会尽快修复；也非常欢迎进一步的 PR 提交和贡献！也非常希望您能提出一些宝贵的意见或者建议！</p>
