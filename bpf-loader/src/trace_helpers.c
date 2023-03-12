@@ -31,9 +31,7 @@
         _min1 < _min2 ? _min1 : _min2; \
     })
 
-static void
-print_stars(unsigned int val, unsigned int val_max, int width)
-{
+static void print_stars(unsigned int val, unsigned int val_max, int width) {
     int num_stars, num_spaces, i;
     bool need_plus;
 
@@ -49,9 +47,7 @@ print_stars(unsigned int val, unsigned int val_max, int width)
         printf("+");
 }
 
-void
-print_log2_hist(unsigned int *vals, int vals_size, const char *val_type)
-{
+void print_log2_hist(unsigned int* vals, int vals_size, const char* val_type) {
     int stars_max = 40, idx_max = -1;
     unsigned int val, val_max = 0;
     unsigned long long low, high;
@@ -89,10 +85,11 @@ print_log2_hist(unsigned int *vals, int vals_size, const char *val_type)
     }
 }
 
-void
-print_linear_hist(unsigned int *vals, int vals_size, unsigned int base,
-                  unsigned int step, const char *val_type)
-{
+void print_linear_hist(unsigned int* vals,
+                       int vals_size,
+                       unsigned int base,
+                       unsigned int step,
+                       const char* val_type) {
     int i, stars_max = 40, idx_min = -1, idx_max = -1;
     unsigned int val, val_max = 0;
 
@@ -121,21 +118,17 @@ print_linear_hist(unsigned int *vals, int vals_size, unsigned int base,
     }
 }
 
-unsigned long long
-get_ktime_ns(void)
-{
+unsigned long long get_ktime_ns(void) {
     struct timespec ts;
 
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec * NSEC_PER_SEC + ts.tv_nsec;
 }
 
-bool
-is_kernel_module(const char *name)
-{
+bool is_kernel_module(const char* name) {
     bool found = false;
     char buf[64];
-    FILE *f;
+    FILE* f;
 
     f = fopen("/proc/modules", "r");
     if (!f)
@@ -154,14 +147,12 @@ is_kernel_module(const char *name)
     return found;
 }
 
-static bool
-fentry_try_attach(int id)
-{
+static bool fentry_try_attach(int id) {
     int prog_fd, attach_fd;
     char error[4096];
     struct bpf_insn insns[] = {
-        { .code = BPF_ALU64 | BPF_MOV | BPF_K, .dst_reg = BPF_REG_0, .imm = 0 },
-        { .code = BPF_JMP | BPF_EXIT },
+        {.code = BPF_ALU64 | BPF_MOV | BPF_K, .dst_reg = BPF_REG_0, .imm = 0},
+        {.code = BPF_JMP | BPF_EXIT},
     };
     LIBBPF_OPTS(bpf_prog_load_opts, opts,
                 .expected_attach_type = BPF_TRACE_FENTRY, .attach_btf_id = id,
@@ -180,9 +171,7 @@ fentry_try_attach(int id)
     return attach_fd >= 0;
 }
 
-bool
-fentry_can_attach(const char *name, const char *mod)
-{
+bool fentry_can_attach(const char* name, const char* mod) {
     const char sysfs_vmlinux[] = "/sys/kernel/btf/vmlinux";
     struct btf *base, *btf = NULL;
     char sysfs_mod[80];
@@ -205,8 +194,7 @@ fentry_can_attach(const char *name, const char *mod)
             btf = base;
             base = NULL;
         }
-    }
-    else {
+    } else {
         btf = base;
         base = NULL;
     }
@@ -219,11 +207,9 @@ err_out:
     return id > 0 && fentry_try_attach(id);
 }
 
-bool
-kprobe_exists(const char *name)
-{
+bool kprobe_exists(const char* name) {
     char sym_name[256];
-    FILE *f;
+    FILE* f;
     int ret;
 
     f = fopen("/sys/kernel/debug/tracing/available_filter_functions", "r");
@@ -271,9 +257,7 @@ slow_path:
     return false;
 }
 
-bool
-tracepoint_exists(const char *category, const char *event)
-{
+bool tracepoint_exists(const char* category, const char* event) {
     char path[PATH_MAX];
 
     snprintf(path, sizeof(path),
@@ -285,9 +269,7 @@ tracepoint_exists(const char *category, const char *event)
     return false;
 }
 
-bool
-vmlinux_btf_exists(void)
-{
+bool vmlinux_btf_exists(void) {
     // Set the correct permissions for the file
     struct stat st;
     if (stat("/sys/kernel/btf/vmlinux", &st) == 0 && (st.st_mode & S_IRUSR)) {
@@ -297,31 +279,26 @@ vmlinux_btf_exists(void)
     return false;
 }
 
-bool
-module_btf_exists(const char *mod)
-{
+bool module_btf_exists(const char* mod) {
     char sysfs_mod[80];
 
     if (mod) {
-
         snprintf(sysfs_mod, sizeof(sysfs_mod), "/sys/kernel/btf/%s", mod);
         struct stat sb;
-        if (stat(sysfs_mod, &sb) == 0 && S_ISREG(sb.st_mode)
-            && (sb.st_mode & S_IRUSR)) {
+        if (stat(sysfs_mod, &sb) == 0 && S_ISREG(sb.st_mode) &&
+            (sb.st_mode & S_IRUSR)) {
             return true;
         }
     }
     return false;
 }
 
-bool
-probe_tp_btf(const char *name)
-{
+bool probe_tp_btf(const char* name) {
     LIBBPF_OPTS(bpf_prog_load_opts, opts,
                 .expected_attach_type = BPF_TRACE_RAW_TP);
     struct bpf_insn insns[] = {
-        { .code = BPF_ALU64 | BPF_MOV | BPF_K, .dst_reg = BPF_REG_0, .imm = 0 },
-        { .code = BPF_JMP | BPF_EXIT },
+        {.code = BPF_ALU64 | BPF_MOV | BPF_K, .dst_reg = BPF_REG_0, .imm = 0},
+        {.code = BPF_JMP | BPF_EXIT},
     };
     int fd, insn_cnt = sizeof(insns) / sizeof(struct bpf_insn);
 
@@ -333,9 +310,7 @@ probe_tp_btf(const char *name)
     return fd >= 0;
 }
 
-bool
-probe_ringbuf()
-{
+bool probe_ringbuf() {
     int map_fd;
 
     map_fd =

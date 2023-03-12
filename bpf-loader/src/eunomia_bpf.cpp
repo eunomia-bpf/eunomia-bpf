@@ -27,17 +27,15 @@ using json = nlohmann::json;
 namespace eunomia {
 // control the debug info callback from libbpf
 static thread_local bool verbose_local = false;
-static int
-libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
-{
+static int libbpf_print_fn(enum libbpf_print_level level,
+                           const char* format,
+                           va_list args) {
     if (level == LIBBPF_DEBUG && !verbose_local)
         return 0;
     return vfprintf(stderr, format, args);
 }
 
-int
-bpf_skeleton::load_and_attach_prog(void)
-{
+int bpf_skeleton::load_and_attach_prog(void) {
     int err = 0;
 
     verbose_local = meta_data.debug_verbose;
@@ -53,11 +51,9 @@ bpf_skeleton::load_and_attach_prog(void)
     DECLARE_LIBBPF_OPTS(bpf_object_open_opts, openopts);
     if (custom_btf_path != NULL && !vmlinux_btf_exists()) {
         openopts.btf_custom_path = custom_btf_path;
-    }
-    else if (additional_btf_file != NULL) {
+    } else if (additional_btf_file != NULL) {
         openopts.btf_custom_path = strdup(additional_btf_file);
-    }
-    else if (!vmlinux_btf_exists()) {
+    } else if (!vmlinux_btf_exists()) {
         std::cerr << "failed to find vmlinux BTF. please provide btf file with "
                      "env BTF_FILE_PATH."
                   << std::endl;
@@ -89,21 +85,18 @@ bpf_skeleton::load_and_attach_prog(void)
 }
 
 /// load and attach the eBPF program to the kernel
-int
-bpf_skeleton::load_and_attach(void) noexcept
-{
+int bpf_skeleton::load_and_attach(void) noexcept {
     // check the state of the program
     if (state == ebpf_program_state::INVALID) {
         std::cerr << "invalid program state" << std::endl;
         return -1;
-    }
-    else if (state == ebpf_program_state::RUNNING) {
+    } else if (state == ebpf_program_state::RUNNING) {
         return 0;
     }
     int err = 0;
     try {
         err = load_and_attach_prog();
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
         std::cerr << "Failed to run eBPF program: " << e.what() << std::endl;
         state = ebpf_program_state::INVALID;
     }
@@ -111,17 +104,13 @@ bpf_skeleton::load_and_attach(void) noexcept
     return err;
 }
 
-const std::string &
-bpf_skeleton::get_program_name(void) const
-{
+const std::string& bpf_skeleton::get_program_name(void) const {
     return meta_data.bpf_skel.obj_name;
 }
 
-static int
-handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
-{
-    const char *e = (const char *)(const void *)data;
-    const bpf_skeleton *p = (const bpf_skeleton *)ctx;
+static int handle_print_ringbuf_event(void* ctx, void* data, size_t data_sz) {
+    const char* e = (const char*)(const void*)data;
+    const bpf_skeleton* p = (const bpf_skeleton*)ctx;
     if (!p || !e) {
         std::cerr << "empty ctx or events" << std::endl;
         return -1;
@@ -130,10 +119,8 @@ handle_print_ringbuf_event(void *ctx, void *data, size_t data_sz)
     return 0;
 }
 
-int
-bpf_skeleton::export_kv_map(struct bpf_map *hists,
-                            const map_sample_meta &sample_config)
-{
+int bpf_skeleton::export_kv_map(struct bpf_map* hists,
+                                const map_sample_meta& sample_config) {
     int err, fd = bpf_map__fd(hists);
     std::vector<char> key_buffer = {}, lookup_key_buffer = {};
     std::vector<char> value_buffer = {};
@@ -170,12 +157,10 @@ bpf_skeleton::export_kv_map(struct bpf_map *hists,
     return 0;
 }
 
-int
-bpf_skeleton::wait_and_sample_map(std::size_t sample_map_id)
-{
+int bpf_skeleton::wait_and_sample_map(std::size_t sample_map_id) {
     int err = 0;
-    const auto &map_meta = meta_data.bpf_skel.maps[sample_map_id];
-    const map_sample_meta &sample_config = *(map_meta.sample);
+    const auto& map_meta = meta_data.bpf_skel.maps[sample_map_id];
+    const map_sample_meta& sample_config = *(map_meta.sample);
     const auto btf_data = get_btf_data();
     if (!btf_data) {
         return -1;
@@ -186,8 +171,7 @@ bpf_skeleton::wait_and_sample_map(std::size_t sample_map_id)
         bpf_map__btf_value_type_id(maps[sample_map_id]);
     if (exporter.check_and_create_key_value_format(
             key_type_id, value_type_id, sample_config, meta_data.export_types,
-            btf_data)
-        < 0) {
+            btf_data) < 0) {
         std::cerr << "Failed to create print format" << std::endl;
         return -1;
     }
@@ -205,9 +189,7 @@ bpf_skeleton::wait_and_sample_map(std::size_t sample_map_id)
     return 0;
 }
 
-int
-bpf_skeleton::poll_rb()
-{
+int bpf_skeleton::poll_rb() {
     int err = 0;
     err = ring_buffer__poll(ring_buffer_map.get(), meta_data.poll_timeout_ms);
     /* Ctrl-C will cause -EINTR */
@@ -221,9 +203,7 @@ bpf_skeleton::poll_rb()
     return 0;
 }
 
-int
-bpf_skeleton::poll_perf_event_array()
-{
+int bpf_skeleton::poll_perf_event_array() {
     int err = 0;
     err = perf_buffer__poll(perf_buffer_map.get(), meta_data.poll_timeout_ms);
     if (err == -EINTR) {
@@ -236,14 +216,11 @@ bpf_skeleton::poll_perf_event_array()
     return 0;
 }
 
-int
-bpf_skeleton::wait_and_poll_from_rb(std::size_t rb_map_id)
-{
+int bpf_skeleton::wait_and_poll_from_rb(std::size_t rb_map_id) {
     int err = 0;
 
     if (exporter.check_and_create_export_format(meta_data.export_types,
-                                                get_btf_data())
-        < 0) {
+                                                get_btf_data()) < 0) {
         std::cerr << "Failed to create print format" << std::endl;
         return -1;
     }
@@ -271,11 +248,9 @@ bpf_skeleton::wait_and_poll_from_rb(std::size_t rb_map_id)
     return 0;
 }
 
-static void
-handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
-{
-    const char *e = (const char *)(const void *)data;
-    const bpf_skeleton *p = (const bpf_skeleton *)ctx;
+static void handle_event(void* ctx, int cpu, void* data, __u32 data_sz) {
+    const char* e = (const char*)(const void*)data;
+    const bpf_skeleton* p = (const bpf_skeleton*)ctx;
     if (!p || !e) {
         std::cerr << "empty ctx or events" << std::endl;
         return;
@@ -283,15 +258,11 @@ handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
     p->handler_export_events(e, data_sz);
 }
 
-static void
-handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
-{
+static void handle_lost_events(void* ctx, int cpu, __u64 lost_cnt) {
     fprintf(stderr, "Lost %llu events on CPU #%d!\n", lost_cnt, cpu);
 }
 
-btf *
-bpf_skeleton::get_btf_data(void)
-{
+btf* bpf_skeleton::get_btf_data(void) {
     assert(obj);
     auto btf_data = bpf_object__btf(obj);
     if (!btf_data) {
@@ -301,14 +272,11 @@ bpf_skeleton::get_btf_data(void)
     return btf_data;
 }
 
-int
-bpf_skeleton::wait_and_poll_from_perf_event_array(std::size_t rb_map_id)
-{
+int bpf_skeleton::wait_and_poll_from_perf_event_array(std::size_t rb_map_id) {
     int err = 0;
 
     if (exporter.check_and_create_export_format(meta_data.export_types,
-                                                get_btf_data())
-        < 0) {
+                                                get_btf_data()) < 0) {
         std::cerr << "Failed to create print format" << std::endl;
         return -1;
     }
@@ -340,9 +308,7 @@ bpf_skeleton::wait_and_poll_from_perf_event_array(std::size_t rb_map_id)
     return 0;
 }
 
-int
-bpf_skeleton::wait_for_no_export_program(void)
-{
+int bpf_skeleton::wait_for_no_export_program(void) {
     // if we don't have a ring buffer, just wait for the program to exit
     std::cerr << "Runing eBPF program..." << std::endl;
     while (!exiting) {
@@ -358,40 +324,33 @@ enum class export_map_type {
     NO_EXPORT,
 };
 
-static void
-set_and_warn_existing_export_map(export_map_type &type,
-                                 export_map_type new_type)
-{
+static void set_and_warn_existing_export_map(export_map_type& type,
+                                             export_map_type new_type) {
     if (type != export_map_type::NO_EXPORT) {
         std::cerr << "Warning: Multiple export maps found" << std::endl;
     }
     type = new_type;
 }
 
-int
-bpf_skeleton::check_export_maps(void)
-{
+int bpf_skeleton::check_export_maps(void) {
     export_map_type type = export_map_type::NO_EXPORT;
     std::size_t map_index = 0;
 
     for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++) {
         auto map = maps[i];
-        const auto &map_meta = meta_data.bpf_skel.maps[i];
+        const auto& map_meta = meta_data.bpf_skel.maps[i];
         if (!map) {
             continue;
-        }
-        else if (map_meta.sample) {
+        } else if (map_meta.sample) {
             set_and_warn_existing_export_map(type, export_map_type::SAMPLE);
             map_index = i;
-        }
-        else if (bpf_map__type(map) == BPF_MAP_TYPE_RINGBUF
-                 && !meta_data.export_types.empty()) {
+        } else if (bpf_map__type(map) == BPF_MAP_TYPE_RINGBUF &&
+                   !meta_data.export_types.empty()) {
             set_and_warn_existing_export_map(type,
                                              export_map_type::RING_BUFFER);
             map_index = i;
-        }
-        else if (bpf_map__type(map) == BPF_MAP_TYPE_PERF_EVENT_ARRAY
-                 && !meta_data.export_types.empty()) {
+        } else if (bpf_map__type(map) == BPF_MAP_TYPE_PERF_EVENT_ARRAY &&
+                   !meta_data.export_types.empty()) {
             set_and_warn_existing_export_map(type,
                                              export_map_type::PERF_EVENT_ARRAY);
             map_index = i;
@@ -414,9 +373,7 @@ bpf_skeleton::check_export_maps(void)
     return -1;
 }
 
-int
-bpf_skeleton::enter_wait_and_poll(void)
-{
+int bpf_skeleton::enter_wait_and_poll(void) {
     int err;
     exiting = false;
     // check the state
@@ -429,9 +386,7 @@ bpf_skeleton::enter_wait_and_poll(void)
     return check_export_maps();
 }
 
-void
-bpf_skeleton::destroy() noexcept
-{
+void bpf_skeleton::destroy() noexcept {
     if (state != ebpf_program_state::RUNNING) {
         return;
     }
@@ -441,13 +396,11 @@ bpf_skeleton::destroy() noexcept
     state = ebpf_program_state::STOPPED;
 }
 
-int
-bpf_skeleton::create_prog_skeleton(void)
-{
-    struct bpf_object_skeleton *s;
+int bpf_skeleton::create_prog_skeleton(void) {
+    struct bpf_object_skeleton* s;
     skeleton = nullptr;
 
-    s = (struct bpf_object_skeleton *)calloc(1, sizeof(*s));
+    s = (struct bpf_object_skeleton*)calloc(1, sizeof(*s));
     if (!s)
         return -1;
 
@@ -457,18 +410,17 @@ bpf_skeleton::create_prog_skeleton(void)
     /* maps */
     s->map_cnt = 0;
     s->map_skel_sz = sizeof(*s->maps);
-    s->maps = (struct bpf_map_skeleton *)calloc(meta_data.bpf_skel.maps.size(),
-                                                (size_t)s->map_skel_sz);
+    s->maps = (struct bpf_map_skeleton*)calloc(meta_data.bpf_skel.maps.size(),
+                                               (size_t)s->map_skel_sz);
     if (!s->maps)
         goto err;
 
     maps.resize(meta_data.bpf_skel.maps.size());
     for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++) {
         if (meta_data.bpf_skel.maps[i].ident == "rodata") {
-            s->maps[s->map_cnt].mmaped = (void **)&rodata_buffer;
-        }
-        else if (meta_data.bpf_skel.maps[i].ident == "bss") {
-            s->maps[s->map_cnt].mmaped = (void **)&bss_buffer;
+            s->maps[s->map_cnt].mmaped = (void**)&rodata_buffer;
+        } else if (meta_data.bpf_skel.maps[i].ident == "bss") {
+            s->maps[s->map_cnt].mmaped = (void**)&bss_buffer;
         }
         s->maps[s->map_cnt].name = meta_data.bpf_skel.maps[i].name.c_str();
         s->maps[s->map_cnt].map = &maps[i];
@@ -477,7 +429,7 @@ bpf_skeleton::create_prog_skeleton(void)
 
     /* programs */
     s->prog_skel_sz = sizeof(*s->progs);
-    s->progs = (struct bpf_prog_skeleton *)calloc(
+    s->progs = (struct bpf_prog_skeleton*)calloc(
         meta_data.bpf_skel.progs.size(), (size_t)s->prog_skel_sz);
     if (!s->progs)
         goto err;
@@ -485,7 +437,7 @@ bpf_skeleton::create_prog_skeleton(void)
     links.resize(meta_data.bpf_skel.progs.size());
     s->prog_cnt = 0;
     for (std::size_t i = 0; i < meta_data.bpf_skel.progs.size(); i++) {
-        auto &prog = meta_data.bpf_skel.progs[i];
+        auto& prog = meta_data.bpf_skel.progs[i];
         s->progs[s->prog_cnt].name = prog.name.c_str();
         s->progs[s->prog_cnt].prog = &progs[i];
         if (prog.link) {
@@ -495,7 +447,7 @@ bpf_skeleton::create_prog_skeleton(void)
     }
 
     s->data_sz = __bpf_object_buffer.size();
-    s->data = (void *)__bpf_object_buffer.data();
+    s->data = (void*)__bpf_object_buffer.data();
 
     s->obj = &obj;
     skeleton.reset(s);
@@ -505,9 +457,7 @@ err:
     return -1;
 }
 
-int
-bpf_skeleton::get_fd(const char *name) const noexcept
-{
+int bpf_skeleton::get_fd(const char* name) const noexcept {
     for (std::size_t i = 0; i < meta_data.bpf_skel.maps.size(); i++) {
         if (meta_data.bpf_skel.maps[i].name == name) {
             return bpf_map__fd(maps[i]);
@@ -521,21 +471,16 @@ bpf_skeleton::get_fd(const char *name) const noexcept
     return -1;
 }
 extern "C" {
-const char *
-libbpf_version_string(void);
+const char* libbpf_version_string(void);
 }
-std::string
-get_eunomia_version()
-{
+std::string get_eunomia_version() {
     return std::string(EUNOMIA_VERSION);
 }
-std::string
-generate_version_info()
-{
+std::string generate_version_info() {
     using std::endl;
     std::ostringstream ss;
     utsname uname_st;
-    uname(&uname_st); // It won't fault
+    uname(&uname_st);  // It won't fault
     ss << "eunomia-bpf version: " << get_eunomia_version() << endl;
     ss << "Linux version: " << uname_st.sysname << " " << uname_st.release
        << " " << uname_st.version << " " << uname_st.nodename << " "
@@ -544,45 +489,41 @@ generate_version_info()
     ss << "arch: " << uname_st.machine << endl;
     return ss.str();
 }
-} // namespace eunomia
+}  // namespace eunomia
 
 // simple wrappers for C API
 extern "C" {
 struct eunomia_bpf {
     eunomia::bpf_skeleton program;
 };
-struct eunomia_bpf *
-open_eunomia_skel_from_json(const char *json_data,
-                            const char *bpf_object_buffer, size_t object_size,
-                            char *btf_archive_path = nullptr)
-{
-    struct eunomia_bpf *bpf = new eunomia_bpf{ eunomia::bpf_skeleton() };
+struct eunomia_bpf* open_eunomia_skel_from_json(
+    const char* json_data,
+    const char* bpf_object_buffer,
+    size_t object_size,
+    char* btf_archive_path = nullptr) {
+    struct eunomia_bpf* bpf = new eunomia_bpf{eunomia::bpf_skeleton()};
     if (!bpf) {
         return nullptr;
     }
     if (bpf->program.open_from_json_config(
             json_data,
-            std::vector<char>{ bpf_object_buffer,
-                               bpf_object_buffer + object_size },
-            btf_archive_path)
-        < 0) {
+            std::vector<char>{bpf_object_buffer,
+                              bpf_object_buffer + object_size},
+            btf_archive_path) < 0) {
         delete bpf;
         return nullptr;
     }
     return bpf;
 }
 
-struct eunomia_bpf *
-open_eunomia_skel_from_json_package(const char *json_data)
-{
+struct eunomia_bpf* open_eunomia_skel_from_json_package(const char* json_data) {
     return open_eunomia_skel_from_json_package_with_btf(json_data, nullptr);
 }
 
-struct eunomia_bpf *
-open_eunomia_skel_from_json_package_with_btf(const char *json_data,
-                                             char *btf_archive_path)
-{
-    struct eunomia_bpf *bpf = new eunomia_bpf{ eunomia::bpf_skeleton() };
+struct eunomia_bpf* open_eunomia_skel_from_json_package_with_btf(
+    const char* json_data,
+    char* btf_archive_path) {
+    struct eunomia_bpf* bpf = new eunomia_bpf{eunomia::bpf_skeleton()};
     if (!bpf) {
         return nullptr;
     }
@@ -593,29 +534,26 @@ open_eunomia_skel_from_json_package_with_btf(const char *json_data,
     return bpf;
 }
 
-int
-load_and_attach_eunomia_skel(struct eunomia_bpf *prog)
-{
+int load_and_attach_eunomia_skel(struct eunomia_bpf* prog) {
     if (!prog) {
         return -1;
     }
     return prog->program.load_and_attach();
 }
 
-int
-wait_and_poll_events_to_handler(
-    struct eunomia_bpf *prog, enum export_format_type type,
-    void (*handler)(void *, const char *, size_t size), void *ctx)
-{
+int wait_and_poll_events_to_handler(struct eunomia_bpf* prog,
+                                    enum export_format_type type,
+                                    void (*handler)(void*,
+                                                    const char*,
+                                                    size_t size),
+                                    void* ctx) {
     if (!prog || !handler) {
         return -1;
     }
     return prog->program.wait_and_poll_to_handler(type, handler, ctx);
 }
 
-void
-destroy_eunomia_skel(struct eunomia_bpf *prog)
-{
+void destroy_eunomia_skel(struct eunomia_bpf* prog) {
     if (!prog) {
         return;
     }
@@ -624,38 +562,32 @@ destroy_eunomia_skel(struct eunomia_bpf *prog)
 }
 
 /// @brief stop the ebpf program
-void
-stop_ebpf_program(struct eunomia_bpf *prog)
-{
+void stop_ebpf_program(struct eunomia_bpf* prog) {
     if (!prog) {
         return;
     }
     prog->program.destroy();
 }
 /// @brief free the memory of the program
-void
-free_bpf_skel(struct eunomia_bpf *prog)
-{
+void free_bpf_skel(struct eunomia_bpf* prog) {
     if (!prog) {
         return;
     }
     delete prog;
 }
 
-int
-get_bpf_fd(struct eunomia_bpf *prog, const char *name)
-{
+int get_bpf_fd(struct eunomia_bpf* prog, const char* name) {
     if (!prog) {
         return -1;
     }
     return prog->program.get_fd(name);
 }
 
-struct eunomia_bpf *
-open_eunomia_skel_from_json_package_with_args(const char *json_data,
-                                              char **args, int argc,
-                                              char *btf_archive_path)
-{
+struct eunomia_bpf* open_eunomia_skel_from_json_package_with_args(
+    const char* json_data,
+    char** args,
+    int argc,
+    char* btf_archive_path) {
     assert(json_data && args && argc > 0);
     std::vector<std::string> args_vec;
     int res;
@@ -669,8 +601,7 @@ open_eunomia_skel_from_json_package_with_args(const char *json_data,
     std::string new_config;
 
     if ((res = eunomia::parse_args_for_json_config(meta_config_str, new_config,
-                                                   args_vec))
-        != 0) {
+                                                   args_vec)) != 0) {
         return nullptr;
     }
     j["meta"] = json::parse(new_config);
@@ -678,10 +609,11 @@ open_eunomia_skel_from_json_package_with_args(const char *json_data,
                                                         btf_archive_path);
 }
 
-int
-parse_args_to_json_config(const char *json_config, char **args, int argc,
-                          char *out_buffer, size_t out_buffer_size)
-{
+int parse_args_to_json_config(const char* json_config,
+                              char** args,
+                              int argc,
+                              char* out_buffer,
+                              size_t out_buffer_size) {
     assert(json_config);
     assert(args);
     assert(argc > 0);

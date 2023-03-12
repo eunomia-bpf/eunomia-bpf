@@ -17,8 +17,7 @@
 using namespace eunomia;
 using json = nlohmann::json;
 
-TEST_CASE("test load config", "[eunomia_object_meta]")
-{
+TEST_CASE("test load config", "[eunomia_object_meta]") {
     std::ifstream condig_file("../../test/asserts/minimal.json");
     REQUIRE(condig_file.is_open());
     std::string json_package((std::istreambuf_iterator<char>(condig_file)),
@@ -27,17 +26,15 @@ TEST_CASE("test load config", "[eunomia_object_meta]")
     bpf_skeleton ebpf_program;
     REQUIRE(ebpf_program.open_from_json_config(json_package, NULL) == 0);
     REQUIRE(ebpf_program.open_from_json_config(json_package, NULL) == 0);
-    REQUIRE(ebpf_program.open_from_json_config(config["meta"].dump(), {}, NULL)
-            == 0);
+    REQUIRE(ebpf_program.open_from_json_config(config["meta"].dump(), {},
+                                               NULL) == 0);
 }
 
 extern "C" {
-const char *
-libbpf_version_string(void);
+const char* libbpf_version_string(void);
 }
 
-TEST_CASE("test version info generation", "[eunomia_object_meta]")
-{
+TEST_CASE("test version info generation", "[eunomia_object_meta]") {
     std::ifstream version_file("../../../VERSION");
     REQUIRE(version_file.is_open());
     std::string version_str;

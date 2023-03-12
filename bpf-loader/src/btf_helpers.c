@@ -24,15 +24,13 @@ struct os_info {
     char kernel_release[FIELD_LEN];
 };
 
-static struct os_info *
-get_os_info()
-{
-    struct os_info *info = NULL;
+static struct os_info* get_os_info() {
+    struct os_info* info = NULL;
     struct utsname u;
     size_t len = 0;
     ssize_t read;
-    char *line = NULL;
-    FILE *f;
+    char* line = NULL;
+    FILE* f;
 
     if (uname(&u) == -1)
         return NULL;
@@ -64,10 +62,8 @@ out:
     return info;
 }
 
-char *
-get_btf_path(const char *path)
-{
-    struct os_info *info = NULL;
+char* get_btf_path(const char* path) {
+    struct os_info* info = NULL;
     char name_fmt[] = "%s/%s/%s/%s.btf";
     char name[100];
     int ret;
@@ -81,7 +77,7 @@ get_btf_path(const char *path)
     if (ret < 0 || ret == sizeof(name))
         return NULL;
 
-    char *result = malloc(strlen(path) + strlen(name) + 2);
+    char* result = malloc(strlen(path) + strlen(name) + 2);
     if (!result) {
         free(info);
         return NULL;

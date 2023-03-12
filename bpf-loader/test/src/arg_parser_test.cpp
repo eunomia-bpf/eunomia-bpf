@@ -15,9 +15,7 @@
 using namespace eunomia;
 using json = nlohmann::json;
 
-int
-parse_arg_for_program(const char *path, std::vector<std::string> args)
-{
+int parse_arg_for_program(const char* path, std::vector<std::string> args) {
     std::string json_str, new_config;
     std::ifstream json_file(path);
     json_str = std::string((std::istreambuf_iterator<char>(json_file)),
@@ -43,37 +41,27 @@ parse_arg_for_program(const char *path, std::vector<std::string> args)
     return res;
 }
 
-TEST_CASE("test arg opensnoop", "[opensnoop]")
-{
+TEST_CASE("test arg opensnoop", "[opensnoop]") {
     REQUIRE(parse_arg_for_program("../../test/asserts/opensnoop.json",
-                                  { "opensnoop", "-h" })
-            == 1);
+                                  {"opensnoop", "-h"}) == 1);
     REQUIRE(parse_arg_for_program("../../test/asserts/opensnoop.json",
-                                  { "opensnoop", "-v" })
-            == 1);
+                                  {"opensnoop", "-v"}) == 1);
     REQUIRE(parse_arg_for_program("../../test/asserts/opensnoop.json",
-                                  { "opensnoop", "--verbose" })
-            == 0);
+                                  {"opensnoop", "--verbose"}) == 0);
     REQUIRE(parse_arg_for_program("../../test/asserts/opensnoop.json",
-                                  { "opensnoop", "-f" })
-            == 0);
+                                  {"opensnoop", "-f"}) == 0);
     REQUIRE(parse_arg_for_program("../../test/asserts/opensnoop.json",
-                                  { "opensnoop", "--pid_target", "1" })
-            == 0);
+                                  {"opensnoop", "--pid_target", "1"}) == 0);
     REQUIRE(parse_arg_for_program("../../test/asserts/opensnoop.json",
-                                  { "opensnoop", "--xxx", "1" })
-            != 1);
+                                  {"opensnoop", "--xxx", "1"}) != 1);
 }
 
-TEST_CASE("test arg bootstrap", "[bootstrap]")
-{
+TEST_CASE("test arg bootstrap", "[bootstrap]") {
     REQUIRE(parse_arg_for_program("../../test/asserts/bootstrap.json",
-                                  { "boostrap", "-h" })
-            == 1);
+                                  {"boostrap", "-h"}) == 1);
     REQUIRE(parse_arg_for_program("../../test/asserts/bootstrap.json",
-                                  { "boostrap", "-f" })
-            != 0);
+                                  {"boostrap", "-f"}) != 0);
     REQUIRE(parse_arg_for_program("../../test/asserts/bootstrap.json",
-                                  { "boostrap", "--min_duration_ns", "1000" })
-            == 0);
+                                  {"boostrap", "--min_duration_ns", "1000"}) ==
+            0);
 }

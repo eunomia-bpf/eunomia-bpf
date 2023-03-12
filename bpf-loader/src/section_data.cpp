@@ -16,17 +16,15 @@ extern "C" {
 
 namespace eunomia {
 
-template<typename T>
-void
-load_data(const json &json_obj, char *buffer, size_t offset, size_t size)
-{
+template <typename T>
+void load_data(const json& json_obj, char* buffer, size_t offset, size_t size) {
     if (json_obj["value"].is_null()) {
         return;
     }
     try {
         T value = json_obj["value"];
         memcpy(buffer + offset, &value, size);
-    } catch (json::exception &e) {
+    } catch (json::exception& e) {
         std::cerr << "load section value failed: " << e.what() << std::endl;
         return;
     }
@@ -39,9 +37,9 @@ struct section_data_btf_type {
     bool is_array;
 };
 
-static std::map<std::string, section_data_btf_type>
-resolve_btf_section_types(const data_section_meta &sec_meta, const btf *btf)
-{
+static std::map<std::string, section_data_btf_type> resolve_btf_section_types(
+    const data_section_meta& sec_meta,
+    const btf* btf) {
     std::map<std::string, section_data_btf_type> btf_type_map;
 
     int id = btf__find_by_name(btf, sec_meta.name.c_str());
@@ -54,13 +52,13 @@ resolve_btf_section_types(const data_section_meta &sec_meta, const btf *btf)
     if (!sec) {
         return {};
     }
-    const struct btf_var_secinfo *sec_var = btf_var_secinfos(sec);
+    const struct btf_var_secinfo* sec_var = btf_var_secinfos(sec);
     int i, err, vlen = btf_vlen(sec);
     unsigned int off = 0;
 
     for (i = 0; i < vlen; i++, sec_var++) {
-        const struct btf_type *var = btf__type_by_id(btf, sec_var->type);
-        const char *var_name = btf__name_by_offset(btf, var->name_off);
+        const struct btf_type* var = btf__type_by_id(btf, sec_var->type);
+        const char* var_name = btf__name_by_offset(btf, var->name_off);
         unsigned int need_off = sec_var->offset, align_off, align;
         __u32 var_type_id = var->type;
 
@@ -71,17 +69,16 @@ resolve_btf_section_types(const data_section_meta &sec_meta, const btf *btf)
                     sec_meta.name.c_str(), i, need_off, off);
             return {};
         }
-        btf_type_map[var_name] = { var_type_id, sec_var->size, sec_var->offset,
-                                   btf_is_array(var) };
+        btf_type_map[var_name] = {var_type_id, sec_var->size, sec_var->offset,
+                                  btf_is_array(var)};
         off = sec_var->offset + sec_var->size;
     }
     return btf_type_map;
 }
 
-void
-bpf_skeleton::load_section_data_to_buffer(const data_section_meta &sec_meta,
-                                          char *mmap_buffer)
-{
+void bpf_skeleton::load_section_data_to_buffer(
+    const data_section_meta& sec_meta,
+    char* mmap_buffer) {
     auto btf = get_btf_data();
     if (!btf) {
         std::cerr << "error: btf is null" << std::endl;
@@ -92,13 +89,13 @@ bpf_skeleton::load_section_data_to_buffer(const data_section_meta &sec_meta,
         return;
     }
 
-    for (auto &variable : sec_meta.variables) {
+    for (auto& variable : sec_meta.variables) {
         if (btf_type_map.find(variable.name) == btf_type_map.end()) {
             std::cerr << "error: variable not found: " << variable.name
                       << std::endl;
             continue;
         }
-        auto &sec_btf_type = btf_type_map[variable.name];
+        auto& sec_btf_type = btf_type_map[variable.name];
         json json_obj = json::parse(variable.__raw_json_data);
         if (!json_obj.contains("value")) {
             return;
@@ -137,19 +134,15 @@ bpf_skeleton::load_section_data_to_buffer(const data_section_meta &sec_meta,
     }
 }
 
-void
-bpf_skeleton::load_section_data()
-{
-    for (auto &sec : meta_data.bpf_skel.data_sections) {
+void bpf_skeleton::load_section_data() {
+    for (auto& sec : meta_data.bpf_skel.data_sections) {
         if (sec.name == ".rodata") {
             load_section_data_to_buffer(sec, rodata_buffer);
-        }
-        else if (sec.name == ".bss") {
+        } else if (sec.name == ".bss") {
             load_section_data_to_buffer(sec, bss_buffer);
-        }
-        else {
+        } else {
             std::cerr << "unsupported section: " << sec.name << std::endl;
         }
     }
 }
-} // namespace eunomia
+}  // namespace eunomia

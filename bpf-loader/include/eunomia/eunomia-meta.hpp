@@ -23,7 +23,7 @@ struct export_types_struct_meta {
     uint32_t size;
     uint32_t type_id;
 
-    void from_json_str(const std::string &j_str);
+    void from_json_str(const std::string& j_str);
 };
 
 struct map_sample_meta {
@@ -76,7 +76,7 @@ struct bpf_skel_meta {
     std::string obj_name;
     std::optional<bpf_skel_doc> doc;
 
-    void from_json_str(const std::string &j_str);
+    void from_json_str(const std::string& j_str);
 };
 
 /// global meta data config
@@ -100,7 +100,7 @@ struct eunomia_object_meta {
     bool debug_verbose = false;
 
     std::string to_json_str();
-    void from_json_str(const std::string &j_str);
+    void from_json_str(const std::string& j_str);
 };
 
 /// Global config to control the behavior of eunomia-bpf
@@ -111,6 +111,6 @@ struct runner_config {
     bool print_kernel_debug = false;
 };
 
-} // namespace eunomia
+}  // namespace eunomia
 
 #endif
