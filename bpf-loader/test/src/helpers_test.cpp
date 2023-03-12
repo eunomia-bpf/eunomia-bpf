@@ -14,7 +14,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-
 extern "C" {
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
@@ -71,34 +70,35 @@ TEST_CASE("test trace helpers print hist", "[trace][helpers]")
     h.slots[0] = 0;
     print_linear_hist(h.slots, MAX_SLOTS, 0, HIST_STEP_SIZE, "test comm");
 
-    SECTION("Test print_log2_hist with idx_max > 32") {
-    unsigned int vals[100];
-    for (int i = 0; i < 100; i++) {
-        vals[i] = i;
-    }
-    const char *val_type = "Test";
+    SECTION("Test print_log2_hist with idx_max > 32")
+    {
+        unsigned int vals[100];
+        for (int i = 0; i < 100; i++) {
+            vals[i] = i;
+        }
+        const char *val_type = "Test";
 
-    print_log2_hist(vals, 100, val_type);
+        print_log2_hist(vals, 100, val_type);
 
-    int stars_max = 40, idx_max = -1;
-    unsigned int val, val_max = 0;
-    unsigned long long low, high;
-    int stars, width, i;
+        int stars_max = 40, idx_max = -1;
+        unsigned int val, val_max = 0;
+        unsigned long long low, high;
+        int stars, width, i;
 
-    for (i = 0; i < 100; i++) {
-        val = vals[i];
-        if (val > 0)
-        idx_max = i;
-        if (val > val_max)
-        val_max = val;
-    }
-    if (idx_max <= 32)
-		stars = stars_max;
-	else
-		stars = stars_max / 2;
-        
-    REQUIRE(idx_max == 99);
-    REQUIRE(stars == stars_max / 2);
+        for (i = 0; i < 100; i++) {
+            val = vals[i];
+            if (val > 0)
+                idx_max = i;
+            if (val > val_max)
+                val_max = val;
+        }
+        if (idx_max <= 32)
+            stars = stars_max;
+        else
+            stars = stars_max / 2;
+
+        REQUIRE(idx_max == 99);
+        REQUIRE(stars == stars_max / 2);
     }
 }
 
@@ -108,17 +108,19 @@ TEST_CASE("test trace helpers kprobe exists", "[trace][helpers]")
     REQUIRE(kprobe_exists("do_syscall_64") == false);
     REQUIRE(kprobe_exists("") == false);
 
+    SECTION("Test when /sys/kernel/debug/tracing/available_filter_functions "
+            "file cannot be opened")
+    {
 
-	SECTION("Test when /sys/kernel/debug/tracing/available_filter_functions file cannot be opened") {
-		
-		const char *path = "/sys/kernel/debug/tracing/available_filter_functions";
-		const char *name = "fs";
+        const char *path =
+            "/sys/kernel/debug/tracing/available_filter_functions";
+        const char *name = "fs";
         mode_t original_mode = 0;
-		REQUIRE(chmod(path, 0) == 0);
-		bool result = kprobe_exists(name);
-		REQUIRE(result == false);
+        REQUIRE(chmod(path, 0) == 0);
+        bool result = kprobe_exists(name);
+        REQUIRE(result == false);
         REQUIRE(chmod(path, original_mode) == 0);
-	}
+    }
 }
 
 TEST_CASE("test trace helpers tracepoint exists", "[trace][helpers]")
@@ -160,13 +162,12 @@ TEST_CASE("test trace helpers fentry_can_attach", "[trace][helpers")
     REQUIRE(fentry_can_attach("tcp_rcv_established", NULL) == true);
     REQUIRE(fentry_can_attach("blk_account_io_start", NULL) == true);
 
-	SECTION("Test when/sys/kernel/btf/vmlinuxbe opened") {
-		
-		const char *path = "/sys/kernel/btf/vmlinux";
-		REQUIRE(fentry_can_attach("tcp_v4_syn_recv_sock", NULL) == true);
-	}
+    SECTION("Test when/sys/kernel/btf/vmlinuxbe opened")
+    {
 
-    
+        const char *path = "/sys/kernel/btf/vmlinux";
+        REQUIRE(fentry_can_attach("tcp_v4_syn_recv_sock", NULL) == true);
+    }
 }
 
 TEST_CASE("test trace helpers module_btf_exists", "[trace][helpers")
@@ -180,21 +181,22 @@ TEST_CASE("test trace helpers is_kernel_module", "[trace][helpers")
     REQUIRE(is_kernel_module("tcp") == false);
     REQUIRE(is_kernel_module("") == false);
 
-	SECTION("Test when /proc/modules file cannot be opened") {
-		// Temporarily remove read permission for /proc/modules file
-		// so that fopen() will return NULL
-		const char *path = "/proc/modules";
-		mode_t original_mode = 0;
-		REQUIRE(chmod(path, 0) == 0);
-		const char *name = "fs";
-		bool result = is_kernel_module(name);
-		REQUIRE(result == false);
-		// Restore original file permission
-		REQUIRE(chmod(path, original_mode) == 0);
-	}
+    SECTION("Test when /proc/modules file cannot be opened")
+    {
+        // Temporarily remove read permission for /proc/modules file
+        // so that fopen() will return NULL
+        const char *path = "/proc/modules";
+        mode_t original_mode = 0;
+        REQUIRE(chmod(path, 0) == 0);
+        const char *name = "fs";
+        bool result = is_kernel_module(name);
+        REQUIRE(result == false);
+        // Restore original file permission
+        REQUIRE(chmod(path, original_mode) == 0);
+    }
 
-
-    SECTION("Test whether the input module name exists in the current system"){
+    SECTION("Test whether the input module name exists in the current system")
+    {
         std::ifstream file("/proc/modules");
         std::string line;
         std::string module_name;
@@ -202,13 +204,14 @@ TEST_CASE("test trace helpers is_kernel_module", "[trace][helpers")
             std::getline(file, line); // Read first line
             size_t pos = line.find(" ");
             module_name = line.substr(0, pos);
-            std::cout << "First kernel module name: " << module_name << std::endl;
+            std::cout << "First kernel module name: " << module_name
+                      << std::endl;
             file.close();
-        } else {
+        }
+        else {
             std::cout << "Unable to open file" << std::endl;
         }
         REQUIRE(is_kernel_module(module_name.c_str()) == true);
-    
     }
 }
 
@@ -232,10 +235,11 @@ TEST_CASE("test trace helpers open_elf", "[trace][helpers]")
     close(fd_close);
 }
 
-TEST_CASE("test trace helpers get_ktime_ns", "[time]") {
+TEST_CASE("test trace helpers get_ktime_ns", "[time]")
+{
 
     unsigned long long start = get_ktime_ns();
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-     long long end = get_ktime_ns();
-    REQUIRE(end - start >= 100 * 1e6);  
+    long long end = get_ktime_ns();
+    REQUIRE(end - start >= 100 * 1e6);
 }

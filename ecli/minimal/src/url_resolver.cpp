@@ -30,8 +30,9 @@ static std::vector<unsigned char>
 get_file_contents(const std::string &path)
 {
     std::ifstream json_file(path);
-    return std::vector<unsigned char>((std::istreambuf_iterator<char>(json_file)),
-                             std::istreambuf_iterator<char>());
+    return std::vector<unsigned char>(
+        (std::istreambuf_iterator<char>(json_file)),
+        std::istreambuf_iterator<char>());
 }
 
 static std::string

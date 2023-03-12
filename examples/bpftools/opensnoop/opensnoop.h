@@ -8,14 +8,14 @@
 
 // used for export event
 struct event {
-	/* user terminology for pid: */
-	unsigned long long ts;
-	int pid;
-	int uid;
-	int ret;
-	int flags;
-	char comm[TASK_COMM_LEN];
-	char fname[NAME_MAX];
+    /* user terminology for pid: */
+    unsigned long long ts;
+    int pid;
+    int uid;
+    int ret;
+    int flags;
+    char comm[TASK_COMM_LEN];
+    char fname[NAME_MAX];
 };
 
 #endif /* __OPENSNOOP_H */

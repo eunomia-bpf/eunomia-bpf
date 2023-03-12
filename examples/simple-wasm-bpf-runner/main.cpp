@@ -18,7 +18,7 @@
 #include "bpf-api.h"
 #include "wasm_export.h"
 
-int main(int argc, char *argv_main[]) {
+int main(int argc, char* argv_main[]) {
     if (argc != 2 && argc != 3) {
         std::cout << "usage: " << argv_main[0]
                   << " [path of wasm file]  [-j path of json file]"
@@ -29,8 +29,9 @@ int main(int argc, char *argv_main[]) {
         // run wasm file
         std::ifstream file(argv_main[1]);
         std::vector<uint8_t> wasm_module((std::istreambuf_iterator<char>(file)),
-                                        std::istreambuf_iterator<char>());
-        int res = wasm_main(wasm_module.data(), wasm_module.size(), argc - 1, argv_main + 1);
+                                         std::istreambuf_iterator<char>());
+        int res = wasm_main(wasm_module.data(), wasm_module.size(), argc - 1,
+                            argv_main + 1);
         if (res != 0) {
             return 1;
         }
@@ -38,10 +39,11 @@ int main(int argc, char *argv_main[]) {
     } else if (argc == 3 && std::strcmp(argv_main[1], "-j") == 0) {
         // run json file
         std::ifstream json_file(argv_main[2]);
-        std::vector<unsigned char> json_str((std::istreambuf_iterator<char>(json_file)),
-                                   std::istreambuf_iterator<char>());
+        std::vector<unsigned char> json_str(
+            (std::istreambuf_iterator<char>(json_file)),
+            std::istreambuf_iterator<char>());
 
-        wasm_bpf_program *program = new wasm_bpf_program();
+        wasm_bpf_program* program = new wasm_bpf_program();
         int res = program->load_bpf_object(json_str.data(), json_str.size());
         if (res < 0) {
             printf("load_bpf_object failed\n");

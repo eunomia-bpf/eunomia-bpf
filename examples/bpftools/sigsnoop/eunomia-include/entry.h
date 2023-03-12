@@ -7,16 +7,14 @@
 
 #define MAX_ARGS 32
 
-int main(int argc, char **argv);
-int bpf_main(char *env_json, int str_len)
-{
-	cJSON *env = cJSON_Parse(env_json);
-	if (!env)
-	{
-		printf("cJSON_Parse failed for env json args.");
+int main(int argc, char** argv);
+int bpf_main(char* env_json, int str_len) {
+    cJSON* env = cJSON_Parse(env_json);
+    if (!env) {
+        printf("cJSON_Parse failed for env json args.");
         return 1;
-	}
-	if (!cJSON_IsArray(env)) {
+    }
+    if (!cJSON_IsArray(env)) {
         printf("env json args is not an array.");
         return 1;
     }
@@ -25,16 +23,16 @@ int bpf_main(char *env_json, int str_len)
         printf("env json args is too long.");
         return 1;
     }
-    char *argv[MAX_ARGS];
+    char* argv[MAX_ARGS];
     for (int i = 0; i < argc; i++) {
-        cJSON *item = cJSON_GetArrayItem(env, i);
+        cJSON* item = cJSON_GetArrayItem(env, i);
         if (!cJSON_IsString(item)) {
             printf("env json args is not a string.");
             return 1;
         }
         argv[i] = item->valuestring;
     }
-	return main(argc, argv);
+    return main(argc, argv);
 }
 
 #endif
