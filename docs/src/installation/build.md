@@ -65,5 +65,5 @@ $ make ecc
 ## more details
 
 
-- You can check the Makefile at project root for more details: [Makefile](../Makefile)
-- You may want to refer to our CI for more build info: [.github/workflowsubuntu.yml](../.github/workflows/ubuntu.yml)
+- You can check the Makefile at project root for more details: [Makefile](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/compiler/Makefile)
+- You may want to refer to our CI for more build info: [ecc.yml](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/.github/workflows/ecc.yml)

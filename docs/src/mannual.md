@@ -256,7 +256,7 @@ programs:
 
 ![prometheus](https://oss.openanolis.cn/sig/stxfomyiiwdwkdrqwlnn)
 
-您可以在任何内核版本上部署导出器，而无需依赖 `LLVM/Clang`。 有关详细信息，请参阅 [eunomia-exporter](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-exporter)。
+您可以在任何内核版本上部署导出器，而无需依赖 `LLVM/Clang`。 有关详细信息，请参阅 [eunomia-exporter](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-sdks/eunomia-otel)。
 
 ## 使用 Wasm 模块分发、动态加载 eBPF 程序
 
@@ -829,13 +829,13 @@ int path_rmdir(const struct path *dir, struct dentry *dentry) {
 
 `ecli` 是基于我们底层的 eunomia-bpf 库和运行时实现的一个简单的命令行工具。我们的项目架构如下图所示：
 
-![arch](../img/eunomia-arch.png)
+![arch](img/eunomia-arch.png)
 
 `ecli` 工具基于 `ewasm` 库实现，`ewasm` 库包含一个 WAMR(wasm-micro-runtime) 运行时，以及基于 libbpf 库构建的 eBPF 动态装载模块。大致来说，我们在 `Wasm` 运行时和用户态的 `libbpf` 中间多加了一层抽象层（`eunomia-bpf` 库），使得一次编译、到处运行的 eBPF 代码可以从 JSON 对象中动态加载。JSON 对象会在编译时被包含在 Wasm 模块中，因此在运行时，我们可以通过解析 JSON 对象来获取 eBPF 程序的信息，然后动态加载 eBPF 程序。
 
 使用 Wasm 或 JSON 编译分发 eBPF 程序的流程图大致如下：
 
-![flow](../img/eunomia-bpf-flow.png)
+![flow](img/eunomia-bpf-flow.png)
 
 大致来说，整个 eBPF 程序的编写和加载分为三个部分：
 
@@ -852,7 +852,7 @@ int path_rmdir(const struct path *dir, struct dentry *dentry) {
 
 `ecli` 是基于我们底层的 eunomia-bpf 库和运行时实现的一个简单的命令行工具。我们的项目架构如下图所示：
 
-![arch](../img/eunomia-arch.png)
+![arch](img/eunomia-arch.png)
 
 `ecli` 工具基于 `ewasm` 库实现，`ewasm` 库包含一个 WAMR(wasm-micro-runtime) 运行时，以及基于 libbpf 库构建的 eBPF 动态装载模块。大致来说，我们在 `Wasm` 运行时和用户态的 `libbpf` 中间多加了一层抽象层（`eunomia-bpf` 库），使得一次编译、到处运行的 eBPF 代码可以从 JSON 对象中动态加载。JSON 对象会在编译时被包含在 Wasm 模块中，因此在运行时，我们可以通过解析 JSON 对象来获取 eBPF 程序的信息，然后动态加载 eBPF 程序。
 

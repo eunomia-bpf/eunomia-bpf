@@ -1,7 +1,7 @@
 # Quick Start
 
 - Github Template：[eunomia-bpf/ebpm-template](https://github.com/eunomia-bpf/ebpm-template)
-- example bpf programs: [examples/bpftools](examples/bpftools/)
+- example bpf programs: [examples/bpftools](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/examples/bpftools)
 - tutorial: [eunomia-bpf/bpf-developer-tutorial](https://github.com/eunomia-bpf/bpf-developer-tutorial)
 
 You can get pre-compiled eBPF programs running from the cloud to the kernel in `1` line of bash:

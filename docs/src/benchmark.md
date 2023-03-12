@@ -14,4 +14,4 @@ root      171562  0.0  0.0  15176  4576 pts/6    S+   01:08   0:00 sudo ./eunomi
 root      171605  0.1  0.0 350540  7740 pts/6    Sl+  01:08   0:00 ./eunomia-exporter
 ```
 
-The memory usage and CPU usage is also low. see [../eunomia-exporter](../eunomia-exporter) for more details.
+The memory usage and CPU usage is also low. see [eunomia-exporter](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-sdks/eunomia-otel) for more details.
