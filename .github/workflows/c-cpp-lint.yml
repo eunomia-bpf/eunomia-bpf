@@ -1,0 +1,24 @@
+name: "c-cpp-lint"
+
+on:
+  push:
+    branches: "master"
+  pull_request:
+    branches: "*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: DoozyX/clang-format-lint-action@v0.14
+      with:
+        source: 'bpf-loader examples ecli/minimal'
+        extensions: 'h,cpp,c,hpp,cxx,hxx'
+        clangFormatVersion: 14
+        inplace: True
+    - uses: EndBug/add-and-commit@v4
+      with:
+        message: 'Committing clang-format changes'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
