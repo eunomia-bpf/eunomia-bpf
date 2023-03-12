@@ -13,4 +13,6 @@ git-repository-icon = "fa-github"
 enable = true
 
 [output.linkcheck]
-follow-web-links = false
+follow-web-links = true
+
+exclude = [ 'openai.com', 'geekbang.org', 'aliyun.com' ]
