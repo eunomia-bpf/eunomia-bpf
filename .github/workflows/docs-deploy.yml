@@ -20,9 +20,9 @@ jobs:
           toolchain: stable
       - run: (test -x $HOME/.cargo/bin/mdbook || cargo install mdbook)
       - run: (test -x $HOME/.cargo/bin/mdbook-linkcheck || cargo install mdbook-linkcheck)
-      - run: mdbook build docs && mdbook test docs
+      - run: mdbook build documents && mdbook test documents
       - uses: JamesIves/github-pages-deploy-action@v4.4.1
         if: ${{ github.event_name == 'push' }}
         with:
           branch: gh-pages
-          folder: ./docs/book
+          folder: ./documents/book
