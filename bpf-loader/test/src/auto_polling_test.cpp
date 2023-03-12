@@ -18,9 +18,7 @@
 
 using namespace eunomia;
 
-int
-start_new_program(const char *path, export_format_type type)
-{
+int start_new_program(const char* path, export_format_type type) {
     std::string json_str;
     std::ifstream json_file(path);
     json_str = std::string((std::istreambuf_iterator<char>(json_file)),
@@ -47,54 +45,38 @@ start_new_program(const char *path, export_format_type type)
     return 0;
 }
 
-TEST_CASE("run and auto export types ring buffer", "[bootstrap]")
-{
+TEST_CASE("run and auto export types ring buffer", "[bootstrap]") {
     REQUIRE(start_new_program("../../test/asserts/bootstrap.json",
-                              export_format_type::EXPORT_JSON)
-            == 0);
+                              export_format_type::EXPORT_JSON) == 0);
     REQUIRE(start_new_program("../../test/asserts/bootstrap.json",
-                              export_format_type::EXPORT_PLANT_TEXT)
-            == 0);
+                              export_format_type::EXPORT_PLANT_TEXT) == 0);
     REQUIRE(start_new_program("../../test/asserts/bootstrap.json",
-                              export_format_type::EXPORT_RAW_EVENT)
-            == 0);
+                              export_format_type::EXPORT_RAW_EVENT) == 0);
 }
 
-TEST_CASE("run and auto export types perf event", "[opensnoop]")
-{
+TEST_CASE("run and auto export types perf event", "[opensnoop]") {
     REQUIRE(start_new_program("../../test/asserts/opensnoop.json",
-                              export_format_type::EXPORT_JSON)
-            == 0);
+                              export_format_type::EXPORT_JSON) == 0);
     REQUIRE(start_new_program("../../test/asserts/opensnoop.json",
-                              export_format_type::EXPORT_PLANT_TEXT)
-            == 0);
+                              export_format_type::EXPORT_PLANT_TEXT) == 0);
     REQUIRE(start_new_program("../../test/asserts/opensnoop.json",
-                              export_format_type::EXPORT_RAW_EVENT)
-            == 0);
+                              export_format_type::EXPORT_RAW_EVENT) == 0);
 }
 
-TEST_CASE("run and auto export types none", "[minimal]")
-{
+TEST_CASE("run and auto export types none", "[minimal]") {
     REQUIRE(start_new_program("../../test/asserts/minimal.json",
-                              export_format_type::EXPORT_JSON)
-            == 0);
+                              export_format_type::EXPORT_JSON) == 0);
     REQUIRE(start_new_program("../../test/asserts/minimal.json",
-                              export_format_type::EXPORT_PLANT_TEXT)
-            == 0);
+                              export_format_type::EXPORT_PLANT_TEXT) == 0);
     REQUIRE(start_new_program("../../test/asserts/minimal.json",
-                              export_format_type::EXPORT_RAW_EVENT)
-            == 0);
+                              export_format_type::EXPORT_RAW_EVENT) == 0);
 }
 
-TEST_CASE("run and auto export types hist map", "[runqlat]")
-{
+TEST_CASE("run and auto export types hist map", "[runqlat]") {
     REQUIRE(start_new_program("../../test/asserts/runqlat.json",
-                              export_format_type::EXPORT_JSON)
-            == 0);
+                              export_format_type::EXPORT_JSON) == 0);
     REQUIRE(start_new_program("../../test/asserts/runqlat.json",
-                              export_format_type::EXPORT_PLANT_TEXT)
-            == 0);
+                              export_format_type::EXPORT_PLANT_TEXT) == 0);
     REQUIRE(start_new_program("../../test/asserts/runqlat.json",
-                              export_format_type::EXPORT_RAW_EVENT)
-            == 0);
+                              export_format_type::EXPORT_RAW_EVENT) == 0);
 }

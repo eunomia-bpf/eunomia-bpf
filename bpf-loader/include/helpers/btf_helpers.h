@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <gelf.h>
 
-char *
-get_btf_path(const char *path);
+char* get_btf_path(const char* path);
 
 #endif /* __BTF_HELPERS_H */

@@ -10,9 +10,7 @@
 using namespace eunomia;
 
 /// a simple loader for eunomia bpf program
-int
-main(int argc, char *argv[])
-{
+int main(int argc, char* argv[]) {
     if (argc != 3) {
         std::cerr << "Usage: " << argv[0]
                   << " <json_config_file> <bpf_object_file>" << std::endl;

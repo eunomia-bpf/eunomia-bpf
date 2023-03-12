@@ -37,9 +37,7 @@ namespace eunomia {
         res.get_to(name);                                            \
     } while (0);
 
-int
-bpf_skeleton::attach_tc_prog(std::size_t id)
-{
+int bpf_skeleton::attach_tc_prog(std::size_t id) {
     int ifindex = 1;
     __u32 handle = 1;
     __u32 priority = 1;
@@ -52,15 +50,14 @@ bpf_skeleton::attach_tc_prog(std::size_t id)
         get_from_json_or_default(tchook, ifindex);
         std::string attach_point = "BPF_TC_INGRESS";
         std::map<std::string, enum bpf_tc_attach_point> attach_point_map = {
-            { "BPF_TC_INGRESS", BPF_TC_INGRESS },
-            { "BPF_TC_EGRESS", BPF_TC_EGRESS },
-            { "BPF_TC_CUSTOM", BPF_TC_CUSTOM },
+            {"BPF_TC_INGRESS", BPF_TC_INGRESS},
+            {"BPF_TC_EGRESS", BPF_TC_EGRESS},
+            {"BPF_TC_CUSTOM", BPF_TC_CUSTOM},
         };
         get_from_json_or_default(tchook, attach_point);
         if (attach_point_map.find(attach_point) != attach_point_map.end()) {
             attach_point_value = attach_point_map[attach_point];
-        }
-        else {
+        } else {
             std::cerr << "error: attach_point " << attach_point
                       << " is not supported" << std::endl;
             return -1;
@@ -77,7 +74,7 @@ bpf_skeleton::attach_tc_prog(std::size_t id)
                         .attach_point = attach_point_value);
     DECLARE_LIBBPF_OPTS(bpf_tc_opts, tc_opts, .handle = handle,
                         .priority = priority);
-    struct tc_bpf *skel;
+    struct tc_bpf* skel;
     int err;
     /* The hook (i.e. qdisc) may already exists because:
      *   1. it is created by other processes or users
@@ -100,10 +97,8 @@ bpf_skeleton::attach_tc_prog(std::size_t id)
     return 0;
 }
 
-int
-bpf_skeleton::attach_special_programs()
-{
-    auto &meta_progs = meta_data.bpf_skel.progs;
+int bpf_skeleton::attach_special_programs() {
+    auto& meta_progs = meta_data.bpf_skel.progs;
     for (std::size_t i = 0; i < progs.size(); i++) {
         if (meta_progs[i].attach == "tc") {
             if (attach_tc_prog(i) != 0) {
@@ -114,4 +109,4 @@ bpf_skeleton::attach_special_programs()
     }
     return 0;
 }
-}
+}  // namespace eunomia

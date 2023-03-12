@@ -22,7 +22,7 @@
  * (The idea is taken from src/python/bcc/syscall.py.)
  */
 #ifdef __x86_64__
-static const char *syscall_names_x86_64[] = {
+static const char* syscall_names_x86_64[] = {
     [0] = "read",
     [1] = "write",
     [2] = "open",
@@ -374,7 +374,7 @@ static const char *syscall_names_x86_64[] = {
     [438] = "pidfd_getfd",
 };
 static const size_t syscall_names_x86_64_size =
-    sizeof(syscall_names_x86_64) / sizeof(char *);
+    sizeof(syscall_names_x86_64) / sizeof(char*);
 #endif
 
 #endif /* __SYSCALL_HELPERS_H */

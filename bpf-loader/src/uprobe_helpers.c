@@ -21,15 +21,12 @@
  * Returns 0 on success; -1 on failure.  On sucess, returns via `path` the full
  * path to the program for pid.
  */
-int
-get_pid_binary_path(pid_t pid, char *path, size_t path_sz)
-{
+int get_pid_binary_path(pid_t pid, char* path, size_t path_sz) {
     ssize_t ret;
     char proc_pid_exe[32];
 
     if ((size_t)snprintf(proc_pid_exe, sizeof(proc_pid_exe), "/proc/%d/exe",
-                         pid)
-        >= sizeof(proc_pid_exe)) {
+                         pid) >= sizeof(proc_pid_exe)) {
         warn("snprintf /proc/PID/exe failed");
         return -1;
     }
@@ -52,17 +49,15 @@ get_pid_binary_path(pid_t pid, char *path, size_t path_sz)
  * path to a library matching the name `lib` that is loaded into pid's address
  * space.
  */
-int
-get_pid_lib_path(pid_t pid, const char *lib, char *path, size_t path_sz)
-{
-    FILE *maps;
-    char *p;
+int get_pid_lib_path(pid_t pid, const char* lib, char* path, size_t path_sz) {
+    FILE* maps;
+    char* p;
     char proc_pid_maps[32];
     char line_buf[1024];
     char path_buf[1024];
 
-    if (snprintf(proc_pid_maps, sizeof(proc_pid_maps), "/proc/%d/maps", pid)
-        >= sizeof(proc_pid_maps)) {
+    if (snprintf(proc_pid_maps, sizeof(proc_pid_maps), "/proc/%d/maps", pid) >=
+        sizeof(proc_pid_maps)) {
         warn("snprintf /proc/PID/maps failed");
         return -1;
     }
@@ -105,10 +100,8 @@ get_pid_lib_path(pid_t pid, const char *lib, char *path, size_t path_sz)
  * Returns 0 on success; -1 on failure.  On success, returns via `path` the full
  * path to the program.
  */
-static int
-which_program(const char *prog, char *path, size_t path_sz)
-{
-    FILE *which;
+static int which_program(const char* prog, char* path, size_t path_sz) {
+    FILE* which;
     char cmd[100];
 
     if (snprintf(cmd, sizeof(cmd), "which %s", prog) >= sizeof(cmd)) {
@@ -142,9 +135,10 @@ which_program(const char *prog, char *path, size_t path_sz)
  * For case 4), ideally we'd like to search for libbar too, but we don't support
  * that yet.
  */
-int
-resolve_binary_path(const char *binary, pid_t pid, char *path, size_t path_sz)
-{
+int resolve_binary_path(const char* binary,
+                        pid_t pid,
+                        char* path,
+                        size_t path_sz) {
     if (!strcmp(binary, "")) {
         if (!pid) {
             warn("Uprobes need a pid or a binary\n");
@@ -171,11 +165,9 @@ resolve_binary_path(const char *binary, pid_t pid, char *path, size_t path_sz)
  * Opens an elf at `path` of kind ELF_K_ELF.  Returns NULL on failure.  On
  * success, close with close_elf(e, fd_close).
  */
-Elf *
-open_elf(const char *path, int *fd_close)
-{
+Elf* open_elf(const char* path, int* fd_close) {
     int fd;
-    Elf *e;
+    Elf* e;
 
     if (elf_version(EV_CURRENT) == EV_NONE) {
         warn("elf init failed\n");
@@ -202,10 +194,8 @@ open_elf(const char *path, int *fd_close)
     return e;
 }
 
-Elf *
-open_elf_by_fd(int fd)
-{
-    Elf *e;
+Elf* open_elf_by_fd(int fd) {
+    Elf* e;
 
     if (elf_version(EV_CURRENT) == EV_NONE) {
         warn("elf init failed\n");
@@ -226,28 +216,24 @@ open_elf_by_fd(int fd)
     return e;
 }
 
-void
-close_elf(Elf *e, int fd_close)
-{
+void close_elf(Elf* e, int fd_close) {
     elf_end(e);
     close(fd_close);
 }
 
 /* Returns the offset of a function in the elf file `path`, or -1 on failure. */
-off_t
-get_elf_func_offset(const char *path, const char *func)
-{
+off_t get_elf_func_offset(const char* path, const char* func) {
     off_t ret = -1;
     int i, fd = -1;
-    Elf *e;
-    Elf_Scn *scn;
-    Elf_Data *data;
+    Elf* e;
+    Elf_Scn* scn;
+    Elf_Data* data;
     GElf_Ehdr ehdr;
     GElf_Shdr shdr[1];
     GElf_Phdr phdr;
     GElf_Sym sym[1];
     size_t shstrndx, nhdrs;
-    char *n;
+    char* n;
 
     e = open_elf(path, &fd);
 
