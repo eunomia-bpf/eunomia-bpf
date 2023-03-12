@@ -5,4 +5,4 @@
 #include "cJSON/cJSON.c"
 #include "helpers.h"
 
-#endif // EWASM_EWASM_APP_H
+#endif  // EWASM_EWASM_APP_H

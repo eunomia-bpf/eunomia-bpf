@@ -6,8 +6,8 @@
 #define MAX_LINE_SIZE 80
 
 struct str_t {
-	__u32 pid;
-	char str[MAX_LINE_SIZE];
+    __u32 pid;
+    char str[MAX_LINE_SIZE];
 };
 
 #endif /* __BASHREADLINE_H */

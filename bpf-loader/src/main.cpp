@@ -34,8 +34,8 @@ main(int argc, char *argv[])
         std::cerr << "failed to run ebpf program" << std::endl;
         return -1;
     }
-    if (ebpf_program.wait_and_poll_to_handler(export_format_type::EXPORT_PLANT_TEXT,
-                                              nullptr, nullptr)) {
+    if (ebpf_program.wait_and_poll_to_handler(
+            export_format_type::EXPORT_PLANT_TEXT, nullptr, nullptr)) {
         std::cerr << "failed to wait and print rb" << std::endl;
         return -1;
     }

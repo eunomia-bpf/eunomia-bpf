@@ -3,13 +3,13 @@
 #ifndef __MDFLUSH_H
 #define __MDFLUSH_H
 
-#define TASK_COMM_LEN	16
-#define DISK_NAME_LEN	32
+#define TASK_COMM_LEN 16
+#define DISK_NAME_LEN 32
 
 struct event {
-	unsigned int pid;
-	char comm[TASK_COMM_LEN];
-	char disk[DISK_NAME_LEN];
+    unsigned int pid;
+    char comm[TASK_COMM_LEN];
+    char disk[DISK_NAME_LEN];
 };
 
 #endif /* __MDFLUSH_H */

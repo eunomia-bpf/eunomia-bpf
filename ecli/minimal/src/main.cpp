@@ -20,10 +20,10 @@ using json = nlohmann::json;
 
 enum class eunomia_cmd_mode { run, help, pull };
 
-static void 
+static void
 run_mode_operation(const std::string &path,
-    const std::vector<std::string> &run_with_extra_args,
-    bool export_to_json, bool no_cache)
+                   const std::vector<std::string> &run_with_extra_args,
+                   bool export_to_json, bool no_cache)
 {
     export_format_type type;
     if (export_to_json) {
@@ -69,10 +69,9 @@ cmd_run_main(int argc, char *argv[])
     program.add_epilog(
         "See https://github.com/eunomia-bpf/eunomia-bpf for more information.");
     program.add_argument("url-and-args")
-        .default_value(std::vector<std::string>{default_json_data_file_name})
-        .help(
-            "The url to get the ebpf program, can be file path or url.\n"
-            "Or being \"--\" for receiving a json program from pipe.")
+        .default_value(std::vector<std::string>{ default_json_data_file_name })
+        .help("The url to get the ebpf program, can be file path or url.\n"
+              "Or being \"--\" for receiving a json program from pipe.")
         .remaining();
     program.add_argument("-j", "--json")
         .help("export the result as json")
@@ -103,7 +102,7 @@ cmd_run_main(int argc, char *argv[])
     bool no_cache = program.get<bool>("--no-cache");
     bool show_version = program.get<bool>("--version");
     if (show_version) {
-        std::cout<< eunomia::generate_version_info();
+        std::cout << eunomia::generate_version_info();
         return 0;
     }
     run_mode_operation(run_with_extra_args[0], run_with_extra_args,

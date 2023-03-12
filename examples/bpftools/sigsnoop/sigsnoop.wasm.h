@@ -5,7 +5,7 @@
 // source file path: sigsnoop.bpf.o
 #ifndef __STRUCT_MARSHAL_SIGSNOOP_BPF_O_H__
 #define __STRUCT_MARSHAL_SIGSNOOP_BPF_O_H__
-    
+
 #include <assert.h>
 #include <string.h>
 #include <stdint.h>
@@ -20,4 +20,3 @@ struct event {
 static_assert(sizeof(struct event) == 32, "Size of event2 is not 32");
 
 #endif
-

@@ -4,15 +4,19 @@
 
 #include <stdbool.h>
 
-#define NSEC_PER_SEC		1000000000ULL
+#define NSEC_PER_SEC 1000000000ULL
 
-void print_log2_hist(unsigned int *vals, int vals_size, const char *val_type);
-void print_linear_hist(unsigned int *vals, int vals_size, unsigned int base,
-		unsigned int step, const char *val_type);
+void
+print_log2_hist(unsigned int *vals, int vals_size, const char *val_type);
+void
+print_linear_hist(unsigned int *vals, int vals_size, unsigned int base,
+                  unsigned int step, const char *val_type);
 
-unsigned long long get_ktime_ns(void);
+unsigned long long
+get_ktime_ns(void);
 
-bool is_kernel_module(const char *name);
+bool
+is_kernel_module(const char *name);
 
 /*
  * When attempting to use kprobe/kretprobe, please check out new fentry/fexit
@@ -30,7 +34,8 @@ bool is_kernel_module(const char *name);
  * *mod* is a hint that indicates the *name* may reside in module BTF,
  * if NULL, it means *name* belongs to vmlinux.
  */
-bool fentry_can_attach(const char *name, const char *mod);
+bool
+fentry_can_attach(const char *name, const char *mod);
 
 /*
  * The name of a kernel function to be attached to may be changed between
@@ -42,13 +47,19 @@ bool fentry_can_attach(const char *name, const char *mod);
  * If this file does not exist, it fallbacks to parse /proc/kallsyms,
  * which is slower.
  */
-bool kprobe_exists(const char *name);
-bool tracepoint_exists(const char *category, const char *event);
+bool
+kprobe_exists(const char *name);
+bool
+tracepoint_exists(const char *category, const char *event);
 
-bool vmlinux_btf_exists(void);
-bool module_btf_exists(const char *mod);
+bool
+vmlinux_btf_exists(void);
+bool
+module_btf_exists(const char *mod);
 
-bool probe_tp_btf(const char *name);
-bool probe_ringbuf();
+bool
+probe_tp_btf(const char *name);
+bool
+probe_ringbuf();
 
 #endif /* __TRACE_HELPERS_H */
