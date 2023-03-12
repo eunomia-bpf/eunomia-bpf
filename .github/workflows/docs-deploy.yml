@@ -25,4 +25,4 @@ jobs:
         if: ${{ github.event_name == 'push' }}
         with:
           branch: gh-pages
-          folder: ./documents/book
+          folder: ./documents/book/html
