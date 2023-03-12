@@ -219,7 +219,7 @@ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json
 
 由于 eunomia-cc 编译出来的 ebpf 程序代码和附加信息很小（约数十 kb），且不需要同时传递任何的额外依赖，因此我们可以非常方便地通过网络 API 直接进行分发，也可以在很短的时间（大约 100ms）内实现热插拔和热更新。我们提供了一个简单的 client 和 server，请参考;
 
-[https://github.com/eunomia-bpf/eunomia-bpf/blob/master/documents/ecli-usage.md](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/documents/ecli-usage.md)
+[ecli-dockerfile-usage.md](ecli-dockerfile-usage.md)
 
 之前也有一篇比赛项目的可行性验证的文章：
 
@@ -227,7 +227,7 @@ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json
 
 ## 使用 Prometheus 或 OpenTelemetry 进行可观测性数据收集
 
-基于 async Rust 的 Prometheus 或 OpenTelemetry 自定义可观测性数据收集器: [eunomia-exporter](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-exporter)
+基于 async Rust 的 Prometheus 或 OpenTelemetry 自定义可观测性数据收集器: [eunomia-exporter](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/eunomia-sdks/eunomia-otel)
 
 可以自行编译或通过 [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/) 下载
 
@@ -912,8 +912,8 @@ eunomia-bpf 也已经加入了龙蜥社区：
 
 您可以帮助我们添加测试或者示例，可以参考：
 
-- [https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools)
-- [https://github.com/eunomia-bpf/eunomia-bpf/tree/master/bpftools/tests](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/bpftools/tests)
+- [examples/bpftools](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools)
+- [bpftools/tests](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/tests)
 
 由于现在 API 还不稳定，如果您在试用中遇到任何问题或者任何流程/文档不完善的地方，请在 gitee 或 github issue 留言，
 我们会尽快修复；也非常欢迎进一步的 PR 提交和贡献！也非常希望您能提出一些宝贵的意见或者建议！
