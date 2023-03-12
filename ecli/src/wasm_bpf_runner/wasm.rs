@@ -3,37 +3,23 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use std::{
-    ffi::CString,
-    os::raw::c_char,
-};
 
 use crate::{
     config::ProgramConfigData,
     error::{EcliError, EcliResult},
 };
 
-use super::wasm_bpf::wasm_main;
+use wasm_bpf_rs::run_wasm_bpf_module;
 
-pub fn handle_wasm(mut conf: ProgramConfigData) -> EcliResult<()> {
-    unsafe {
-        let mut extra_arg_raw = vec![];
-        let mut cstr_vec = vec![];
-        let arg = CString::new(conf.url.as_bytes()).unwrap();
-        extra_arg_raw.push(arg.as_ptr() as *mut c_char);
-        for arg in conf.extra_arg {
-            cstr_vec.push(CString::new(arg.as_bytes()).unwrap());
-            extra_arg_raw.push(cstr_vec.last().unwrap().as_ptr() as *mut c_char);
-        }
-        if wasm_main(
-            conf.program_data_buf.as_mut_ptr() as *mut u8,
-            conf.program_data_buf.len() as u32,
-            extra_arg_raw.len() as i32,
-            extra_arg_raw.as_mut_ptr(),
-        ) < 0
-        {
-            return Err(EcliError::WasmError("start wasm-bpf fail".to_string()));
-        }
-    }
-    Ok(())
+pub fn handle_wasm(conf: ProgramConfigData) -> EcliResult<()> {
+    let config = wasm_bpf_rs::Config {
+        callback_export_name: String::from("callback-wrapper"),
+        wrapper_module_name: String::from("go-callback"),
+    };
+    run_wasm_bpf_module(
+        conf.program_data_buf.as_slice(),
+        conf.extra_arg.as_slice(),
+        config,
+    )
+    .map_err(|e| EcliError::WasmError(e.to_string()))
 }
