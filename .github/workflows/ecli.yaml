@@ -37,6 +37,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
 
     - name: Set latest release version
       if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -70,9 +72,6 @@ jobs:
           const tag = tags.find(tag => tag.commit.sha === context.sha);
           
           return tag ? tag.name : increase_v(latest_release_tag)
-
-    - name: get submodule
-      run:  git submodule update --init --recursive --remote
 
     - name: install deps
       run: |
