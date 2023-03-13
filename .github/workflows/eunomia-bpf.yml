@@ -17,9 +17,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-
-    - name: get submodule
-      run:  git submodule update --init --recursive --remote
+      with:
+        submodules: 'recursive'
 
     - name: install deps
       run: |
