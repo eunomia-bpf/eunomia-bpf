@@ -1,0 +1,70 @@
+name: Build and public ecli docker image in aarch64
+on:
+  push:
+    branches: "master"
+
+jobs:
+  aarch64_job:
+    # The host should always be Linux
+    runs-on: ubuntu-22.04
+    name: Build on ubuntu-22.04 aarch64
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+
+      - uses: uraimo/run-on-arch-action@v2
+        name: build ecli aarch64 image
+        id: runcmd
+        with:
+          arch: aarch64
+          distro: ubuntu22.04
+          dockerRunArgs: |
+            -v `pwd`/:/usr/eunomia-bpf/
+
+          # Not required, but speeds up builds by storing container images in
+          # a GitHub package registry.
+          githubToken: ${{ github.token }}
+
+          # Set an output parameter `uname` for use in subsequent steps
+          run: |
+            apt-get update
+            apt-get install -y --no-install-recommends libelf1 libelf-dev \
+                zlib1g-dev clang llvm libclang-13-dev make cmake git wget tar curl libssl-dev pkg-config
+            apt-get install -y --no-install-recommends ca-certificates
+            update-ca-certificates
+            apt-get clean
+            
+            curl https://sh.rustup.rs -sSf | sh -s -- -y
+            source "$HOME/.cargo/env"
+            rm -rf /var/lib/apt/lists/*
+            
+            cd /usr/eunomia-bpf/ecli
+            make build
+
+      # setup Docker buld action
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build ecli-aarch64 image and push to GitHub Container Registry
+        uses: docker/build-push-action@v2
+        with:
+          # relative path to the place where source code with Dockerfile is located
+          context: ./ecli
+          file: ./ecli/dockerfile
+          platforms: linux/arm64
+          # Note: tags has to be all lower-case
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/ecli-aarch64:latest
+          push: true
+
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
