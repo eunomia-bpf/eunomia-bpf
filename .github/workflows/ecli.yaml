@@ -85,6 +85,15 @@ jobs:
         path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
         key: ${{ runner.os }}-dependencies
 
+    - name: cache rust
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: |
+          compiler/cmd
+          ecli
+          wasm-runtime/runtime/rust
+          eunomia-sdks/eunomia-rs
+
     - name: make ecli
       run:  make ecli
 
