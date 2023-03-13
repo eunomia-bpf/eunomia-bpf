@@ -102,16 +102,18 @@ jobs:
     - name: test ecc
       run:  cd compiler && make test
     - name: Upload analysis results to GitHub
+      if: github.repository_owner == 'eunomia-bpf'
       uses: github/codeql-action/upload-sarif@v2
       with:
         sarif_file: compiler/cmd/rust-clippy-results.sarif
         wait-for-processing: true
 
     - name: Code coverage using Codecov
+      if: github.repository_owner == 'eunomia-bpf'
       run: bash <(curl -s https://codecov.io/bash)
 
     - name: Package
-      if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
+      if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
       shell: bash
       run: |
         mkdir release
@@ -120,7 +122,7 @@ jobs:
         tar czvf ./ecc-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz ecc
 
     - name: Publish
-      if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
+      if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
       uses: softprops/action-gh-release@v1
       with:
           files: |
