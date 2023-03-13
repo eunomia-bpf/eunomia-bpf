@@ -53,7 +53,6 @@
 
                   preBuild = ''
                     make -C ./bpf-loader INSTALL_LOCATION=$out/lib -e install
-                    make -C ./wasm-runtime build-cpp
                     cd ${cargoRoot}
                   '';
 
