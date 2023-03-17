@@ -40,7 +40,8 @@ jobs:
             rm -rf /var/lib/apt/lists/*
             
             cd /usr/eunomia-bpf/ecli
-            make build
+            make -C ../bpf-loader install
+            cargo build --release --config net.git-fetch-with-cli=true
 
       # setup Docker buld action
       - name: Set up Docker Buildx

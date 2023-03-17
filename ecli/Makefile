@@ -9,7 +9,7 @@ $(LIBEUNOMIA):
 
 install: $(LIBEUNOMIA) ## install the package to the `INSTALL_LOCATION`
 	rm -rf target/
-	cargo build --release --config net.git-fetch-with-cli=true
+	cargo build --release
 	mkdir -p ~/.eunomia/bin
 	cp ./target/release/ecli ~/.eunomia/bin/ecli
 
