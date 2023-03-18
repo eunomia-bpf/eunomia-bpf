@@ -1,0 +1,232 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>template - Eunomia-bpf Documents</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item "><a href="../introduction/index.html"><strong aria-hidden="true">1.</strong> Introduction</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../introduction/introduction.html"><strong aria-hidden="true">1.1.</strong> Detail introduction</a></li><li class="chapter-item "><a href="../wasm-bpf.html"><strong aria-hidden="true">1.2.</strong> Wasm-bpf subproject</a></li></ol></li><li class="chapter-item "><li class="part-title">User Manual</li><li class="chapter-item "><a href="../quickstart.html"><strong aria-hidden="true">2.</strong> Quick Start</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../installation/index.html"><strong aria-hidden="true">2.1.</strong> Installation</a></li><li class="chapter-item "><a href="../installation/build.html"><strong aria-hidden="true">2.2.</strong> Build</a></li><li class="chapter-item "><a href="../installation/build-android-arm.html"><strong aria-hidden="true">2.3.</strong> Build on Android or ARM</a></li></ol></li><li class="chapter-item expanded "><a href="../ecc/index.html"><strong aria-hidden="true">3.</strong> ecc</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../ecc/usage.html"><strong aria-hidden="true">3.1.</strong> usage</a></li><li class="chapter-item "><a href="../ecc/docker-usage.html"><strong aria-hidden="true">3.2.</strong> docker</a></li><li class="chapter-item expanded "><a href="../ecc/github-template.html" class="active"><strong aria-hidden="true">3.3.</strong> template</a></li><li class="chapter-item "><a href="../ecc/config-lua-depreciate.html"><strong aria-hidden="true">3.4.</strong> lua</a></li></ol></li><li class="chapter-item "><a href="../ecli/index.html"><strong aria-hidden="true">4.</strong> ecli</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../ecli/docker.html"><strong aria-hidden="true">4.1.</strong> docker</a></li></ol></li><li class="chapter-item "><a href="../bpf-loader/index.html"><strong aria-hidden="true">5.</strong> bpf-loader</a></li><li class="chapter-item "><a href="../ecli-dockerfile-usage.html"><strong aria-hidden="true">6.</strong> Docker manual</a></li><li class="chapter-item "><a href="../mannual.html"><strong aria-hidden="true">7.</strong> Manual (Chinese)</a></li><li class="chapter-item "><a href="../online.html"><strong aria-hidden="true">8.</strong> Online Demo</a></li><li class="chapter-item "><a href="../common_problems.html"><strong aria-hidden="true">9.</strong> Common problems</a></li><li class="chapter-item "><a href="../supporting-external-BTF.html"><strong aria-hidden="true">10.</strong> External BTF support</a></li><li class="chapter-item "><a href="../benchmark.html"><strong aria-hidden="true">11.</strong> Benchmark</a></li><li class="chapter-item affix "><li class="part-title">Videos</li><li class="chapter-item "><a href="../video.html"><strong aria-hidden="true">12.</strong> Public talk video</a></li><li class="chapter-item affix "><li class="part-title">Blogs</li><li class="chapter-item "><a href="../blog/index.html"><strong aria-hidden="true">13.</strong> Blogs (Chinese)</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../blog/introduce-to-wasm-bpf-bpf-community.html"><strong aria-hidden="true">13.1.</strong> Wasm-bpf: 架起 Webassembly 和 eBPF 内核可编程的桥梁</a></li><li class="chapter-item "><a href="../blog/how-to-write-c-in-wasm.html"><strong aria-hidden="true">13.2.</strong> 在 WebAssembly 中使用 C/C++ 和 libbpf 编写 eBPF 程序</a></li><li class="chapter-item "><a href="../blog/how-to-write-rust-in-wasm.html"><strong aria-hidden="true">13.3.</strong> 在 WebAssembly 中使用 Rust 编写 eBPF 程序并发布 OCI 镜像</a></li><li class="chapter-item "><a href="../blog/GPTtrace.html"><strong aria-hidden="true">13.4.</strong> 使用 ChatGPT ，通过自然语言编写 eBPF 程序和追踪 Linux 系统</a></li><li class="chapter-item "><a href="../blog/ebpf-wasm.html"><strong aria-hidden="true">13.5.</strong> 当 Wasm 遇见 eBPF ：使用 WebAssembly 编写、分发、加载运行 eBPF 程序</a></li><li class="chapter-item "><a href="../blog/lmp-eunomia.html"><strong aria-hidden="true">13.6.</strong> 如何在 Linux 显微镜（LMP）项目中开启 eBPF 之旅</a></li><li class="chapter-item "><a href="../blog/0.3.0-release.html"><strong aria-hidden="true">13.7.</strong> eunomia-bpf 0.3.0 发布：只需编写内核态代码，轻松构建、打包、发布完整的 eBPF 应用</a></li><li class="chapter-item "><a href="../blog/coolbpf-eunomia.html"><strong aria-hidden="true">13.8.</strong> eunomia-bpf：展望 2023，让 eBPF 插上 Wasm 的翅膀</a></li><li class="chapter-item "><a href="../blog/bpf-news.html"><strong aria-hidden="true">13.9.</strong> eBPF 进阶: 内核新特性进展一览</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Eunomia-bpf Documents</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/eunomia-bpf/eunomia-bpf" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="github-action-模板"><a class="header" href="#github-action-模板">Github Action 模板</a></h1>
+<p>ebpm-template：使用 Github Action 进行远程编译，本地一键运行；</p>
+<p>请参考：https://github.com/eunomia-bpf/ebpm-template</p>
+<h1 id="a-template-for-eunomia-bpf-programs"><a class="header" href="#a-template-for-eunomia-bpf-programs">A template for eunomia-bpf programs</a></h1>
+<p>This is a template for eunomia-bpf eBPF programs. You can use t as a template, compile it online with <code>Github Actions</code> or offline.</p>
+<h3 id="compile-and-run-the-ebpf-code-as-simple-as-possible"><a class="header" href="#compile-and-run-the-ebpf-code-as-simple-as-possible">Compile and run the eBPF code as simple as possible!</a></h3>
+<p>Download the pre-compiled <code>ecli</code> binary from here: <a href="https://github.com/eunomia-bpf/eunomia-bpf/releases">eunomia-bpf/eunomia-bpf</a></p>
+<p>To install, just download and use the <code>ecli</code> binary from here: <a href="https://github.com/eunomia-bpf/eunomia-bpf/releases">eunomia-bpf/eunomia-bpf</a>:</p>
+<pre><code class="language-console">wget https://aka.pw/bpf-ecli -O ecli &amp;&amp; chmod +x ecli
+</code></pre>
+<h2 id="use-this-repo-as-a-github-action-to-compile-online"><a class="header" href="#use-this-repo-as-a-github-action-to-compile-online">use this repo as a github action to compile online</a></h2>
+<ol>
+<li>use this repo as a github template: see <a href="https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template">creating-a-repository-from-a-template</a></li>
+<li>modify the <code>bootstrap.bpf.c</code>, commit it and wait for the workflow to stop</li>
+<li>Run the <code>ecli</code> with remote url:</li>
+</ol>
+<pre><code class="language-console">$ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json
+</code></pre>
+<h2 id="quick-start"><a class="header" href="#quick-start">quick start</a></h2>
+<p>just write some code in the <code>bootstrap.bpf.c</code>, after that, simply run this:</p>
+<pre><code class="language-shell">$ docker run -it -v /path/to/repo:/src yunwei37/ebpm:latest # use absolute path
+</code></pre>
+<p>you will get a <code>package.json</code> in your root dir. Just run:</p>
+<pre><code class="language-shell">$ sudo ./ecli run package.json
+</code></pre>
+<p>The ebpf compiled code can run on different kernel versions(CO-RE). You can just copied the json to another machine.
+see: <a href="https://github.com/eunomia-bpf/eunomia-bpf">github.com/eunomia-bpf/eunomia-bpf</a> for the runtime, and <a href="https://github.com/eunomia-bpf/eunomia-cc">eunomia-bpf/eunomia-cc</a> for our compiler tool chains.</p>
+<h2 id="the-code-here"><a class="header" href="#the-code-here">The code here</a></h2>
+<p>This is an example of ebpf code, we copied the bootstrap.bpf.c from <a href="https://github.com/libbpf/libbpf-bootstrap/tree/master/examples/c">libbpf-bootstrap</a>, without any modification. You can read their <code>README</code> for details: https://github.com/libbpf/libbpf-bootstrap</p>
+<h2 id="more-examples"><a class="header" href="#more-examples">more examples</a></h2>
+<p>for more examples, please see: <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools">eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools</a></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../ecc/docker-usage.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../ecc/config-lua-depreciate.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../ecc/docker-usage.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../ecc/config-lua-depreciate.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
