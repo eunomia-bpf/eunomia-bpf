@@ -6,6 +6,21 @@ ecc [OPTIONS] <SOURCE_PATH> [EXPORT_EVENT_HEADER]
 Compiles and generates a bpf object from the provided SOURCE_PATH path for the specified eBPF program.
 
 ### example
+
+#### package.json only
+
+```sh
+ecc foo.bpf.c
+```
+
+#### Source file and a header file
+
+```sh
+ecc foo.bpf.c bar.h
+```
+
+#### Generate custom btfhub-archive and package into tar
+
 ```sh
 ecc -b client.bpf.c event.h
 ```
@@ -17,6 +32,22 @@ output in `OUTPUT_PATH`:
 package.json
 client.tar #include custom btf files
 ```
+
+### btfhub Support
+
+[BTF](https://github.com/aquasecurity/btfhub) is the things that make eBPF portable.
+
+`btfhub` provide BTF information for Linux distributions released kernels
+that don't have embedded BTF information.
+
+By using btfhub to package ebpf programs as tar file,
+ecc makes it possible to run ebpf programs on older kernels that do not have btf support.
+
+[A list](https://github.com/aquasecurity/btfhub/blob/main/docs/supported-distros.md)
+of existing distributions and their current status on eBPF and BTF support.
+
+
+### Arguments and options
 
 #### Arguments
 
