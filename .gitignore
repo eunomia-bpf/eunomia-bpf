@@ -2,6 +2,7 @@
 build/
 errors
 doxygens/
+documents/book
 third_party/wasmtime/
 eunomia.tar.gz
 .eunomia

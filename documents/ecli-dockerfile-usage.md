@@ -53,7 +53,7 @@ CMD ["/bin/bash"]
 
 ubuntu.dockerfile构建时，同一级目录下的文件如下
 
-![image-20220905232754264](images\image-20220905232754264.png)
+![image-20220905232754264](./images/image-20220905232754264.png)
 
 ecli可执行文件  sources.list Dockerfile这三个文件缺一不可，other文件可忽略。docker容器中wget无法连接外部网络，因此需要在docker构建时将ecli放入镜像中。使用镜像时只要挂载的本机目录中有package.json文件即可。
 
