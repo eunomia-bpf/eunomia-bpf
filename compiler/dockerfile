@@ -21,6 +21,7 @@ RUN wget --progress=dot:giga --no-check-certificate \
 
 RUN cp /usr/bin/python2 /usr/bin/python
 
+ARG CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 RUN make ecc    && \
     make -C compiler install    && \
     rm -rf compiler/cmd/target
