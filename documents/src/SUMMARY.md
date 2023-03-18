@@ -6,18 +6,18 @@
 
 # User Manual
 
-- [Installation](installation/README.md)
+- [Quick Start](quickstart.md)
+  - [Installation](installation/README.md)
   - [Build](installation/build.md)
   - [Build on Android or ARM](installation/build-android-arm.md)
-- [Quick Start](quickstart.md)
 - [ecc](./ecc/index.md)
   - [usage](./ecc/usage.md)
+  - [docker](./ecc/docker-usage.md)
   - [template](./ecc/github-template.md)
   - [lua](./ecc/config-lua-depreciate.md)
 - [ecli](./ecli/index.md)
-  - [usage](./ecli/run.md)
   - [docker](./ecli/docker.md)
-  - [server](./ecli/server.md)
+- [bpf-loader](./bpf-loader/README.md)
 - [Docker manual](ecli-dockerfile-usage.md)
 - [Manual (Chinese)](mannual.md)
 - [Online Demo](online.md)
@@ -25,11 +25,13 @@
 - [External BTF support](supporting-external-BTF.md)
 - [Benchmark](benchmark.md)
 
-# videos
+# Videos
 
 - [Public talk video](video.md)
 
-- [Blog](blog/README.md)
+# Blogs
+
+- [Blogs (Chinese)](blog/README.md)
   - [Wasm-bpf: 架起 Webassembly 和 eBPF 内核可编程的桥梁](blog/introduce-to-wasm-bpf-bpf-community.md)
   - [在 WebAssembly 中使用 C/C++ 和 libbpf 编写 eBPF 程序](blog/how-to-write-c-in-wasm.md)
   - [在 WebAssembly 中使用 Rust 编写 eBPF 程序并发布 OCI 镜像](blog/how-to-write-rust-in-wasm.md)
