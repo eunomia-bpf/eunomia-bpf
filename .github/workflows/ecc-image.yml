@@ -3,8 +3,6 @@ name: Build and public ecc docker image
 on:
   push:
     branches: "master"
-    paths:
-      - "VERSION"
 
 jobs:
   # define job to build and publish docker image
