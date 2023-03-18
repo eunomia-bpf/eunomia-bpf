@@ -1,76 +1,63 @@
-# Usage
+### Usage
+```sh
+ecc [OPTIONS] <SOURCE_PATH> [EXPORT_EVENT_HEADER]
+```
+  
+Compiles and generates a bpf object from the provided SOURCE_PATH path for the specified eBPF program.
 
-## Usage
+### example
+```sh
+ecc -b client.bpf.c event.h
+```
+This command will compile client.bpf.c and event.h into client.bpf.o,
+and package them as json, export a tar containing a custom btf file.
 
-The only file you will need to write is:
-
-```shell
-your_program.bpf.c
-your_program.h  # optional, if you want to use ring buffer to export events
+output in `OUTPUT_PATH`:
+```sh
+package.json
+client.tar #include custom btf files
 ```
 
-after that, simply run this:
+#### Arguments
 
-```shell
-$ docker run -it -v /path/to/repo/:/src yunwei37/ebpm:latest # use absolute path
-```
+- `SOURCE_PATH`: path of the bpf.c file to compile
 
-you will get a `package.json` in your root dir. Just run:
+- `EXPORT_EVENT_HEADER`: path of the bpf.h header for defining event struct
 
-```shell
-$ sudo ./ecli run package.json
-```
 
-to start it you can download `ecli` tool from [eunomia-bpf/releases](https://github.com/eunomia-bpf/eunomia-bpf/releases), we have pre-build binaries for linux x86. Small and No dependencies, besides glibc and glibcxx. Or just run this:
+#### Options
 
-```shell
-$ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ecli
-```
+- -o, --output-path `OUTPUT_PATH`: path of output bpf object
 
-The eBPF compiled code can run on different kernel versions(CO-RE).
-see: [github.com/eunomia-bpf/eunomia-bpf](https://github.com/eunomia-bpf/eunomia-bpf) for details.
+- -w, --workspace-path `WORKSPACE_PATH`: specify custom workspace path 
 
-## container image
+- -a, --additional-cflags `ADDITIONAL_CFLAGS`: additional cflags for clang
+  - example `-a="-fstack-protector"`,
+  this avoids runtime errors on some distributions that have clang stack protection enabled by default.
 
-simply run:
+- -c, --clang-bin `CLANG_BIN`: path of clang binary (default: clang)
 
-```shell
-$ docker run -it -v /path/to/repo:/src yunwei37/ebpm
-```
+- -l, --llvm-strip-bin `LLVM_STRIP_BIN`: path of llvm-strip binary (default: llvm-strip)
 
-Or you can do that without a container, which is listed below:
+- -s, --subskeleton: do not pack bpf object in config file
 
-## Github actions
+- -v, --verbose: print the command execution
 
-Use this as a github action, to compile online: see [eunomia-bpf/ebpm-template)](https://github.com/eunomia-bpf/ebpm-template). Only three steps
+- -y, --yaml: output config skel file in yaml
 
-1. use this repo as a github template: see [creating-a-repository-from-a-template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)
-2. modify the `bootstrap.bpf.c`, commit it and wait for the workflow to stop
-3. Run the `ecli` with remote url:
+- --header-only: generate a bpf object for struct definition in header file only
 
-```shell
-$ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json
-```
+- --wasm-header: generate wasm include header
 
-## Notifications
+- -b, --btfgen: fetch custom btfhub archive file and package into tar
+  - If `BTFHUB_ARCHIVE` does not exist, it will clone
+  [btfhub](https://github.com/aquasecurity/btfhub-archive) to `BTFHUB_ARCHIVE`.
+  - This option will take a lot of time, if you don't want to package or generate all custom btf files,
+  you can keep only the required btf files in `BTFHUB_ARCHIVE`.
+  - Don't worry, even the tar containing all the btfhub archives is only `5-10MB` in size.
 
-1. We use the same c ebpf code as libbpf, so most libbpf ebpf c code can run without any modification.
-2. Supported ebpf program types: `kprobe`, `tracepoint`, `fentry`, we will add more types in the future.
-3. If you want to use ring buffer to export events, you need to add `your_program.h` to your repo, and
-   define the export data type in it, the export data type should be a C `struct`, for example:
+- --btfhub-archive `BTFHUB_ARCHIVE`: directory to save btfhub archive file (default:`$HOME/.eunomia/btfhub-archive`)
 
-    ```c
-    struct process_event {
-        int pid;
-        int ppid;
-        unsigned exit_code;
-        unsigned long long duration_ns;
-        char comm[TASK_COMM_LEN];
-        char filename[MAX_FILENAME_LEN];
-        int exit_event;
-    };
-    ```
+- -h, --help: prints help documentation.
 
-    The name and field types are not limited, but we will prefer use standard C types. If multiple struct
-    exists in the header, we will use the first one. The feature is only enabled if we found a `BPF_MAP_TYPE_RINGBUF`
-    map exists in the ebpf program.
+- -V, --version: prints version information.
