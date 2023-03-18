@@ -10,7 +10,7 @@ your_program.h  # optional, if you want to use ring buffer to export events
 after that, simply run this:
 
 ```shell
-$ docker run -it -v /path/to/repo/:/src yunwei37/ebpm:latest # use absolute path
+$ docker run -it -v /path/to/repo/:/src ghcr.io/eunomia-bpf/ecc-`uname -m`:latest # use absolute path
 ```
 
 you will get a `package.json` in your root dir. Just run:
@@ -33,7 +33,7 @@ see: [github.com/eunomia-bpf/eunomia-bpf](https://github.com/eunomia-bpf/eunomia
 simply run:
 
 ```shell
-$ docker run -it -v /path/to/repo:/src yunwei37/ebpm
+$ docker run -it -v /path/to/repo:/src ghcr.io/eunomia-bpf/ecc-`uname -m`
 ```
 
 Or you can do that without a container, which is listed below:
