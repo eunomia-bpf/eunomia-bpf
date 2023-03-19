@@ -6,7 +6,7 @@ COPY . /usr/local/src
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
         libelf1 libelf-dev zlib1g-dev libclang-13-dev \
-        make wget cargo curl python2 clang llvm && \
+        make wget cargo curl python2 clang llvm git && \
     apt-get install -y --no-install-recommends ca-certificates	&& \
 	update-ca-certificates	&& \
     apt-get clean && \
@@ -22,8 +22,8 @@ RUN wget --progress=dot:giga --no-check-certificate \
 RUN cp /usr/bin/python2 /usr/bin/python
 
 ARG CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
-RUN make ecc    && \
-    make -C compiler install    && \
+RUN export CARGO_NET_GIT_FETCH_WITH_CLI=true && \
+    make ecc    && \
     rm -rf compiler/cmd/target
 
 WORKDIR /usr/local/src/compiler

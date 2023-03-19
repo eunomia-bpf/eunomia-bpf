@@ -46,18 +46,6 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build ecli-aarch64 image and push to GitHub Container Registry
-        uses: docker/build-push-action@v2
-        with:
-          # relative path to the place where source code with Dockerfile is located
-          context: ./
-          file: ./ecli/dockerfile
-          platforms: linux/arm64
-          # Note: tags has to be all lower-case
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/ecli-aarch64:latest
-          push: true
-
       - name: Build ecli-x86_64 image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
         with:
