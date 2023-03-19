@@ -1,0 +1,106 @@
+openapi: 3.0.3
+info:
+  description: APIs provided by ecli
+  title: ecli API
+  version: 1.0.0
+servers:
+- url: http://localhost:8527
+paths:
+  /list:
+    description: Get list of running tasks
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_list_get_200_response'
+          description: List of running tasks
+      summary: Get list of running tasks
+  /start:
+    description: Start a new task
+    post:
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/_start_post_request'
+        description: Task data
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_list_get_200_response'
+          description: List of running tasks
+      summary: Start a new task
+  /stop:
+    description: Stop a task by id or name
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/_list_get_200_response_tasks_inner'
+        description: Task id or name
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_stop_post_200_response'
+          description: Status of stopping the task
+      summary: Stop a task by id or name
+components:
+  schemas:
+    _list_get_200_response:
+      example:
+        tasks:
+        - name: name
+          id: 0
+        - name: name
+          id: 0
+        status: status
+      properties:
+        status:
+          type: string
+        tasks:
+          items:
+            $ref: '#/components/schemas/_list_get_200_response_tasks_inner'
+          type: array
+      type: object
+    _list_get_200_response_tasks_inner:
+      example:
+        name: name
+        id: 0
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+      type: object
+    _stop_post_200_response:
+      example:
+        status: status
+      properties:
+        status:
+          type: string
+      type: object
+    _start_post_request:
+      properties:
+        program_data_buf:
+          format: binary
+          type: string
+        program_type:
+          type: string
+        btf_data:
+          format: binary
+          type: string
+        extra_params:
+          items:
+            type: string
+          type: array
+      type: object
+

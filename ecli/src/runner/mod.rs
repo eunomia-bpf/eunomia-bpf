@@ -4,13 +4,9 @@
 //! All rights reserved.
 //!
 use std::{
-    // collections::HashMap,
-    // cell::RefCell,
-    // fmt::format,
     fs::File,
     io::{self, Read},
     path::Path,
-    // sync::{Arc, Mutex},
     vec,
 };
 
