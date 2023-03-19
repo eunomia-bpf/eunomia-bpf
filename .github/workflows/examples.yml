@@ -5,9 +5,6 @@ on:
   pull_request:
     branches: "*"
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
@@ -44,3 +41,23 @@ jobs:
       - name: test examples
         run:  |
               make -C examples/tests test
+      
+      - uses: uraimo/run-on-arch-action@v2
+        name: test examples on aarch64
+        id: runcmd
+        with:
+          arch: aarch64
+          distro: ubuntu_latest
+          dockerRunArgs: |
+            -v `pwd`/:/usr/eunomia-bpf/
+          githubToken: ${{ github.token }}
+          run: |
+            apt-get update
+            apt-get install make
+            cd /usr/eunomia-bpf/
+            make -C bpf-loader install-deps
+
+            make -C examples/tests install-deps
+            make -C examples/tests install-wasm-clang
+            make -C examples
+            make -C examples/tests test

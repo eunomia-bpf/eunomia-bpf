@@ -77,7 +77,6 @@ jobs:
     - name: install deps
       run: |
           sudo make -C compiler install-deps
-          cargo install clippy-sarif sarif-fmt grcov
           rustup component add llvm-tools-preview
 
     - name: Install Rust toolchain
@@ -109,6 +108,23 @@ jobs:
 
     - name: test ecc
       run:  cd compiler && make test
+    
+    - uses: uraimo/run-on-arch-action@v2
+      name: test ecc on aarch64
+      id: runcmd
+      with:
+        arch: aarch64
+        distro: ubuntu_latest
+        dockerRunArgs: |
+          -v `pwd`/:/usr/eunomia-bpf/
+        githubToken: ${{ github.token }}
+        run: |
+          apt-get update
+          apt-get install git
+          cd /usr/eunomia-bpf/compiler
+          export CARGO_NET_GIT_FETCH_WITH_CLI=true
+          make install && make test
+
     - name: Upload analysis results to GitHub
       if: github.repository_owner == 'eunomia-bpf'
       uses: github/codeql-action/upload-sarif@v2
