@@ -39,6 +39,21 @@ jobs:
         cd wasm-runtime/
         sudo make test
 
+    - uses: uraimo/run-on-arch-action@v2
+      name: run unit tests on aarch64
+      id: runcmd
+      with:
+        arch: aarch64
+        distro: ubuntu_latest
+        dockerRunArgs: |
+          -v `pwd`/:/usr/eunomia-bpf/
+        githubToken: ${{ github.token }}
+        run: |
+          apt-get update
+          apt-get install git make
+          make -C bpf-loader install-deps
+          cd wasm-runtime/ && make test
+
     # Wait https://github.com/eunomia-bpf/wasm-bpf/pull/5 
     # - name: run wasm generate tests
     #   run: |

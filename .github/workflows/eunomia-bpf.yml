@@ -39,6 +39,23 @@ jobs:
         cd bpf-loader/
         sudo make test
 
+    - uses: uraimo/run-on-arch-action@v2
+      name: run unit tests on aarch64
+      id: runcmd
+      with:
+        arch: aarch64
+        distro: ubuntu_latest
+        dockerRunArgs: |
+          -v `pwd`/:/usr/eunomia-bpf/
+        githubToken: ${{ github.token }}
+        run: |
+          apt-get update
+          apt-get install make cmake
+          cd /usr/eunomia-bpf/
+          make bpf-loader
+          make -C bpf-loader install-deps
+          make -C bpf-loader test
+
     - name: Code coverage using Codecov
       run: bash <(curl -s https://codecov.io/bash)
 
