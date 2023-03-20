@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Docker manual - Eunomia-bpf Documents</title>
+        <title>docker - Eunomia-bpf Documents</title>
 
 
         <!-- Custom HTML head -->
@@ -12,21 +12,21 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
-        <link rel="icon" href="favicon.svg">
-        <link rel="shortcut icon" href="favicon.png">
-        <link rel="stylesheet" href="css/variables.css">
-        <link rel="stylesheet" href="css/general.css">
-        <link rel="stylesheet" href="css/chrome.css">
-        <link rel="stylesheet" href="css/print.css" media="print">
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="fonts/fonts.css">
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -35,7 +35,7 @@
     <div id="body-container">
         <!-- Provide site root to javascript -->
         <script>
-            var path_to_root = "";
+            var path_to_root = "../";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item "><a href="introduction/index.html"><strong aria-hidden="true">1.</strong> Introduction</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="introduction/introduction.html"><strong aria-hidden="true">1.1.</strong> Detail introduction</a></li><li class="chapter-item "><a href="wasm-bpf.html"><strong aria-hidden="true">1.2.</strong> Wasm-bpf subproject</a></li></ol></li><li class="chapter-item "><li class="part-title">User Manual</li><li class="chapter-item "><a href="quickstart.html"><strong aria-hidden="true">2.</strong> Quick Start</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="installation/index.html"><strong aria-hidden="true">2.1.</strong> Installation</a></li><li class="chapter-item "><a href="installation/build.html"><strong aria-hidden="true">2.2.</strong> Build</a></li><li class="chapter-item "><a href="installation/build-android-arm.html"><strong aria-hidden="true">2.3.</strong> Build on Android or ARM</a></li></ol></li><li class="chapter-item "><a href="ecc/index.html"><strong aria-hidden="true">3.</strong> ecc</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="ecc/usage.html"><strong aria-hidden="true">3.1.</strong> usage</a></li><li class="chapter-item "><a href="ecc/docker-usage.html"><strong aria-hidden="true">3.2.</strong> docker</a></li><li class="chapter-item "><a href="ecc/github-template.html"><strong aria-hidden="true">3.3.</strong> template</a></li><li class="chapter-item "><a href="ecc/config-lua-depreciate.html"><strong aria-hidden="true">3.4.</strong> lua</a></li></ol></li><li class="chapter-item "><a href="ecli/index.html"><strong aria-hidden="true">4.</strong> ecli</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="ecli/docker.html"><strong aria-hidden="true">4.1.</strong> docker</a></li></ol></li><li class="chapter-item "><a href="bpf-loader/index.html"><strong aria-hidden="true">5.</strong> bpf-loader</a></li><li class="chapter-item expanded "><a href="ecli-dockerfile-usage.html" class="active"><strong aria-hidden="true">6.</strong> Docker manual</a></li><li class="chapter-item "><a href="mannual.html"><strong aria-hidden="true">7.</strong> Manual (Chinese)</a></li><li class="chapter-item "><a href="online.html"><strong aria-hidden="true">8.</strong> Online Demo</a></li><li class="chapter-item "><a href="common_problems.html"><strong aria-hidden="true">9.</strong> Common problems</a></li><li class="chapter-item "><a href="supporting-external-BTF.html"><strong aria-hidden="true">10.</strong> External BTF support</a></li><li class="chapter-item "><a href="benchmark.html"><strong aria-hidden="true">11.</strong> Benchmark</a></li><li class="chapter-item affix "><li class="part-title">Videos</li><li class="chapter-item "><a href="video.html"><strong aria-hidden="true">12.</strong> Public talk video</a></li><li class="chapter-item affix "><li class="part-title">Blogs</li><li class="chapter-item "><a href="blog/index.html"><strong aria-hidden="true">13.</strong> Blogs (Chinese)</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="blog/introduce-to-wasm-bpf-bpf-community.html"><strong aria-hidden="true">13.1.</strong> Wasm-bpf: 架起 Webassembly 和 eBPF 内核可编程的桥梁</a></li><li class="chapter-item "><a href="blog/how-to-write-c-in-wasm.html"><strong aria-hidden="true">13.2.</strong> 在 WebAssembly 中使用 C/C++ 和 libbpf 编写 eBPF 程序</a></li><li class="chapter-item "><a href="blog/how-to-write-rust-in-wasm.html"><strong aria-hidden="true">13.3.</strong> 在 WebAssembly 中使用 Rust 编写 eBPF 程序并发布 OCI 镜像</a></li><li class="chapter-item "><a href="blog/GPTtrace.html"><strong aria-hidden="true">13.4.</strong> 使用 ChatGPT ，通过自然语言编写 eBPF 程序和追踪 Linux 系统</a></li><li class="chapter-item "><a href="blog/ebpf-wasm.html"><strong aria-hidden="true">13.5.</strong> 当 Wasm 遇见 eBPF ：使用 WebAssembly 编写、分发、加载运行 eBPF 程序</a></li><li class="chapter-item "><a href="blog/lmp-eunomia.html"><strong aria-hidden="true">13.6.</strong> 如何在 Linux 显微镜（LMP）项目中开启 eBPF 之旅</a></li><li class="chapter-item "><a href="blog/0.3.0-release.html"><strong aria-hidden="true">13.7.</strong> eunomia-bpf 0.3.0 发布：只需编写内核态代码，轻松构建、打包、发布完整的 eBPF 应用</a></li><li class="chapter-item "><a href="blog/coolbpf-eunomia.html"><strong aria-hidden="true">13.8.</strong> eunomia-bpf：展望 2023，让 eBPF 插上 Wasm 的翅膀</a></li><li class="chapter-item "><a href="blog/bpf-news.html"><strong aria-hidden="true">13.9.</strong> eBPF 进阶: 内核新特性进展一览</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item "><a href="../introduction/index.html"><strong aria-hidden="true">1.</strong> Introduction</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../introduction/introduction.html"><strong aria-hidden="true">1.1.</strong> Detail introduction</a></li><li class="chapter-item "><a href="../wasm-bpf.html"><strong aria-hidden="true">1.2.</strong> Wasm-bpf subproject</a></li></ol></li><li class="chapter-item "><li class="part-title">User Manual</li><li class="chapter-item "><a href="../quickstart.html"><strong aria-hidden="true">2.</strong> Quick Start</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../installation/index.html"><strong aria-hidden="true">2.1.</strong> Installation</a></li><li class="chapter-item "><a href="../installation/build.html"><strong aria-hidden="true">2.2.</strong> Build</a></li><li class="chapter-item "><a href="../installation/build-android-arm.html"><strong aria-hidden="true">2.3.</strong> Build on Android or ARM</a></li></ol></li><li class="chapter-item "><a href="../ecc/index.html"><strong aria-hidden="true">3.</strong> ecc</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../ecc/usage.html"><strong aria-hidden="true">3.1.</strong> usage</a></li><li class="chapter-item "><a href="../ecc/docker-usage.html"><strong aria-hidden="true">3.2.</strong> docker</a></li><li class="chapter-item "><a href="../ecc/github-template.html"><strong aria-hidden="true">3.3.</strong> template</a></li><li class="chapter-item "><a href="../ecc/config-lua-depreciate.html"><strong aria-hidden="true">3.4.</strong> lua</a></li></ol></li><li class="chapter-item expanded "><a href="../ecli/index.html"><strong aria-hidden="true">4.</strong> ecli</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../ecli/docker.html" class="active"><strong aria-hidden="true">4.1.</strong> docker</a></li></ol></li><li class="chapter-item "><a href="../bpf-loader/index.html"><strong aria-hidden="true">5.</strong> bpf-loader</a></li><li class="chapter-item "><a href="../ecli-dockerfile-usage.html"><strong aria-hidden="true">6.</strong> Docker manual</a></li><li class="chapter-item "><a href="../mannual.html"><strong aria-hidden="true">7.</strong> Manual (Chinese)</a></li><li class="chapter-item "><a href="../online.html"><strong aria-hidden="true">8.</strong> Online Demo</a></li><li class="chapter-item "><a href="../common_problems.html"><strong aria-hidden="true">9.</strong> Common problems</a></li><li class="chapter-item "><a href="../supporting-external-BTF.html"><strong aria-hidden="true">10.</strong> External BTF support</a></li><li class="chapter-item "><a href="../benchmark.html"><strong aria-hidden="true">11.</strong> Benchmark</a></li><li class="chapter-item affix "><li class="part-title">Videos</li><li class="chapter-item "><a href="../video.html"><strong aria-hidden="true">12.</strong> Public talk video</a></li><li class="chapter-item affix "><li class="part-title">Blogs</li><li class="chapter-item "><a href="../blog/index.html"><strong aria-hidden="true">13.</strong> Blogs (Chinese)</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../blog/introduce-to-wasm-bpf-bpf-community.html"><strong aria-hidden="true">13.1.</strong> Wasm-bpf: 架起 Webassembly 和 eBPF 内核可编程的桥梁</a></li><li class="chapter-item "><a href="../blog/how-to-write-c-in-wasm.html"><strong aria-hidden="true">13.2.</strong> 在 WebAssembly 中使用 C/C++ 和 libbpf 编写 eBPF 程序</a></li><li class="chapter-item "><a href="../blog/how-to-write-rust-in-wasm.html"><strong aria-hidden="true">13.3.</strong> 在 WebAssembly 中使用 Rust 编写 eBPF 程序并发布 OCI 镜像</a></li><li class="chapter-item "><a href="../blog/GPTtrace.html"><strong aria-hidden="true">13.4.</strong> 使用 ChatGPT ，通过自然语言编写 eBPF 程序和追踪 Linux 系统</a></li><li class="chapter-item "><a href="../blog/ebpf-wasm.html"><strong aria-hidden="true">13.5.</strong> 当 Wasm 遇见 eBPF ：使用 WebAssembly 编写、分发、加载运行 eBPF 程序</a></li><li class="chapter-item "><a href="../blog/lmp-eunomia.html"><strong aria-hidden="true">13.6.</strong> 如何在 Linux 显微镜（LMP）项目中开启 eBPF 之旅</a></li><li class="chapter-item "><a href="../blog/0.3.0-release.html"><strong aria-hidden="true">13.7.</strong> eunomia-bpf 0.3.0 发布：只需编写内核态代码，轻松构建、打包、发布完整的 eBPF 应用</a></li><li class="chapter-item "><a href="../blog/coolbpf-eunomia.html"><strong aria-hidden="true">13.8.</strong> eunomia-bpf：展望 2023，让 eBPF 插上 Wasm 的翅膀</a></li><li class="chapter-item "><a href="../blog/bpf-news.html"><strong aria-hidden="true">13.9.</strong> eBPF 进阶: 内核新特性进展一览</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -115,7 +115,7 @@
                     <h1 class="menu-title">Eunomia-bpf Documents</h1>
 
                     <div class="right-buttons">
-                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         <a href="https://github.com/eunomia-bpf/eunomia-bpf" title="Git repository" aria-label="Git repository">
@@ -147,7 +147,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="ecli"><a class="header" href="#ecli">ecli</a></h1>
+                        <h1 id="ecli-docker"><a class="header" href="#ecli-docker">ecli docker</a></h1>
 <p>bpf 运行时需要有Linux内核相关支持，docker 中的内核共享的宿主机的内核，因此使用docker运行bpf程序时需要使用以下命令为容器赋予权限和相关内核支持。</p>
 <p>此处参考https://github.com/iovisor/bpftrace/blob/master/INSTALL.md#kernel-headers-install</p>
 <pre><code class="language-shell">$ docker run -ti -v /usr/src:/usr/src:ro \
@@ -189,7 +189,7 @@ CMD [&quot;/bin/bash&quot;]
 
 </code></pre>
 <p>ubuntu.dockerfile构建时，同一级目录下的文件如下</p>
-<p><img src="img/image-20220905232754264.png" alt="image-20220905232754264" /></p>
+<p><img src="../img/image-20220905232754264.png" alt="image-20220905232754264" /></p>
 <p>ecli可执行文件  sources.list Dockerfile这三个文件缺一不可，other文件可忽略。docker容器中wget无法连接外部网络，因此需要在docker构建时将ecli放入镜像中。使用镜像时只要挂载的本机目录中有package.json文件即可。</p>
 <h2 id="docker-alpine"><a class="header" href="#docker-alpine">docker alpine</a></h2>
 <pre><code class="language-shell">FROM alpine:latest
@@ -206,7 +206,6 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 </code></pre>
 <p>alpine.dockerfile构建镜像时，同一级目录下必须有ecli可执行文件。
 目前alpine.dockerfile仍存在以下问题</p>
-<p><img src="img/image-20220907195237651.png" alt="image-20220907195237651" /></p>
 <h3 id="docker-build"><a class="header" href="#docker-build">docker build</a></h3>
 <p>dockerfile构建时使用如下命令</p>
 <pre><code class="language-shell">sudo docker build -t ecli:1.0.1 .
@@ -221,11 +220,11 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="bpf-loader/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../ecli/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="mannual.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../bpf-loader/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -235,11 +234,11 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="bpf-loader/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../ecli/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="mannual.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="../bpf-loader/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
@@ -254,13 +253,13 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
         </script>
 
 
-        <script src="elasticlunr.min.js"></script>
-        <script src="mark.min.js"></script>
-        <script src="searcher.js"></script>
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
 
-        <script src="clipboard.min.js"></script>
-        <script src="highlight.js"></script>
-        <script src="book.js"></script>
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
 
