@@ -15,4 +15,4 @@ enable = true
 [output.linkcheck]
 follow-web-links = true
 
-exclude = [ 'openai.com', 'geekbang.org', 'aliyun.com' ]
+exclude = [ 'openai.com', 'geekbang.org', 'aliyun.com', 'oschina.net' ]
