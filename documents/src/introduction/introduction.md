@@ -35,7 +35,7 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
     Generating export types...
     Packing ebpf object and config into package.json...
     $ sudo ./ecli examples/bpftools/bootstrap/package.json
-    TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT  
+    TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT
     22:01:04  46310  2915    0          0            sh      /bin/sh   0
     22:01:04  46311  46310   0          0            which   /usr/bin/which 0
     22:01:04  46311  46310   0          2823776      which             1
@@ -106,10 +106,10 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
     Trace open family syscalls.
 
     Optional arguments:
-      -h, --help    shows help message and exits 
-      -v, --version prints version information and exits 
-      --verbose     prints libbpf debug information 
-      --pid_target  Process ID to trace 
+      -h, --help    shows help message and exits
+      -v, --version prints version information and exits
+      --verbose     prints libbpf debug information
+      --pid_target  Process ID to trace
       --tgid_target Thread ID to trace
     ```
 
@@ -139,7 +139,7 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
 
     ```console
     $ sudo ecli opensnoop.json
-    TIME     PID     TPID    SIG     RET     COMM    
+    TIME     PID     TPID    SIG     RET     COMM
     22:58:28  77121  3168    0       0       cpptools-srv
     22:58:29  69044  3168    0       0       cpptools-srv
     22:58:29  3014   2906    0       0       code
@@ -172,14 +172,12 @@ Base on `eunomia-bpf`, we have an eBPF pacakge manager in [LMP](https://github.c
 
 see [wasm-bpf](https://github.com/eunomia-bpf/wasm-bpf) project:
 
-
 A WebAssembly eBPF library, toolchain and runtime powered by [CO-RE](https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html)(Compile Once – Run Everywhere) [libbpf](https://github.com/libbpf/libbpf) and [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime).
 
 - **`General purpose`**: provide most abilities from eBPF to Wasm, `polling` from the ring buffer or perf buffer, bidirectional communications between `kernel` eBPF and `userspace` Wasm using `maps`, dynamically `loading`, `attaching` or `detaching`, etc. Supports a large number of eBPF program types and map types, covering the use cases from `tracing`, `networking`, `security`.
 - **`High performance`**: No `serialization` overhead for complex data types, using `shared memory` to avoid copy overhead between host and Wasm.
 - **`Easy to use`**: provide a similar developing experience as the [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap), `auto generate` the Wasm-eBPF skeleton headers and type definitions for bindings.
 - **`Ultralightweight`**: the sample runtime has only `300+` lines of code, binary only `1.5 MB` in size. Compiled Wasm module would be only `~90K`. With the same toolchain, you can easily build your own Wasm-eBPF runtime in any languages and platforms!
-
 
 ## Project Architecture
 
