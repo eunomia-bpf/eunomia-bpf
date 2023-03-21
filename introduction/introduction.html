@@ -176,7 +176,7 @@ Compiling bpf object...
 Generating export types...
 Packing ebpf object and config into package.json...
 $ sudo ./ecli examples/bpftools/bootstrap/package.json
-TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT  
+TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT
 22:01:04  46310  2915    0          0            sh      /bin/sh   0
 22:01:04  46311  46310   0          0            which   /usr/bin/which 0
 22:01:04  46311  46310   0          2823776      which             1
@@ -239,10 +239,10 @@ Usage: opensnoop_bpf [--help] [--version] [--verbose] [--pid_target VAR] [--tgid
 Trace open family syscalls.
 
 Optional arguments:
-  -h, --help    shows help message and exits 
-  -v, --version prints version information and exits 
-  --verbose     prints libbpf debug information 
-  --pid_target  Process ID to trace 
+  -h, --help    shows help message and exits
+  -v, --version prints version information and exits
+  --verbose     prints libbpf debug information
+  --pid_target  Process ID to trace
   --tgid_target Thread ID to trace
 </code></pre>
 <p>see <a href="https://github.com/eunomia-bpf/eunomia-bpf/blob/master/examples/bpftools/opensnoop/opensnoop.bpf.c">examples/bpftools/opensnoop/opensnoop.bpf.c</a> for example.</p>
@@ -273,7 +273,7 @@ Packing ebpf object and config into package.json...
 <li>
 <p>you can dynamically load it on different kernel version without recompile, and without clang/llvm dependency:</p>
 <pre><code class="language-console">$ sudo ecli opensnoop.json
-TIME     PID     TPID    SIG     RET     COMM    
+TIME     PID     TPID    SIG     RET     COMM
 22:58:28  77121  3168    0       0       cpptools-srv
 22:58:29  69044  3168    0       0       cpptools-srv
 22:58:29  3014   2906    0       0       code

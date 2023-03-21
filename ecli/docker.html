@@ -149,7 +149,7 @@
                     <main>
                         <h1 id="ecli-docker"><a class="header" href="#ecli-docker">ecli docker</a></h1>
 <p>bpf 运行时需要有Linux内核相关支持，docker 中的内核共享的宿主机的内核，因此使用docker运行bpf程序时需要使用以下命令为容器赋予权限和相关内核支持。</p>
-<p>此处参考https://github.com/iovisor/bpftrace/blob/master/INSTALL.md#kernel-headers-install</p>
+<p>此处参考 https://github.com/iovisor/bpftrace/blob/master/INSTALL.md#kernel-headers-install</p>
 <pre><code class="language-shell">$ docker run -ti -v /usr/src:/usr/src:ro \
        -v /lib/modules/:/lib/modules:ro \
        -v /sys/kernel/debug/:/sys/kernel/debug:rw \
@@ -157,64 +157,6 @@
        --net=host --pid=host --privileged \
        ecli:1.0.1
 </code></pre>
-<h2 id="dockerfile-ubuntu"><a class="header" href="#dockerfile-ubuntu">dockerfile ubuntu</a></h2>
-<p>dockerfile的基础镜像是Ubuntu，国内使用时因为有墙的存在，所以需要对Linux进行换源。sources.list如下：</p>
-<pre><code class="language-shell">deb http://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse
-#deb-src http://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ jammy-security main restricted universe multiverse
-#deb-src http://mirrors.aliyun.com/ubuntu/ jammy-security main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse
-#deb-src http://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ jammy-proposed main restricted universe multiverse
-#deb-src http://mirrors.aliyun.com/ubuntu/ jammy-proposed main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse
-#deb-src http://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse
-</code></pre>
-<p>dockerfile中的具体内容如下</p>
-<pre><code class="language-shell">FROM ubuntu:latest
-
-ENV UBUNTU_SOURCE /etc/apt
-
-COPY ./ /root
-
-WORKDIR /root
-
-ADD sources.list $UBUNTU_SOURCE/
-
-RUN apt-get update &amp;&amp; \
-    apt-get -y install gcc libelf-dev
-
-#CMD ./ecli run /root/my/package.json
-CMD [&quot;/bin/bash&quot;]
-
-</code></pre>
-<p>ubuntu.dockerfile构建时，同一级目录下的文件如下</p>
-<p><img src="../img/image-20220905232754264.png" alt="image-20220905232754264" /></p>
-<p>ecli可执行文件  sources.list Dockerfile这三个文件缺一不可，other文件可忽略。docker容器中wget无法连接外部网络，因此需要在docker构建时将ecli放入镜像中。使用镜像时只要挂载的本机目录中有package.json文件即可。</p>
-<h2 id="docker-alpine"><a class="header" href="#docker-alpine">docker alpine</a></h2>
-<pre><code class="language-shell">FROM alpine:latest
-
-COPY ./ /root
-
-WORKDIR /root
-
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories &amp;&amp; \
-    apk update &amp;&amp; \
-    apk install gcc libelf gcompat
-
-#CMD ./ecli run /root/my/package.json
-</code></pre>
-<p>alpine.dockerfile构建镜像时，同一级目录下必须有ecli可执行文件。
-目前alpine.dockerfile仍存在以下问题</p>
-<h3 id="docker-build"><a class="header" href="#docker-build">docker build</a></h3>
-<p>dockerfile构建时使用如下命令</p>
-<pre><code class="language-shell">sudo docker build -t ecli:1.0.1 .
-</code></pre>
-<h3 id="参考文档"><a class="header" href="#参考文档">参考文档</a></h3>
-<p>bpftrace 官方说明（如何让bpf程序在docker中运行）</p>
-<p>https://github.com/iovisor/bpftrace/blob/master/INSTALL.md#kernel-headers-install</p>
-<p>如何在mac中运行带有bpf运行环境的docker</p>
-<p>https://petermalmgren.com/docker-mac-bpf-perf/</p>
 
                     </main>
 

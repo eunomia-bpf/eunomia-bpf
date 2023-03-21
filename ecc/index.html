@@ -147,14 +147,22 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="eunomia-cc-compile-ebpf-programs-and-package"><a class="header" href="#eunomia-cc-compile-ebpf-programs-and-package">eunomia-cc: compile ebpf programs and package</a></h1>
-<p>An CO-RE compile set to help you focus on writing a single eBPF program in the kernel.
-Nothing more TODO!</p>
+                        <h1 id="eunomia-cc-compile-and-package-ebpf-programs"><a class="header" href="#eunomia-cc-compile-and-package-ebpf-programs">eunomia-cc: compile and package ebpf programs</a></h1>
 <ul>
-<li>note this is not a template for new eunomia-bpf projects,
-You may find the <a href="https://github.com/eunomia-bpf/ebpm-template">eunomia-bpf-template</a> there.</li>
+<li>A toolchain to simplify <code>writing</code> eBPF programs:
+<ul>
+<li>simplify building CO-RE<sup class="footnote-reference"><a href="#1">1</a></sup> <code>libbpf</code> eBPF applications: <a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/documents/introduction.md#simplify-building-co-re-libbpf-ebpf-applications">write eBPF kernel code only</a> and automatically exposing your data with <code>perf event</code> or <code>ring buffer</code> from kernel.</li>
+<li><a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/documents/introduction.md#automatically-sample-the-data-and-print-hists-in-userspace">Automatically sample the data</a> from hash maps and print <code>hists</code> in userspace.</li>
+<li><a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/documents/introduction.md#automatically-generate-and-config-command-line-arguments">Automatically generate</a> and config <code>command line arguments</code> for eBPF programs.</li>
+<li>You can writing the kernel part in both <code>BCC</code> and <code>libbpf</code> styles.</li>
 </ul>
-<p>For runtime, please see: <a href="https://github.com/eunomia-bpf/eunomia-bpf">github.com/eunomia-bpf/eunomia-bpf</a></p>
+</li>
+<li>Build eBPF programs with <code>Wasm</code><sup class="footnote-reference"><a href="#2">2</a></sup>: see <a href="https://github.com/eunomia-bpf/wasm-bpf"><code>Wasm-bpf</code></a> project
+<ul>
+<li>Runtime, libraries and toolchains to <a href="https://github.com/eunomia-bpf/wasm-bpf">write eBPF with Wasm</a> in C/C++, Rust, Go...covering the use cases from <code>tracing</code>, <code>networking</code>, <code>security</code>.</li>
+</ul>
+</li>
+</ul>
 
                     </main>
 

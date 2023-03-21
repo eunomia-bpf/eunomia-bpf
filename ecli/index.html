@@ -147,25 +147,29 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="ecli-run-ebpf-programs-as-json-or-tar"><a class="header" href="#ecli-run-ebpf-programs-as-json-or-tar">ecli: run ebpf programs as json or tar</a></h1>
+                        <h1 id="ecli-run-ebpf-programs-as-json-or-wasm"><a class="header" href="#ecli-run-ebpf-programs-as-json-or-wasm">ecli: run ebpf programs as json or wasm</a></h1>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<pre><code class="language-sh">ecli &lt;COMMAND&gt;
+<pre><code class="language-sh">sudo ecli &lt;COMMAND&gt;
 </code></pre>
-<h3 id="example"><a class="header" href="#example">example</a></h3>
-<pre><code class="language-sh">ecli run client.tar #
-# or
-ecli run package.json
+<h2 id="example"><a class="header" href="#example">example</a></h2>
+<p>Run the ebpf program as wasm or json.</p>
+<pre><code class="language-sh"># run with wasm bpf modules
+sudo ecli run runqlat.wasm
+# run with json bpf object only
+sudo ecli run package.json
 </code></pre>
-<p>The ecc packaged tar contains custom btf files and <code>package.json</code>,
-which can be run on older kernels.
-For details, see <a href="../ecc/usage.html#options">ecc-btfgen</a></p>
+<p>Or run the ebpf program as a tar file contains minimal BTF info and bpf object.</p>
+<pre><code class="language-sh">sudo ecli run client.tar
+</code></pre>
+<p>The ecc packaged tar contains custom btf files and <code>package.json</code>, which can be run on older kernels.</p>
+<p>For details, see <a href="../ecc/usage.html#options">ecc-btfgen</a></p>
 <h2 id="commands"><a class="header" href="#commands">Commands</a></h2>
 <ul>
 <li>run - Run the ebpf program as tar or json.</li>
 <li>push - Push a container to an OCI registry.</li>
 <li>pull - Pull a container from an OCI registry.</li>
 <li>login - Login to an OCI registry.</li>
-<li>logout - Logout from an OCI registry. </li>
+<li>logout - Logout from an OCI registry.</li>
 </ul>
 
                     </main>

@@ -187,42 +187,22 @@ of existing distributions and their current status on eBPF and BTF support.</p>
 </ul>
 <h4 id="options"><a class="header" href="#options">Options</a></h4>
 <ul>
-<li>
-<p>-o, --output-path <code>OUTPUT_PATH</code>: path of output bpf object</p>
-</li>
-<li>
-<p>-w, --workspace-path <code>WORKSPACE_PATH</code>: specify custom workspace path </p>
-</li>
-<li>
-<p>-a, --additional-cflags <code>ADDITIONAL_CFLAGS</code>: additional cflags for clang</p>
+<li>-o, --output-path <code>OUTPUT_PATH</code>: path of output bpf object</li>
+<li>-w, --workspace-path <code>WORKSPACE_PATH</code>: specify custom workspace path</li>
+<li>-a, --additional-cflags <code>ADDITIONAL_CFLAGS</code>: additional cflags for clang
 <ul>
 <li>example <code>-a=&quot;-fstack-protector&quot;</code>,
 this avoids runtime errors on some distributions that have clang stack protection enabled by default.</li>
 </ul>
 </li>
-<li>
-<p>-c, --clang-bin <code>CLANG_BIN</code>: path of clang binary (default: clang)</p>
-</li>
-<li>
-<p>-l, --llvm-strip-bin <code>LLVM_STRIP_BIN</code>: path of llvm-strip binary (default: llvm-strip)</p>
-</li>
-<li>
-<p>-s, --subskeleton: do not pack bpf object in config file</p>
-</li>
-<li>
-<p>-v, --verbose: print the command execution</p>
-</li>
-<li>
-<p>-y, --yaml: output config skel file in yaml</p>
-</li>
-<li>
-<p>--header-only: generate a bpf object for struct definition in header file only</p>
-</li>
-<li>
-<p>--wasm-header: generate wasm include header</p>
-</li>
-<li>
-<p>-b, --btfgen: fetch custom btfhub archive file and package into tar</p>
+<li>-c, --clang-bin <code>CLANG_BIN</code>: path of clang binary (default: clang)</li>
+<li>-l, --llvm-strip-bin <code>LLVM_STRIP_BIN</code>: path of llvm-strip binary (default: llvm-strip)</li>
+<li>-s, --subskeleton: do not pack bpf object in config file</li>
+<li>-v, --verbose: print the command execution</li>
+<li>-y, --yaml: output config skel file in yaml</li>
+<li>--header-only: generate a bpf object for struct definition in header file only</li>
+<li>--wasm-header: generate wasm include header</li>
+<li>-b, --btfgen: fetch custom btfhub archive file and package into tar
 <ul>
 <li>If <code>BTFHUB_ARCHIVE</code> does not exist, it will clone
 <a href="https://github.com/aquasecurity/btfhub-archive">btfhub</a> to <code>BTFHUB_ARCHIVE</code>.</li>
@@ -231,15 +211,9 @@ you can keep only the required btf files in <code>BTFHUB_ARCHIVE</code>.</li>
 <li>Don't worry, even the tar containing all the btfhub archives is only <code>5-10MB</code> in size.</li>
 </ul>
 </li>
-<li>
-<p>--btfhub-archive <code>BTFHUB_ARCHIVE</code>: directory to save btfhub archive file (default:<code>$HOME/.eunomia/btfhub-archive</code>)</p>
-</li>
-<li>
-<p>-h, --help: prints help documentation.</p>
-</li>
-<li>
-<p>-V, --version: prints version information.</p>
-</li>
+<li>--btfhub-archive <code>BTFHUB_ARCHIVE</code>: directory to save btfhub archive file (default:<code>$HOME/.eunomia/btfhub-archive</code>)</li>
+<li>-h, --help: prints help documentation.</li>
+<li>-V, --version: prints version information.</li>
 </ul>
 
                     </main>
