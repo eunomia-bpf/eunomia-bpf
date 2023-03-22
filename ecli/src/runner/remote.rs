@@ -12,7 +12,6 @@ use openapi_client::server::MakeService;
 use openapi_client::{models::*, Api, ListGetResponse, StartPostResponse, StopPostResponse};
 use std::fs::write;
 use std::marker::PhantomData;
-use std::write;
 use swagger::auth::MakeAllowAllAuthenticator;
 use swagger::ApiError;
 pub use swagger::{AuthData, ContextBuilder, EmptyContext, Has, Push, XSpanIdString};

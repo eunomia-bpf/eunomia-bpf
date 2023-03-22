@@ -71,12 +71,12 @@ impl ProgramConfigData {
             _ => (args.get_file_content().await?, None),
         };
         Ok(Self {
-            url: args.file.clone(),
+            url: args.file,
             use_cache: !args.no_cache,
             program_data_buf: prog_buf,
-            extra_arg: args.extra_arg.clone(),
+            extra_arg: args.extra_arg,
             btf_path: btf_dir_path,
-            prog_type: args.prog_type.clone(),
+            prog_type: args.prog_type,
             export_format_type: if args.export_to_json {
                 ExportFormatType::Json
             } else {

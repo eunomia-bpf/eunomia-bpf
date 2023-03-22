@@ -235,8 +235,8 @@ impl TryFrom<Action> for ClientArgs {
 }
 
 pub async fn run(mut arg: RunArgs) -> EcliResult<()> {
-    let conf = ProgramConfigData::async_try_from(&mut arg).await?;
-    match arg.prog_type {
+    let conf = ProgramConfigData::async_try_from(arg).await?;
+    match conf.prog_type {
         ProgramType::JsonEunomia => handle_json(conf),
         ProgramType::Tar => handle_json(conf),
         ProgramType::WasmModule => handle_wasm(conf),
@@ -310,7 +310,7 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
         }
 
         ClientActions::Start => {
-            let prog_data = ProgramConfigData::async_try_from(&mut run_args).await?;
+            let prog_data = ProgramConfigData::async_try_from(run_args).await?;
             let btf_data = match prog_data.btf_path {
                 Some(d) => {
                     let mut file = File::open(d).unwrap();
@@ -326,7 +326,7 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
                     Some(swagger::ByteArray(prog_data.program_data_buf)),
                     Some(format!("{:?}", prog_data.prog_type)),
                     Some(swagger::ByteArray(btf_data)),
-                    Some(&run_args.extra_arg),
+                    Some(&prog_data.extra_arg),
                 )
                 .await;
             println!("{:?} from endpoint:  {endpoint}:{port}", result);
