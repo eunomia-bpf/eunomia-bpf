@@ -97,6 +97,9 @@ jobs:
     - name: make ecli
       run:  make ecli
 
+    - name: test ecli
+      run: cargo test --manifest-path ecli/Cargo.toml
+
     - name: Package
       if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
       shell: bash
