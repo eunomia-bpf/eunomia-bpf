@@ -70,7 +70,6 @@ $(ECC): $(BPFTOOL)
 	cp -r ../third_party/vmlinux workspace/include/vmlinux
 	cd cmd && cargo build --release
 	cp $(ECC) workspace/bin/ecc
-	# cp -r ../wasm-runtime/scripts workspace/scripts
 
 install:
 	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia
@@ -85,9 +84,6 @@ test:
 	cd cmd && grcov . --binary-path ./target/debug/ --llvm -s . -t lcov --branch --ignore-not-existing -o ./lcov.info
 	cd cmd && cargo clippy --all-features --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
 	cd cmd && cargo fmt --check
-
-wasm-runtime_DIR ?= eunomia-bpf/wasm-runtime
-wasm-runtime_BUILD_DIR ?= $(wasm-runtime_DIR)/build
 
 # TODO Waiting to discuss how to handle scripts
 #
