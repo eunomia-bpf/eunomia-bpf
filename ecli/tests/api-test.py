@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     examples = map(lambda x: x + "/package.json", list_dir(example_path))
 
-    server_proc = subprocess.Popen(server_bin + ["server"], env=env_dbg)
+    server_proc = subprocess.Popen(server_bin, env=env_dbg)
 
     # waiting for server start
     time.sleep(1)

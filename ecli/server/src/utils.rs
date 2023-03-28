@@ -1,34 +1,20 @@
-use crate::Action;
-use lib::{error::*, runner::RemoteArgs, Action as ActionFromLib};
-use std::convert::From;
+use crate::Args;
+use lib::{error::*, runner::RemoteArgs, Action};
 
-impl TryFrom<Action> for RemoteArgs {
+impl TryFrom<Args> for RemoteArgs {
     type Error = EcliError;
 
-    fn try_from(act: Action) -> Result<Self, Self::Error> {
-        match act {
-            Action::Server { .. } => Ok(Self {
-                server: Some(act.try_into().unwrap()),
+    fn try_from(args: Args) -> Result<Self, Self::Error> {
+        match args {
+            Args { .. } => Ok(Self {
+                server: Some(Action::Server {
+                    config: args.config,
+                    secure: args.secure,
+                    port: args.port,
+                    addr: args.addr,
+                }),
                 client: None,
             }),
-        }
-    }
-}
-
-impl From<Action> for ActionFromLib {
-    fn from(a: Action) -> Self {
-        match a {
-            Action::Server {
-                config,
-                secure,
-                port,
-                addr,
-            } => Self::Server {
-                config,
-                secure,
-                port,
-                addr,
-            },
         }
     }
 }
