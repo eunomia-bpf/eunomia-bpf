@@ -101,7 +101,6 @@ jobs:
         workspaces: |
           compiler/cmd
           ecli
-          wasm-runtime/runtime/rust
           eunomia-sdks/eunomia-rs
 
     - name: build ecc
