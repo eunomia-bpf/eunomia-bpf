@@ -5,28 +5,11 @@
 //!
 use oci_distribution::{manifest, secrets::RegistryAuth, Client, Reference};
 
-use crate::{
-    error::{EcliError, EcliResult},
-    Action,
-};
+use crate::error::{EcliError, EcliResult};
 
 pub struct PullArgs {
     pub write_file: String,
     pub image_url: String,
-}
-impl TryFrom<Action> for PullArgs {
-    type Error = EcliError;
-
-    fn try_from(value: Action) -> Result<Self, Self::Error> {
-        let Action::Pull { output, image } = value else {
-            unreachable!()
-        };
-
-        Ok(PullArgs {
-            write_file: output,
-            image_url: image,
-        })
-    }
 }
 
 pub(super) async fn pull_wasm_from_registry(

@@ -181,60 +181,6 @@ impl Default for ClientActions {
     }
 }
 
-impl TryFrom<Action> for RemoteArgs {
-    type Error = EcliError;
-
-    fn try_from(act: Action) -> Result<Self, Self::Error> {
-        match act {
-            Action::Server { .. } => Ok(Self {
-                server: Some(act),
-                client: None,
-            }),
-            Action::Client(..) => Ok(Self {
-                client: Some(act.try_into().unwrap()),
-                server: None,
-            }),
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl TryFrom<Action> for ClientArgs {
-    type Error = EcliError;
-    fn try_from(act: Action) -> Result<Self, Self::Error> {
-        if let Action::Client(c) = act {
-            // deconstruct ClientCmd
-            match c.cmd {
-                ClientSubCommand::Start(mut start_cmd) => Ok(Self {
-                    action_type: ClientActions::Start,
-                    endpoint: c.opts.endpoint,
-                    port: c.opts.port,
-                    run_args: RunArgs {
-                        file: start_cmd.prog.remove(0),
-                        extra_arg: start_cmd.prog,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                }),
-                ClientSubCommand::Stop(stop_cmd) => Ok(Self {
-                    action_type: ClientActions::Stop,
-                    id: stop_cmd.id,
-                    endpoint: c.opts.endpoint,
-                    port: c.opts.port,
-                    ..Default::default()
-                }),
-                ClientSubCommand::List => Ok(Self {
-                    endpoint: c.opts.endpoint,
-                    port: c.opts.port,
-                    ..Default::default()
-                }),
-            }
-        } else {
-            unreachable!()
-        }
-    }
-}
-
 pub async fn run(arg: RunArgs) -> EcliResult<()> {
     let conf = ProgramConfigData::async_try_from(arg).await?;
     match conf.prog_type {
