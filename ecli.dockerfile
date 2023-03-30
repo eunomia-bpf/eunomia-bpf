@@ -11,12 +11,11 @@ RUN apt-get update -y && \
 	update-ca-certificates
 
 RUN wget -nv -O - https://sh.rustup.rs | sh -s -- -y
-
 ENV PATH="/root/.cargo/bin:${PATH}"
+
 ARG CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 
-RUN make -C ecli install && \
-    make -C compiler install
+RUN make -C ecli install
 
 FROM ubuntu:22.04
 WORKDIR /root/
@@ -24,7 +23,7 @@ COPY --from=build /root/.eunomia ./.eunomia
 ENV PATH="/root/.eunomia/bin:${PATH}"
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libelf1 libclang-13-dev \
+    && apt-get install -y --no-install-recommends libelf1 \
     && rm -rf /var/lib/apt/lists/*
 
-ENTRYPOINT ["/bin/env"]
+ENTRYPOINT ["ecli"]

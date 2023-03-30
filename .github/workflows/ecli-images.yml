@@ -1,0 +1,61 @@
+name: Build and public ecli docker image
+
+on:
+  push:
+    branches: "master"
+  pull_request:
+    branches: "master"
+
+jobs:
+  # define job to build and publish docker image
+  build-and-push-ecli-image:
+    runs-on: ubuntu-latest
+    # run only when code is compiling and tests are passing
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+    # steps to perform in job
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+
+      # setup Docker buld action
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build ecli-x86_64 image and push to GitHub Container Registry
+        uses: docker/build-push-action@v2
+        with:
+          # relative path to the place where source code with Dockerfile is located
+          context: ./
+          file: ./ecli.dockerfile
+          platforms: linux/amd64
+          # Note: tags has to be all lower-case
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/ecli-x86_64:latest
+          push: ${{ github.event_name == 'push' }}
+
+      - name: Build ecli-aarch64 image and push to GitHub Container Registry
+        uses: docker/build-push-action@v2
+        with:
+          # relative path to the place where source code with Dockerfile is located
+          context: ./
+          file: ./ecli.dockerfile
+          platforms: linux/arm64
+          # Note: tags has to be all lower-case
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/ecli-aarch64:latest
+          push: ${{ github.event_name == 'push' }}
+
+
+
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
