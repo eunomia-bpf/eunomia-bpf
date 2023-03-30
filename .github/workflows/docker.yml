@@ -1,7 +1,9 @@
-name: Build and public ecc docker image
+name: Build and public docker image
 
 on:
   push:
+    branches: "master"
+  pull_request:
     branches: "master"
 
 jobs:
@@ -29,29 +31,29 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build ecc-x86_64 image and push to GitHub Container Registry
+      - name: Build eunomia-x86_64 image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
         with:
           # relative path to the place where source code with Dockerfile is located
           context: ./
-          file: ./compiler/dockerfile
+          file: ./dockerfile
           platforms: linux/amd64
           # Note: tags has to be all lower-case
           tags: |
-            ghcr.io/${{ github.repository_owner }}/ecc-x86_64:latest
-          push: true
+            ghcr.io/${{ github.repository_owner }}/eunomia-x86_64:latest
+          push: ${{ github.event_name == 'push' }}
 
-      - name: Build ecc-aarch64 image and push to GitHub Container Registry
+      - name: Build eunomia-aarch64 image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
         with:
           # relative path to the place where source code with Dockerfile is located
           context: ./
-          file: ./compiler/dockerfile
+          file: ./dockerfile
           platforms: linux/arm64
           # Note: tags has to be all lower-case
           tags: |
-            ghcr.io/${{ github.repository_owner }}/ecc-aarch64:latest
-          push: true
+            ghcr.io/${{ github.repository_owner }}/eunomia-aarch64:latest
+          push: ${{ github.event_name == 'push' }}
 
 
 
