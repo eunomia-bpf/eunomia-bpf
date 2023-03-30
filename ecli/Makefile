@@ -7,12 +7,13 @@ build: $(LIBEUNOMIA)
 $(LIBEUNOMIA):
 	$(MAKE) -C ../bpf-loader install
 
-install: $(LIBEUNOMIA) ## install the package to the `INSTALL_LOCATION`
-	rm -rf target/
-	cargo build --release
+install: build $(LIBEUNOMIA) ## install the package to the `INSTALL_LOCATION`
 	mkdir -p ~/.eunomia/bin
 	cp ./target/release/ecli ~/.eunomia/bin/ecli
 
 install-deps:
 	sudo apt install libssl-dev
 	sudo apt install pkg-config
+
+clean:
+	cargo clean

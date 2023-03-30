@@ -47,10 +47,15 @@ ecc: ## build the core library for eunomia-bpf
 clean: ## clean all build projects
 	make -C bpf-loader clean
 	make -C ecli clean
+	make -C compiler clean
 
 eunomia-exporter: ## build the exporter for custom metric
 	make -C bpf-loader
 	cd eunomia-exporter && cargo build --release
+
+install:
+	make -C ecli install
+	make -C compiler install
 
 release:
 	make -C ecli install

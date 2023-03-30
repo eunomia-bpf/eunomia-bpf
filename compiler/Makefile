@@ -71,8 +71,8 @@ $(ECC): $(BPFTOOL)
 	cd cmd && cargo build --release
 	cp $(ECC) workspace/bin/ecc
 
-install:
-	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia
+install: $(ECC)
+	mkdir -p ~/.eunomia/bin && cp -r workspace/bin/ecc ~/.eunomia/bin/ecc
 
 .PHONY: test
 test:
