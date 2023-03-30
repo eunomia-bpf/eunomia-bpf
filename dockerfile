@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:22.04 as build
 
 WORKDIR /usr/local/src
 COPY . /usr/local/src
@@ -22,7 +22,7 @@ RUN make -C ecli install && \
 
 FROM ubuntu:22.04
 WORKDIR /root/
-COPY --from=0 /root/.eunomia ./.eunomia
+COPY --from=build /root/.eunomia ./.eunomia
 ENV PATH="/root/.eunomia/bin:${PATH}"
 
 RUN apt-get update \
