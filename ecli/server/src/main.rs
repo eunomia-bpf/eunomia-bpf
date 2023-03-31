@@ -38,5 +38,5 @@ async fn main() -> EcliResult<()> {
     });
     init_log();
     let args = Args::parse();
-    start_server(args.try_into()?).await
+    start_server(args.into()).await
 }

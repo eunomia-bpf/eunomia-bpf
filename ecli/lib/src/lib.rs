@@ -98,6 +98,15 @@ pub enum ClientSubCommand {
     #[clap(name = "stop", about = "stop running tasks on endpoint with id")]
     Stop(StopCommand),
 
+    #[clap(name = "log", about = "show log of running task with id")]
+    Log(LogCommand),
+
+    #[clap(name = "pause", about = "pause running tasks with id")]
+    Pause(PauseCommand),
+
+    #[clap(name = "resume", about = "resume paused tasks with id")]
+    Resume(ResumeCommand),
+
     #[clap(name = "list", about = "list the ebpf programs running on endpoint")]
     List,
 }
@@ -122,11 +131,20 @@ pub struct StartCommand {
     pub extra_args: Option<Vec<String>>,
 }
 
-#[derive(Parser)]
-pub struct StopCommand {
-    #[clap(required = true)]
-    pub id: Vec<i32>,
+macro_rules! gen_cmd {
+    ($n: ident) => {
+        #[derive(Parser)]
+        pub struct $n {
+            #[clap(required = true)]
+            pub id: Vec<i32>,
+        }
+    };
 }
+
+gen_cmd!(StopCommand);
+gen_cmd!(LogCommand);
+gen_cmd!(PauseCommand);
+gen_cmd!(ResumeCommand);
 
 pub fn init_log() {
     let mut builder = Builder::from_default_env();

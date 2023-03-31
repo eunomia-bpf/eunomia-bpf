@@ -5,6 +5,7 @@ use lib::{
     error::*,
     oci::{PullArgs, PushArgs},
     runner::{ClientActions, ClientArgs, ClientSubCommand, RemoteArgs, RunArgs},
+    ClientCmd,
 };
 
 impl TryFrom<Action> for RunArgs {
@@ -26,6 +27,7 @@ impl TryFrom<Action> for RunArgs {
         })
     }
 }
+
 impl TryFrom<Action> for RemoteArgs {
     type Error = EcliError;
 
@@ -42,6 +44,7 @@ impl TryFrom<Action> for RemoteArgs {
 
 impl TryFrom<Action> for ClientArgs {
     type Error = EcliError;
+
     fn try_from(act: Action) -> Result<Self, Self::Error> {
         if let Action::Client(c) = act {
             // deconstruct ClientCmd
@@ -57,9 +60,30 @@ impl TryFrom<Action> for ClientArgs {
                     },
                     ..Default::default()
                 }),
-                ClientSubCommand::Stop(stop_cmd) => Ok(Self {
+                ClientSubCommand::Stop(cmd) => Ok(Self {
                     action_type: ClientActions::Stop,
-                    id: stop_cmd.id,
+                    id: cmd.id,
+                    endpoint: c.opts.endpoint,
+                    port: c.opts.port,
+                    ..Default::default()
+                }),
+                ClientSubCommand::Log(cmd) => Ok(Self {
+                    action_type: ClientActions::Log,
+                    id: cmd.id,
+                    endpoint: c.opts.endpoint,
+                    port: c.opts.port,
+                    ..Default::default()
+                }),
+                ClientSubCommand::Pause(cmd) => Ok(Self {
+                    action_type: ClientActions::Pause,
+                    id: cmd.id,
+                    endpoint: c.opts.endpoint,
+                    port: c.opts.port,
+                    ..Default::default()
+                }),
+                ClientSubCommand::Resume(cmd) => Ok(Self {
+                    action_type: ClientActions::Resume,
+                    id: cmd.id,
                     endpoint: c.opts.endpoint,
                     port: c.opts.port,
                     ..Default::default()
