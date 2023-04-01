@@ -386,7 +386,7 @@ where
     fn poll_ready(&self, cx: &mut Context) -> Poll<Result<(), crate::ServiceError>> {
         match self.client_service.clone().poll_ready(cx) {
             Poll::Ready(Err(e)) => Poll::Ready(Err(e.into())),
-            Poll::Ready(Ok(o)) => Poll::Ready(Ok(())),
+            Poll::Ready(Ok(o)) => Poll::Ready(Ok(o)),
             Poll::Pending => Poll::Pending,
         }
     }
@@ -730,7 +730,7 @@ where
                 Err(err) => return Err(ApiError(format!("Unable to build request: {}", err))),
             };
 
-            let mut body_string = String::default();
+            let mut body_string = String::new();
 
             match fields.read_to_string(&mut body_string) {
                 Ok(_) => (),

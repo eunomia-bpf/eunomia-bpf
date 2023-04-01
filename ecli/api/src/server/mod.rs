@@ -308,7 +308,7 @@ where
                                     Some(field) => {
                                         let mut reader = field[0].data.readable().expect("Unable to read field for program_data_buf");
                                     Some({
-                                        let mut data = String::default();
+                                        let mut data = String::new();
                                         reader.read_to_string(&mut data).expect("Reading saved String should never fail");
                                         let program_data_buf_model: swagger::ByteArray = match serde_json::from_str(&data) {
                                             Ok(model) => model,
@@ -332,7 +332,7 @@ where
                                     Some(field) => {
                                         let mut reader = field[0].data.readable().expect("Unable to read field for program_type");
                                     Some({
-                                        let mut data = String::default();
+                                        let mut data = String::new();
                                         reader.read_to_string(&mut data).expect("Reading saved String should never fail");
                                         let program_type_model: String = match serde_json::from_str(&data) {
                                             Ok(model) => model,
@@ -375,12 +375,13 @@ where
                                             None
                                     }
                                 };
+
                                 let field_btf_data = entries.fields.remove("btf_data");
                                 let param_btf_data = match field_btf_data {
                                     Some(field) => {
                                         let mut reader = field[0].data.readable().expect("Unable to read field for btf_data");
                                     Some({
-                                        let mut data = String::default();
+                                        let mut data = String::new();
                                         reader.read_to_string(&mut data).expect("Reading saved String should never fail");
                                         let btf_data_model: swagger::ByteArray = match serde_json::from_str(&data) {
                                             Ok(model) => model,
@@ -404,7 +405,7 @@ where
                                     Some(field) => {
                                         let mut reader = field[0].data.readable().expect("Unable to read field for extra_params");
                                     Some({
-                                        let mut data = String::default();
+                                        let mut data = String::new();
                                         reader.read_to_string(&mut data).expect("Reading saved String should never fail");
                                         let extra_params_model: Vec<String> = match serde_json::from_str(&data) {
                                             Ok(model) => model,
