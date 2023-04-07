@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "bpf-loader-cli",
+    "bpf-loader-lib"
+]
