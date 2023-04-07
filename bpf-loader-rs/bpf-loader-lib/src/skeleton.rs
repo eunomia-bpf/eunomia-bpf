@@ -5,5 +5,4 @@ pub struct BpfSkeleton {
     state: EbpfProgramState,
     /// is the polling ring buffer loop exiting?
     exiting: std::sync::Mutex<bool>,
-    
 }

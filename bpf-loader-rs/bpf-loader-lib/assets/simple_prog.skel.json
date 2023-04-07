@@ -1,0 +1,94 @@
+{
+    "bpf_skel": {
+        "data_sections": [
+            {
+                "name": ".bss",
+                "variables": [
+                    {
+                        "name": "__dummy",
+                        "type": "struct S *"
+                    },
+                    {
+                        "name": "__eunomia_dummy_S_ptr",
+                        "type": "struct S *"
+                    }
+                ]
+            }
+        ],
+        "maps": [
+            {
+                "ident": "bss",
+                "mmaped": true,
+                "name": "dumper_t.bss"
+            }
+        ],
+        "obj_name": "dumper_test_bpf",
+        "progs": null
+    },
+    "eunomia_version": "0.3.2",
+    "export_types": [
+        {
+            "members": [
+                {
+                    "name": "arr1",
+                    "type": "int[2][3][4]"
+                },
+                {
+                    "name": "str",
+                    "type": "char[20]"
+                },
+                {
+                    "name": "str_arr",
+                    "type": "char[10][20]"
+                },
+                {
+                    "name": "ft",
+                    "type": "float"
+                },
+                {
+                    "name": "dbl",
+                    "type": "double"
+                },
+                {
+                    "name": "u8v",
+                    "type": "unsigned char"
+                },
+                {
+                    "name": "i8v",
+                    "type": "signed char"
+                },
+                {
+                    "name": "u16v",
+                    "type": "unsigned short"
+                },
+                {
+                    "name": "i16v",
+                    "type": "short"
+                },
+                {
+                    "name": "u32v",
+                    "type": "unsigned int"
+                },
+                {
+                    "name": "i32v",
+                    "type": "int"
+                },
+                {
+                    "name": "u64v",
+                    "type": "unsigned long long"
+                },
+                {
+                    "name": "i64v",
+                    "type": "long long"
+                },
+                {
+                    "name": "e",
+                    "type": "enum"
+                }
+            ],
+            "name": "S",
+            "size": 368,
+            "type_id": 2
+        }
+    ]
+}
