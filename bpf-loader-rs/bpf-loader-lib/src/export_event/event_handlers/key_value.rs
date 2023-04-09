@@ -15,7 +15,7 @@ use crate::{
         EventExporter, ExporterInternalImplementation, InternalSampleMapProcessor,
         ReceivedEventData,
     },
-    helper::print_log2_hist,
+    helper::log2_hist::print_log2_hist,
 };
 
 pub(crate) struct JsonExportEventHandler {

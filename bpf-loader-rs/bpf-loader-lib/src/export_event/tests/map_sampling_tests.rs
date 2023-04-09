@@ -1,9 +1,6 @@
-use std::{cell::RefCell, ffi::c_void, rc::Rc, sync::Arc};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
-use libbpf_rs::{
-    libbpf_sys::{bpf_map_info, bpf_obj_get_info_by_fd},
-    ObjectBuilder,
-};
+use libbpf_rs::ObjectBuilder;
 use serde::Deserialize;
 
 use crate::{
@@ -35,18 +32,10 @@ fn load_things() -> LoadedThings {
         .load()
         .unwrap();
     let hists_map = bpf_obj.map("hists").unwrap();
-    let mut map_info = unsafe { std::mem::zeroed::<bpf_map_info>() };
-    let mut sz = std::mem::size_of::<bpf_map_info>() as u32;
-    let ret_code = unsafe {
-        bpf_obj_get_info_by_fd(
-            hists_map.fd(),
-            &mut map_info as *mut bpf_map_info as *mut c_void,
-            &mut sz as *mut u32,
-        )
-    };
-    assert_eq!(ret_code, 0);
-    let key_type_id = map_info.btf_key_type_id;
-    let value_type_id = map_info.btf_value_type_id;
+    let map_info = hists_map.info().unwrap();
+
+    let key_type_id = map_info.info.btf_key_type_id;
+    let value_type_id = map_info.info.btf_value_type_id;
 
     LoadedThings {
         key_id: key_type_id,

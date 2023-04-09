@@ -1,0 +1,59 @@
+{
+    "bpf_object": "eJztVUtLw0AQnk1b34/qQcSTBw/iIfhGPEhVWlQKvipYLzE1VoVqIYlST/bgD+g/8OpP8j94EgS96c5m2kzXaAURL34w2f1mv51MZh+5SWczhhBQh4AXCFmIWiLsp+jZKZVT0zOzc/C7wHwMaTFpcWkJ+Mdf4+5RwDD1qyKwfDjchetF+0jtro4GVcuoCK6lI62NdMhHpY0EvC8WxlAx2+VjrFnbFLONxRynGB3NMZTOYLpp0nVF6NqZbp50PaRbDHgSx1M01qfli3yVxpI0lg2C96Ozm4QYv5f6NUGD9O5tpk8wfSfTDzA9HJ3aLljW8s7Oct7aXT9IW7n8Vtqy4Kh84flW4bIIZxc+Mdt1AT3YFktl24fiFA3JjlnwPDDdsmP7NrQArstAULZGjoge8jssX8SE8sc/6AfJr+v3yP8s2LdKbFJ83b/GOGaVYxztkHGsa4V4fc/dMm6wPJCr/Wr6xxU/KFFYS7NUujq3bMdxvbMTVnHT813fLsj2+ly1VFTTPS6ZK7lMWPOfwqQcdSzQ5tnX/CKCC2icyQZSEI24xpcgvK+j5r+Kr+fjmcMzq3/DgvG9+RsAkf+v+vynFvMzEJytlOZ/IOEhccwxQS0iSe2QtFj2rSybKp9f++SnpeeK94wRoZuk99+zeXSvKtTv4nfAm147",
+    "bpf_object_size": 2000,
+    "meta": {
+        "bpf_skel": {
+            "data_sections": [
+                {
+                    "name": ".rodata",
+                    "variables": [
+                        {
+                            "name": "const_buf",
+                            "type": "char[100]"
+                        },
+                        {
+                            "name": "const_arr",
+                            "type": "int[100]"
+                        },
+                        {
+                            "name": "const_f1",
+                            "type": "float"
+                        }
+                    ]
+                },
+                {
+                    "name": ".bss",
+                    "variables": [
+                        {
+                            "name": "buf",
+                            "type": "char[100]"
+                        },
+                        {
+                            "name": "arr",
+                            "type": "int[100]"
+                        },
+                        {
+                            "name": "f1",
+                            "type": "float"
+                        }
+                    ]
+                }
+            ],
+            "maps": [
+                {
+                    "ident": "rodata",
+                    "mmaped": true,
+                    "name": "simple_p.rodata"
+                },
+                {
+                    "ident": "bss",
+                    "mmaped": true,
+                    "name": "simple_p.bss"
+                }
+            ],
+            "obj_name": "simple_prog_2_bpf",
+            "progs": null
+        },
+        "eunomia_version": "0.3.2"
+    }
+}

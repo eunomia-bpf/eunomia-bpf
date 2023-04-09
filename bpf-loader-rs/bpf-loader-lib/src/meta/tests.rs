@@ -23,14 +23,16 @@ fn test_deserialize_meta() {
         name: ".rodata".into(),
         variables: vec![DataSectionVariableMeta {
             name: "min_duration_ns".into(),
-            ty: "unsigned long long".into()
+            ty: "unsigned long long".into(),
+            value: None
         }]
     }));
     assert!(data_section.contains(&DataSectionMeta {
         name: ".bss".into(),
         variables: vec![DataSectionVariableMeta {
             name: "__eunomia_dummy_event_ptr".into(),
-            ty: "struct event *".into()
+            ty: "struct event *".into(),
+            value: None
         }]
     }));
     let maps = &bpf_skel.maps;
