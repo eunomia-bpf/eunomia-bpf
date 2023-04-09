@@ -1,6 +1,7 @@
 use base64::Engine;
 use deflate::deflate_bytes_zlib;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use serde_with::DefaultOnNull;
 /// Describe a struct member in an exported type
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
@@ -91,6 +92,9 @@ pub struct DataSectionVariableMeta {
     #[serde(rename = "type")]
     /// Type of this variable
     pub ty: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Value of this variable. This will be filled into the initial value of the corresponding map
+    pub value: Option<Value>,
 }
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 /// Describe a data section
@@ -128,6 +132,13 @@ pub struct BpfSkeletonMeta {
     /// Documents
     pub doc: Option<BpfSkelDoc>,
 }
+impl BpfSkeletonMeta {
+    pub fn find_map_by_ident(&self, ident: impl AsRef<str>) -> Option<&MapMeta> {
+        let str_ref = ident.as_ref();
+        self.maps.iter().find(|s| s.name == str_ref)
+    }
+}
+
 /// global meta data config
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct EunomiaObjectMeta {
@@ -202,7 +213,6 @@ impl<'de> Deserialize<'de> for ComposedObject {
         D: serde::Deserializer<'de>,
     {
         use serde::de::Error;
-        use serde_json::Value;
         let json_val: ComposedObjectInner =
             serde_json::from_value(Value::deserialize(deserializer)?)
                 .map_err(|e| Error::custom(format!("Malformed json provided: {e}")))?;
@@ -234,6 +244,15 @@ pub struct RunnerConfig {
     #[serde(default = "default_helpers::default_bool::<false>")]
     pub print_kernel_debug: bool,
 }
+
+impl Default for RunnerConfig {
+    fn default() -> Self {
+        Self {
+            print_kernel_debug: false,
+        }
+    }
+}
+
 pub(crate) mod default_helpers {
     pub(crate) fn default_bool<const V: bool>() -> bool {
         V
