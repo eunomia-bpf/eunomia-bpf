@@ -1,18 +1,19 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     btf_container::BtfContainer,
-    meta::{DataSectionMeta, EunomiaObjectMeta, RunnerConfig},
-    skeleton::preload::section_loader::load_section_data,
+    meta::{EunomiaObjectMeta, RunnerConfig},
+    skeleton::preload::{
+        attach::{attach_tc, AttachLink},
+        section_loader::load_section_data,
+    },
 };
 use anyhow::{anyhow, bail, Context, Result};
-use btf::types::{Btf, BtfType};
 use libbpf_rs::OpenObject;
 
-use super::BpfSkeleton;
-
+use super::{handle::PollingHandle, BpfSkeleton};
+pub(crate) mod attach;
 pub(crate) mod section_loader;
-
 /// Represents an initialized bpf skeleton. It's waiting for the loading and attaching of bpf programs
 pub struct PreLoadBpfSkeleton {
     ///   data storage
@@ -86,12 +87,46 @@ impl PreLoadBpfSkeleton {
                 .map_err(|e| anyhow!("Failed to set initial value of map `{}`: {}", map_name, e))?;
         }
 
-        let bpf_object = self
+        let mut bpf_object = self
             .bpf_object
             .load()
             .with_context(|| anyhow!("Failed to load bpf object"))?;
         // Next steps are attaching...
-
-        todo!();
+        let mut not_attached = vec![];
+        let mut links = vec![];
+        for prog_meta in self.meta.bpf_skel.progs.iter() {
+            let bpf_prog = bpf_object
+                .prog_mut(&prog_meta.name)
+                .ok_or_else(|| anyhow!("Program named `{}` not found in libbpf", prog_meta.name))?;
+            match bpf_prog.attach() {
+                Ok(link) => links.push(AttachLink::BpfLink(link)),
+                // EOPNOTSUPP 95 Operation not supported
+                Err(_) if errno::errno().0 == 95 => {
+                    // Not supported for auto-attaching, needs manually operations
+                    not_attached.push(prog_meta);
+                    continue;
+                }
+                Err(err) => bail!("Failed to attach program `{}`: {}", prog_meta.name, err),
+            };
+        }
+        for prog_meta in not_attached.into_iter() {
+            let bpf_prog = bpf_object
+                .prog_mut(&prog_meta.name)
+                .ok_or_else(|| anyhow!("Program named `{}` not found", prog_meta.name))?;
+            match bpf_prog.section() {
+                "tc" => links.push(attach_tc(bpf_prog, prog_meta).with_context(|| {
+                    anyhow!("Failed to attach tc program `{}`", prog_meta.name)
+                })?),
+                s => bail!("Unsupported attach type: {}", s),
+            }
+        }
+        Ok(BpfSkeleton {
+            handle: PollingHandle::new(),
+            meta: self.meta,
+            config_data: self.config_data,
+            btf: Arc::new(self.btf),
+            links,
+            prog: bpf_object,
+        })
     }
 }

@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::{
     meta::{
@@ -24,7 +24,8 @@ fn test_deserialize_meta() {
         variables: vec![DataSectionVariableMeta {
             name: "min_duration_ns".into(),
             ty: "unsigned long long".into(),
-            value: None
+            value: None,
+            others: json!({})
         }]
     }));
     assert!(data_section.contains(&DataSectionMeta {
@@ -32,7 +33,8 @@ fn test_deserialize_meta() {
         variables: vec![DataSectionVariableMeta {
             name: "__eunomia_dummy_event_ptr".into(),
             ty: "struct event *".into(),
-            value: None
+            value: None,
+            others: json!({})
         }]
     }));
     let maps = &bpf_skel.maps;
@@ -67,12 +69,14 @@ fn test_deserialize_meta() {
     assert!(progs.contains(&ProgMeta {
         name: "handle_exec".into(),
         link: true,
-        attach: "tp/sched/sched_process_exec".into()
+        attach: "tp/sched/sched_process_exec".into(),
+        others: json!({})
     }));
     assert!(progs.contains(&ProgMeta {
         name: "handle_exit".into(),
         link: true,
-        attach: "tp/sched/sched_process_exit".into()
+        attach: "tp/sched/sched_process_exit".into(),
+        others: json!({})
     }));
     let export_types = &decoded.meta.export_types;
     assert_eq!(export_types.len(), 1);

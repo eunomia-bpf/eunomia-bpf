@@ -173,8 +173,7 @@ impl<'a> BpfSkeletonBuilder<'a> {
             sizes
         };
         // SAFETY: The pointer won't be used by us anymore, and we also checked if it's null
-        let open_object =
-            unsafe { OpenObject::from_ptr(NonNull::new_unchecked(open_result.into())) }?;
+        let open_object = unsafe { OpenObject::from_ptr(NonNull::new_unchecked(open_result)) }?;
 
         Ok(PreLoadBpfSkeleton {
             bpf_object: open_object,

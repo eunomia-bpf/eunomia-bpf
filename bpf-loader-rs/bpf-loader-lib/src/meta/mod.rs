@@ -1,5 +1,6 @@
 use base64::Engine;
 use deflate::deflate_bytes_zlib;
+use libbpf_rs::libbpf_sys::{BPF_TC_CUSTOM, BPF_TC_EGRESS, BPF_TC_INGRESS};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::DefaultOnNull;
@@ -83,7 +84,83 @@ pub struct ProgMeta {
     pub attach: String,
     /// TODO: what's this
     pub link: bool,
+    #[serde(flatten)]
+    /// Other fields
+    pub others: Value,
 }
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+/// Extra fields in prog meta for TC programs
+pub struct TCProgExtraMeta {
+    #[serde(default)]
+    /// TC Hook point
+    pub tchook: TCHook,
+    #[serde(default)]
+    /// TC Hook options
+    pub tcopts: TCOpts,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+pub struct TCHook {
+    #[serde(default = "default_helpers::default_i32::<1>")]
+    /// Which interface to hook
+    pub ifindex: i32,
+    #[serde(default)]
+    /// Hook point
+    pub attach_point: TCAttachPoint,
+}
+impl Default for TCHook {
+    fn default() -> Self {
+        Self {
+            ifindex: 1,
+            attach_point: Default::default(),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+pub enum TCAttachPoint {
+    #[serde(rename = "BPF_TC_INGRESS")]
+    Ingress,
+    #[serde(rename = "BPF_TC_EGRESS")]
+    Egress,
+    #[serde(rename = "BPF_TC_CUSTOM")]
+    Custom,
+}
+impl Default for TCAttachPoint {
+    fn default() -> Self {
+        Self::Ingress
+    }
+}
+
+impl TCAttachPoint {
+    // Get the BPF_TC_XXX values for this enum
+    pub fn to_value(&self) -> u32 {
+        match self {
+            TCAttachPoint::Ingress => BPF_TC_INGRESS,
+            TCAttachPoint::Egress => BPF_TC_EGRESS,
+            TCAttachPoint::Custom => BPF_TC_CUSTOM,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+/// Options for TC program
+pub struct TCOpts {
+    #[serde(default = "default_helpers::default_u32::<1>")]
+    pub handle: u32,
+    #[serde(default = "default_helpers::default_u32::<1>")]
+    pub priority: u32,
+}
+impl Default for TCOpts {
+    fn default() -> Self {
+        Self {
+            handle: 1,
+            priority: 1,
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 /// Describe a variable in a data section
 pub struct DataSectionVariableMeta {
@@ -95,6 +172,9 @@ pub struct DataSectionVariableMeta {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// Value of this variable. This will be filled into the initial value of the corresponding map
     pub value: Option<Value>,
+    #[serde(flatten)]
+    /// Other fields
+    pub others: Value,
 }
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 /// Describe a data section
@@ -237,20 +317,12 @@ impl<'de> Deserialize<'de> for ComposedObject {
 
 /// Global config to control the behavior of eunomia-bpf
 /// TODO: load config from json or config files
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct RunnerConfig {
     /// whether we should print the bpf_printk
     /// from /sys/kernel/debug/tracing/trace_pipe
     #[serde(default = "default_helpers::default_bool::<false>")]
     pub print_kernel_debug: bool,
-}
-
-impl Default for RunnerConfig {
-    fn default() -> Self {
-        Self {
-            print_kernel_debug: false,
-        }
-    }
 }
 
 pub(crate) mod default_helpers {
@@ -263,6 +335,10 @@ pub(crate) mod default_helpers {
     pub(crate) fn default_i32<const V: i32>() -> i32 {
         V
     }
+    pub(crate) fn default_u32<const V: u32>() -> u32 {
+        V
+    }
+
     pub(crate) fn map_unit_default() -> String {
         "(unit)".into()
     }

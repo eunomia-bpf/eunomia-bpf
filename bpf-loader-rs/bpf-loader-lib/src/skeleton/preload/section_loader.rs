@@ -93,6 +93,7 @@ pub(crate) fn load_section_data(
                         8 => paste_bytes(
                             buffer,
                             btf_type,
+                            #[allow(clippy::unnecessary_cast)]
                             &((f64v as f64).to_be_bytes() as [u8; 8]),
                         )?,
                         s => bail!(
