@@ -40,7 +40,7 @@ pub enum LogPostResponse {
     /// send log
     SendLog(models::LogPost200Response),
 }
-
+/// pub enum StartPostResponse
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum StartPostResponse {
     /// List of running tasks
