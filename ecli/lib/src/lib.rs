@@ -115,7 +115,7 @@ pub struct ClientOpts {
     #[clap(short, long, help = "endpoint", default_value = "127.0.0.1")]
     pub endpoint: String,
 
-    #[clap(short, long, help = "enpoint port", default_value = "8527")]
+    #[clap(short, long, help = "endpoint port", default_value = "8527")]
     pub port: u16,
 
     #[clap(short, long, help = "transport with https", default_value = "false")]

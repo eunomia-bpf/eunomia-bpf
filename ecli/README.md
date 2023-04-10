@@ -28,6 +28,10 @@ TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT
 22:01:04  46313  46312   0          0            ps      /usr/bin/ps 0
 ```
 
+[eserver documents](./server/README.md)  
+[ecli documents](./client/README.md)
+
+
 ## build
 
 ```bash
