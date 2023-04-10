@@ -85,12 +85,12 @@ mod tests {
     fn test_create_elf_with_btf_section() {
         let assets_dir = get_assets_dir();
         let btf_from_elf = BtfContainer::new_from_binary(
-            &std::fs::read(assets_dir.join("simple_prog.bpf.o")).unwrap(),
+            &std::fs::read(assets_dir.join("simple_prog").join("simple_prog.bpf.o")).unwrap(),
         )
         .unwrap();
         let btf_from_archive = BtfContainer::new_from_binary(
             &create_elf_with_btf_section(
-                &std::fs::read(assets_dir.join("simple_prog.btf")).unwrap(),
+                &std::fs::read(assets_dir.join("simple_prog").join("simple_prog.btf")).unwrap(),
                 true,
             )
             .unwrap(),

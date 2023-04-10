@@ -168,11 +168,12 @@ mod tests {
     fn test_check_export_types_btf_1() {
         let assets_dir = get_assets_dir();
         let btf_container = BtfContainer::new_from_binary(
-            &std::fs::read(assets_dir.join("simple_prog.bpf.o")).unwrap()[..],
+            &std::fs::read(assets_dir.join("simple_prog").join("simple_prog.bpf.o")).unwrap()[..],
         )
         .unwrap();
         let eunomia_meta: EunomiaObjectMeta = serde_json::from_str(
-            &std::fs::read_to_string(assets_dir.join("simple_prog.skel.json")).unwrap(),
+            &std::fs::read_to_string(assets_dir.join("simple_prog").join("simple_prog.skel.json"))
+                .unwrap(),
         )
         .unwrap();
         let struct_meta = &eunomia_meta.export_types[0];

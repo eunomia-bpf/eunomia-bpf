@@ -10,6 +10,7 @@ use crate::{
 };
 use anyhow::{anyhow, bail, Context, Result};
 use libbpf_rs::OpenObject;
+use log::debug;
 
 use super::{handle::PollingHandle, BpfSkeleton};
 pub(crate) mod attach;
@@ -48,6 +49,7 @@ impl PreLoadBpfSkeleton {
 
         // Initialize data for sections
         for section in self.meta.bpf_skel.data_sections.iter() {
+            debug!("Loading section: {:?}", section);
             let map_meta = match section.name.as_str() {
                 ".rodata" => self
                     .meta
@@ -79,6 +81,7 @@ impl PreLoadBpfSkeleton {
             let mut buffer = vec![0; buffer_size];
             load_section_data(self.btf.borrow_btf(), section, &mut buffer)
                 .with_context(|| anyhow!("Failed to load section {}", section.name))?;
+            debug!("Loaded buffer: {:?}", buffer);
             map.set_initial_value(&buffer[..])
                 .map_err(|e| anyhow!("Failed to set initial value of map `{}`: {}", map_name, e))?;
         }
@@ -124,5 +127,33 @@ impl PreLoadBpfSkeleton {
             links,
             prog: bpf_object,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        meta::ComposedObject, skeleton::builder::BpfSkeletonBuilder, tests::get_assets_dir,
+    };
+
+    #[test]
+    fn test_load_and_attach() {
+        let skel: ComposedObject = serde_json::from_str(
+            &std::fs::read_to_string(get_assets_dir().join("bootstrap.json")).unwrap(),
+        )
+        .unwrap();
+        let pre_load_skel = BpfSkeletonBuilder::from_json_package(&skel, None)
+            .build()
+            .unwrap();
+        let loaded = pre_load_skel.load_and_attach().unwrap();
+        let prog = loaded.prog;
+        for map_meta in skel.meta.bpf_skel.maps.iter() {
+            let _map_bpf = prog.map(map_meta.name.as_str()).unwrap();
+        }
+        for prog_meta in skel.meta.bpf_skel.progs.iter() {
+            let prog_bpf = prog.prog(&prog_meta.name).unwrap();
+            assert_eq!(prog_bpf.section(), prog_meta.attach);
+        }
+        assert_eq!(loaded.links.len(), skel.meta.bpf_skel.progs.len());
     }
 }

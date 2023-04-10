@@ -50,6 +50,8 @@ pub mod handle;
 pub(crate) mod poller;
 pub mod preload;
 
+#[cfg(test)]
+mod tests;
 /// Represents a polling-ready bpf skeleton. With you can control the ebpf program and poll from it.
 pub struct BpfSkeleton {
     pub(crate) handle: PollingHandle,
