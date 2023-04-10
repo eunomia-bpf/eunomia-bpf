@@ -32,9 +32,8 @@ pub mod client_tests {
     use std::str::FromStr;
 
     use lib::{
-        client_action, config,
-        runner::{self, ClientArgs, RunArgs},
-        RemoteArgs,
+        config,
+        runner::{self, client_action, ClientArgs, RemoteArgs, RunArgs},
     };
     use openapi_client::{
         models::{LogPost200Response, LogPostRequest},

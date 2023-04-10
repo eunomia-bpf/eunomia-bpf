@@ -3,7 +3,6 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use std::ffi::CStr;
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::os::raw::c_void;
@@ -11,21 +10,19 @@ use std::ptr::null_mut;
 
 use crate::config::ExportFormatType;
 use crate::config::ProgramConfigData;
-use crate::error::{EcliError, EcliResult};
+use crate::error::EcliError;
+use crate::error::EcliResult;
 
-use crate::eunomia_bpf;
-
-pub use eunomia_bpf::{
+use crate::eunomia_bpf::{
     export_format_type_EXPORT_JSON, export_format_type_EXPORT_PLANT_TEXT,
     load_and_attach_eunomia_skel, open_eunomia_skel_from_json_package_with_args,
-    parse_args_to_json_config, wait_and_poll_events_to_handler,
+    wait_and_poll_events_to_handler,
 };
 
 unsafe extern "C" fn handler(
     _ctx: *mut ::std::os::raw::c_void,
     event: *const ::std::os::raw::c_char,
-    size: super::eunomia_bpf::size_t,
-    _size: eunomia_bpf::size_t,
+    size: crate::eunomia_bpf::size_t,
 ) {
     println!(
         "{}",

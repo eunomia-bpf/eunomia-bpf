@@ -1,13 +1,8 @@
 use clap::Parser;
 mod utils;
 
-use lib::{
-    error::*,
-    init_log, process,
-    runner::start_server,
-    {Signals, SIGINT},
-};
-use std::thread;
+use lib::{error::*, init_log, runner::start_server, Signals, SIGINT};
+use std::{process, thread};
 
 #[derive(Parser)]
 struct Args {

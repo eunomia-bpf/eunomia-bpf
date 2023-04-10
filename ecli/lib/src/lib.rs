@@ -3,15 +3,24 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-mod config;
-mod error;
-mod json_runner;
-mod oci;
-mod runner;
-mod tar_reader;
-mod wasm_bpf_runner;
+pub mod config;
+pub mod error;
+pub mod json_runner;
+pub mod oci;
+pub mod runner;
+
+pub mod tar_reader;
+pub mod wasm_bpf_runner;
+
 use clap::{Parser, Subcommand};
 use env_logger::{Builder, Target};
+
+pub use signal_hook::{consts::SIGINT, iterator::Signals};
+
+#[allow(dead_code)]
+#[allow(non_upper_case_globals)]
+#[allow(non_camel_case_types)]
+pub mod eunomia_bpf;
 
 /// ecli subcommands, including run, push, pull, login, logout.
 #[derive(Subcommand)]

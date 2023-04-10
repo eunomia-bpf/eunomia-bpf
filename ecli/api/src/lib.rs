@@ -22,24 +22,26 @@ type ServiceError = Box<dyn Error + Send + Sync + 'static>;
 pub const BASE_PATH: &str = "";
 pub const API_VERSION: &str = "1.0.0";
 
+/// ListGetResponse
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum ListGetResponse {
     /// List of running tasks
     ListOfRunningTasks(models::ListGet200Response),
 }
-
+/// pub enum LogPostResponse
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum LogPostResponse {
     /// send log
     SendLog(models::LogPost200Response),
 }
-
+/// pub enum StartPostResponse
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum StartPostResponse {
     /// List of running tasks
     ListOfRunningTasks(models::ListGet200Response),
 }
 
+/// pub enum StopPostResponse
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum StopPostResponse {
     /// Status of stopping the task
@@ -204,6 +206,7 @@ pub mod client;
 #[cfg(feature = "client")]
 pub use client::Client;
 
+/// server module
 #[cfg(feature = "server")]
 pub mod server;
 
@@ -211,9 +214,11 @@ pub mod server;
 #[cfg(feature = "server")]
 pub use self::server::Service;
 
+/// context for ecli server api
 #[cfg(feature = "server")]
 pub mod context;
 
+/// models of ecli server api
 pub mod models;
 
 #[cfg(any(feature = "client", feature = "server"))]

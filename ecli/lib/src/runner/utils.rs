@@ -1,7 +1,7 @@
 use crate::config::ExportFormatType;
 use crate::config::ProgramConfigData;
 use crate::config::ProgramType;
-use crate::EcliResult;
+use crate::runner::EcliResult;
 use eunomia_rs::TempDir;
 use openapi_client::models::ListGet200Response;
 use openapi_client::models::ListGet200ResponseTasksInner;
@@ -77,7 +77,7 @@ impl<'a> StartupElements<'a> {
         extra_params: Option<&'a Vec<String>>,
     ) -> Self {
         let elements = Self {
-            program_name: program_name.unwrap_or("NamelessProg".to_string()),
+            program_name: program_name.unwrap_or_else(|| "NamelessProg".to_string()),
             program_data_buf: program_data_buf.unwrap().0,
             extra_params: extra_params.unwrap(),
         };
@@ -110,7 +110,7 @@ impl ProgStart for ServerData {
             extra_params,
         } = startup_elem;
 
-        let id = self.global_count.clone();
+        let id = self.global_count;
 
         let stdout = ReadableWritePipe::new_vec_buf();
         let stderr = ReadableWritePipe::new_vec_buf();
@@ -145,7 +145,7 @@ impl ProgStart for ServerData {
             program_data_buf,
             extra_params,
         } = startup_elem;
-        let id = self.global_count.clone();
+        let id = self.global_count;
 
         let _data = ProgramConfigData {
             url: String::default(),
@@ -181,7 +181,7 @@ impl ProgStart for ServerData {
             extra_params,
         } = startup_elem;
 
-        let id = self.global_count.clone();
+        let id = self.global_count;
         let tmp_dir = TempDir::new();
 
         let tmp_data_dir = tmp_dir.map_err(|e| ApiError(e.to_string())).unwrap();
