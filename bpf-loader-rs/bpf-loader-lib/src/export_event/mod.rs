@@ -46,6 +46,7 @@ pub mod event_handlers;
 #[cfg(test)]
 mod tests;
 
+#[derive(Clone, Copy)]
 /// Describe the export format type
 pub enum ExportFormatType {
     PlainText,
@@ -150,6 +151,7 @@ pub(crate) struct CheckedExportedMember {
     pub(crate) type_id: u32,
     pub(crate) bit_offset: u32,
     pub(crate) size: usize,
+    #[allow(unused)]
     pub(crate) bit_size: u32,
     pub(crate) output_header_offset: usize,
 }

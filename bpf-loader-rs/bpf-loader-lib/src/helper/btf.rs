@@ -57,6 +57,7 @@ impl<'a> BtfHelper for btf::types::Btf<'a> {
     }
     fn is_char(&self, ty: u32) -> Result<bool> {
         let ty = self.resolve_real_type(ty)?;
+        #[allow(clippy::match_like_matches_macro)]
         Ok(match self.type_by_id(ty) {
             BtfType::Int(btf_int)
                 if matches!(btf_int.encoding, BtfIntEncoding::Char) || btf_int.name == "char" =>
@@ -68,10 +69,9 @@ impl<'a> BtfHelper for btf::types::Btf<'a> {
     }
     fn is_char_array(&self, ty: u32) -> Result<bool> {
         let ty = self.resolve_real_type(ty)?;
-        Ok(match self.type_by_id(ty) {
-            BtfType::Array(arr) if self.is_char(self.resolve_real_type(arr.val_type_id)?)? => true,
-            _ => false,
-        })
+        Ok(
+            matches!(self.type_by_id(ty), BtfType::Array(arr) if self.is_char(self.resolve_real_type(arr.val_type_id)?)?),
+        )
     }
 }
 
