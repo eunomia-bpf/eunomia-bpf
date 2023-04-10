@@ -38,6 +38,15 @@ async fn api_test() -> Result<()> {
 
     common::client_tests::start().await;
 
+    common::client_tests::start_real_wasm_prog().await;
+
+    // wait for start
+    sleep(Duration::from_secs(1)).await;
+
+    common::client_tests::list().await;
+
+    common::client_tests::log().await;
+
     sleep(Duration::from_secs(2)).await;
 
     info!("server shutdown");

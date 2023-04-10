@@ -1,7 +1,6 @@
 use crate::config::ExportFormatType;
 use crate::config::ProgramConfigData;
 use crate::config::ProgramType;
-use crate::json_runner::json_handler;
 use crate::EcliResult;
 use eunomia_rs::TempDir;
 use openapi_client::models::ListGet200Response;
@@ -139,6 +138,7 @@ impl ProgStart for ServerData {
         Ok(id as i32)
     }
 
+    #[allow(unused)]
     fn _json_start(&mut self, startup_elem: StartupElements) -> Result<i32, ApiError> {
         let StartupElements {
             program_name,
@@ -147,7 +147,7 @@ impl ProgStart for ServerData {
         } = startup_elem;
         let id = self.global_count.clone();
 
-        let data = ProgramConfigData {
+        let _data = ProgramConfigData {
             url: String::default(),
             use_cache: false,
             btf_path: None,
@@ -157,13 +157,13 @@ impl ProgStart for ServerData {
             export_format_type: ExportFormatType::ExportPlantText,
         };
 
-        let stdout = ReadableWritePipe::new_vec_buf();
-        let stderr = ReadableWritePipe::new_vec_buf();
-        let ptr = EunomiaBpfPtr::from_raw_ptr(json_handler(data).unwrap());
-        let prog = JsonEunomiaProgram::new(ptr, LogMsg::new(stdout, stderr));
-        self.json_tasks.insert(id, prog);
-        self.prog_info
-            .insert(id, (program_name, ProgramType::JsonEunomia));
+        // let stdout = ReadableWritePipe::new_vec_buf();
+        // let stderr = ReadableWritePipe::new_vec_buf();
+        // let ptr = EunomiaBpfPtr::from_raw_ptr(json_runner::handle_json(data).unwrap());
+        // let prog = JsonEunomiaProgram::new(ptr, LogMsg::new(stdout, stderr));
+        // self.json_tasks.insert(id, prog);
+        // self.prog_info
+        //     .insert(id, (program_name, ProgramType::JsonEunomia));
 
         self.global_count += 1;
         Ok(id as i32)

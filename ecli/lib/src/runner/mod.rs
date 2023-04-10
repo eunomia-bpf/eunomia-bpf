@@ -204,8 +204,8 @@ pub async fn start_server(args: RemoteArgs) -> EcliResult<()> {
         port, addr, secure, ..
     } = args.server.unwrap()
     {
-        println!("starting server...");
         let addr: String = format!("{addr}:{port}");
+        println!("Server start at {addr}");
         let (_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
 
         server::create(addr, secure, shutdown_rx).await;
@@ -263,7 +263,8 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
     match action_type {
         ClientActions::List => {
             let result = client.list_get().await;
-            println!("{}", json!(result.as_ref().unwrap()));
+            let ListGetResponse::ListOfRunningTasks(rsp_msg) = result.as_ref().unwrap();
+            println!("{}", json!(rsp_msg));
             info!(
                 "{:?} (X-Span-ID: {:?})",
                 result,
@@ -300,7 +301,9 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
                 )
                 .await;
 
-            println!("{}", json!(result.as_ref().unwrap()));
+            let StartPostResponse::ListOfRunningTasks(rsp_msg) = result.as_ref().unwrap();
+
+            println!("{}", json!(rsp_msg));
             info!(
                 "{:?} (X-Span-ID: {:?})",
                 result,
@@ -317,7 +320,9 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
                 };
 
                 let result = client.stop_post(inner).await;
-                println!("{}", json!(result.as_ref().unwrap()));
+
+                let StopPostResponse::StatusOfStoppingTheTask(rsp_msg) = result.as_ref().unwrap();
+                println!("{}", json!(rsp_msg));
                 info!(
                     "{:?} (X-Span-ID: {:?})",
                     result,
