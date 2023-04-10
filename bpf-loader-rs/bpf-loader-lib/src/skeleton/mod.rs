@@ -1,33 +1,33 @@
 //! # BpfSkeleton
-//! 
+//!
 //! This is the main module of the bpf-loader
-//! 
+//!
 //! It provides interfaces to load a bpf-skeleton from JSON, parse it and verify it, and receive data (ringbuf, perfevent, or map values) from it
-//! 
+//!
 //! ## The main structure
-//! 
+//!
 //! Three objects are provided to the user, see below.
-//! 
+//!
 //! ### `BpfSkeletonBuilder`
-//! 
+//!
 //! The builder of PreLoadBpfSkeleton, also the start point that the user should use
-//! 
+//!
 //! It accepts the JSON skeleton, verify the definitions along with the BTF info in the program, and open the bpf_object
-//! 
+//!
 //! It will build a `PreLoadBpfSkeleton`
-//! 
+//!
 //! ### `PreLoadBpfSkeleton`
-//! 
+//!
 //! A verified and opened bpf_object
-//! 
+//!
 //! It has a method called `load_and_attach`, which will try to load the bpf_object, and attach the bpf programs in it to the corresponding attach points. On success, it will return a BpfSkeleton
-//! 
+//!
 //! ### `BpfSkeleton`
-//! 
+//!
 //! This is the most important object that the user will use.
-//! 
+//!
 //! It provide abilities to polling data from the bpf program (through ringbuf, perfevent, or maps) in a unified interface. See `wait_and_poll_to_handler` for details.
-//! 
+//!
 //! Besides, it provide ability to control the polling progress in another thread. You can get a handle using `create_poll_handle`, then pause/resume/terminate the polling function in another thread.
 use std::{any::Any, sync::Arc};
 
