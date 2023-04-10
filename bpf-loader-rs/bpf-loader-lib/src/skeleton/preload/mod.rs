@@ -54,15 +54,11 @@ impl PreLoadBpfSkeleton {
                     .bpf_skel
                     .find_map_by_ident("rodata")
                     .ok_or_else(|| {
-                        anyhow!("Failed to find map with ident rodata for section .rodata")
+                        anyhow!("Failed to find map with ident `rodata` for section .rodata")
                     })?,
-                ".bss" => self
-                    .meta
-                    .bpf_skel
-                    .find_map_by_ident(".bss")
-                    .ok_or_else(|| {
-                        anyhow!("Failed to find map with bss rodata for section .bss")
-                    })?,
+                ".bss" => self.meta.bpf_skel.find_map_by_ident("bss").ok_or_else(|| {
+                    anyhow!("Failed to find map with ident `bss` for section .bss")
+                })?,
                 s => bail!("Unsupported section: {}", s),
             };
             let map_name = map_meta.name.as_str();
