@@ -11,12 +11,13 @@ use crate::{
 
 pub(crate) fn load_triple() -> (Arc<BtfContainer>, Vec<u8>, EunomiaObjectMeta) {
     let assets = get_assets_dir();
-    let btf =
-        BtfContainer::new_from_binary(&std::fs::read(assets.join("simple_prog.bpf.o")).unwrap())
-            .unwrap();
-    let bin_data = std::fs::read(assets.join("dumper_test.bin")).unwrap();
+    let btf = BtfContainer::new_from_binary(
+        &std::fs::read(assets.join("simple_prog").join("simple_prog.bpf.o")).unwrap(),
+    )
+    .unwrap();
+    let bin_data = std::fs::read(assets.join("simple_prog").join("dumper_test.bin")).unwrap();
     let skel = serde_json::from_str::<EunomiaObjectMeta>(
-        &std::fs::read_to_string(assets.join("simple_prog.skel.json")).unwrap(),
+        &std::fs::read_to_string(assets.join("simple_prog").join("simple_prog.skel.json")).unwrap(),
     )
     .unwrap();
     (Arc::new(btf), bin_data, skel)

@@ -48,11 +48,15 @@ pub(crate) fn load_section_data(
             .get(&variable.name)
             .ok_or_else(|| anyhow!("Variable named `{}` does not exist in btf", variable.name))?;
         if let Some(value) = &variable.value {
-            info!("load runtime arg for {}: {:?}", variable.name, value);
             let real_type = btf
                 .types()
                 .get(btf.resolve_real_type(btf_type.type_id)? as usize)
                 .ok_or_else(|| anyhow!("Invalid type"))?;
+            info!(
+                "load runtime arg for {}: {:?}, real_type={}, btf_type={:?}",
+                variable.name, value, real_type, btf_type
+            );
+
             match (value, real_type) {
                 (Value::Number(num), BtfType::Int(_)) if num.is_i64() => {
                     let num = num.as_i64().unwrap();
@@ -66,6 +70,7 @@ pub(crate) fn load_section_data(
                         (8, i64)
                     );
                     paste_bytes(buffer, btf_type, &bytes[..])?;
+                    info!("received bytes {:?}", bytes);
                 }
                 (Value::Number(num), BtfType::Int(_)) if num.is_u64() => {
                     let num = num.as_u64().unwrap();
@@ -346,7 +351,12 @@ mod tests {
     // Test load strings
     fn test_load_section_4() {
         let mut sp2_json: ComposedObject = serde_json::from_str(
-            &std::fs::read_to_string(get_assets_dir().join("simple_prog_2.package.json")).unwrap(),
+            &std::fs::read_to_string(
+                get_assets_dir()
+                    .join("simple_prog_2")
+                    .join("simple_prog_2.package.json"),
+            )
+            .unwrap(),
         )
         .unwrap();
         sp2_json.meta.bpf_skel.data_sections[0]
@@ -370,7 +380,12 @@ mod tests {
     // Test load too long strings
     fn test_load_section_5() {
         let mut sp2_json: ComposedObject = serde_json::from_str(
-            &std::fs::read_to_string(get_assets_dir().join("simple_prog_2.package.json")).unwrap(),
+            &std::fs::read_to_string(
+                get_assets_dir()
+                    .join("simple_prog_2")
+                    .join("simple_prog_2.package.json"),
+            )
+            .unwrap(),
         )
         .unwrap();
         sp2_json.meta.bpf_skel.data_sections[0]
@@ -392,7 +407,12 @@ mod tests {
     // Test load floats
     fn test_load_section_6() {
         let mut sp2_json: ComposedObject = serde_json::from_str(
-            &std::fs::read_to_string(get_assets_dir().join("simple_prog_2.package.json")).unwrap(),
+            &std::fs::read_to_string(
+                get_assets_dir()
+                    .join("simple_prog_2")
+                    .join("simple_prog_2.package.json"),
+            )
+            .unwrap(),
         )
         .unwrap();
         sp2_json.meta.bpf_skel.data_sections[0]

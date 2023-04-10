@@ -229,8 +229,8 @@ mod tests {
     #[test]
     fn test_dump_to_json() {
         let assets_dir = get_assets_dir();
-        let elf = std::fs::read(assets_dir.join("simple_prog.bpf.o")).unwrap();
-        let bin = std::fs::read(assets_dir.join("dumper_test.bin")).unwrap();
+        let elf = std::fs::read(assets_dir.join("simple_prog").join("simple_prog.bpf.o")).unwrap();
+        let bin = std::fs::read(assets_dir.join("simple_prog").join("dumper_test.bin")).unwrap();
         let elf: ElfFile = ElfFile::parse(&elf[..]).unwrap();
         let btf = Btf::load(&elf).unwrap();
         // type_id = 2 is the struct we want
