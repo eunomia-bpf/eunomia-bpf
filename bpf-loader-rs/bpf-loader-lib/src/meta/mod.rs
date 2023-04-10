@@ -215,7 +215,7 @@ pub struct BpfSkeletonMeta {
 impl BpfSkeletonMeta {
     pub fn find_map_by_ident(&self, ident: impl AsRef<str>) -> Option<&MapMeta> {
         let str_ref = ident.as_ref();
-        self.maps.iter().find(|s| s.name == str_ref)
+        self.maps.iter().find(|s| s.ident == str_ref)
     }
 }
 

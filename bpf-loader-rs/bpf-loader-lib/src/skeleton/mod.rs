@@ -101,12 +101,15 @@ impl BpfSkeleton {
     pub fn wait_and_poll_to_handler(
         &self,
         export_format_type: ExportFormatType,
-        export_event_handler: Arc<dyn EventHandler>,
+        export_event_handler: Option<Arc<dyn EventHandler>>,
         user_context: Option<Arc<dyn Any>>,
     ) -> Result<()> {
-        let exporter_builder = EventExporterBuilder::new()
-            .set_export_format(export_format_type)
-            .set_export_event_handler(export_event_handler);
+        let exporter_builder = EventExporterBuilder::new().set_export_format(export_format_type);
+        let exporter_builder = if let Some(hdl) = export_event_handler {
+            exporter_builder.set_export_event_handler(hdl)
+        } else {
+            exporter_builder
+        };
         let exporter_builder = if let Some(user_ctx) = user_context {
             exporter_builder.set_user_context(user_ctx)
         } else {
