@@ -3,6 +3,7 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
+
 use crate::config::ExportFormatType;
 use crate::config::ProgramConfigData;
 use crate::config::ProgramType;
@@ -17,11 +18,6 @@ use crate::runner::LogPostResponse;
 use crate::runner::StartPostResponse;
 use crate::runner::StopPostResponse;
 use crate::EcliResult;
-use actix_web::body::BoxBody;
-use actix_web::http::header::ContentType;
-use actix_web::HttpRequest;
-use actix_web::HttpResponse;
-use actix_web::Responder;
 use eunomia_rs::TempDir;
 use swagger::ApiError;
 use wasm_bpf_rs::handle::WasmProgramHandle;
@@ -79,32 +75,7 @@ impl EunomiaBpfPtr {
         Ok(())
     }
 }
-pub struct StartupElements<'a> {
-    program_name: String,
-    program_data_buf: Vec<u8>,
-    extra_params: &'a Vec<String>,
-}
-impl<'a> StartupElements<'a> {
-    pub fn new(
-        program_name: Option<String>,
-        program_data_buf: Option<swagger::ByteArray>,
-        extra_params: Option<&'a Vec<String>>,
-    ) -> Self {
-        let elements = Self {
-            program_name: program_name.unwrap_or_else(|| "NamelessProg".to_string()),
-            program_data_buf: program_data_buf.unwrap().0,
-            extra_params: extra_params.unwrap(),
-        };
 
-        return elements;
-    }
-
-    fn _validate(&self) -> EcliResult<()> {
-        match *self.program_data_buf {
-            _ => Ok(()),
-        }
-    }
-}
 pub trait ProgStart {
     fn wasm_start(&mut self, startup_elem: StartReq) -> Result<i32, EcliError>;
     fn json_start(&mut self, startup_elem: StartReq) -> Result<i32, EcliError>;
@@ -118,7 +89,7 @@ pub trait ProgStart {
 
 impl ProgStart for ServerData {
     fn wasm_start(&mut self, startup_elem: StartReq) -> Result<i32, EcliError> {
-        let crate::runner::StartReq {
+        let crate::runner::server::StartReq {
             program_name,
             program_data_buf,
             extra_params,
@@ -338,39 +309,32 @@ impl JsonEunomiaProgram {
 #[derive(Clone)]
 #[allow(unused)]
 pub struct LogMsg {
-    stdout: LogMsgInner,
-    stderr: LogMsgInner,
+    pub stdout: LogMsgInner,
+    pub stderr: LogMsgInner,
 }
-
-macro_rules! impl_log_method {
-    ($n: ident, $l:ident) => {
-        impl LogMsg {
-            pub fn $n(&mut self) -> String {
-                let guard = self.$l.pipe.get_read_lock();
-                let read_len = self.$l.read_length;
-
-                let vec_ref = guard.get_ref();
-
-                if vec_ref.len() > read_len {
-                    let freezed = String::from_utf8(vec_ref[read_len..].to_vec()).unwrap();
-                    self.$l.read_length = vec_ref.len();
-                    return freezed;
-                } else {
-                    return String::default();
-                };
-            }
-        }
-    };
-}
-
-impl_log_method!(get_stdout, stdout);
-impl_log_method!(get_stderr, stderr);
 
 #[derive(Clone)]
-struct LogMsgInner {
+pub struct LogMsgInner {
     pipe: ReadableWritePipe<Cursor<Vec<u8>>>,
     // TODO: multi connection?
     read_length: usize,
+}
+
+impl LogMsgInner {
+    pub fn read(&mut self) -> String {
+        let guard = self.pipe.get_read_lock();
+        let read_len = self.read_length;
+
+        let vec_ref = guard.get_ref();
+
+        if vec_ref.len() > read_len {
+            let freezed = String::from_utf8(vec_ref[read_len..].to_vec()).unwrap();
+            self.read_length = vec_ref.len();
+            return freezed;
+        } else {
+            return String::default();
+        };
+    }
 }
 
 impl LogMsg {
@@ -433,25 +397,3 @@ impl LogPostResponse {
         LogPostResponse::SendLog(LogPost200Response { stdout, stderr })
     }
 }
-
-macro_rules! impl_responder {
-    ($n: ident) => {
-        impl Responder for $n {
-            type Body = BoxBody;
-
-            fn respond_to(self, _req: &HttpRequest) -> HttpResponse<Self::Body> {
-                let body = serde_json::to_string(&self).unwrap();
-
-                // Create response and set content type
-                HttpResponse::Ok()
-                    .content_type(ContentType::json())
-                    .body(body)
-            }
-        }
-    };
-}
-
-impl_responder!(StartPostResponse);
-impl_responder!(StopPostResponse);
-impl_responder!(ListGetResponse);
-impl_responder!(LogPostResponse);

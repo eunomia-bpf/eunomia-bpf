@@ -55,7 +55,7 @@ impl TryFrom<Action> for ClientArgs {
             match c.cmd {
                 ClientSubCommand::Start(mut start_cmd) => Ok(Self {
                     action_type: ClientActions::Start,
-                    endpoint: c.opts.endpoint,
+                    addr: c.opts.addr,
                     port: c.opts.port,
                     run_args: RunArgs {
                         file: start_cmd.prog.remove(0),
@@ -67,19 +67,19 @@ impl TryFrom<Action> for ClientArgs {
                 ClientSubCommand::Stop(cmd) => Ok(Self {
                     action_type: ClientActions::Stop,
                     id: cmd.id,
-                    endpoint: c.opts.endpoint,
+                    addr: c.opts.addr,
                     port: c.opts.port,
                     ..Default::default()
                 }),
                 ClientSubCommand::List => Ok(Self {
-                    endpoint: c.opts.endpoint,
+                    addr: c.opts.addr,
                     port: c.opts.port,
                     ..Default::default()
                 }),
                 ClientSubCommand::Log(cmd) => Ok(Self {
                     action_type: ClientActions::Log,
                     id: cmd.id,
-                    endpoint: c.opts.endpoint,
+                    addr: c.opts.addr,
                     port: c.opts.port,
                     ..Default::default()
                 }),
