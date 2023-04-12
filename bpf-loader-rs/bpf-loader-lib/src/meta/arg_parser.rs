@@ -201,7 +201,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             skel.bpf_skel.data_sections[0].variables[4].value,
-            Some(json!(false))
+            Some(json!(true))
         );
     }
 }
