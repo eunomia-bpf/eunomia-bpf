@@ -1,8 +1,9 @@
+use std::time::Duration;
+
 use anyhow::Result;
 use tokio;
 mod common;
-use common::run_eserver;
-use std::time::Duration;
+use common::start_server;
 use tokio::time::sleep;
 use tracing::log::info;
 
@@ -24,8 +25,8 @@ async fn api_test() -> Result<()> {
     init();
 
     info!("test if server start successfully:");
-    let tx = run_eserver().await;
 
+    let addr = "127.0.0.1".to_string();
     info!("waiting for server start");
     sleep(Duration::from_secs(3)).await;
 

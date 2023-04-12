@@ -17,35 +17,38 @@ use crate::runner::ListGetResponse;
 use crate::runner::LogPostResponse;
 use crate::runner::StartPostResponse;
 use crate::runner::StopPostResponse;
-use crate::EcliResult;
+use crate::runner::{
+    models::{
+        ListGet200Response, ListGet200ResponseTasksInner, LogPost200Response, StopPost200Response,
+    },
+    ListGetResponse, LogPostResponse, StartPostResponse, StopPostResponse,
+};
+
 use eunomia_rs::TempDir;
 use swagger::ApiError;
-use wasm_bpf_rs::handle::WasmProgramHandle;
-use wasm_bpf_rs::pipe::ReadableWritePipe;
-use wasm_bpf_rs::run_wasm_bpf_module_async;
-use wasm_bpf_rs::Config;
+
+use wasm_bpf_rs::{
+    handle::WasmProgramHandle, pipe::ReadableWritePipe, run_wasm_bpf_module_async, Config,
+};
 
 use crate::eunomia_bpf::{destroy_eunomia_skel, eunomia_bpf};
-use std::marker::PhantomData;
-use std::ptr::NonNull;
-use std::{collections::HashMap, fs::write};
-use std::{io::Cursor, sync::Arc};
+
+use std::{
+    ptr::NonNull,
+    {collections::HashMap, fs::write},
+    {io::Cursor, sync::Arc},
+};
+
 use tokio::sync::Mutex;
 
 use super::server::StartReq;
-
-#[derive(Clone)]
-pub struct Server<C> {
-    pub data: Arc<Mutex<ServerData>>,
-    pub marker: PhantomData<C>,
-}
 
 #[derive(Clone)]
 pub struct ServerData {
     pub wasm_tasks: HashMap<usize, WasmModuleProgram>,
     pub json_tasks: HashMap<usize, JsonEunomiaProgram>,
     pub prog_info: HashMap<usize, (String, ProgramType)>,
-    pub global_count: usize,
+    pub global_count: Arc<AtomicUsize>,
 }
 
 struct EunomiaBpfPtr(NonNull<eunomia_bpf>);
@@ -96,7 +99,7 @@ impl ProgStart for ServerData {
             ..
         } = startup_elem;
 
-        let id = self.global_count;
+        let id = self.global_count.load(SeqCst) as usize;
 
         let stdout = ReadableWritePipe::new_vec_buf();
         let stderr = ReadableWritePipe::new_vec_buf();
@@ -123,7 +126,7 @@ impl ProgStart for ServerData {
         self.prog_info
             .insert(id, (program_name.unwrap(), ProgramType::WasmModule));
 
-        self.global_count += 1;
+        self.global_count.fetch_add(1, SeqCst);
 
         Ok(id as i32)
     }
@@ -136,7 +139,7 @@ impl ProgStart for ServerData {
             extra_params,
             ..
         } = startup_elem;
-        let id = self.global_count;
+        let id = self.global_count.load(SeqCst) as usize;
 
         let _data = ProgramConfigData {
             url: String::default(),
@@ -148,15 +151,7 @@ impl ProgStart for ServerData {
             export_format_type: ExportFormatType::ExportPlantText,
         };
 
-        // let stdout = ReadableWritePipe::new_vec_buf();
-        // let stderr = ReadableWritePipe::new_vec_buf();
-        // let ptr = EunomiaBpfPtr::from_raw_ptr(json_runner::handle_json(data).unwrap());
-        // let prog = JsonEunomiaProgram::new(ptr, LogMsg::new(stdout, stderr));
-        // self.json_tasks.insert(id, prog);
-        // self.prog_info
-        //     .insert(id, (program_name, ProgramType::JsonEunomia));
-
-        self.global_count += 1;
+        self.global_count.fetch_add(1, SeqCst);
         Ok(id as i32)
     }
 
@@ -174,7 +169,7 @@ impl ProgStart for ServerData {
             ..
         } = startup_elem;
 
-        let id = self.global_count;
+        let id = self.global_count.load(SeqCst) as usize;
         let tmp_dir = TempDir::new();
 
         let tmp_data_dir = tmp_dir.map_err(|e| ApiError(e.to_string())).unwrap();
@@ -202,12 +197,38 @@ impl ServerData {
             wasm_tasks: HashMap::new(),
             json_tasks: HashMap::new(),
             prog_info: HashMap::new(),
-            global_count: 0,
+            global_count: Arc::new(AtomicUsize::default()),
         }
     }
 
-    pub fn get_type_of(&self, id: usize) -> Option<ProgramType> {
-        self.prog_info.get(&id).map(|v| v.1.clone())
+    pub fn get_log_follow(&self, id: &usize) -> Option<(String, String)> {
+        let LogMsg {
+            mut stdout,
+            mut stderr,
+        } = self.get_prog_log(id);
+
+        Some((stdout.follow_log(), stderr.follow_log()))
+    }
+
+    pub fn get_log_full(&self, id: &usize) -> Option<(String, String)> {
+        let LogMsg { stdout, stderr } = self.get_prog_log(id);
+
+        Some((
+            stdout.read_log_all().unwrap(),
+            stderr.read_log_all().unwrap(),
+        ))
+    }
+
+    pub fn get_type_of(&self, id: &usize) -> Option<ProgramType> {
+        self.prog_info.get(id).map(|v| v.1.clone())
+    }
+
+    pub fn get_prog_log(&self, id: &usize) -> LogMsg {
+        match self.get_type_of(id).unwrap() {
+            ProgramType::WasmModule => self.wasm_tasks.get(id).unwrap().log_msg.clone(),
+            ProgramType::JsonEunomia => self.json_tasks.get(id).unwrap().log_msg.clone(),
+            _ => unimplemented!(),
+        }
     }
 
     pub fn list_all_task(&self) -> Vec<ListGet200ResponseTasksInner> {
@@ -223,16 +244,14 @@ impl ServerData {
 
     pub async fn stop_prog(
         &mut self,
-        id: i32,
+        id: usize,
         prog_info: (String, ProgramType),
     ) -> Result<StopPostResponse, EcliError> {
         let (prog_name, prog_type) = prog_info;
 
         match prog_type {
             ProgramType::JsonEunomia => {
-                let task = self
-                    .json_tasks
-                    .remove(&(id.checked_abs().unwrap() as usize));
+                let task = self.json_tasks.remove(&id);
                 if let Some(t) = task {
                     if t.stop().await.is_ok() {
                         return Ok(StopPostResponse::gen_rsp(
@@ -243,15 +262,13 @@ impl ServerData {
                 return Ok(StopPostResponse::gen_rsp("fail to terminate"));
             }
             ProgramType::WasmModule => {
-                let task = self
-                    .wasm_tasks
-                    .remove(&(id.checked_abs().unwrap() as usize));
+                let task = self.wasm_tasks.remove(&id);
 
                 if let Some(t) = task {
                     let handler = t.handler.lock().await;
 
                     if handler.terminate().is_ok() {
-                        self.prog_info.remove(&(id.checked_abs().unwrap() as usize));
+                        self.prog_info.remove(&id);
                         return Ok(StopPostResponse::gen_rsp(
                             format!("{} terminated", &prog_name).as_str(),
                         ));
@@ -270,7 +287,6 @@ impl ServerData {
 pub struct WasmModuleProgram {
     pub handler: Arc<Mutex<WasmProgramHandle>>,
 
-    #[allow(dead_code)]
     pub log_msg: LogMsg,
 }
 
@@ -312,28 +328,52 @@ pub struct LogMsg {
     pub stdout: LogMsgInner,
     pub stderr: LogMsgInner,
 }
+use std::sync::atomic::AtomicUsize;
 
 #[derive(Clone)]
 pub struct LogMsgInner {
     pipe: ReadableWritePipe<Cursor<Vec<u8>>>,
-    // TODO: multi connection?
-    read_length: usize,
+    position: Arc<AtomicUsize>,
 }
 
 impl LogMsgInner {
-    pub fn read(&mut self) -> String {
+    fn new(pipe: ReadableWritePipe<Cursor<Vec<u8>>>) -> Self {
+        Self {
+            pipe,
+            position: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+}
+
+pub trait LogHandle {
+    /// get all log msg
+    fn read_log_all(&self) -> Result<String, std::string::FromUtf8Error>;
+
+    /// follow the log
+    fn follow_log(&mut self) -> String;
+}
+
+use std::sync::atomic::Ordering::SeqCst;
+
+impl LogHandle for LogMsgInner {
+    fn read_log_all(&self) -> Result<String, std::string::FromUtf8Error> {
+        let log = self.pipe.get_read_lock().get_ref().to_vec();
+        String::from_utf8(log)
+    }
+
+    fn follow_log(&mut self) -> String {
         let guard = self.pipe.get_read_lock();
-        let read_len = self.read_length;
+        let pos = self.position.clone();
 
         let vec_ref = guard.get_ref();
-
-        if vec_ref.len() > read_len {
-            let freezed = String::from_utf8(vec_ref[read_len..].to_vec()).unwrap();
-            self.read_length = vec_ref.len();
+        let idx = pos.load(SeqCst);
+        if vec_ref.len() > idx {
+            let freezed = String::from_utf8(vec_ref[idx..].to_vec()).unwrap();
+            self.position
+                .fetch_add(vec_ref.len() - idx as usize, SeqCst);
             return freezed;
-        } else {
-            return String::default();
-        };
+        }
+        String::default()
     }
 }
 
@@ -343,23 +383,8 @@ impl LogMsg {
         stderr: ReadableWritePipe<Cursor<Vec<u8>>>,
     ) -> Self {
         Self {
-            stdout: LogMsgInner {
-                pipe: stdout,
-                read_length: 0,
-            },
-            stderr: LogMsgInner {
-                pipe: stderr,
-                read_length: 0,
-            },
-        }
-    }
-}
-
-impl<C> Server<C> {
-    pub fn new(data: Arc<Mutex<ServerData>>) -> Self {
-        Server {
-            data,
-            marker: PhantomData,
+            stdout: LogMsgInner::new(stdout),
+            stderr: LogMsgInner::new(stderr),
         }
     }
 }

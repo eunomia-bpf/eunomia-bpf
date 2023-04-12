@@ -1872,6 +1872,7 @@ dependencies = [
  "eunomia-rs",
  "log",
  "mockito",
+ "nix",
  "oci-distribution",
  "openssl",
  "reqwest",
@@ -2139,6 +2140,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "memoffset 0.7.1",
+ "pin-utils",
  "static_assertions",
 ]
 

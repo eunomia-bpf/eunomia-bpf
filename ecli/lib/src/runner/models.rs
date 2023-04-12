@@ -312,12 +312,18 @@ pub struct LogPostRequest {
     #[serde(rename = "id")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<i32>,
+
+    #[serde(rename = "follow")]
+    pub follow: bool,
 }
 
 impl LogPostRequest {
     #[allow(clippy::new_without_default)]
     pub fn new() -> LogPostRequest {
-        LogPostRequest { id: None }
+        LogPostRequest {
+            id: None,
+            follow: true,
+        }
     }
 }
 
@@ -347,6 +353,7 @@ impl std::str::FromStr for LogPostRequest {
         #[allow(dead_code)]
         struct IntermediateRep {
             pub id: Vec<i32>,
+            pub follow: bool,
         }
 
         let mut intermediate_rep = IntermediateRep::default();
@@ -387,6 +394,7 @@ impl std::str::FromStr for LogPostRequest {
         // Use the intermediate representation to return the struct
         std::result::Result::Ok(LogPostRequest {
             id: intermediate_rep.id.into_iter().next(),
+            follow: intermediate_rep.follow,
         })
     }
 }

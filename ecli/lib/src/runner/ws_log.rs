@@ -1,9 +1,16 @@
-use std::time::{Duration, Instant};
+use std::io::{Cursor, Seek, SeekFrom};
+use std::sync::{Arc, Mutex};
+use std::{
+    thread,
+    time::{Duration, Instant},
+};
 
 use actix::{Actor, ActorContext, AsyncContext, StreamHandler};
+use actix_web::web;
 use actix_web_actors::ws;
+use log::info;
 
-use super::utils::ServerData;
+use super::server::AppState;
 
 /// How often heartbeat pings are sent
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
@@ -12,7 +19,7 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct LogWs {
-    pub data: ServerData,
+    pub data: web::Data<AppState>,
     pub hb: Instant,
 }
 
@@ -43,6 +50,41 @@ impl LogWs {
     }
 }
 
+const BUFFER_SIZE: usize = 64;
+
+struct MsgBuf {
+    buffer: [u8; BUFFER_SIZE],
+    count: usize,
+}
+
+impl MsgBuf {
+    fn new() -> Self {
+        Self {
+            buffer: [0u8; BUFFER_SIZE],
+            count: 0,
+        }
+    }
+
+    fn msg_filled(&mut self, message: &u8) -> bool {
+        let remaining_space = BUFFER_SIZE - self.count;
+
+        if remaining_space == 0 {
+            self.count = 0;
+            return true;
+        }
+
+        self.buffer[self.count] = *message;
+        self.count += 1;
+        false
+    }
+}
+
+impl ToString for MsgBuf {
+    fn to_string(&self) -> String {
+        String::from_utf8(self.buffer.to_vec()).expect("unexpected char")
+    }
+}
+
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for LogWs {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         let msg = match msg {
@@ -64,18 +106,59 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for LogWs {
                 self.hb = Instant::now();
             }
             ws::Message::Text(text) => {
-                let id = text.trim().parse::<usize>().unwrap();
+                let json_msg: serde_json::Value = serde_json::from_str(text.trim()).unwrap();
 
-                let prog_type = self.data.get_type_of(id).unwrap();
+                let prog_id = usize::try_from(json_msg["id"].as_i64().unwrap()).unwrap();
+
+                let follow = bool::try_from(json_msg["follow"].as_bool().unwrap()).unwrap();
+
+                let prog_type = crate::config::ProgramType::WasmModule;
+
+                // let prog_type = self.data;
 
                 match prog_type {
                     crate::config::ProgramType::WasmModule => {
-                        let mut log = self.data.wasm_tasks.get(&id).unwrap().log_msg.clone();
+                        if follow {
+                            for _ in 0..5 {
+                                thread::sleep(Duration::from_secs(3));
 
-                        #[allow(unused)]
-                        loop {
-                            tokio::time::sleep(tokio::time::Duration::from_secs(1));
-                            ctx.text(log.stdout.read())
+                                info!("hey");
+
+                                // let stdout = self
+                                //     .data
+                                //     .wasm_tasks
+                                //     .get(&prog_id)
+                                //     .unwrap()
+                                //     .log_msg
+                                //     .stdout
+                                //     .clone();
+
+                                // let stdout = stdout.get_read_lock();
+                                // let mut buffer = MsgBuf::new();
+                                // let log = String::from_utf8(stdout.get_ref().to_vec());
+                                // ctx.text(log.unwrap());
+                                // drop(stdout)
+                            }
+                            // loop {
+                            // thread::sleep(Duration::from_secs(3));
+                            // info!("sendding");
+                            // ctx.text("testAFIAJELIGJLIAEGLVFA")
+                            // }
+                        } else {
+                            // let stdout = self
+                            //     .data
+                            //     .wasm_tasks
+                            //     .get(&prog_id)
+                            //     .unwrap()
+                            //     .log_msg
+                            //     .stdout
+                            //     .read_log_all();
+                            // ctx.text(stdout.unwrap());
+                            ctx.close(Some(ws::CloseReason {
+                                code: ws::CloseCode::Normal,
+                                description: Some("Transport complete".to_string()),
+                            }));
+                            ctx.stop();
                         }
                     }
                     _ => todo!(),
