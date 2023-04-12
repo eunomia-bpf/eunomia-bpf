@@ -84,6 +84,19 @@ impl<'a> Display for ReceivedEventData<'a> {
         Ok(())
     }
 }
+
+impl<'a> ReceivedEventData<'a> {
+    /// Simply get a &[u8] from this received data, which is the same as the one that the C++ version callback receives
+    pub fn trivally_to_plain_bytes(&self) -> &'a [u8] {
+        match self {
+            ReceivedEventData::Buffer(buf) => buf,
+            ReceivedEventData::KeyValueBuffer { value, .. } => value,
+            ReceivedEventData::PlainText(txt) => txt.as_bytes(),
+            ReceivedEventData::JsonText(txt) => txt.as_bytes(),
+        }
+    }
+}
+
 /// A handler to receive events provided by ebpf kernel program
 pub trait EventHandler {
     fn handle_event(&self, context: Option<Arc<dyn Any>>, data: ReceivedEventData);

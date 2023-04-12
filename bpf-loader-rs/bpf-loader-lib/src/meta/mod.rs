@@ -161,6 +161,20 @@ impl Default for TCOpts {
     }
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Default)]
+/// The command line argument that can be used to retrive the value of this variable
+pub struct VariableCommandArgument {
+    #[serde(default)]
+    /// The default value of this option
+    pub default: Option<Value>,
+    /// The long name of this
+    pub long: Option<String>,
+    /// The short name of this
+    pub short: Option<String>,
+    /// The help string of this option
+    pub help: Option<String>,
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 /// Describe a variable in a data section
 pub struct DataSectionVariableMeta {
@@ -172,6 +186,12 @@ pub struct DataSectionVariableMeta {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// Value of this variable. This will be filled into the initial value of the corresponding map
     pub value: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Description of this variable. Will be used to display in generated command arguments
+    pub description: Option<String>,
+    #[serde(default)]
+    /// The command line argument to produce this variable
+    pub cmdarg: VariableCommandArgument,
     #[serde(flatten)]
     /// Other fields
     pub others: Value,
@@ -184,16 +204,14 @@ pub struct DataSectionMeta {
     /// Variables in this section
     pub variables: Vec<DataSectionVariableMeta>,
 }
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Default)]
 /// Docs of a bpf skeleton
 /// I'm sure you can understand the meaning of the fields without any docs...
 pub struct BpfSkelDoc {
-    #[serde(default)]
-    pub version: String,
-    #[serde(default)]
-    pub brief: String,
-    #[serde(default)]
-    pub details: String,
+    pub version: Option<String>,
+    pub brief: Option<String>,
+    pub details: Option<String>,
+    pub description: Option<String>,
 }
 #[serde_with::serde_as]
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
@@ -346,3 +364,6 @@ pub(crate) mod default_helpers {
 
 #[cfg(test)]
 mod tests;
+
+pub mod arg_builder;
+pub mod arg_parser;
