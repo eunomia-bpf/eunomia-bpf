@@ -32,6 +32,16 @@
                     {
                         "name": "boolflag",
                         "type": "bool"
+                    },
+                    {
+                        "name": "boolflag-with-default-true",
+                        "type": "bool",
+                        "value": true
+                    },
+                    {
+                        "name": "boolflag-with-default-false",
+                        "type": "bool",
+                        "value": false
                     }
                 ]
             },

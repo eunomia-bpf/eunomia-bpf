@@ -1,3 +1,63 @@
+//! # bpf-loader-meta
+//!
+//! Here are metadata types used for deserilizing JSON skeletons
+//!
+//! A valid json skeleton is encoded using one of the two types:
+//! - `EunomiaObjectMeta`
+//! - `ComposedObject`
+//!
+//! In fact, the second one is `EunomiaObjectMeta` + ELF binary. So in another words, they are same
+//!
+//! ## EunomiaObjectMeta
+//! Two fields need extra explanation:
+//!
+//! ### `export_types` : `Vec<ExportedTypesStructMeta>`
+//!
+//! Here describes the types (usually a struct) of the data that this ebpf program exported to the userspace program. The types described here will be verified using BTF, and used to format the output the ebpf program gives, and passed to the user-callback or stdout. Due to a strange limitation, each program can only have one export types in the `Vec`
+//!
+//! ### `bpf_skel`: `BpfSkeletonMeta`
+//!
+//! Will be explained in the next words.
+//!
+//! ## BpfSkeletonMeta
+//!
+//! This struct describes the skeleton of an ebpf object.
+//! - `data_sections`: Describes `.rodata` and `.bss` sections, and variables in that
+//! - `maps`: Describes map declarations that are used in this ebpf object.
+//! - `progs`: Describes ebpf programs (functions) in this ebpf object
+//! - `obj_name`: The name of this ebpf object
+//! - `doc`: Docs, will be used to generate command line parser
+//!
+//! ## DataSectionMeta
+//!
+//! Describes a data section, and variables declared in it.
+//!
+//! ## DataSectionVariableMeta
+//!
+//! Describes a variable in the corresponding data section.
+//!
+//! - `name`: The name of this variable
+//! - `ty`: The C type of this variable
+//! - `value`: The default value of this variable. If not provided and not filled by command line parser, `bpf-loader` will fill the variable with zero bytes
+//! - `description`: The description of the variable. Will be used to generate command line parser
+//! - `cmdarg`: Detailed configuration on the command line argument of this variable
+//!
+//! ## VariableCommandArgument
+//!
+//! Describes the detailed configuration of this variable's command line argument.
+//!
+//! - `default`: The default value of this command line argument
+//! - `long`: The long name of this argument
+//! - `short`: The short name of this argument, in one char.
+//!
+//! ## MapMeta
+//!
+//! Describes an eBPF map
+//!
+//! ## ProgMeta
+//!
+//! Describes an eBPF program
+
 use base64::Engine;
 use deflate::deflate_bytes_zlib;
 use libbpf_rs::libbpf_sys::{BPF_TC_CUSTOM, BPF_TC_EGRESS, BPF_TC_INGRESS};
@@ -57,6 +117,7 @@ pub struct MapSampleMeta {
     /// Unit when printing hists
     #[serde(default = "default_helpers::map_unit_default")]
     pub unit: String,
+    /// Whether to clean up the map after sampling done
     #[serde(default = "default_helpers::default_bool::<false>")]
     pub clear_map: bool,
 }
@@ -68,7 +129,7 @@ pub struct MapMeta {
     pub name: String,
     /// TODO: get to know what's this
     pub ident: String,
-    /// TODO: what's this
+    /// If the value of this map will be used to describe a data section
     #[serde(default = "default_helpers::default_bool::<false>")]
     pub mmaped: bool,
     /// Extra info if this map will be used for sampling
@@ -82,7 +143,7 @@ pub struct ProgMeta {
     pub name: String,
     /// Attach point of this program
     pub attach: String,
-    /// TODO: what's this
+    /// Whether the attaching of this program will generate a bpf_link
     pub link: bool,
     #[serde(flatten)]
     /// Other fields
@@ -167,11 +228,11 @@ pub struct VariableCommandArgument {
     #[serde(default)]
     /// The default value of this option
     pub default: Option<Value>,
-    /// The long name of this
+    /// The long name of this. If not provided, will use the variable name
     pub long: Option<String>,
     /// The short name of this
     pub short: Option<String>,
-    /// The help string of this option
+    /// The help string of this option. If not provided, will use the description
     pub help: Option<String>,
 }
 
