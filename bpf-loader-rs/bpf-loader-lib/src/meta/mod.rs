@@ -86,7 +86,7 @@ pub struct ExportedTypesStructMeta {
     /// Btf type id of the struct
     pub type_id: u32,
 }
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Default)]
 // Sample types
 pub enum SampleMapType {
     #[serde(rename = "log2_hist")]
@@ -96,15 +96,11 @@ pub enum SampleMapType {
     /// print the event data as linear hist plain text
     LinearHist,
     #[serde(rename = "default_kv")]
+    #[default]
     /// print the event data as key-value format in plain text or json
     DefaultKV,
 }
 
-impl Default for SampleMapType {
-    fn default() -> Self {
-        SampleMapType::DefaultKV
-    }
-}
 
 /// Extra info for a map which will be used for sampling
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]

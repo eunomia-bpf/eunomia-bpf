@@ -1,37 +1,56 @@
 use std::thread;
 
 use bpf_loader_lib::{
+    clap::{Arg, ArgAction, Command},
     export_event::ExportFormatType,
-    meta::{ComposedObject, EunomiaObjectMeta},
+    meta::{arg_parser::UnpresentVariableAction, ComposedObject, EunomiaObjectMeta},
     skeleton::builder::BpfSkeletonBuilder,
 };
-use clap::Parser;
-
-#[derive(Parser)]
-struct Args {
-    #[arg(help = "The skeleton json file")]
-    json_skeleton: String,
-    #[arg(
-        help = "The ELF file; If provided, will use the file here instead of the one from the skeleton"
-    )]
-    elf_file: Option<String>,
-}
 
 use anyhow::{anyhow, bail, Context, Result};
 use log::info;
 use serde_json::Value;
 use signal_hook::{consts::SIGINT, iterator::Signals};
 fn main() -> Result<()> {
+    let matches = Command::new(env!("CARGO_PKG_NAME"))
+        .arg(
+            Arg::new("json_skeleton")
+                .action(ArgAction::Set)
+                .help("The skeleton json file")
+                .required(true),
+        )
+        .arg(
+            Arg::new("elf_file")
+                .help(
+                    "The ELF file; If provided, will use the file \
+    here instead of the one from the skeleton",
+                )
+                .long("elf")
+                .short('e')
+                .required(false),
+        )
+        .arg(
+            Arg::new("bpf_args")
+                .action(ArgAction::Append)
+                .help("Args to the bpf program"),
+        )
+        .get_matches();
     flexi_logger::Logger::try_with_env_or_str("info")?
         .log_to_stdout()
         .start()?;
-    let args = Args::parse();
+    let json_skel = matches.get_one::<String>("json_skeleton").unwrap();
+    let elf_file = matches.get_one::<String>("elf_file");
+    let mut bpf_args = matches
+        .get_many::<String>("bpf_args")
+        .map(|v| v.map(|s| s.to_owned()).collect::<Vec<_>>())
+        .unwrap_or(vec![]);
+    bpf_args.insert(0, "bpf-prog".into());
     let json_content = serde_json::from_str::<Value>(
-        &std::fs::read_to_string(&args.json_skeleton)
+        &std::fs::read_to_string(json_skel)
             .with_context(|| anyhow!("Failed to read json skeleton"))?,
     )
     .with_context(|| anyhow!("Failed to parse json"))?;
-    let (prog_bin, meta) = if let Some(elf_file) = &args.elf_file {
+    let (prog_bin, mut meta) = if let Some(elf_file) = elf_file {
         let elf_bin =
             std::fs::read(elf_file).with_context(|| anyhow!("Failed to read elf file"))?;
         let meta = match serde_json::from_value::<ComposedObject>(json_content.clone()) {
@@ -53,6 +72,14 @@ fn main() -> Result<()> {
             .with_context(|| anyhow!("Failed to parse json into ComposedObject"))?;
         (data.bpf_object, data.meta)
     };
+
+    let bpf_parser = meta.build_argument_parser()?;
+    let bpf_matches = bpf_parser.get_matches_from(bpf_args);
+    meta.parse_arguments_and_fill_skeleton_variables(
+        &bpf_matches,
+        UnpresentVariableAction::FillWithZero,
+    )?;
+
     let skel = BpfSkeletonBuilder::from_object_meta_and_object_buffer(&meta, &prog_bin, None)
         .build()
         .with_context(|| anyhow!("Failed to build PreLoadSkeleton"))?
