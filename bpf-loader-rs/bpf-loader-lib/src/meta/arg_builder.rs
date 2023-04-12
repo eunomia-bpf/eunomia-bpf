@@ -10,6 +10,19 @@ const DEFAULT_EPILOG: &str = "Built with eunomia-bpf framework.\nSee https://git
 
 impl EunomiaObjectMeta {
     /// Build an argument parser use the `cmdarg` sections in .rodata/.bss variables.
+    ///
+    /// Each variable in the `.bss` or `.rodata` sections will be mapped into a command line argument.
+    ///
+    /// If a variable has it's default value, the default value will be used in the command line parser.
+    ///
+    /// Variables with `bool` will have some special cases:
+    /// - If the variable has no default values, a switch named `--<NAME>` will be added, indicating to set the value to true or false
+    /// - If the default value if true, a switch named `--disable-<NAME>` will be added, means set the value to false
+    /// - If the default value if false, a switch named `--enable-<NAME>` will be added, means to set the value to true.
+    ///
+    /// The first will be used to set the value of the variable to `true`, second one will be used to set `false`
+    ///
+    /// Variables with other types will accept values. But values will be checked in `parse_arguments_and_fill_skeleton_variables`, so here the values input in the command line parser will be regarded as strings.
     pub fn build_argument_parser(&self) -> Result<Command> {
         let cmd = Command::new(self.bpf_skel.obj_name.to_string());
 
@@ -60,53 +73,83 @@ impl EunomiaObjectMeta {
                     .long
                     .to_owned()
                     .unwrap_or_else(|| variable.name.to_string());
-                let short = variable.cmdarg.short.to_owned();
-
-                let default = if let Some(default) = variable
-                    .cmdarg
-                    .default
-                    .to_owned()
-                    .or(variable.value.to_owned())
-                {
-                    Some(match default {
-                        Value::Bool(v) => v.to_string(),
-                        Value::Number(v) => v.to_string(),
-                        Value::String(v) => v,
-                        _ => bail!(
-                            "We only want to see integers, bools, or strings in default values.."
-                        ),
-                    })
+                if variable.ty == "bool" {
+                    // If there is default values
+                    let default = if let Some(val) = variable
+                        .cmdarg
+                        .default
+                        .to_owned()
+                        .or(variable.value.to_owned())
+                    {
+                        Some(match val {
+                            Value::Bool(b) => b,
+                            _ => bail!("Only expected bool values in bool variables"),
+                        })
+                    } else {
+                        None
+                    };
+                    let arg = match default {
+                        // without default values
+                        None => Arg::new(variable.name.clone())
+                            .help(help)
+                            .long(long)
+                            .action(ArgAction::SetTrue),
+                        Some(true) => Arg::new(variable.name.clone())
+                            .help(help)
+                            .long(format!("disable-{long}"))
+                            .default_value("true")
+                            .action(ArgAction::SetFalse),
+                        Some(false) => Arg::new(variable.name.clone())
+                            .help(help)
+                            .long(format!("enable-{long}"))
+                            .action(ArgAction::SetTrue),
+                    };
+                    cmd = cmd.arg(arg);
                 } else {
-                    None
-                };
-                let arg = Arg::new(variable.name.clone()).help(help).long(long);
-                let arg = if let Some(s) = short {
-                    let chars = s.chars().collect::<Vec<char>>();
-                    if chars.len() != 1 {
-                        bail!(
+                    let short = variable.cmdarg.short.to_owned();
+
+                    let default = if let Some(default) = variable
+                        .cmdarg
+                        .default
+                        .to_owned()
+                        .or(variable.value.to_owned())
+                    {
+                        Some(match default {
+                            Value::Number(v) => v.to_string(),
+                            Value::String(v) => v,
+                            _ => bail!(
+                            "We only want to see integers or strings in default values for non-bool variables.."
+                        ),
+                        })
+                    } else {
+                        None
+                    };
+                    let arg = Arg::new(variable.name.clone())
+                        .action(ArgAction::Set)
+                        .help(help)
+                        .long(long);
+                    let arg = if let Some(s) = short {
+                        let chars = s.chars().collect::<Vec<char>>();
+                        if chars.len() != 1 {
+                            bail!(
                             "Short name for variable `{}` is expected to be just in 1 character",
                             variable.name
                         );
-                    }
+                        }
 
-                    arg.short(chars[0])
-                } else {
-                    arg
-                };
-                let arg = if variable.ty != "bool" {
-                    // For non-bool values, we should set the proper action
-                    arg.action(ArgAction::Set)
-                } else {
-                    arg.action(ArgAction::SetTrue)
-                };
-                // For values with defaults, we set the default ones
-                // For other values, if they were not provided when parsing, we'll fill the corresponding memory with zero, or report error, based on what we need
-                let arg = if let Some(default) = default {
-                    arg.default_value(default)
-                } else {
-                    arg
-                };
-                cmd = cmd.arg(arg);
+                        arg.short(chars[0])
+                    } else {
+                        arg
+                    };
+                    // For values with defaults, we set the default ones
+                    // For other values, if they were not provided when parsing, we'll fill the corresponding memory with zero, or report error, based on what we need
+                    let arg = if let Some(default) = default {
+                        arg.default_value(default)
+                    } else {
+                        arg
+                    };
+                    cmd = cmd.arg(arg);
+                }
             }
         }
         Ok(cmd)
@@ -170,5 +213,57 @@ mod tests {
         .unwrap();
         let cmd = skel.build_argument_parser().unwrap();
         cmd.try_get_matches_from(["prog", "-a", "123"]).unwrap();
+    }
+    #[test]
+    fn test_boolflag() {
+        let skel = serde_json::from_str::<EunomiaObjectMeta>(
+            &std::fs::read_to_string(get_assets_dir().join("arg_builder_test").join("skel.json"))
+                .unwrap(),
+        )
+        .unwrap();
+        let cmd = skel.build_argument_parser().unwrap();
+        let matches = cmd
+            .clone()
+            .try_get_matches_from([
+                "prog",
+                "--boolflag",
+                "--disable-boolflag-with-default-true",
+                "--enable-boolflag-with-default-false",
+            ])
+            .unwrap();
+        assert_eq!(matches.get_flag("boolflag"), true);
+        assert_eq!(matches.get_flag("boolflag-with-default-true"), false);
+        assert_eq!(matches.get_flag("boolflag-with-default-false"), true);
+
+        let matches = cmd.clone().try_get_matches_from(["prog"]).unwrap();
+        assert_eq!(matches.get_flag("boolflag"), false);
+        assert_eq!(matches.get_flag("boolflag-with-default-true"), true);
+        assert_eq!(matches.get_flag("boolflag-with-default-false"), false);
+    }
+    #[test]
+    #[should_panic]
+    fn test_boolflag_2() {
+        let skel = serde_json::from_str::<EunomiaObjectMeta>(
+            &std::fs::read_to_string(get_assets_dir().join("arg_builder_test").join("skel.json"))
+                .unwrap(),
+        )
+        .unwrap();
+        let cmd = skel.build_argument_parser().unwrap();
+        cmd.clone()
+            .try_get_matches_from(["prog", "--enable-boolflag-with-default-true"])
+            .unwrap();
+    }
+    #[test]
+    #[should_panic]
+    fn test_boolflag_3() {
+        let skel = serde_json::from_str::<EunomiaObjectMeta>(
+            &std::fs::read_to_string(get_assets_dir().join("arg_builder_test").join("skel.json"))
+                .unwrap(),
+        )
+        .unwrap();
+        let cmd = skel.build_argument_parser().unwrap();
+        cmd.clone()
+            .try_get_matches_from(["prog", "--disable-boolflag-with-default-false"])
+            .unwrap();
     }
 }

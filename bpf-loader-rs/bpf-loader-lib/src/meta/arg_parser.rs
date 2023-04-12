@@ -11,6 +11,15 @@ pub enum UnpresentVariableAction {
 }
 
 impl EunomiaObjectMeta {
+    /// Parser the values from the command line parser
+    ///
+    /// The clap parser gives us all values as strings, so here will try to parse the strings into the variable's own types (e.g, string, int, unsigned int). If it failes, `Err` will be returned
+    ///
+    /// This function will fill the `value` field in the `DataSectionVariableMeta`.
+    ///
+    /// If the `on_unpresent` behavior is `FillWithZero`, in this way if we find a command line argument with no values provided (this situation may only happen if the command line argument was created with no default values, a.k.a the `value` field is `None` in `DataSectionVariableMeta`), the `value` field will still be leaved `None`. In this way, the section_loader will fill zeros in the corresponding memory areas.
+    ///
+    /// If the `on_unpresent` behavior is `ReportError`, in this way if we find a command line argument with no values, we'll report an error.
     pub fn parse_arguments_and_fill_skeleton_variables(
         &mut self,
         args: &ArgMatches,
@@ -29,13 +38,14 @@ impl EunomiaObjectMeta {
                         .get_one::<String>(&variable.name)
                         .map(|v| v.to_string());
                     let parsed_value = if let Some(user_value) = user_value {
-                        parse_value(&variable.ty, user_value).with_context(|| {
+                        Some(parse_value(&variable.ty, user_value).with_context(|| {
                             anyhow!("Failed to parse user input value of `{}`", variable.name)
-                        })?
+                        })?)
                     } else {
                         match on_unpresent {
                             UnpresentVariableAction::FillWithZero => {
-                                make_zero_filled_value(&variable.ty)?
+                                // Leave it none to let section_loader fill zeros.
+                                None
                             }
                             UnpresentVariableAction::ReportError => bail!(
                                 "Variable `{}` has neither default values nor command-line sources",
@@ -43,7 +53,7 @@ impl EunomiaObjectMeta {
                             ),
                         }
                     };
-                    variable.value = Some(parsed_value);
+                    variable.value = parsed_value;
                 }
             }
         }
@@ -93,17 +103,6 @@ fn parse_value(ty: &str, v: impl AsRef<str>) -> Result<Value> {
     } else {
         bail!("Not supporting parsing into type `{}`", ty);
     }
-}
-fn make_zero_filled_value(ty: &str) -> Result<Value> {
-    let result = match ty {
-        "bool" => json!(false),
-        "pid_t" | "int" | "short" | "long" | "long long" | "unsigned int" | "unsigned short"
-        | "unsigned long long" => json!(0),
-        "float" | "double" => json!(0.0),
-        s if s.starts_with("char[") => json!(""),
-        s => bail!("Unable to make zero-filled data for type {}", s),
-    };
-    Ok(result)
 }
 
 #[cfg(test)]
@@ -185,5 +184,24 @@ mod tests {
             UnpresentVariableAction::FillWithZero,
         )
         .unwrap();
+    }
+    #[test]
+    fn test_arg_parser_with_true_boolflag() {
+        let mut skel = serde_json::from_str::<EunomiaObjectMeta>(
+            &std::fs::read_to_string(get_assets_dir().join("arg_builder_test").join("skel.json"))
+                .unwrap(),
+        )
+        .unwrap();
+        let cmd = skel.build_argument_parser().unwrap();
+        let matches = cmd.try_get_matches_from(["myprog"]).unwrap();
+        skel.parse_arguments_and_fill_skeleton_variables(
+            &matches,
+            UnpresentVariableAction::FillWithZero,
+        )
+        .unwrap();
+        assert_eq!(
+            skel.bpf_skel.data_sections[0].variables[4].value,
+            Some(json!(false))
+        );
     }
 }
