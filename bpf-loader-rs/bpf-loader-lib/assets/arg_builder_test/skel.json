@@ -1,0 +1,121 @@
+{
+    "bpf_skel": {
+        "doc": {
+            "version": "1.2.3.4",
+            "brief": "qaqqwq",
+            "details": "this is details",
+            "description": "this is description"
+        },
+        "data_sections": [
+            {
+                "name": ".rodata",
+                "variables": [
+                    {
+                        "name": "const_val_1",
+                        "type": "int",
+                        "cmdarg": {
+                            "default": 12345,
+                            "help": "This is a help message for const_val_1",
+                            "long": "cv1",
+                            "short": "1"
+                        }
+                    },
+                    {
+                        "name": "const_val_2",
+                        "size": 4,
+                        "type": "long long"
+                    },
+                    {
+                        "name": "const_val_3",
+                        "type": "char[100]"
+                    },
+                    {
+                        "name": "boolflag",
+                        "type": "bool"
+                    }
+                ]
+            },
+            {
+                "name": ".bss",
+                "variables": [
+                    {
+                        "name": "bss_val_1",
+                        "type": "int"
+                    },
+                    {
+                        "name": "bss_val_2",
+                        "size": 4,
+                        "type": "long long"
+                    },
+                    {
+                        "name": "bss_val_3",
+                        "type": "char[100]"
+                    },
+                    {
+                        "name": "__eunomia_dummy_OutData_ptr",
+                        "size": 4,
+                        "type": "struct OutData *"
+                    }
+                ]
+            }
+        ],
+        "maps": [
+            {
+                "ident": "rb",
+                "name": "rb"
+            },
+            {
+                "ident": "rodata",
+                "mmaped": true,
+                "name": "simple_p.rodata"
+            },
+            {
+                "ident": "bss",
+                "mmaped": true,
+                "name": "simple_p.bss"
+            }
+        ],
+        "obj_name": "simple_prog_3_bpf",
+        "progs": [
+            {
+                "attach": "tp/sched/sched_process_exec",
+                "link": true,
+                "name": "handle_exec"
+            }
+        ]
+    },
+    "eunomia_version": "0.3.2",
+    "export_types": [
+        {
+            "members": [
+                {
+                    "name": "val_1",
+                    "type": "int"
+                },
+                {
+                    "name": "val_2",
+                    "type": "long long"
+                },
+                {
+                    "name": "val_3",
+                    "type": "char[100]"
+                },
+                {
+                    "name": "val_4",
+                    "type": "int"
+                },
+                {
+                    "name": "val_5",
+                    "type": "long long"
+                },
+                {
+                    "name": "val_6",
+                    "type": "char[100]"
+                }
+            ],
+            "name": "OutData",
+            "size": 232,
+            "type_id": 33
+        }
+    ]
+}

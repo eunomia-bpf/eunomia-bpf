@@ -25,7 +25,9 @@ fn test_deserialize_meta() {
             name: "min_duration_ns".into(),
             ty: "unsigned long long".into(),
             value: None,
-            others: json!({})
+            others: json!({}),
+            cmdarg: Default::default(),
+            description: None
         }]
     }));
     assert!(data_section.contains(&DataSectionMeta {
@@ -34,7 +36,9 @@ fn test_deserialize_meta() {
             name: "__eunomia_dummy_event_ptr".into(),
             ty: "struct event *".into(),
             value: None,
-            others: json!({})
+            others: json!({}),
+            cmdarg: Default::default(),
+            description: None
         }]
     }));
     let maps = &bpf_skel.maps;
