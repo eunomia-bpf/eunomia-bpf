@@ -8,6 +8,7 @@ members = [
 
 [profile.release]
 opt-level = 3
-lto = true
+# Turning lto to false allows `bpf-loader-c-wrapper` being linked into another rust program
+# lto = true
 debug = 0
 overflow-checks = false

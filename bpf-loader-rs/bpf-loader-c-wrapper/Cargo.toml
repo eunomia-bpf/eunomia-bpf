@@ -3,6 +3,12 @@ name = "bpf-loader-c-wrapper"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "eunomia"
+crate-type = ["cdylib", "staticlib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.70"
+bpf-loader-lib = { path = "../bpf-loader-lib" }
+serde_json = "1.0.95"

@@ -34,10 +34,18 @@ fn main() -> Result<()> {
                 .action(ArgAction::Append)
                 .help("Args to the bpf program"),
         )
+        .arg(
+            Arg::new("no-log")
+                .long("no-log")
+                .help("Disable logs")
+                .action(ArgAction::SetTrue),
+        )
         .get_matches();
-    flexi_logger::Logger::try_with_env_or_str("info")?
-        .log_to_stdout()
-        .start()?;
+    if !matches.get_flag("no-log") {
+        flexi_logger::Logger::try_with_env_or_str("info")?
+            .log_to_stdout()
+            .start()?;
+    }
     let json_skel = matches.get_one::<String>("json_skeleton").unwrap();
     let elf_file = matches.get_one::<String>("elf_file");
     let mut bpf_args = matches

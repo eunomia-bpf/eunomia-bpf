@@ -143,6 +143,11 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 [[package]]
 name = "bpf-loader-c-wrapper"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bpf-loader-lib",
+ "serde_json",
+]
 
 [[package]]
 name = "bpf-loader-cli"
@@ -150,7 +155,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bpf-loader-lib",
- "clap 4.2.1",
  "flexi_logger",
  "log",
  "serde_json",
@@ -165,6 +169,7 @@ dependencies = [
  "base64 0.21.0",
  "btfdump",
  "chrono",
+ "clap 4.2.1",
  "deflate",
  "errno",
  "faerie",
@@ -263,8 +268,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "046ae530c528f252094e4a77886ee1374437744b2bff1497aa898bbddbbb29b3"
 dependencies = [
  "clap_builder",
- "clap_derive",
- "once_cell",
 ]
 
 [[package]]
@@ -278,18 +281,6 @@ dependencies = [
  "bitflags",
  "clap_lex",
  "strsim 0.10.0",
-]
-
-[[package]]
-name = "clap_derive"
-version = "4.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f9644cd56d6b87dbe899ef8b053e331c0637664e9e21a33dfcdc36093f5c5c4"
-dependencies = [
- "heck 0.4.1",
- "proc-macro2 1.0.56",
- "quote 1.0.26",
- "syn 2.0.13",
 ]
 
 [[package]]
