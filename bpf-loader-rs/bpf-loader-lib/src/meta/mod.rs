@@ -101,7 +101,6 @@ pub enum SampleMapType {
     DefaultKV,
 }
 
-
 /// Extra info for a map which will be used for sampling
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct MapSampleMeta {
