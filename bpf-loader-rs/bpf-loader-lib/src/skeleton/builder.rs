@@ -26,7 +26,7 @@ use libbpf_rs::{
 
 use super::preload::PreLoadBpfSkeleton;
 
-// Builder of BpfSkeleton
+/// Builder of BpfSkeleton
 pub struct BpfSkeletonBuilder<'a> {
     btf_archive_path: Option<&'a str>,
     object_meta: &'a EunomiaObjectMeta,
@@ -68,6 +68,7 @@ impl<'a> BpfSkeletonBuilder<'a> {
             ..self
         }
     }
+    /// Build (open) the skeleton
     pub fn build(self) -> Result<PreLoadBpfSkeleton> {
         let mut open_bpts = ObjectBuilder::default()
             .opts(self.object_meta.bpf_skel.obj_name.as_bytes().as_ptr() as *const c_char);

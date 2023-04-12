@@ -87,7 +87,7 @@ pub struct ExportedTypesStructMeta {
     pub type_id: u32,
 }
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Default)]
-// Sample types
+/// Sample types
 pub enum SampleMapType {
     #[serde(rename = "log2_hist")]
     /// print the event data as log2_hist plain text
@@ -157,6 +157,7 @@ pub struct TCProgExtraMeta {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+/// TC Hook options
 pub struct TCHook {
     #[serde(default = "default_helpers::default_i32::<1>")]
     /// Which interface to hook
@@ -175,6 +176,7 @@ impl Default for TCHook {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+/// TC attach point options
 pub enum TCAttachPoint {
     #[serde(rename = "BPF_TC_INGRESS")]
     Ingress,
@@ -190,7 +192,7 @@ impl Default for TCAttachPoint {
 }
 
 impl TCAttachPoint {
-    // Get the BPF_TC_XXX values for this enum
+    /// Get the BPF_TC_XXX values for this enum
     pub fn to_value(&self) -> u32 {
         match self {
             TCAttachPoint::Ingress => BPF_TC_INGRESS,
@@ -204,8 +206,10 @@ impl TCAttachPoint {
 /// Options for TC program
 pub struct TCOpts {
     #[serde(default = "default_helpers::default_u32::<1>")]
+    ///
     pub handle: u32,
     #[serde(default = "default_helpers::default_u32::<1>")]
+    ///
     pub priority: u32,
 }
 impl Default for TCOpts {
@@ -263,10 +267,15 @@ pub struct DataSectionMeta {
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Default)]
 /// Docs of a bpf skeleton
 /// I'm sure you can understand the meaning of the fields without any docs...
+/// UPD: I've forgotten deep source..
 pub struct BpfSkelDoc {
+    ///
     pub version: Option<String>,
+    ///
     pub brief: Option<String>,
+    ///
     pub details: Option<String>,
+    ///
     pub description: Option<String>,
 }
 #[serde_with::serde_as]
@@ -287,6 +296,7 @@ pub struct BpfSkeletonMeta {
     pub doc: Option<BpfSkelDoc>,
 }
 impl BpfSkeletonMeta {
+    /// Find a map by its ident
     pub fn find_map_by_ident(&self, ident: impl AsRef<str>) -> Option<&MapMeta> {
         let str_ref = ident.as_ref();
         self.maps.iter().find(|s| s.ident == str_ref)
@@ -338,7 +348,9 @@ pub(crate) struct ComposedObjectInner {
 /// }
 /// ```
 pub struct ComposedObject {
+    /// The object binary
     pub bpf_object: Vec<u8>,
+    /// The meta info
     pub meta: EunomiaObjectMeta,
 }
 
@@ -418,8 +430,9 @@ pub(crate) mod default_helpers {
     }
 }
 
+/// The builder of `Command`
+pub mod arg_builder;
+/// A parser that can parse values from command line
+pub mod arg_parser;
 #[cfg(test)]
 mod tests;
-
-pub mod arg_builder;
-pub mod arg_parser;

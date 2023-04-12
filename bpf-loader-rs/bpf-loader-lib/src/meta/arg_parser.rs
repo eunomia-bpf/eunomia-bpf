@@ -6,7 +6,9 @@ use super::EunomiaObjectMeta;
 
 /// What to do if we met a variable which neither has the default value or has been supplied from command argument
 pub enum UnpresentVariableAction {
+    /// Fill the un-provided variables with zero
     FillWithZero,
+    /// If un-provided variables are encountered, just report error
     ReportError,
 }
 

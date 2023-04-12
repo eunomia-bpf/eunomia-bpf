@@ -8,6 +8,7 @@ const TERMINATING_BIT: u8 = 1 << 1;
 
 #[derive(Debug, Clone)]
 #[repr(transparent)]
+/// A handle to control the polling process
 pub struct PollingHandle {
     state: Arc<AtomicU8>,
 }
