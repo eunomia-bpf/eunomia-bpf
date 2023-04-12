@@ -164,7 +164,7 @@ fn create_exporter(
 #[test]
 fn test_export_format_json() {
     let things = load_things();
-    let received_data = Rc::new(RefCell::new(String::new()));
+    let received_data = Rc::new(RefCell::new(String::default()));
     struct MyEventHandler {
         data: RRC<String>,
     }
@@ -267,8 +267,8 @@ fn test_export_format_plain_text_log2_hists() {
     let (key_buffer, value_buffer) = create_key_value_buffer();
     send_data(exporter, &key_buffer[..], &value_buffer[..]);
     let inner_data = received_data.borrow();
-    let merged_test = inner_data.join("");
-    let lines = merged_test.split("\n").collect::<Vec<&str>>();
+    let merged_test = inner_data.concat();
+    let lines = merged_test.lines().collect::<Vec<&str>>();
 
     assert_eq!(&lines[..], &EXPECTED_OUTPUT_LOG2HISTS_LINES[..]);
 }

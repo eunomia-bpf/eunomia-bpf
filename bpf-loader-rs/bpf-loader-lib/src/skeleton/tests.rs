@@ -56,7 +56,7 @@ fn test_load_rodata_and_bss() {
         .unwrap()
         .load_and_attach()
         .unwrap();
-    let data = Rc::new(RefCell::new(String::new()));
+    let data = Rc::new(RefCell::new(String::default()));
     let should_stop = Arc::new(AtomicBool::new(false));
     struct MyEventHandler {
         data: Rc<RefCell<String>>,
@@ -81,7 +81,7 @@ fn test_load_rodata_and_bss() {
     {
         let should_stop = should_stop.clone();
         thread::spawn(move || {
-            while should_stop.load(Ordering::Relaxed) == false {
+            while !should_stop.load(Ordering::Relaxed) {
                 std::hint::spin_loop();
             }
             handle.terminate();

@@ -21,7 +21,7 @@ use wrapper::{HandleWrapper, SkeletonWrapper};
 mod helper;
 mod wrapper;
 thread_local! {
-    static ERROR_MESSAGE: RefCell<String> = RefCell::new(String::new());
+    static ERROR_MESSAGE: RefCell<String> = RefCell::new(String::default());
 }
 fn set_error_message(t: impl Display) {
     ERROR_MESSAGE.with(|v| v.replace(t.to_string()));
@@ -42,6 +42,7 @@ macro_rules! my_bail {
 }
 
 #[no_mangle]
+/// create a new eunomia bpf program from a json file
 pub extern "C" fn open_eunomia_skel_from_json(
     json_data: *const c_char,
     bpf_object_buffer: *const c_void,
@@ -73,6 +74,7 @@ pub extern "C" fn open_eunomia_skel_from_json(
 }
 
 #[no_mangle]
+/// create a new eunomia bpf program from a json file
 pub extern "C" fn open_eunomia_skel_from_json_package(
     json_data: *const c_char,
 ) -> *mut SkeletonWrapper {
@@ -80,6 +82,7 @@ pub extern "C" fn open_eunomia_skel_from_json_package(
 }
 
 #[no_mangle]
+/// create a new eunomia bpf program from a json with btf archive
 pub extern "C" fn open_eunomia_skel_from_json_package_with_btf(
     json_data: *const c_char,
     btf_archive_path: *const c_char,
@@ -102,7 +105,7 @@ pub extern "C" fn open_eunomia_skel_from_json_package_with_btf(
 }
 
 #[no_mangle]
-
+/// create a new eunomia bpf program from a json with args
 pub extern "C" fn open_eunomia_skel_from_json_package_with_args(
     json_data: *const c_char,
     args: *const *const c_char,
@@ -147,6 +150,10 @@ pub extern "C" fn open_eunomia_skel_from_json_package_with_args(
 }
 
 #[no_mangle]
+/// @brief start running the ebpf program
+/// @details load and attach the ebpf program to the kernel to run the ebpf
+/// program if the ebpf program has maps to export to user space, you need to
+/// call the wait and export.
 pub extern "C" fn load_and_attach_eunomia_skel(prog: *mut SkeletonWrapper) -> c_int {
     let wrapper = unsafe { &mut *(prog as *mut SkeletonWrapper) };
     let skel = match std::mem::replace(wrapper, SkeletonWrapper::None) {
@@ -163,6 +170,11 @@ pub extern "C" fn load_and_attach_eunomia_skel(prog: *mut SkeletonWrapper) -> c_
 }
 
 #[no_mangle]
+/// @brief wait for the program to exit and receive data from export maps and
+/// send to handlers
+/// @details if the program has a ring buffer or perf event to export data
+/// to user space, the program will help load the map info and poll the
+/// events automatically.
 pub extern "C" fn wait_and_poll_events_to_handler(
     prog: *mut SkeletonWrapper,
     ty: c_int,
@@ -207,10 +219,15 @@ pub extern "C" fn wait_and_poll_events_to_handler(
 }
 
 #[no_mangle]
+/// @brief stop, detach, and free the memory
+/// @warning this function will free the memory of the program
+/// it's not reenter-able, and you should not use the program after this
+/// function.
 pub extern "C" fn destroy_eunomia_skel(prog: *mut SkeletonWrapper) {
     drop(unsafe { Box::from_raw(prog) });
 }
 #[no_mangle]
+/// @brief get fd of ebpf program or map by name
 pub extern "C" fn get_bpf_fd(prog: *mut SkeletonWrapper, name: *const c_char) -> c_int {
     let prog = match unsafe { &*prog } {
         SkeletonWrapper::Loaded(prog) => prog,
@@ -225,6 +242,7 @@ pub extern "C" fn get_bpf_fd(prog: *mut SkeletonWrapper, name: *const c_char) ->
         .unwrap_or(-1)
 }
 #[no_mangle]
+/// @brief stop, detach, but not clean the memory
 pub extern "C" fn stop_ebpf_program(prog: *mut SkeletonWrapper) {
     let prog = match unsafe { &*prog } {
         SkeletonWrapper::Loaded(prog) => prog,
@@ -233,10 +251,12 @@ pub extern "C" fn stop_ebpf_program(prog: *mut SkeletonWrapper) {
     prog.create_poll_handle().terminate();
 }
 #[no_mangle]
+/// @brief free the memory of the program
 pub extern "C" fn free_bpf_skel(prog: *mut SkeletonWrapper) {
     destroy_eunomia_skel(prog);
 }
 #[no_mangle]
+/// @brief merge json config and args and return the new config
 pub extern "C" fn parse_args_to_json_config(
     json_data: *const c_char,
     args: *const *const c_char,
@@ -285,6 +305,7 @@ pub extern "C" fn parse_args_to_json_config(
 }
 
 #[no_mangle]
+/// @brief create a polling handle from a ready-to-poll eunomia
 pub extern "C" fn handle_create(prog: *mut SkeletonWrapper) -> *mut HandleWrapper {
     let prog = match unsafe { &*prog } {
         SkeletonWrapper::Loaded(prog) => prog,
@@ -296,24 +317,25 @@ pub extern "C" fn handle_create(prog: *mut SkeletonWrapper) -> *mut HandleWrappe
     ptr as *mut HandleWrapper
 }
 #[no_mangle]
-
+/// @brief pause or resume the poller
 pub extern "C" fn handle_set_pause_state(handle: *mut HandleWrapper, state: u8) {
     let handle = unsafe { &*handle };
     handle.handle.set_pause(state != 0);
 }
 #[no_mangle]
-
+/// @brief Terminate the poller
 pub extern "C" fn handle_terminate(handle: *mut HandleWrapper) {
     let handle = unsafe { &*handle };
     handle.handle.terminate();
 }
 #[no_mangle]
-
+/// @brief Destroy the handler
 pub extern "C" fn handle_destroy(handle: *mut HandleWrapper) {
     drop(unsafe { Box::from_raw(handle) });
 }
 
 #[no_mangle]
+/// @brief Get the error message
 pub extern "C" fn get_error_message(str_out: *mut c_char, buf_size: usize) {
     ERROR_MESSAGE.with(|v| {
         let borrow_ref = v.borrow();

@@ -39,7 +39,7 @@ fn create_exporter(
 #[test]
 fn test_export_format_json() {
     let (btf, bin_data, skel) = load_triple();
-    let received_data = Rc::new(RefCell::new(String::new()));
+    let received_data = Rc::new(RefCell::new(String::default()));
 
     struct MyEventHandler {
         data: RRC<String>,
