@@ -41,16 +41,19 @@ use self::{
 };
 
 pub(crate) mod checker;
-pub mod data_dumper;
-pub mod event_handlers;
+pub(crate) mod data_dumper;
+pub(crate) mod event_handlers;
 #[cfg(test)]
 mod tests;
 
 #[derive(Clone, Copy)]
 /// Describe the export format type
 pub enum ExportFormatType {
+    /// Use human-readable texts to output
     PlainText,
+    /// Use machine-readable json to output
     Json,
+    /// Only call the callback with raw buffer
     RawEvent,
 }
 #[derive(Debug)]
@@ -169,6 +172,7 @@ pub(crate) struct CheckedExportedMember {
     pub(crate) output_header_offset: usize,
 }
 
+/// The builder of the EventExporter
 pub struct EventExporterBuilder {
     export_format: ExportFormatType,
     export_event_handler: Option<Arc<dyn EventHandler>>,
@@ -186,21 +190,25 @@ impl Default for EventExporterBuilder {
 }
 
 impl EventExporterBuilder {
+    /// Create a default Builder, with export_format defaults to `ExportFormat::PlainText`
     pub fn new() -> Self {
         Self::default()
     }
+    /// Set the export format that the ebpf program will export
     pub fn set_export_format(self, fmt: ExportFormatType) -> Self {
         Self {
             export_format: fmt,
             ..self
         }
     }
+    /// Set a user-defined event handler callback
     pub fn set_export_event_handler(self, handler: Arc<dyn EventHandler>) -> Self {
         Self {
             export_event_handler: Some(handler),
             ..self
         }
     }
+    /// Set the user-defined context
     pub fn set_user_context<T: Any>(self, ctx: T) -> Self {
         Self {
             user_ctx: Some(Arc::new(ctx)),

@@ -45,9 +45,12 @@ use anyhow::{anyhow, Context, Result};
 const VMLINUX_BTF_PATH: &str = "/sys/kernel/btf/vmlinux";
 const BTF_PATH_ENV_NAME: &str = "BTF_FILE_PATH";
 
+/// The builder of the skeleton
 pub mod builder;
+/// controlling handles
 pub mod handle;
 pub(crate) mod poller;
+/// The preloaded skeleton
 pub mod preload;
 
 #[cfg(test)]

@@ -9,7 +9,7 @@ use target_lexicon::triple;
 
 /// Currently, btfdump doesn't support load BTF from a btf archive
 /// So if we want to use btf archive, we have to wrap that into an ELF..
-pub fn create_elf_with_btf_section(btf_data: &[u8], is_64: bool) -> Result<Vec<u8>> {
+pub(crate) fn create_elf_with_btf_section(btf_data: &[u8], is_64: bool) -> Result<Vec<u8>> {
     let mut obj = ArtifactBuilder::new(if is_64 {
         triple!("x86_64-unknown-unknown-unknown-elf")
     } else {
@@ -22,8 +22,8 @@ pub fn create_elf_with_btf_section(btf_data: &[u8], is_64: bool) -> Result<Vec<u
     Ok(obj.emit()?)
 }
 
-// Try to get the btf file of the running system under the archive directory
-pub fn get_current_system_btf_file(archive_path: &Path) -> Result<PathBuf> {
+/// Try to get the btf file of the running system under the archive directory
+pub(crate) fn get_current_system_btf_file(archive_path: &Path) -> Result<PathBuf> {
     let release_info =
         os_release::OsRelease::new().with_context(|| anyhow!("Failed to load /etc/os-releases"))?;
     let uname = uname_rs::Uname::new().with_context(|| anyhow!("Failed to call uname"))?;
@@ -34,7 +34,7 @@ pub fn get_current_system_btf_file(archive_path: &Path) -> Result<PathBuf> {
     Ok(archive_path.join(btf_path))
 }
 
-pub trait BtfHelper {
+pub(crate) trait BtfHelper {
     fn resolve_real_type(&self, ty: u32) -> Result<u32>;
     fn is_char(&self, ty: u32) -> Result<bool>;
     fn is_char_array(&self, ty: u32) -> Result<bool>;

@@ -30,7 +30,7 @@ impl EunomiaObjectMeta {
             cmd.version(
                 doc.version
                     .to_owned()
-                    .unwrap_or(DEFAULT_VERSION.to_string()),
+                    .unwrap_or_else(|| DEFAULT_VERSION.to_string()),
             )
             .after_help(
                 doc.details
