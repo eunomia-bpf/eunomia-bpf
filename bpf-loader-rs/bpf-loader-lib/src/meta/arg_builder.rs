@@ -234,14 +234,14 @@ mod tests {
                 "--enable-boolflag-with-default-false",
             ])
             .unwrap();
-        assert_eq!(matches.get_flag("boolflag"), true);
-        assert_eq!(matches.get_flag("boolflag-with-default-true"), false);
-        assert_eq!(matches.get_flag("boolflag-with-default-false"), true);
+        assert!(matches.get_flag("boolflag"));
+        assert!(!matches.get_flag("boolflag-with-default-true"));
+        assert!(matches.get_flag("boolflag-with-default-false"));
 
         let matches = cmd.clone().try_get_matches_from(["prog"]).unwrap();
-        assert_eq!(matches.get_flag("boolflag"), false);
-        assert_eq!(matches.get_flag("boolflag-with-default-true"), true);
-        assert_eq!(matches.get_flag("boolflag-with-default-false"), false);
+        assert!(!matches.get_flag("boolflag"));
+        assert!(matches.get_flag("boolflag-with-default-true"));
+        assert!(!matches.get_flag("boolflag-with-default-false"));
     }
     #[test]
     #[should_panic]
