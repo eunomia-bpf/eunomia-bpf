@@ -14,7 +14,6 @@ pub(crate) fn get_plain_text_checked_types_header(
             .meta
             .name
             .chars()
-            .into_iter()
             .map(|v| v.to_ascii_uppercase())
             .collect::<String>();
         header.push_str(&type_name);
