@@ -179,10 +179,13 @@ impl Default for TCHook {
 /// TC attach point options
 pub enum TCAttachPoint {
     #[serde(rename = "BPF_TC_INGRESS")]
+    ///
     Ingress,
     #[serde(rename = "BPF_TC_EGRESS")]
+    ///
     Egress,
     #[serde(rename = "BPF_TC_CUSTOM")]
+    ///
     Custom,
 }
 impl Default for TCAttachPoint {

@@ -3,12 +3,15 @@ use bpf_loader_lib::skeleton::{handle::PollingHandle, preload::PreLoadBpfSkeleto
 #[repr(C)]
 /// A wrapper around skeletons
 pub enum SkeletonWrapper {
+    /// The preloaded
     PreLoad(PreLoadBpfSkeleton),
+    /// The loaded
     Loaded(BpfSkeleton),
+    /// None, used for conversions from preload to load
     None,
 }
 #[repr(C)]
 /// A wrapper aroung PollingHandle
 pub struct HandleWrapper {
-    pub handle: PollingHandle,
+    pub(crate) handle: PollingHandle,
 }
