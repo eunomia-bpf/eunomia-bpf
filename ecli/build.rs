@@ -9,6 +9,8 @@ fn main() {
     println!("cargo:rustc-link-search=../bpf-loader/build/lib/Release");
     println!("cargo:rustc-link-search=/lib/x86_64-linux-gnu");
     println!("cargo:rustc-link-search=../bpf-loader/build/libbpf");
+    println!("cargo:rustc-link-search=../bpf-loader-rs/target/release");
+    
 
     println!("cargo:rustc-link-lib=static=eunomia");
     println!("cargo:rustc-link-lib=static=stdc++");
