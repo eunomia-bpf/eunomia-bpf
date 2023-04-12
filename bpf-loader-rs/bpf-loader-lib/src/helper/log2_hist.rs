@@ -66,7 +66,7 @@ mod tests {
 
     #[test]
     fn test_log2_hist() {
-        let mut out = String::new();
+        let mut out = String::default();
         let vals = [1, 1 << 3, (1 << 7) + 10, 1 << 9, (1 << 10) + 5, 1 << 4];
         print_log2_hist(&vals[..], "qaq", &mut out);
         println!("{:?}", out);

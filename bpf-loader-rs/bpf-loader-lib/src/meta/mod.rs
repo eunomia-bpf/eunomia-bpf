@@ -169,7 +169,7 @@ impl Default for TCHook {
     fn default() -> Self {
         Self {
             ifindex: 1,
-            attach_point: Default::default(),
+            attach_point: TCAttachPoint::default(),
         }
     }
 }

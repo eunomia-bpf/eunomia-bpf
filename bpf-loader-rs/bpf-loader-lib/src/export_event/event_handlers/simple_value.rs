@@ -66,7 +66,7 @@ pub(crate) struct PlainStringExportEventHandler {
 impl InternalSimpleValueEventProcessor for PlainStringExportEventHandler {
     fn handle_event(&self, data: &[u8]) -> Result<()> {
         let exporter = self.exporter.upgrade().unwrap();
-        let mut outbuf = String::new();
+        let mut outbuf = String::default();
         let now_str = Local::now().format("%H:%M:%S").to_string();
         // SAFETY: It won't fail
         write!(outbuf, "{now_str:<8} ").unwrap();

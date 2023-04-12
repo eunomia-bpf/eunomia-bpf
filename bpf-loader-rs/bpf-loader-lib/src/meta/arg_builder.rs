@@ -32,12 +32,16 @@ impl EunomiaObjectMeta {
                     .to_owned()
                     .unwrap_or(DEFAULT_VERSION.to_string()),
             )
-            .after_help(doc.details.to_owned().unwrap_or(DEFAULT_EPILOG.to_owned()))
+            .after_help(
+                doc.details
+                    .to_owned()
+                    .unwrap_or_else(|| DEFAULT_EPILOG.to_owned()),
+            )
             .before_help(
                 doc.brief
                     .to_owned()
                     .or(doc.description.to_owned())
-                    .unwrap_or(DEFAULT_DESCRIPTION.to_owned()),
+                    .unwrap_or_else(|| DEFAULT_DESCRIPTION.to_owned()),
             )
         } else {
             cmd.version(DEFAULT_VERSION)
@@ -63,10 +67,9 @@ impl EunomiaObjectMeta {
                     .help
                     .to_owned()
                     .or(variable.description.to_owned())
-                    .unwrap_or(format!(
-                        "Set value of `{}` variable {}",
-                        variable.ty, variable.name
-                    ));
+                    .unwrap_or_else(|| {
+                        format!("Set value of `{}` variable {}", variable.ty, variable.name)
+                    });
 
                 let long = variable
                     .cmdarg

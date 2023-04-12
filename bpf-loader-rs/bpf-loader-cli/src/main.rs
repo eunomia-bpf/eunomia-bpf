@@ -51,7 +51,7 @@ fn main() -> Result<()> {
     let mut bpf_args = matches
         .get_many::<String>("bpf_args")
         .map(|v| v.map(|s| s.to_owned()).collect::<Vec<_>>())
-        .unwrap_or(vec![]);
+        .unwrap_or_else(Vec::new);
     bpf_args.insert(0, "bpf-prog".into());
     let json_content = serde_json::from_str::<Value>(
         &std::fs::read_to_string(json_skel)

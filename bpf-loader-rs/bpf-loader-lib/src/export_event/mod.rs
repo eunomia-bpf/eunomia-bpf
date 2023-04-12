@@ -177,17 +177,17 @@ pub struct EventExporterBuilder {
 
 impl Default for EventExporterBuilder {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl EventExporterBuilder {
-    pub fn new() -> Self {
         Self {
             export_format: ExportFormatType::PlainText,
             export_event_handler: None,
             user_ctx: None,
         }
+    }
+}
+
+impl EventExporterBuilder {
+    pub fn new() -> Self {
+        Self::default()
     }
     pub fn set_export_format(self, fmt: ExportFormatType) -> Self {
         Self {

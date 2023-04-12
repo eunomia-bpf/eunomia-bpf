@@ -94,7 +94,7 @@ impl InternalSampleMapProcessor for DefaultKVStringExportEventHandler {
                 bail!("Unexpected internal implemention");
             };
         let now_str = Local::now().format("%H:%M:%S").to_string();
-        let mut outbuf = String::new();
+        let mut outbuf = String::default();
         write!(outbuf, "{now_str:<8} ").unwrap();
         write!(
             outbuf,
@@ -129,7 +129,7 @@ impl InternalSampleMapProcessor for Log2HistExportEventHandler {
             } else {
                 bail!("Unexpected internal implemention");
             };
-        let mut outbuf = String::new();
+        let mut outbuf = String::default();
         write!(outbuf, "key = ").unwrap();
         dump_to_string_with_checked_types(btf, checked_key_types, key_buffer, &mut outbuf)?;
         writeln!(outbuf).unwrap();
