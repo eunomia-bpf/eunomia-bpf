@@ -3,7 +3,6 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use std::ffi::CStr;
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::os::raw::c_void;
@@ -23,11 +22,20 @@ use super::eunomia_bpf::wait_and_poll_events_to_handler;
 unsafe extern "C" fn handler(
     _ctx: *mut ::std::os::raw::c_void,
     event: *const ::std::os::raw::c_char,
-    _size: super::eunomia_bpf::size_t,
+    size: super::eunomia_bpf::size_t,
 ) {
-    println!("{}", CStr::from_ptr(event).to_string_lossy().to_string());
+    println!(
+        "{}",
+        std::str::from_utf8_unchecked(std::slice::from_raw_parts(
+            event as *const u8,
+            size as usize
+        ))
+    );
 }
 
+/// Takes a ProgramConfigData as input and executes an eBPF program using the configuration data provided.
+/// The function converts the JSON data into a CString and creates a vector of arguments to pass to the eBPF program.
+/// The eBPF program is then loaded and attached, and events are polled and handled using the specified handler function.
 pub fn handle_json(conf: ProgramConfigData) -> EcliResult<()> {
     let json_data = CString::new(conf.program_data_buf.as_slice())
         .map_err(|e| EcliError::Other(e.to_string()))?;
