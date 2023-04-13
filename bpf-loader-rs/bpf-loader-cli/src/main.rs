@@ -10,7 +10,10 @@ use bpf_loader_lib::{
 use anyhow::{anyhow, bail, Context, Result};
 use log::info;
 use serde_json::Value;
-use signal_hook::{consts::SIGINT, iterator::Signals};
+use signal_hook::{
+    consts::{SIGINT, SIGTSTP},
+    iterator::Signals,
+};
 fn main() -> Result<()> {
     let matches = Command::new(env!("CARGO_PKG_NAME"))
         .arg(
@@ -94,13 +97,30 @@ fn main() -> Result<()> {
         .load_and_attach()
         .with_context(|| anyhow!("Failed to load or attach the bpf skeleton"))?;
     let handle = skel.create_poll_handle();
-    let mut signals = Signals::new([SIGINT])?;
+    let mut signals = Signals::new([SIGINT, SIGTSTP])?;
     thread::spawn(move || {
+        let mut paused = false;
         for sig in signals.forever() {
-            if sig == SIGINT {
-                info!("Terminating the poller..");
-                handle.terminate();
-                break;
+            match sig {
+                SIGINT => {
+                    info!("Terminating the poller..");
+                    handle.set_pause(false);
+                    handle.terminate();
+                    break;
+                }
+                SIGTSTP => {
+                    if paused {
+                        info!("Continuing..");
+                        handle.set_pause(false);
+                        paused = false;
+                    } else {
+                        info!("Send SIGTSTP again to resume (Ctrl + Z)");
+                        handle.set_pause(true);
+                        paused = true;
+                    }
+                }
+
+                _ => continue,
             }
         }
     });
