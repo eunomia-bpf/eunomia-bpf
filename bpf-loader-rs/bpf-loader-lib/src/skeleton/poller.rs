@@ -1,9 +1,6 @@
-use std::{
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    time::Duration,
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
 };
 
 use crate::{
@@ -19,10 +16,12 @@ use super::BpfSkeleton;
 macro_rules! program_poll_loop {
     ($handle: expr, $blk: block) => {{
         use log::info;
+        use std::time::Duration;
         info!("Running ebpf program...");
         while !$handle.should_terminate() {
             while $handle.should_pause() {
                 std::hint::spin_loop();
+                std::thread::sleep(Duration::from_millis(1));
             }
             if $handle.should_terminate() {
                 info!("Program terminated");
