@@ -5,13 +5,11 @@
 //!
 mod config;
 mod error;
-mod wasm_bpf_runner;
 mod json_runner;
 mod oci;
 mod runner;
 mod tar_reader;
-use signal_hook::{consts::SIGINT, iterator::Signals};
-use std::{thread, process};
+mod wasm_bpf_runner;
 use clap::{Parser, Subcommand};
 use env_logger::{Builder, Target};
 use error::EcliResult;
@@ -20,38 +18,51 @@ use oci::{
     pull, push,
 };
 use runner::run;
+use signal_hook::{consts::SIGINT, iterator::Signals};
+use std::{process, thread};
 
+/// ecli subcommands, including run, push, pull, login, logout.
 #[derive(Subcommand)]
 pub enum Action {
+    /// run ebpf program
     Run {
-        #[arg(long, short = 'n')]
-        no_cache: Option<bool>,
-        #[arg(long, short = 'j')]
-        json: Option<bool>,
+        /// run without cache
+        #[arg(long, short = 'n', default_value_t = false)]
+        no_cache: bool,
+        /// json output format
+        #[arg(long, short = 'j', default_value_t = false)]
+        json: bool,
+        /// program path or url
         #[arg(allow_hyphen_values = true)]
         prog: Vec<String>,
     },
-
+    /// push wasm or oci image to registry
     Push {
+        /// wasm module path
         #[arg(long, short, default_value_t = ("app.wasm").to_string())]
         module: String,
+        /// oci image path
         #[arg()]
         image: String,
     },
-
+    /// pull oci image from registry
     Pull {
+        /// wasm module url
         #[arg(short, long, default_value_t = ("app.wasm").to_string())]
         output: String,
+        /// oci image url
         #[arg()]
         image: String,
     },
-
+    /// login to oci registry
     Login {
+        /// oci login url
         #[arg()]
         url: String,
     },
-
+    /// logout from registry
     Logout {
+        /// oci logout url
         #[arg()]
         url: String,
     },
@@ -72,18 +83,16 @@ fn init_log() {
 #[tokio::main]
 async fn main() -> EcliResult<()> {
     let signals = Signals::new(&[SIGINT]);
-    thread::spawn(move || {
-        match signals {
-            Ok(mut signals_info) => {
-                for sig in signals_info.forever() {
-                    println!("Received signal {:?}", sig);
-                    process::exit(0);
-                }
-                println!("Got signals info: {:?}", signals_info);
-            },
-            Err(error) => {
-                eprintln!("Error getting signals info: {}", error);
+    thread::spawn(move || match signals {
+        Ok(mut signals_info) => {
+            for sig in signals_info.forever() {
+                println!("Received signal {:?}", sig);
+                process::exit(0);
             }
+            println!("Got signals info: {:?}", signals_info);
+        }
+        Err(error) => {
+            eprintln!("Error getting signals info: {}", error);
         }
     });
     init_log();
@@ -95,5 +104,4 @@ async fn main() -> EcliResult<()> {
         Action::Login { url } => login(url).await,
         Action::Logout { url } => logout(url),
     }
-    
 }
