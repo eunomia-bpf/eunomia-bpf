@@ -22,16 +22,22 @@ use crate::{
     Action,
 };
 
+/// Args accepted by the ecli when running the ebpf program
 pub struct RunArgs {
+    /// whether to use cache
     pub no_cache: bool,
+    /// json as output format
     pub export_to_json: bool,
-    // file path or url
+    /// file path or url
     pub file: String,
+    /// extra operating parameters
     pub extra_arg: Vec<String>,
+    /// program type: wasm url json or tar
     pub prog_type: ProgramType,
 }
 
 impl RunArgs {
+    /// parsing ebpf programs from path or url
     pub async fn get_file_content(&mut self) -> EcliResult<Vec<u8>> {
         let mut content = vec![];
 
@@ -128,6 +134,7 @@ impl TryFrom<Action> for RunArgs {
     }
 }
 
+/// run ebpf program with different formats (json, tar, wasm)
 pub async fn run(mut arg: RunArgs) -> EcliResult<()> {
     let conf = ProgramConfigData::async_try_from(&mut arg).await?;
     match arg.prog_type {
