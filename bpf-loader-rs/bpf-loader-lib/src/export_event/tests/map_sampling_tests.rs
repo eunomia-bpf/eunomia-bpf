@@ -1,3 +1,9 @@
+//!  SPDX-License-Identifier: MIT
+//!
+//! Copyright (c) 2023, eunomia-bpf
+//! All rights reserved.
+//!
+
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use libbpf_rs::ObjectBuilder;
@@ -198,7 +204,7 @@ fn test_export_format_json() {
     decoded.verify_with_default_value();
 }
 
-const EXPECTED_OUTPUT_LOG2HISTS_LINES: [&str; 30] = [
+const EXPECTED_OUTPUT_LOG2HISTS_LINES: [&str; 29] = [
     "key =  305419896",
     "comm = \"COMM-STR\"",
     "     (unit)              : count    distribution",
@@ -228,7 +234,6 @@ const EXPECTED_OUTPUT_LOG2HISTS_LINES: [&str; 30] = [
     "   8388608 -> 16777215   : 1023     |*************************************** |",
     "  16777216 -> 33554431   : 1024     |*************************************** |",
     "  33554432 -> 67108863   : 1025     |****************************************|",
-    "",
 ];
 
 #[test]

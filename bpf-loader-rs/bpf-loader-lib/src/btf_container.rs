@@ -1,3 +1,9 @@
+//!  SPDX-License-Identifier: MIT
+//!
+//! Copyright (c) 2023, eunomia-bpf
+//! All rights reserved.
+//!
+
 use anyhow::{anyhow, Result};
 use btf::types::Btf;
 use object::ElfFile;

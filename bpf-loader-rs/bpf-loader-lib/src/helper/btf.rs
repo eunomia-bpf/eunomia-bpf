@@ -1,3 +1,9 @@
+//!  SPDX-License-Identifier: MIT
+//!
+//! Copyright (c) 2023, eunomia-bpf
+//! All rights reserved.
+//!
+
 use anyhow::{anyhow, Context, Result};
 use btf::types::{BtfConst, BtfIntEncoding, BtfRestrict, BtfType, BtfTypedef, BtfVolatile};
 use faerie::{ArtifactBuilder, Decl, SectionKind};

@@ -1,3 +1,9 @@
+//!  SPDX-License-Identifier: MIT
+//!
+//! Copyright (c) 2023, eunomia-bpf
+//! All rights reserved.
+//!
+
 use std::fmt::Write;
 /// Print a character-drawn log2 hist, filled with val_type
 pub fn print_log2_hist(vals: &[u32], val_type: impl AsRef<str>, out: &mut String) {
