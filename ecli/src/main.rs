@@ -5,13 +5,11 @@
 //!
 mod config;
 mod error;
-mod wasm_bpf_runner;
 mod json_runner;
 mod oci;
 mod runner;
 mod tar_reader;
-use signal_hook::{consts::SIGINT, iterator::Signals};
-use std::{thread, process};
+mod wasm_bpf_runner;
 use clap::{Parser, Subcommand};
 use env_logger::{Builder, Target};
 use error::EcliResult;
@@ -20,14 +18,16 @@ use oci::{
     pull, push,
 };
 use runner::run;
+use signal_hook::{consts::SIGINT, iterator::Signals};
+use std::{process, thread};
 
 #[derive(Subcommand)]
 pub enum Action {
     Run {
-        #[arg(long, short = 'n')]
-        no_cache: Option<bool>,
-        #[arg(long, short = 'j')]
-        json: Option<bool>,
+        #[arg(long, short = 'n', default_value_t = false)]
+        no_cache: bool,
+        #[arg(long, short = 'j', default_value_t = false)]
+        json: bool,
         #[arg(allow_hyphen_values = true)]
         prog: Vec<String>,
     },
@@ -72,18 +72,16 @@ fn init_log() {
 #[tokio::main]
 async fn main() -> EcliResult<()> {
     let signals = Signals::new(&[SIGINT]);
-    thread::spawn(move || {
-        match signals {
-            Ok(mut signals_info) => {
-                for sig in signals_info.forever() {
-                    println!("Received signal {:?}", sig);
-                    process::exit(0);
-                }
-                println!("Got signals info: {:?}", signals_info);
-            },
-            Err(error) => {
-                eprintln!("Error getting signals info: {}", error);
+    thread::spawn(move || match signals {
+        Ok(mut signals_info) => {
+            for sig in signals_info.forever() {
+                println!("Received signal {:?}", sig);
+                process::exit(0);
             }
+            println!("Got signals info: {:?}", signals_info);
+        }
+        Err(error) => {
+            eprintln!("Error getting signals info: {}", error);
         }
     });
     init_log();
@@ -95,5 +93,4 @@ async fn main() -> EcliResult<()> {
         Action::Login { url } => login(url).await,
         Action::Logout { url } => logout(url),
     }
-    
 }
