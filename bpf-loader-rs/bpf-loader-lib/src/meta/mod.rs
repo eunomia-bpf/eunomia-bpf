@@ -1,3 +1,9 @@
+//!  SPDX-License-Identifier: MIT
+//!
+//! Copyright (c) 2023, eunomia-bpf
+//! All rights reserved.
+//!
+
 //! # bpf-loader-meta
 //!
 //! Here are metadata types used for deserilizing JSON skeletons

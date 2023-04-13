@@ -1,3 +1,9 @@
+//!  SPDX-License-Identifier: MIT
+//!
+//! Copyright (c) 2023, eunomia-bpf
+//! All rights reserved.
+//!
+
 use bpf_loader_lib::skeleton::{handle::PollingHandle, preload::PreLoadBpfSkeleton, BpfSkeleton};
 
 #[repr(C)]

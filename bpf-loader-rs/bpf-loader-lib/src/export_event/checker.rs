@@ -1,3 +1,9 @@
+//!  SPDX-License-Identifier: MIT
+//!
+//! Copyright (c) 2023, eunomia-bpf
+//! All rights reserved.
+//!
+
 use anyhow::{anyhow, bail, Result};
 use btf::types::{Btf, BtfType};
 use log::warn;

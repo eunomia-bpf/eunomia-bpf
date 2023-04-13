@@ -1,3 +1,9 @@
+//!  SPDX-License-Identifier: MIT
+//!
+//! Copyright (c) 2023, eunomia-bpf
+//! All rights reserved.
+//!
+
 // Do we really need `unsafe` on FFI functions? I don't think :)
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
