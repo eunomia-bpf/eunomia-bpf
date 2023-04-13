@@ -33,6 +33,9 @@ unsafe extern "C" fn handler(
     );
 }
 
+/// Takes a ProgramConfigData as input and executes an eBPF program using the configuration data provided.
+/// The function converts the JSON data into a CString and creates a vector of arguments to pass to the eBPF program.
+/// The eBPF program is then loaded and attached, and events are polled and handled using the specified handler function.
 pub fn handle_json(conf: ProgramConfigData) -> EcliResult<()> {
     let json_data = CString::new(conf.program_data_buf.as_slice())
         .map_err(|e| EcliError::Other(e.to_string()))?;
