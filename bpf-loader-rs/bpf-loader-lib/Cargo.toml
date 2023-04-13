@@ -16,7 +16,7 @@ errno = "0.3.1"
 faerie = "0.16.0"
 flexi_logger = "0.25.3"
 inflate = "0.4.5"
-libbpf-rs = { git = "https://github.com/libbpf/libbpf-rs", rev = "d5a654a"}
+libbpf-rs = "0.20.1"
 log = "0.4.17"
 object = "^0.11.0"
 os-release = "0.1.0"
