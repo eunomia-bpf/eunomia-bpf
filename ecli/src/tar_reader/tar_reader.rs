@@ -15,7 +15,10 @@ pub fn unpack_tar(tar_data: &[u8]) -> (Vec<u8>, Option<String>) {
     archive.unpack(tmpdir_path).unwrap();
 
     let json_object_buffer = fs::read(tmpdir_path.join("package.json")).unwrap();
-    let btf_archive_path = tmpdir_path.join("btfhub-archive").to_string_lossy().to_string();
+    let btf_archive_path = tmpdir_path
+        .join("btfhub-archive")
+        .to_string_lossy()
+        .to_string();
     println!("{btf_archive_path}");
 
     (json_object_buffer, Some(btf_archive_path))

@@ -1,13 +1,9 @@
-LIBEUNOMIA := ../bpf-loader/build/lib/Release/libeunomia.a
 
 .PHONY: build
-build: $(LIBEUNOMIA)
+build:
 	cargo build --release
 
-$(LIBEUNOMIA):
-	$(MAKE) -C ../bpf-loader install
-
-install: $(LIBEUNOMIA) ## install the package to the `INSTALL_LOCATION`
+install:
 	rm -rf target/
 	cargo build --release
 	mkdir -p ~/.eunomia/bin
