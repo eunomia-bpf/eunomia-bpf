@@ -24,9 +24,7 @@ pub(crate) fn get_plain_text_checked_types_header(
             .collect::<String>();
         header.push_str(&type_name);
         if type_name.len() < 6 {
-            for _ in type_name.len()..6 {
-                header.push(' ');
-            }
+        header.push_str(&" ".repeat(6 - type_name.len()));
         }
         header.push(' ');
     }
