@@ -52,17 +52,12 @@ pub fn print_log2_hist(vals: &[u32], val_type: impl AsRef<str>, out: &mut String
 }
 
 fn print_stars(val: u32, val_max: u32, width: i32, out: &mut String) {
-    let num_stars = (val.min(val_max) * width as u32 / val_max) as i32;
-    let num_spaces = width - num_stars;
-    let need_plus = val > val_max;
-    for _ in 0..num_stars {
-        out.push('*');
-    }
-    for _ in 0..num_spaces {
-        out.push(' ');
-    }
-    if need_plus {
-        out.push('+')
+    let num_stars = (val.min(val_max) * width as u32 / val_max) as usize;
+    let num_spaces = width as usize - num_stars;
+    out.push_str(&"*".repeat(num_stars));
+    out.push_str(&" ".repeat(num_spaces));
+    if val > val_max {
+        out.push('+');
     }
 }
 
