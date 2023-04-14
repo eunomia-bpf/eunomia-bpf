@@ -72,8 +72,7 @@ impl AuthInfo {
     }
     fn read_from_file(file: &mut File) -> EcliResult<AuthInfo> {
         let mut data = vec![];
-        file.read_to_end(&mut data)
-            .map_err(EcliError::IOErr)?;
+        file.read_to_end(&mut data).map_err(EcliError::IOErr)?;
         if data.is_empty() {
             return Ok(Self(vec![]));
         }

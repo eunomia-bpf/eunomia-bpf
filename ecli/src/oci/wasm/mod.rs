@@ -70,9 +70,7 @@ pub async fn wasm_push(file: String, img_url: String) -> EcliResult<()> {
     if path.exists() && path.is_file() {
         info!("read content from file {}", file);
         let mut f = File::open(path).await.map_err(EcliError::IOErr)?;
-        f.read_to_end(&mut module)
-            .await
-            .map_err(EcliError::IOErr)?;
+        f.read_to_end(&mut module).await.map_err(EcliError::IOErr)?;
     } else {
         return Err(EcliError::ParamErr(format!(
             "file {} not exist or is not regular file",

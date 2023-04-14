@@ -80,9 +80,7 @@ pub async fn pull(args: PullArgs) -> EcliResult<()> {
     let data = wasm_pull(args.image_url.as_str()).await?;
 
     info!("writting wasm data to file {}", args.write_file);
-    file.write_all(&data)
-        .await
-        .map_err(EcliError::IOErr)?;
+    file.write_all(&data).await.map_err(EcliError::IOErr)?;
     file.flush().await.map_err(EcliError::IOErr)?;
     info!("successful writting wasm data to file {}", args.write_file);
     Ok(())

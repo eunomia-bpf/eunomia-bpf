@@ -72,12 +72,9 @@ pub fn handle_json_async(
     let (tx, rx) = std::sync::mpsc::channel::<PollingHandle>();
 
     let join_handle = std::thread::spawn(move || {
-        let skel = BpfSkeletonBuilder::from_json_package(
-            &package,
-            conf.btf_path.as_deref(),
-        )
-        .build()
-        .map_err(|e| EcliError::BpfError(format!("Failed to build preload seleton: {}", e)))?;
+        let skel = BpfSkeletonBuilder::from_json_package(&package, conf.btf_path.as_deref())
+            .build()
+            .map_err(|e| EcliError::BpfError(format!("Failed to build preload seleton: {}", e)))?;
         let skel = skel.load_and_attach().map_err(|e| {
             EcliError::BpfError(format!("Failed to load or attach bpf program: {}", e))
         })?;

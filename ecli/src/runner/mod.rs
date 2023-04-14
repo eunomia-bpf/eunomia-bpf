@@ -59,8 +59,7 @@ impl RunArgs {
             // read from file
             info!("read content from file {}", self.file);
             let mut f = File::open(path).map_err(EcliError::IOErr)?;
-            f.read_to_end(&mut content)
-                .map_err(EcliError::IOErr)?;
+            f.read_to_end(&mut content).map_err(EcliError::IOErr)?;
 
             return Ok(content);
         }

@@ -6,7 +6,7 @@
 use crate::{
     error::{EcliError, EcliResult},
     runner::RunArgs,
-    tar_reader::tar_reader::unpack_tar,
+    tar_reader::unpack_tar,
 };
 
 pub enum ExportFormatType {
@@ -29,12 +29,10 @@ impl TryFrom<&str> for ProgramType {
             _ if path.ends_with(".json") => Ok(ProgramType::JsonEunomia),
             _ if path.ends_with(".wasm") => Ok(ProgramType::WasmModule),
             _ if path.ends_with(".tar") => Ok(ProgramType::Tar),
-            _ => {
-                Err(EcliError::UnknownSuffix(format!(
-                    "{} suffix incorrect, must end with .json, .wasm or .tar",
-                    path
-                )))
-            }
+            _ => Err(EcliError::UnknownSuffix(format!(
+                "{} suffix incorrect, must end with .json, .wasm or .tar",
+                path
+            ))),
         }
     }
 }
