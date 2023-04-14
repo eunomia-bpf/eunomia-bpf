@@ -22,9 +22,7 @@ pub(crate) fn dump_to_string_with_checked_types(
 ) -> Result<()> {
     for member in checked_types.iter() {
         if member.output_header_offset > out.len() {
-            for _ in out.len()..member.output_header_offset {
-                out.push(' ');
-            }
+            out.push_str(&" ".repeat(member.output_header_offset - out.len()));
         } else {
             out.push(' ');
         }
