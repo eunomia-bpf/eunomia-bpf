@@ -46,7 +46,7 @@ impl RunArgs {
             debug!("read content from stdin");
             io::stdin()
                 .read_to_end(&mut content)
-                .map_err(|e| EcliError::IOErr(e))?;
+                .map_err(EcliError::IOErr)?;
             self.prog_type = ProgramType::JsonEunomia;
             return Ok(content);
         }
@@ -58,9 +58,9 @@ impl RunArgs {
 
             // read from file
             info!("read content from file {}", self.file);
-            let mut f = File::open(path).map_err(|e| EcliError::IOErr(e))?;
+            let mut f = File::open(path).map_err(EcliError::IOErr)?;
             f.read_to_end(&mut content)
-                .map_err(|e| EcliError::IOErr(e))?;
+                .map_err(EcliError::IOErr)?;
 
             return Ok(content);
         }
@@ -121,7 +121,7 @@ impl TryFrom<Action> for RunArgs {
         let Action::Run { no_cache, json, mut prog } = act else {
             unreachable!()
         };
-        if prog.len() == 0 {
+        if prog.is_empty() {
             return Err(EcliError::ParamErr("prog not present".to_string()));
         }
         Ok(Self {

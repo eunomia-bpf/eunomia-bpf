@@ -59,7 +59,7 @@ pub fn parse_img_url(url: &str) -> EcliResult<(Client, RegistryAuth, Reference, 
         repo_url
             .parse::<Reference>()
             .map_err(|e| EcliError::ParamErr(e.to_string()))?,
-        repo_url.into(),
+        repo_url,
     ))
 }
 
@@ -69,10 +69,10 @@ pub async fn wasm_push(file: String, img_url: String) -> EcliResult<()> {
     let mut module = vec![];
     if path.exists() && path.is_file() {
         info!("read content from file {}", file);
-        let mut f = File::open(path).await.map_err(|e| EcliError::IOErr(e))?;
+        let mut f = File::open(path).await.map_err(EcliError::IOErr)?;
         f.read_to_end(&mut module)
             .await
-            .map_err(|e| EcliError::IOErr(e))?;
+            .map_err(EcliError::IOErr)?;
     } else {
         return Err(EcliError::ParamErr(format!(
             "file {} not exist or is not regular file",

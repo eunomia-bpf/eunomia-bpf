@@ -59,7 +59,7 @@ pub(super) async fn push_wasm_to_registry(
     let image_manifest = manifest::OciImageManifest::build(&layers, &config, annotations);
 
     let resp = client
-        .push(&reference, &layers, config, &auth, Some(image_manifest))
+        .push(reference, &layers, config, auth, Some(image_manifest))
         .await
         .map_err(|e| EcliError::OciPushError(e.to_string()))?;
 

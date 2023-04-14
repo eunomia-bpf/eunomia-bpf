@@ -30,7 +30,7 @@ impl TryFrom<&str> for ProgramType {
             _ if path.ends_with(".wasm") => Ok(ProgramType::WasmModule),
             _ if path.ends_with(".tar") => Ok(ProgramType::Tar),
             _ => {
-                return Err(EcliError::UnknownSuffix(format!(
+                Err(EcliError::UnknownSuffix(format!(
                     "{} suffix incorrect, must end with .json, .wasm or .tar",
                     path
                 )))

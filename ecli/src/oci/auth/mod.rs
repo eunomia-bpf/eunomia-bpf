@@ -73,22 +73,22 @@ impl AuthInfo {
     fn read_from_file(file: &mut File) -> EcliResult<AuthInfo> {
         let mut data = vec![];
         file.read_to_end(&mut data)
-            .map_err(|e| EcliError::IOErr(e))?;
-        if data.len() == 0 {
+            .map_err(EcliError::IOErr)?;
+        if data.is_empty() {
             return Ok(Self(vec![]));
         }
-        Ok(serde_json::from_slice(&data).map_err(|e| EcliError::SerializeError(e.to_string()))?)
+        serde_json::from_slice(&data).map_err(|e| EcliError::SerializeError(e.to_string()))
     }
 
     fn write_to_file(&self, file: &mut File) -> EcliResult<()> {
         // TODO backup the old file
-        file.set_len(0).map_err(|e| EcliError::IOErr(e))?;
+        file.set_len(0).map_err(EcliError::IOErr)?;
         file.write_all(
             serde_json::to_vec(self)
                 .map_err(|e| EcliError::SerializeError(e.to_string()))?
                 .as_ref(),
         )
-        .map_err(|e| EcliError::IOErr(e))
+        .map_err(EcliError::IOErr)
     }
 
     // return (username, password)
@@ -135,7 +135,7 @@ fn get_auth_save_file() -> EcliResult<File> {
     let home_dir = get_eunomia_home().map_err(|e| EcliError::Other(e.to_string()))?;
     let mut path = PathBuf::from(home_dir);
     if !path.exists() {
-        fs::create_dir_all(&path).map_err(|e| EcliError::IOErr(e))?;
+        fs::create_dir_all(&path).map_err(EcliError::IOErr)?;
     }
     path.push(AUTH_FILE);
 
@@ -144,7 +144,7 @@ fn get_auth_save_file() -> EcliResult<File> {
         .write(true)
         .create(true)
         .open(path)
-        .map_err(|e| EcliError::IOErr(e))
+        .map_err(EcliError::IOErr)
 }
 
 #[cfg(test)]

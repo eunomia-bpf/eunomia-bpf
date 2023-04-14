@@ -74,7 +74,7 @@ pub fn handle_json_async(
     let join_handle = std::thread::spawn(move || {
         let skel = BpfSkeletonBuilder::from_json_package(
             &package,
-            conf.btf_path.as_ref().map(|s| s.as_str()),
+            conf.btf_path.as_deref(),
         )
         .build()
         .map_err(|e| EcliError::BpfError(format!("Failed to build preload seleton: {}", e)))?;
@@ -109,5 +109,5 @@ pub fn handle_json(conf: ProgramConfigData) -> EcliResult<()> {
     let (_, join_handle) = handle_json_async(conf)?;
     join_handle
         .join()
-        .map_err(|_| EcliError::Other(format!("Failed to join")))?
+        .map_err(|_| EcliError::Other("Failed to join".to_string()))?
 }

@@ -62,14 +62,14 @@ pub async fn pull(args: PullArgs) -> EcliResult<()> {
         info!("create file {}", args.write_file);
         File::create(args.write_file.as_str())
             .await
-            .map_err(|e| EcliError::IOErr(e))?
+            .map_err(EcliError::IOErr)?
     } else if path.is_file() {
         info!("open file {}", args.write_file);
         OpenOptions::new()
             .write(true)
             .open(args.write_file.as_str())
             .await
-            .map_err(|e| EcliError::IOErr(e))?
+            .map_err(EcliError::IOErr)?
     } else {
         return Err(EcliError::ParamErr(format!(
             "{} is not a regular file",
@@ -82,8 +82,8 @@ pub async fn pull(args: PullArgs) -> EcliResult<()> {
     info!("writting wasm data to file {}", args.write_file);
     file.write_all(&data)
         .await
-        .map_err(|e| EcliError::IOErr(e))?;
-    file.flush().await.map_err(|e| EcliError::IOErr(e))?;
+        .map_err(EcliError::IOErr)?;
+    file.flush().await.map_err(EcliError::IOErr)?;
     info!("successful writting wasm data to file {}", args.write_file);
     Ok(())
 }

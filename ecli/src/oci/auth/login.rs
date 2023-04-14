@@ -43,7 +43,7 @@ pub async fn login(u: String) -> EcliResult<()> {
 
 async fn v2_login(url: &Url, login_info: &LoginInfo) -> EcliResult<()> {
     let (username, password) = login_info.get_user_pwd()?;
-    let mut client = get_client(&url)?;
+    let mut client = get_client(url)?;
     let reference = Reference::with_tag(url.host_str().unwrap().into(), "/".into(), "".into());
     client
         .auth(
