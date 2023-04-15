@@ -12,6 +12,12 @@ use crate::{
 pub use bpf_loader_lib::export_event::ExportFormatType;
 
 /// The ProgramType
+pub enum ExportFormatType {
+    ExportJson,
+    ExportPlantText,
+}
+
+#[derive(Clone, Debug)]
 pub enum ProgramType {
     /// Unknown
     Undefine,
@@ -70,7 +76,7 @@ impl ProgramConfigData {
             program_data_buf: prog_buf,
             extra_arg: args.extra_arg.clone(),
             btf_path: btf_dir_path,
-            prog_type: ProgramType::Undefine,
+            prog_type: args.prog_type.clone(),
             export_format_type: if args.export_to_json {
                 ExportFormatType::Json
             } else {

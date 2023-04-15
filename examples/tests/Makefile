@@ -11,6 +11,7 @@ all: test
 
 install-deps:
 	make -C $(ECC_DIR) install-deps
+	make -C $(ECLI_DIR) install-deps
 	make -C $(ECC_DIR)
 	make -C $(ECC_DIR) install
 	make -C $(ECLI_DIR) install
