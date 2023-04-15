@@ -126,9 +126,8 @@ pub struct ClientOpts {
 
     #[clap(short, long, help = "endpoint port", default_value = "8527")]
     pub port: u16,
-
-    #[clap(short, long, help = "transport with https", default_value = "false")]
-    pub secure: bool,
+    // #[clap(short, long, help = "transport with https", default_value = "false")]
+    // pub secure: bool,
 }
 
 #[derive(Parser)]

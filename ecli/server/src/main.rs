@@ -8,8 +8,8 @@ use std::{process, thread};
 struct Args {
     #[arg(short, long)]
     config: Option<String>,
-    #[arg(short, long, default_value = "false")]
-    secure: bool,
+    // #[arg(short, long, default_value = "false")]
+    // secure: bool,
     #[clap(short, long, help = "server port", default_value = "8527")]
     port: u16,
     #[arg(short, long, default_value = "127.0.0.1")]

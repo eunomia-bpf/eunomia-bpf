@@ -6,7 +6,7 @@ impl From<Args> for RemoteArgs {
         Self {
             server: Some(Action::Server {
                 config: args.config,
-                secure: args.secure,
+                secure: false,
                 port: args.port,
                 addr: args.addr,
             }),
