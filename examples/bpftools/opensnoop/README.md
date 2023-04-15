@@ -17,7 +17,7 @@ The kernel code is origin from:
 result:
 
 ```console
-$ sudo ecli examples/bpftools/opensnoop/package.json -h
+$ sudo ecli run examples/bpftools/opensnoop/package.json -h
 Usage: opensnoop_bpf [--help] [--version] [--verbose] [--pid_target VAR] [--tgid_target VAR] [--uid_target VAR] [--failed]
 
 Trace open family syscalls.
@@ -34,7 +34,7 @@ Optional arguments:
 Built with eunomia-bpf framework.
 See https://github.com/eunomia-bpf/eunomia-bpf for more information.
 
-$ sudo ecli examples/bpftools/opensnoop/package.json
+$ sudo ecli run examples/bpftools/opensnoop/package.json
 TIME     TS      PID     UID     RET     FLAGS   COMM    FNAME   
 20:31:50  0      1       0       51      524288  systemd /proc/614/cgroup
 20:31:50  0      33182   0       25      524288  ecli    /etc/localtime
@@ -45,7 +45,7 @@ TIME     TS      PID     UID     RET     FLAGS   COMM    FNAME
 20:32:03  0      632     0       7       524288  vmtoolsd /etc/mtab
 20:32:03  0      632     0       9       0       vmtoolsd /proc/devices
 
-$ sudo ecli examples/bpftools/opensnoop/package.json --pid_target 754
+$ sudo ecli run examples/bpftools/opensnoop/package.json --pid_target 754
 TIME     TS      PID     UID     RET     FLAGS   COMM    FNAME   
 20:34:13  0      754     0       6       0       irqbalance /proc/interrupts
 20:34:13  0      754     0       6       0       irqbalance /proc/stat

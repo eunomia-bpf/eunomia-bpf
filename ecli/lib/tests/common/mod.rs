@@ -17,7 +17,7 @@ pub async fn run_eserver() -> tokio::sync::oneshot::Sender<()> {
 }
 
 pub async fn start_server(addr: &str, shutdown_rx: Receiver<()>) {
-    ecli_lib::runner::remote::create(addr.to_string(), false, shutdown_rx).await;
+    lib::runner::remote::create(addr.to_string(), false, shutdown_rx).await;
 }
 
 pub fn is_port_open(address: &str) -> bool {
@@ -29,14 +29,16 @@ pub fn is_port_open(address: &str) -> bool {
 
 pub mod client_tests {
 
-    use ecli_lib::client_action;
-    use ecli_lib::runner::{ClientArgs, RunArgs};
-    use ecli_lib::RemoteArgs;
+    use lib::{
+        client_action, config,
+        runner::{self, ClientArgs, RunArgs},
+        RemoteArgs,
+    };
 
     pub async fn list() {
         let args = RemoteArgs {
             client: Some(ClientArgs {
-                action_type: ecli_lib::runner::ClientActions::List,
+                action_type: runner::ClientActions::List,
                 id: vec![0],
                 run_args: RunArgs {
                     ..Default::default()
@@ -53,7 +55,7 @@ pub mod client_tests {
     pub async fn stop() {
         let args = RemoteArgs {
             client: Some(ClientArgs {
-                action_type: ecli_lib::runner::ClientActions::Stop,
+                action_type: runner::ClientActions::Stop,
                 id: vec![1, 2, 3, 4, 5],
                 run_args: RunArgs {
                     ..Default::default()
@@ -71,12 +73,12 @@ pub mod client_tests {
     pub async fn start() {
         let args = RemoteArgs {
             client: Some(ClientArgs {
-                action_type: ecli_lib::runner::ClientActions::Start,
+                action_type: runner::ClientActions::Start,
                 id: vec![0],
                 run_args: RunArgs {
                     // test transport of file
                     file: "tests/test.json".to_string(),
-                    prog_type: ecli_lib::config::ProgramType::JsonEunomia,
+                    prog_type: config::ProgramType::JsonEunomia,
                     ..Default::default()
                 },
                 endpoint: "127.0.0.1".to_string(),

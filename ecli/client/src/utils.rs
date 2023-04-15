@@ -1,5 +1,5 @@
 use crate::Action;
-use ecli_lib::{
+use lib::{
     self,
     config::ProgramType,
     error::*,

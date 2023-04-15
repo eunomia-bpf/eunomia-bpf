@@ -359,3 +359,48 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use mockito;
+    use std::fs;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_get_file_content_from_file() {
+        let file_path = "tests/test.json";
+        let mut run_args = RunArgs {
+            file: file_path.into(),
+            ..Default::default()
+        };
+        let content = fs::read(file_path).unwrap();
+        let result = run_args.get_file_content().await;
+        assert_eq!(result.unwrap(), content);
+        assert_eq!(run_args.prog_type, ProgramType::JsonEunomia);
+    }
+
+    #[tokio::test]
+    async fn test_get_file_content_from_url() {
+        let content = b"test content from url";
+
+        let mut github = mockito::Server::new();
+
+        let url = format!("{}/test", github.url());
+
+        let mut run_args = RunArgs {
+            file: url.into(),
+            ..Default::default()
+        };
+
+        let github_mock = github
+            .mock("GET", "/v2/test/manifests/latest")
+            .with_status(201)
+            .with_body(content)
+            .create();
+
+        let _ = run_args.get_file_content().await;
+
+        github_mock.assert();
+    }
+}

@@ -18,7 +18,7 @@ ecli push https://yunwei37:[password]@ghcr.io/eunomia-bpf/sigsnoop:latest
 Run the program:
 
 ```console
-$ sudo ./ecli examples/bpftools/bootstrap/package.json
+$ sudo ./ecli run examples/bpftools/bootstrap/package.json
 TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT  
 22:01:04  46310  2915    0          0            sh      /bin/sh   0
 22:01:04  46311  46310   0          0            which   /usr/bin/which 0

@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 mod utils;
 
-use ecli_lib::{
+use lib::{
     error::*,
     init_log,
     oci::{

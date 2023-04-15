@@ -15,7 +15,7 @@ probes, `kprobe` and `kretprobe` in libbpf lingo. It attaches `kprobe` and
 filename, and return result, respectively, using `bpf_printk()` macro.
 
 ```console
-$ sudo ecli  examples/bpftools/kprobe-link/package.json
+$ sudo ecli run examples/bpftools/kprobe-link/package.json
 Runing eBPF program...
 ```
 
@@ -52,5 +52,5 @@ Packing ebpf object and config into package.json...
 Run:
 
 ```console
-sudo ecli examples/bpftools/kprobe-link/package.json
+sudo ecli run examples/bpftools/kprobe-link/package.json
 ```

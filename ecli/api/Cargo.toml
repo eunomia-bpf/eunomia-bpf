@@ -3,7 +3,6 @@ name = "openapi_client"
 version = "1.0.0"
 authors = ["OpenAPI Generator team and contributors"]
 description = "APIs provided by ecli"
-# Override this license by providing a License Object in the OpenAPI.
 license = "Unlicense"
 edition = "2021"
 

@@ -17,7 +17,7 @@ pub enum ExportFormatType {
     ExportPlantText,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ProgramType {
     /// Unknown
     Undefine,

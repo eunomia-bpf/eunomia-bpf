@@ -3,7 +3,7 @@ name = "ecli"
 version = "0.1.0"
 edition = "2021"
 members = [
-    "ecli-lib",
+    "lib",
     "client",
     "server",
 ]

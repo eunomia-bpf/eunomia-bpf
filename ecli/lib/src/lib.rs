@@ -9,18 +9,10 @@ mod json_runner;
 mod oci;
 mod runner;
 mod tar_reader;
-use signal_hook::{consts::SIGINT, iterator::Signals};
-use std::{process, thread};
 mod wasm_bpf_runner;
 use clap::{Parser, Subcommand};
 use env_logger::{Builder, Target};
-use error::EcliResult;
-use oci::{
-    auth::{login, logout},
-    pull, push,
-};
-// use runner::start_server;
-use runner::{client_action, run, start_server};
+
 /// ecli subcommands, including run, push, pull, login, logout.
 #[derive(Subcommand)]
 pub enum Action {
