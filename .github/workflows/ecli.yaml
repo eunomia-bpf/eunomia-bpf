@@ -8,7 +8,7 @@ on:
       - "compiler/**"  # Ensure ecc and ecli releasing at same time
       - "wasm-rumtime/**"  # Release when dependencies updated
       - "third_party/**"
-      - "bpf-loader/**"
+      - "bpf-loader-rs/**"
       - "eunomia-sdk/**"
       - ".github/**"
 
@@ -19,7 +19,7 @@ on:
       - "compiler/**"
       - "wasm-rumtime/**"
       - "third_party/**"
-      - "bpf-loader/**"
+      - "bpf-loader-rs/**"
       - "eunomia-sdk/**"
       - ".github/**"
 env:

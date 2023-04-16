@@ -43,7 +43,7 @@ jobs:
         submodules: 'recursive'
     - name: install deps
       run: |
-          sudo make -C bpf-loader install-deps
+          sudo make -C bpf-loader-rs install-deps
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL

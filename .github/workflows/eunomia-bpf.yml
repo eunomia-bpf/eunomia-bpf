@@ -1,4 +1,4 @@
-name: Build and test bpf-loader on Ubuntu
+name: Build and test bpf-loader-rs on Ubuntu
 
 on:
   push:
@@ -22,7 +22,7 @@ jobs:
 
     - name: install deps
       run: |
-          sudo make -C bpf-loader install-deps
+          sudo make -C bpf-loader-rs install-deps
 
     - name: cache dependencies
       uses: actions/cache@v3
@@ -31,12 +31,12 @@ jobs:
         path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
         key: ${{ runner.os }}-dependencies
 
-    - name: make bpf-loader
-      run:  make bpf-loader
+    - name: make bpf-loader-rs
+      run:  make bpf-loader-rs
 
     - name: run unit tests
       run: |
-        cd bpf-loader/
+        cd bpf-loader-rs/
         sudo make test
 
     - name: Code coverage using Codecov
