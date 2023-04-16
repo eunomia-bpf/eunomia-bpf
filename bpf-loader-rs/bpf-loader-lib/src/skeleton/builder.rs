@@ -193,6 +193,7 @@ impl<'a> BpfSkeletonBuilder<'a> {
 }
 
 #[cfg(test)]
+#[cfg(not(feature = "no-load-bpf-tests"))]
 mod tests {
     use libbpf_rs::libbpf_sys::{bpf_map__fd, bpf_map__initial_value, size_t};
 

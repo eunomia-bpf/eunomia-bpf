@@ -8,16 +8,18 @@ use crate::{
     runner::RunArgs,
     tar_reader::unpack_tar,
 };
+/// Re-export export format type from bpf-loader-lib
+pub use bpf_loader_lib::export_event::ExportFormatType;
 
-pub enum ExportFormatType {
-    ExportJson,
-    ExportPlantText,
-}
-
+/// The ProgramType
 pub enum ProgramType {
+    /// Unknown
     Undefine,
+    /// JSON-described bpf program
     JsonEunomia,
+    /// A Wasm module which can be used for wasm-bpf
     WasmModule,
+    /// A tar archive
     Tar,
 }
 
@@ -36,19 +38,26 @@ impl TryFrom<&str> for ProgramType {
         }
     }
 }
-
+/// Definition of a ebpf container or program to run
 pub struct ProgramConfigData {
+    /// The program source, URL or local files
     pub url: String,
+    /// Whether to use cache
     pub use_cache: bool,
+    /// The btf archive path
     pub btf_path: Option<String>,
-    //program data buffer: wasm module or json
+    /// program data buffer: wasm module or json
     pub program_data_buf: Vec<u8>,
+    /// Extra args to the program
     pub extra_arg: Vec<String>,
+    /// Type of the program
     pub prog_type: ProgramType,
+    /// Export data type for the program
     pub export_format_type: ExportFormatType,
 }
 
 impl ProgramConfigData {
+    /// Load a program configuration
     pub async fn async_try_from(args: &mut RunArgs) -> EcliResult<Self> {
         let _prog_buf = args.get_file_content().await?;
         let (prog_buf, btf_dir_path) = match args.prog_type {
@@ -63,9 +72,9 @@ impl ProgramConfigData {
             btf_path: btf_dir_path,
             prog_type: ProgramType::Undefine,
             export_format_type: if args.export_to_json {
-                ExportFormatType::ExportJson
+                ExportFormatType::Json
             } else {
-                ExportFormatType::ExportPlantText
+                ExportFormatType::PlainText
             },
         })
     }

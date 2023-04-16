@@ -7,6 +7,7 @@ use eunomia_rs::TempDir;
 use std::fs;
 use tar::Archive;
 
+/// Unpack a tar archive, returning the contents of `package.json`; It will also try get the btfhub-archive path in the unpacked directory
 pub fn unpack_tar(tar_data: &[u8]) -> (Vec<u8>, Option<String>) {
     let mut archive = Archive::new(tar_data);
     let tmpdir = TempDir::new().unwrap();

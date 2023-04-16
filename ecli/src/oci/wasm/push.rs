@@ -17,8 +17,11 @@ use crate::{
     Action,
 };
 
+/// Configuration for a pushing process
 pub struct PushArgs {
+    /// Local file path
     pub file: String,
+    /// URL to push
     pub image_url: String,
 }
 impl TryFrom<Action> for PushArgs {

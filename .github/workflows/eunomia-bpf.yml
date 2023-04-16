@@ -37,7 +37,8 @@ jobs:
     - name: run unit tests
       run: |
         cd bpf-loader-rs/
-        sudo make test
+        # Install rustup manually using user root
+        sudo curl https://sh.rustup.rs -sSf | sh -s -- -y && $HOME/.cargo/bin/cargo test --features no-load-bpf-tests
 
     - name: Code coverage using Codecov
       run: bash <(curl -s https://codecov.io/bash)

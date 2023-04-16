@@ -31,6 +31,7 @@ pub(crate) fn load_triple() -> (Arc<BtfContainer>, Vec<u8>, EunomiaObjectMeta) {
 
 pub(crate) type RRC<T> = Rc<RefCell<T>>;
 
+#[cfg(not(feature = "no-load-bpf-tests"))]
 mod map_sampling_tests;
 mod ring_buf_tests;
 

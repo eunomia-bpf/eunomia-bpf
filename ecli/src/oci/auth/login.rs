@@ -23,7 +23,8 @@ fn read_login_user_pwd() -> (String, String) {
         rpassword::prompt_password("password: ").unwrap(),
     )
 }
-
+/// Login into an OCI registry
+/// Will prompt and read username and password from stdin
 pub async fn login(u: String) -> EcliResult<()> {
     let url = Url::parse(u.as_str()).map_err(|e| EcliError::ParamErr(e.to_string()))?;
     let Some(host) = url.host_str() else {
@@ -40,7 +41,8 @@ pub async fn login(u: String) -> EcliResult<()> {
     println!("Login success");
     Ok(())
 }
-
+/// Login into an OCI registry
+/// Will use username and password in LoginInfo
 async fn v2_login(url: &Url, login_info: &LoginInfo) -> EcliResult<()> {
     let (username, password) = login_info.get_user_pwd()?;
     let mut client = get_client(url)?;

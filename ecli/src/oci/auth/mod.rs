@@ -24,6 +24,7 @@ use crate::error::{EcliError, EcliResult};
 
 const AUTH_FILE: &str = "eunomia_auth.json";
 
+/// Info used to login into an OCI registry
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct LoginInfo {
     url: String,
@@ -32,6 +33,10 @@ pub struct LoginInfo {
 }
 
 impl LoginInfo {
+    /// Create a `LoginInfo`
+    /// url - The url to the registry
+    /// user - username
+    /// pwd - password
     pub fn new(url: &str, user: &str, pwd: &str) -> Self {
         Self {
             url: String::from(url),
@@ -55,10 +60,12 @@ impl LoginInfo {
     }
 }
 
+/// The AuthInfo
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AuthInfo(Vec<LoginInfo>);
 
 impl AuthInfo {
+    /// Get `AuthInfo` from the default cache file
     pub fn get() -> EcliResult<Self> {
         AuthInfo::read_from_file(&mut get_auth_save_file()?).map_err(|e| {
             if matches!(e, EcliError::SerializeError(_)) {
@@ -90,7 +97,7 @@ impl AuthInfo {
         .map_err(EcliError::IOErr)
     }
 
-    // return (username, password)
+    /// return (username, password)
     fn get_auth_info_by_url(&self, url: &str) -> EcliResult<(String, String)> {
         for i in self.0.iter() {
             if i.url == url {
@@ -101,7 +108,7 @@ impl AuthInfo {
             "url have no login info".to_string(),
         ))
     }
-
+    /// Set the login info
     pub fn set_login_info(&mut self, login_info: LoginInfo) {
         if let Some(idx) = self.0.iter().position(|x| x.url == login_info.url) {
             let _ = std::mem::replace(&mut self.0[idx], login_info);
@@ -109,7 +116,7 @@ impl AuthInfo {
             self.0.push(login_info);
         }
     }
-
+    /// Remove the login info
     pub fn remove_login_info(&mut self, url: &str) -> EcliResult<()> {
         let Some(idx) = self.0.iter().position(|x|x.url==url) else {
             return Err(EcliError::ParamErr(format!("auth info of url: {} not found",url)));
@@ -118,7 +125,7 @@ impl AuthInfo {
         Ok(())
     }
 }
-
+/// Extract auth ingo from a URL
 pub fn get_auth_info_by_url(url: &Url) -> EcliResult<(String, String)> {
     if !url.username().is_empty() {
         return Ok((
