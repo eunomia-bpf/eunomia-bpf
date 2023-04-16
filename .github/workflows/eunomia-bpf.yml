@@ -31,14 +31,16 @@ jobs:
         path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
         key: ${{ runner.os }}-dependencies
 
-    - name: make bpf-loader-rs
-      run:  make bpf-loader-rs
-
     - name: run unit tests
       run: |
         cd bpf-loader-rs/
         # Install rustup manually using user root
-        sudo curl https://sh.rustup.rs -sSf | sh -s -- -y && $HOME/.cargo/bin/cargo test --features no-load-bpf-tests
+        curl https://sh.rustup.rs -o rustup.sh
+        sudo bash -c "cat rustup.sh | sh -s -- -y ; /root/.cargo/bin/cargo test"
+
+    - name: make bpf-loader-rs with release profile
+      run:  make bpf-loader-rs
+
 
     - name: Code coverage using Codecov
       run: bash <(curl -s https://codecov.io/bash)
