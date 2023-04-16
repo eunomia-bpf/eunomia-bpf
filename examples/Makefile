@@ -5,7 +5,7 @@
 all: eunomia-bpf-runner
 
 eunomia-bpf-runner:
-	cd simple-runner && mkdir -p build && cd build && cmake .. && make
+	cd simple-runner-rs && cargo build --release
 
 clean:
 	rm -rf simple-runner/build
