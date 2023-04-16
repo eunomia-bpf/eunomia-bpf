@@ -161,6 +161,7 @@ fn test_pause_resume_terminate_1() {
     // Sleep 1s and try to get something
     std::thread::sleep(Duration::from_secs(1));
     polling_handle.set_pause(true);
+    std::thread::sleep(Duration::from_secs(1));
     let count1 = data.lock().unwrap().len();
     // Sleep 3s, and check if nothing was added into result
     std::thread::sleep(Duration::from_secs(3));
@@ -168,8 +169,10 @@ fn test_pause_resume_terminate_1() {
     assert_eq!(count1, count2);
     // Let it resume
     polling_handle.set_pause(false);
-    // Sleep 10s, more things should be added result
-    std::thread::sleep(Duration::from_secs(10));
+    std::thread::sleep(Duration::from_secs(1));
+    // Sleep 3s, more things should be added result
+    std::process::Command::new("sh").output().unwrap();
+    std::thread::sleep(Duration::from_secs(3));
     let count3 = data.lock().unwrap().len();
     assert!(count3 > count2);
     // Terminate the worker
