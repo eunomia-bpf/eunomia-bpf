@@ -76,7 +76,7 @@ jobs:
     - name: install deps
       run: |
           sudo make -C ecli install-deps
-          sudo make -C bpf-loader install-deps
+          sudo make -C bpf-loader-rs install-deps
 
     - name: cache dependencies
       uses: actions/cache@v3
