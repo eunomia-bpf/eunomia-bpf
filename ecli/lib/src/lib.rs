@@ -138,6 +138,22 @@ pub struct StartCommand {
     pub extra_args: Option<Vec<String>>,
 }
 
+#[derive(Parser)]
+pub struct LogCommand {
+    #[clap(required = true)]
+    pub id: Vec<i32>,
+
+    #[clap(short, long, help = "follow log update", default_value = "false")]
+    pub follow: bool,
+}
+
+#[derive(Parser)]
+pub struct StopCommand {
+    #[clap(required = true)]
+    pub id: Vec<i32>,
+}
+
+#[allow(unused)]
 macro_rules! gen_cmd {
     ($n: ident) => {
         #[derive(Parser)]
@@ -148,8 +164,6 @@ macro_rules! gen_cmd {
     };
 }
 
-gen_cmd!(StopCommand);
-gen_cmd!(LogCommand);
 // gen_cmd!(PauseCommand);
 // gen_cmd!(ResumeCommand);
 

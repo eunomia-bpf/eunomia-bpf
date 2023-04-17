@@ -167,6 +167,7 @@ pub struct ClientArgs {
     pub id: Vec<i32>,
     pub addr: String,
     pub port: u16,
+    pub follow: bool,
     pub secure: bool,
     pub run_args: RunArgs,
 }
@@ -232,6 +233,7 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
         id,
         addr,
         port,
+        follow,
         secure,
         run_args,
     } = args.client.unwrap();
@@ -343,41 +345,52 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
         }
 
         ClientActions::Log => {
-            loop {
-                let mut url = url.clone();
-                url.push_str("/log");
+            let mut url = url.clone();
+            url.push_str("/log");
 
-                let req_body = LogPostRequest {
-                    id: Some(id.get(0).unwrap().clone()),
-                    follow: true,
+            let req_body = LogPostRequest {
+                id: Some(id.get(0).unwrap().clone()),
+                follow,
+            };
+
+            macro_rules! send_req {
+                () => {
+                    let rsp = client
+                        .post(&url)
+                        .header("Content-Type", "application/json")
+                        .body(json!(req_body).to_string())
+                        .send()
+                        .await;
+
+                    info!("{:?}", &rsp);
+
+                    let rsp_json_text = rsp.unwrap().text().await.unwrap();
+                    let LogPostResponse::SendLog(LogPost200Response { stdout, stderr }) =
+                        serde_json::from_str(rsp_json_text.as_str())
+                            .expect("parse response body fail");
+
+                    if let Some(s) = stdout {
+                        if !s.is_empty() {
+                            print!("{}", s);
+                        }
+                    }
+                    if let Some(s) = stderr {
+                        if !s.is_empty() {
+                            eprint!("{}", s);
+                        }
+                    }
                 };
-
-                let rsp = client
-                    .post(url)
-                    .header("Content-Type", "application/json")
-                    .body(json!(req_body).to_string())
-                    .send()
-                    .await;
-
-                info!("{:?}", &rsp);
-
-                let rsp_json_text = rsp.unwrap().text().await.unwrap();
-                let LogPostResponse::SendLog(LogPost200Response { stdout, stderr }) =
-                    serde_json::from_str(rsp_json_text.as_str()).expect("parse response body fail");
-
-                if let Some(s) = stdout {
-                    if !s.is_empty() {
-                        print!("{}", s);
-                    }
-                }
-                if let Some(s) = stderr {
-                    if !s.is_empty() {
-                        eprint!("{}", s);
-                    }
-                }
-                time::sleep(time::Duration::from_millis(500)).await;
             }
-            #[allow(unused)]
+
+            if follow {
+                loop {
+                    send_req!();
+                    time::sleep(time::Duration::from_millis(500)).await;
+                }
+            } else {
+                send_req!();
+            }
+
             Ok(())
         }
 
