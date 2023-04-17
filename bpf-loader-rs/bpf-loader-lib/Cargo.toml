@@ -27,3 +27,6 @@ serde_with = "2.3.2"
 target-lexicon = "^0.11.2"
 uname-rs = "0.1.1"
 
+
+[features]
+no-load-bpf-tests = []

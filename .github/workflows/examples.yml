@@ -30,7 +30,7 @@ jobs:
 
       - name: install deps
         run: |
-             sudo make -C bpf-loader install-deps
+             sudo make -C bpf-loader-rs install-deps
 
       - name: install test deps
         run:  |

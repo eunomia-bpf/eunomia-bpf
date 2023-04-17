@@ -60,6 +60,7 @@ pub(crate) mod poller;
 pub mod preload;
 
 #[cfg(test)]
+#[cfg(not(feature = "no-load-bpf-tests"))]
 mod tests;
 /// Represents a polling-ready bpf skeleton. With you can control the ebpf program and poll from it.
 pub struct BpfSkeleton {

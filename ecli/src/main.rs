@@ -82,7 +82,7 @@ fn init_log() {
 
 #[tokio::main]
 async fn main() -> EcliResult<()> {
-    let signals = Signals::new(&[SIGINT]);
+    let signals = Signals::new([SIGINT]);
     thread::spawn(move || match signals {
         Ok(mut signals_info) => {
             for sig in signals_info.forever() {

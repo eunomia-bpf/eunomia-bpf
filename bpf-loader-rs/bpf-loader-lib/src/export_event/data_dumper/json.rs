@@ -88,12 +88,12 @@ pub(crate) fn dump_int(btf_int: &BtfInt, range: &[u8]) -> Result<Value> {
             );
         }
 
-        let mut result: u64 = 0;
+        let mut result: u128 = 0;
         for i in 0..btf_int.bits / 8 {
             // Everything is little-endian, right?
             // So we constructed an u64 through shiftings
             // Then truncate the corresponding bytes to the type we want
-            result |= (range[i as usize] as u64) << (i * 8);
+            result |= (range[i as usize] as u128) << (i * 8);
         }
         let result = match (btf_int.bits, btf_int.encoding) {
             (8, BtfIntEncoding::Signed) => json!(result as i8),
@@ -103,8 +103,10 @@ pub(crate) fn dump_int(btf_int: &BtfInt, range: &[u8]) -> Result<Value> {
             (32, BtfIntEncoding::Signed) => json!(result as i32),
             (32, _) => json!(result as u32),
             (64, BtfIntEncoding::Signed) => json!(result as i64),
-            #[allow(clippy::unnecessary_cast)]
             (64, _) => json!(result as u64),
+            (128, BtfIntEncoding::Signed) => json!(result as i128),
+            #[allow(clippy::unnecessary_cast)]
+            (128, _) => json!(result as u128),
             (a, _) => {
                 bail!("Unsupported integer length: {} in bits", a);
             }

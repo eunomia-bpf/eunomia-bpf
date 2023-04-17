@@ -17,8 +17,11 @@ use crate::{
     Action,
 };
 
+/// Configuration for a pushing process
 pub struct PushArgs {
+    /// Local file path
     pub file: String,
+    /// URL to push
     pub image_url: String,
 }
 impl TryFrom<Action> for PushArgs {
@@ -59,7 +62,7 @@ pub(super) async fn push_wasm_to_registry(
     let image_manifest = manifest::OciImageManifest::build(&layers, &config, annotations);
 
     let resp = client
-        .push(&reference, &layers, config, &auth, Some(image_manifest))
+        .push(reference, &layers, config, auth, Some(image_manifest))
         .await
         .map_err(|e| EcliError::OciPushError(e.to_string()))?;
 

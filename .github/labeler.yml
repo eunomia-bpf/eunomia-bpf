@@ -1,5 +1,5 @@
 # Add 'label1' to any changes within 'example' folder or any subfolders
-bpf-loader:
+bpf-loader-rs:
 - example/**/*
 
 # Add 'label2' to any file changes within 'example2' folder

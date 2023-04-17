@@ -6,7 +6,7 @@
 use crate::error::EcliResult;
 
 use super::{get_auth_save_file, AuthInfo};
-
+/// Logout from an OCI registry
 pub fn logout(u: String) -> EcliResult<()> {
     let mut auth_info = AuthInfo::get()?;
     auth_info.remove_login_info(u.as_str())?;

@@ -9,17 +9,20 @@ use std::{
     rc::Rc,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc,
+        Arc, Mutex,
     },
-    thread,
+    thread::{self, JoinHandle},
+    time::Duration,
 };
 
+use anyhow::Result;
 use serde::Deserialize;
 use serde_json::json;
 
 use crate::{
     export_event::{EventHandler, ExportFormatType, ReceivedEventData},
     meta::ComposedObject,
+    skeleton::handle::PollingHandle,
     tests::get_assets_dir,
 };
 
@@ -122,4 +125,57 @@ fn test_load_rodata_and_bss() {
     assert_eq!(recv_data.val_4, 0x12344321);
     assert_eq!(recv_data.val_5, 1u64 << 60);
     assert_eq!(recv_data.val_6, "112233445566");
+}
+
+#[test]
+fn test_pause_resume_terminate_1() {
+    let skel = serde_json::from_str::<ComposedObject>(
+        &std::fs::read_to_string(get_assets_dir().join("bootstrap.json")).unwrap(),
+    )
+    .unwrap();
+    struct MyEventReceiver {
+        data: Arc<Mutex<Vec<String>>>,
+    }
+    impl EventHandler for MyEventReceiver {
+        fn handle_event(&self, _context: Option<Arc<dyn std::any::Any>>, data: ReceivedEventData) {
+            match data {
+                ReceivedEventData::JsonText(s) => self.data.lock().unwrap().push(s.to_owned()),
+                _ => panic!("Unexpected data type"),
+            }
+        }
+    }
+    let data = Arc::new(Mutex::new(Vec::new()));
+    let event_handler = Arc::new(MyEventReceiver { data: data.clone() });
+    let (tx, rx) = std::sync::mpsc::channel::<PollingHandle>();
+    let join_handle: JoinHandle<Result<()>> = std::thread::spawn(move || {
+        let skel = BpfSkeletonBuilder::from_json_package(&skel, None)
+            .build()
+            .unwrap();
+        let skel = skel.load_and_attach().unwrap();
+        tx.send(skel.create_poll_handle()).unwrap();
+        skel.wait_and_poll_to_handler(ExportFormatType::Json, Some(event_handler), None)
+            .unwrap();
+        Ok(())
+    });
+    let polling_handle = rx.recv().unwrap();
+    // Sleep 1s and try to get something
+    std::thread::sleep(Duration::from_secs(1));
+    polling_handle.set_pause(true);
+    std::thread::sleep(Duration::from_secs(1));
+    let count1 = data.lock().unwrap().len();
+    // Sleep 3s, and check if nothing was added into result
+    std::thread::sleep(Duration::from_secs(3));
+    let count2 = data.lock().unwrap().len();
+    assert_eq!(count1, count2);
+    // Let it resume
+    polling_handle.set_pause(false);
+    std::thread::sleep(Duration::from_secs(1));
+    // Sleep 3s, more things should be added result
+    std::process::Command::new("sh").output().unwrap();
+    std::thread::sleep(Duration::from_secs(3));
+    let count3 = data.lock().unwrap().len();
+    assert!(count3 > count2);
+    // Terminate the worker
+    polling_handle.terminate();
+    join_handle.join().unwrap().unwrap();
 }

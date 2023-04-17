@@ -19,10 +19,13 @@ use self::push::push_wasm_to_registry;
 
 use super::{auth::get_auth_info_by_url, default_schema_port, get_client};
 
+/// Module containing stuff related to pulling image
 pub mod pull;
+/// Module containing stuff related to pushing image
 pub mod push;
 
-// return (..., repo_url_strip_auth_info)
+/// Parse the URL, return things that will be used for pushing / pulling
+/// returns (..., repo_url_strip_auth_info)
 pub fn parse_img_url(url: &str) -> EcliResult<(Client, RegistryAuth, Reference, String)> {
     let img_url = Url::parse(url).map_err(|e| EcliError::ParamErr(e.to_string()))?;
     let auth = match get_auth_info_by_url(&img_url) {
@@ -59,20 +62,19 @@ pub fn parse_img_url(url: &str) -> EcliResult<(Client, RegistryAuth, Reference, 
         repo_url
             .parse::<Reference>()
             .map_err(|e| EcliError::ParamErr(e.to_string()))?,
-        repo_url.into(),
+        repo_url,
     ))
 }
 
+/// Push an image
 pub async fn wasm_push(file: String, img_url: String) -> EcliResult<()> {
     // TODO check the file is valid wasm file
     let path = Path::new(file.as_str());
     let mut module = vec![];
     if path.exists() && path.is_file() {
         info!("read content from file {}", file);
-        let mut f = File::open(path).await.map_err(|e| EcliError::IOErr(e))?;
-        f.read_to_end(&mut module)
-            .await
-            .map_err(|e| EcliError::IOErr(e))?;
+        let mut f = File::open(path).await.map_err(EcliError::IOErr)?;
+        f.read_to_end(&mut module).await.map_err(EcliError::IOErr)?;
     } else {
         return Err(EcliError::ParamErr(format!(
             "file {} not exist or is not regular file",
@@ -90,6 +92,7 @@ pub async fn wasm_push(file: String, img_url: String) -> EcliResult<()> {
     Ok(())
 }
 
+/// Pull an image
 pub async fn wasm_pull(img: &str) -> EcliResult<Vec<u8>> {
     let (mut client, auth, reference, repo_url) = parse_img_url(img)?;
     info!("pulling from {}", repo_url);

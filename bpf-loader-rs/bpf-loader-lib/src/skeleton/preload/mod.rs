@@ -137,6 +137,7 @@ impl PreLoadBpfSkeleton {
 }
 
 #[cfg(test)]
+#[cfg(not(feature = "no-load-bpf-tests"))]
 mod tests {
     use crate::{
         meta::ComposedObject, skeleton::builder::BpfSkeletonBuilder, tests::get_assets_dir,
