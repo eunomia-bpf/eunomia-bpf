@@ -45,7 +45,7 @@ const FRAGMENT_ENCODE_SET: &AsciiSet = &percent_encoding::CONTROLS
 #[allow(dead_code)]
 const ID_ENCODE_SET: &AsciiSet = &FRAGMENT_ENCODE_SET.add(b'|');
 
-use crate::{Api, ListGetResponse, StartPostResponse, StopPostResponse};
+use crate::{Api, ListGetResponse, LogPostResponse, StartPostResponse, StopPostResponse};
 
 /// Convert input into a base path, e.g. "http://example:123". Also checks the scheme as it goes.
 fn into_base_path(
@@ -386,7 +386,7 @@ where
     fn poll_ready(&self, cx: &mut Context) -> Poll<Result<(), crate::ServiceError>> {
         match self.client_service.clone().poll_ready(cx) {
             Poll::Ready(Err(e)) => Poll::Ready(Err(e.into())),
-            Poll::Ready(Ok(o)) => Poll::Ready(Ok(())),
+            Poll::Ready(Ok(o)) => Poll::Ready(Ok(o)),
             Poll::Pending => Poll::Pending,
         }
     }
@@ -472,10 +472,113 @@ where
         }
     }
 
+    async fn log_post(
+        &self,
+        param_log_post_request: models::LogPostRequest,
+        context: &C,
+    ) -> Result<LogPostResponse, ApiError> {
+        let mut client_service = self.client_service.clone();
+        let mut uri = format!("{}/log", self.base_path);
+
+        // Query parameters
+        let query_string = {
+            let mut query_string = form_urlencoded::Serializer::new("".to_owned());
+            query_string.finish()
+        };
+        if !query_string.is_empty() {
+            uri += "?";
+            uri += &query_string;
+        }
+
+        let uri = match Uri::from_str(&uri) {
+            Ok(uri) => uri,
+            Err(err) => return Err(ApiError(format!("Unable to build URI: {}", err))),
+        };
+
+        let mut request = match Request::builder()
+            .method("POST")
+            .uri(uri)
+            .body(Body::empty())
+        {
+            Ok(req) => req,
+            Err(e) => return Err(ApiError(format!("Unable to create request: {}", e))),
+        };
+
+        let body = serde_json::to_string(&param_log_post_request)
+            .expect("impossible to fail to serialize");
+        *request.body_mut() = Body::from(body);
+
+        let header = "application/json";
+        request.headers_mut().insert(
+            CONTENT_TYPE,
+            match HeaderValue::from_str(header) {
+                Ok(h) => h,
+                Err(e) => {
+                    return Err(ApiError(format!(
+                        "Unable to create header: {} - {}",
+                        header, e
+                    )))
+                }
+            },
+        );
+        let header = HeaderValue::from_str(Has::<XSpanIdString>::get(context).0.as_str());
+        request.headers_mut().insert(
+            HeaderName::from_static("x-span-id"),
+            match header {
+                Ok(h) => h,
+                Err(e) => {
+                    return Err(ApiError(format!(
+                        "Unable to create X-Span ID header value: {}",
+                        e
+                    )))
+                }
+            },
+        );
+
+        let response = client_service
+            .call((request, context.clone()))
+            .map_err(|e| ApiError(format!("No response received: {}", e)))
+            .await?;
+
+        match response.status().as_u16() {
+            200 => {
+                let body = response.into_body();
+                let body = body
+                    .into_raw()
+                    .map_err(|e| ApiError(format!("Failed to read response: {}", e)))
+                    .await?;
+                let body = str::from_utf8(&body)
+                    .map_err(|e| ApiError(format!("Response was not valid UTF8: {}", e)))?;
+                let body =
+                    serde_json::from_str::<models::LogPost200Response>(body).map_err(|e| {
+                        ApiError(format!("Response body did not match the schema: {}", e))
+                    })?;
+                Ok(LogPostResponse::SendLog(body))
+            }
+            code => {
+                let headers = response.headers().clone();
+                let body = response.into_body().take(100).into_raw().await;
+                Err(ApiError(format!(
+                    "Unexpected response code {}:\n{:?}\n\n{}",
+                    code,
+                    headers,
+                    match body {
+                        Ok(body) => match String::from_utf8(body) {
+                            Ok(body) => body,
+                            Err(e) => format!("<Body was not UTF8: {:?}>", e),
+                        },
+                        Err(e) => format!("<Failed to read body: {}>", e),
+                    }
+                )))
+            }
+        }
+    }
+
     async fn start_post(
         &self,
         param_program_data_buf: Option<swagger::ByteArray>,
         param_program_type: Option<String>,
+        param_program_name: Option<String>,
         param_btf_data: Option<swagger::ByteArray>,
         param_extra_params: Option<&Vec<String>>,
         context: &C,
@@ -556,6 +659,28 @@ where
                 Some(program_type_mime),
             );
 
+            let program_name_str = match serde_json::to_string(&param_program_name) {
+                Ok(str) => str,
+                Err(e) => {
+                    return Err(ApiError(format!(
+                        "Unable to serialize program_name to string: {}",
+                        e
+                    )))
+                }
+            };
+
+            let program_name_vec = program_name_str.as_bytes().to_vec();
+            let program_name_mime =
+                mime_0_2::Mime::from_str("application/json").expect("impossible to fail to parse");
+            let program_name_cursor = Cursor::new(program_name_vec);
+
+            multipart.add_stream(
+                "program_name",
+                program_name_cursor,
+                None::<&str>,
+                Some(program_name_mime),
+            );
+
             let btf_data_str = match serde_json::to_string(&param_btf_data) {
                 Ok(str) => str,
                 Err(e) => {
@@ -605,7 +730,7 @@ where
                 Err(err) => return Err(ApiError(format!("Unable to build request: {}", err))),
             };
 
-            let mut body_string = String::default();
+            let mut body_string = String::new();
 
             match fields.read_to_string(&mut body_string) {
                 Ok(_) => (),

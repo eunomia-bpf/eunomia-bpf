@@ -6,19 +6,23 @@
 use std::{
     fs::File,
     io::{self, Read},
-    path::Path,
+    path::{Path, PathBuf},
     vec,
 };
 
 use log::{debug, info};
+use openapi_client::models::{LogPost200Response, LogPostRequest};
+use openapi_client::LogPostResponse;
+use serde_json::json;
 use swagger::{make_context, Has, XSpanIdString};
+use tokio::time;
 use url::Url;
 
 pub use crate::ClientSubCommand;
 use crate::{
     config::{ProgramConfigData, ProgramType},
     error::{EcliError, EcliResult},
-    json_runner::handle_json,
+    json_runner::json::handle_json,
     oci::{default_schema_port, parse_img_url, wasm_pull},
     wasm_bpf_runner::wasm::handle_wasm,
     Action,
@@ -42,8 +46,9 @@ pub struct RunArgs {
 #[allow(unused_imports)]
 use openapi_client::*;
 
-pub mod remote;
-use remote::*;
+pub mod server;
+pub mod utils;
+use server::*;
 
 impl Default for RunArgs {
     fn default() -> Self {
@@ -203,10 +208,17 @@ pub async fn start_server(args: RemoteArgs) -> EcliResult<()> {
         let addr: String = format!("{addr}:{port}");
         let (_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
 
-        remote::create(addr, secure, shutdown_rx).await;
+        server::create(addr, secure, shutdown_rx).await;
     }
     Ok(())
 }
+
+type ClientContext = swagger::make_context_ty!(
+    ContextBuilder,
+    EmptyContext,
+    Option<AuthData>,
+    XSpanIdString
+);
 
 pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
     let ClientArgs {
@@ -251,7 +263,7 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
     match action_type {
         ClientActions::List => {
             let result = client.list_get().await;
-            println!("{:?} from endpoint:  {endpoint}:{port}", result);
+            println!("{}", json!(result.as_ref().unwrap()));
             info!(
                 "{:?} (X-Span-ID: {:?})",
                 result,
@@ -262,26 +274,33 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
         }
 
         ClientActions::Start => {
+            let program_name: Option<String> = PathBuf::from(run_args.file.clone())
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string());
+
             let prog_data = ProgramConfigData::async_try_from(run_args).await?;
+
             let btf_data = match prog_data.btf_path {
                 Some(d) => {
-                    let mut file = File::open(d).unwrap();
+                    let mut file = File::open(d).map_err(|e| EcliError::IOErr(e)).unwrap();
                     let mut buffer = Vec::new();
                     file.read_to_end(&mut buffer).unwrap_or_default();
-                    buffer
+                    swagger::ByteArray(buffer)
                 }
-                None => Vec::new(),
+                None => swagger::ByteArray(Vec::new()),
             };
 
             let result = client
                 .start_post(
                     Some(swagger::ByteArray(prog_data.program_data_buf)),
                     Some(format!("{:?}", prog_data.prog_type)),
-                    Some(swagger::ByteArray(btf_data)),
+                    program_name,
+                    Some(btf_data),
                     Some(&prog_data.extra_arg),
                 )
                 .await;
-            println!("{:?} from endpoint:  {endpoint}:{port}", result);
+
+            println!("{}", json!(result.as_ref().unwrap()));
             info!(
                 "{:?} (X-Span-ID: {:?})",
                 result,
@@ -296,8 +315,9 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
                     id: Some(per_id),
                     name: None,
                 };
+
                 let result = client.stop_post(inner).await;
-                println!("{:?} from endpoint:  {endpoint}:{port}", result);
+                println!("{}", json!(result.as_ref().unwrap()));
                 info!(
                     "{:?} (X-Span-ID: {:?})",
                     result,
@@ -306,6 +326,33 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
             }
             Ok(())
         }
+
+        ClientActions::Log => {
+            loop {
+                let post_req = LogPostRequest { id: Some(id[0]) };
+                let result = client.log_post(post_req).await;
+
+                // println!("{:?} from endpoint:  {endpoint}:{port}", result);
+                let LogPostResponse::SendLog(LogPost200Response { stdout, stderr }) =
+                    result.unwrap();
+
+                if let Some(s) = stdout {
+                    if !s.is_empty() {
+                        println!("{}", s);
+                    }
+                }
+                if let Some(s) = stderr {
+                    if !s.is_empty() {
+                        eprintln!("{}", s);
+                    }
+                }
+                time::sleep(time::Duration::from_secs(1)).await;
+            }
+
+            #[allow(unused)]
+            Ok(())
+        }
+
         _ => unimplemented!(),
     }
 }

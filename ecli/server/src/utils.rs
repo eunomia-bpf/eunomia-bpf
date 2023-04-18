@@ -1,5 +1,5 @@
 use crate::Args;
-use lib::{error::*, runner::RemoteArgs, Action};
+use lib::{runner::RemoteArgs, Action};
 
 impl From<Args> for RemoteArgs {
     fn from(args: Args) -> Self {

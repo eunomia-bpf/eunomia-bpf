@@ -17,7 +17,7 @@ pub async fn run_eserver() -> tokio::sync::oneshot::Sender<()> {
 }
 
 pub async fn start_server(addr: &str, shutdown_rx: Receiver<()>) {
-    lib::runner::remote::create(addr.to_string(), false, shutdown_rx).await;
+    lib::runner::server::create(addr.to_string(), false, shutdown_rx).await;
 }
 
 pub fn is_port_open(address: &str) -> bool {

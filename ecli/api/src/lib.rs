@@ -29,6 +29,12 @@ pub enum ListGetResponse {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub enum LogPostResponse {
+    /// send log
+    SendLog(models::LogPost200Response),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum StartPostResponse {
     /// List of running tasks
     ListOfRunningTasks(models::ListGet200Response),
@@ -54,11 +60,19 @@ pub trait Api<C: Send + Sync> {
     /// Get list of running tasks
     async fn list_get(&self, context: &C) -> Result<ListGetResponse, ApiError>;
 
+    /// get log
+    async fn log_post(
+        &self,
+        log_post_request: models::LogPostRequest,
+        context: &C,
+    ) -> Result<LogPostResponse, ApiError>;
+
     /// Start a new task
     async fn start_post(
         &self,
         program_data_buf: Option<swagger::ByteArray>,
         program_type: Option<String>,
+        program_name: Option<String>,
         btf_data: Option<swagger::ByteArray>,
         extra_params: Option<&Vec<String>>,
         context: &C,
@@ -86,11 +100,18 @@ pub trait ApiNoContext<C: Send + Sync> {
     /// Get list of running tasks
     async fn list_get(&self) -> Result<ListGetResponse, ApiError>;
 
+    /// get log
+    async fn log_post(
+        &self,
+        log_post_request: models::LogPostRequest,
+    ) -> Result<LogPostResponse, ApiError>;
+
     /// Start a new task
     async fn start_post(
         &self,
         program_data_buf: Option<swagger::ByteArray>,
         program_type: Option<String>,
+        program_name: Option<String>,
         btf_data: Option<swagger::ByteArray>,
         extra_params: Option<&Vec<String>>,
     ) -> Result<StartPostResponse, ApiError>;
@@ -133,11 +154,21 @@ impl<T: Api<C> + Send + Sync, C: Clone + Send + Sync> ApiNoContext<C> for Contex
         self.api().list_get(&context).await
     }
 
+    /// get log
+    async fn log_post(
+        &self,
+        log_post_request: models::LogPostRequest,
+    ) -> Result<LogPostResponse, ApiError> {
+        let context = self.context().clone();
+        self.api().log_post(log_post_request, &context).await
+    }
+
     /// Start a new task
     async fn start_post(
         &self,
         program_data_buf: Option<swagger::ByteArray>,
         program_type: Option<String>,
+        program_name: Option<String>,
         btf_data: Option<swagger::ByteArray>,
         extra_params: Option<&Vec<String>>,
     ) -> Result<StartPostResponse, ApiError> {
@@ -146,6 +177,7 @@ impl<T: Api<C> + Send + Sync, C: Clone + Send + Sync> ApiNoContext<C> for Contex
             .start_post(
                 program_data_buf,
                 program_type,
+                program_name,
                 btf_data,
                 extra_params,
                 &context,

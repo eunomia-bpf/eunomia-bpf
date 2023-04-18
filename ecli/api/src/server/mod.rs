@@ -23,19 +23,20 @@ pub use crate::context;
 
 type ServiceFuture = BoxFuture<'static, Result<Response<Body>, crate::ServiceError>>;
 
-use crate::{Api, ListGetResponse, StartPostResponse, StopPostResponse};
+use crate::{Api, ListGetResponse, LogPostResponse, StartPostResponse, StopPostResponse};
 
 mod paths {
     use lazy_static::lazy_static;
 
     lazy_static! {
         pub static ref GLOBAL_REGEX_SET: regex::RegexSet =
-            regex::RegexSet::new(vec![r"^/list$", r"^/start$", r"^/stop$"])
+            regex::RegexSet::new(vec![r"^/list$", r"^/log$", r"^/start$", r"^/stop$"])
                 .expect("Unable to create global regex set");
     }
     pub(crate) static ID_LIST: usize = 0;
-    pub(crate) static ID_START: usize = 1;
-    pub(crate) static ID_STOP: usize = 2;
+    pub(crate) static ID_LOG: usize = 1;
+    pub(crate) static ID_START: usize = 2;
+    pub(crate) static ID_STOP: usize = 3;
 }
 
 pub struct MakeService<T, C>
@@ -189,6 +190,86 @@ where
                     Ok(response)
                 }
 
+                // LogPost - POST /log
+                hyper::Method::POST if path.matched(paths::ID_LOG) => {
+                    // Body parameters (note that non-required body parameters will ignore garbage
+                    // values, rather than causing a 400 response). Produce warning header and logs for
+                    // any unused fields.
+                    let result = body.into_raw().await;
+                    match result {
+                            Ok(body) => {
+                                let mut unused_elements = Vec::new();
+                                let param_log_post_request: Option<models::LogPostRequest> = if !body.is_empty() {
+                                    let deserializer = &mut serde_json::Deserializer::from_slice(&*body);
+                                    match serde_ignored::deserialize(deserializer, |path| {
+                                            warn!("Ignoring unknown field in body: {}", path);
+                                            unused_elements.push(path.to_string());
+                                    }) {
+                                        Ok(param_log_post_request) => param_log_post_request,
+                                        Err(e) => return Ok(Response::builder()
+                                                        .status(StatusCode::BAD_REQUEST)
+                                                        .body(Body::from(format!("Couldn't parse body parameter LogPostRequest - doesn't match schema: {}", e)))
+                                                        .expect("Unable to create Bad Request response for invalid body parameter LogPostRequest due to schema")),
+                                    }
+                                } else {
+                                    None
+                                };
+                                let param_log_post_request = match param_log_post_request {
+                                    Some(param_log_post_request) => param_log_post_request,
+                                    None => return Ok(Response::builder()
+                                                        .status(StatusCode::BAD_REQUEST)
+                                                        .body(Body::from("Missing required body parameter LogPostRequest"))
+                                                        .expect("Unable to create Bad Request response for missing body parameter LogPostRequest")),
+                                };
+
+                                let result = api_impl.log_post(
+                                            param_log_post_request,
+                                        &context
+                                    ).await;
+                                let mut response = Response::new(Body::empty());
+                                response.headers_mut().insert(
+                                            HeaderName::from_static("x-span-id"),
+                                            HeaderValue::from_str((&context as &dyn Has<XSpanIdString>).get().0.clone().as_str())
+                                                .expect("Unable to create X-Span-ID header value"));
+
+                                        if !unused_elements.is_empty() {
+                                            response.headers_mut().insert(
+                                                HeaderName::from_static("warning"),
+                                                HeaderValue::from_str(format!("Ignoring unknown fields in body: {:?}", unused_elements).as_str())
+                                                    .expect("Unable to create Warning header value"));
+                                        }
+
+                                        match result {
+                                            Ok(rsp) => match rsp {
+                                                LogPostResponse::SendLog
+                                                    (body)
+                                                => {
+                                                    *response.status_mut() = StatusCode::from_u16(200).expect("Unable to turn 200 into a StatusCode");
+                                                    response.headers_mut().insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json")
+                                                            .expect("Unable to create Content-Type header for LOG_POST_SEND_LOG"));
+                                                    let body = serde_json::to_string(&body).expect("impossible to fail to serialize");
+                                                    *response.body_mut() = Body::from(body);
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+                                                *response.body_mut() = Body::from("An internal error occurred");
+                                            },
+                                        }
+
+                                        Ok(response)
+                            },
+                            Err(e) => Ok(Response::builder()
+                                                .status(StatusCode::BAD_REQUEST)
+                                                .body(Body::from(format!("Couldn't read body parameter LogPostRequest: {}", e)))
+                                                .expect("Unable to create Bad Request response due to unable to read body parameter LogPostRequest")),
+                        }
+                }
+
                 // StartPost - POST /start
                 hyper::Method::POST if path.matched(paths::ID_START) => {
                     let boundary =
@@ -227,7 +308,7 @@ where
                                     Some(field) => {
                                         let mut reader = field[0].data.readable().expect("Unable to read field for program_data_buf");
                                     Some({
-                                        let mut data = String::default();
+                                        let mut data = String::new();
                                         reader.read_to_string(&mut data).expect("Reading saved String should never fail");
                                         let program_data_buf_model: swagger::ByteArray = match serde_json::from_str(&data) {
                                             Ok(model) => model,
@@ -251,7 +332,7 @@ where
                                     Some(field) => {
                                         let mut reader = field[0].data.readable().expect("Unable to read field for program_type");
                                     Some({
-                                        let mut data = String::default();
+                                        let mut data = String::new();
                                         reader.read_to_string(&mut data).expect("Reading saved String should never fail");
                                         let program_type_model: String = match serde_json::from_str(&data) {
                                             Ok(model) => model,
@@ -270,12 +351,36 @@ where
                                             None
                                     }
                                 };
+                                let field_program_name = entries.fields.remove("program_name");
+                                let param_program_name = match field_program_name {
+                                    Some(field) => {
+                                        let mut reader = field[0].data.readable().expect("Unable to read field for program_name");
+                                    Some({
+                                        let mut data = String::new();
+                                        reader.read_to_string(&mut data).expect("Reading saved String should never fail");
+                                        let program_name_model: String = match serde_json::from_str(&data) {
+                                            Ok(model) => model,
+                                            Err(e) => {
+                                                return Ok(
+                                                    Response::builder()
+                                                    .status(StatusCode::BAD_REQUEST)
+                                                    .body(Body::from(format!("program_name data does not match API definition : {}", e)))
+                                                    .expect("Unable to create Bad Request due to missing required form parameter program_name"))
+                                            }
+                                        };
+                                        program_name_model
+                                    })
+                                    },
+                                    None => {
+                                            None
+                                    }
+                                };
                                 let field_btf_data = entries.fields.remove("btf_data");
                                 let param_btf_data = match field_btf_data {
                                     Some(field) => {
                                         let mut reader = field[0].data.readable().expect("Unable to read field for btf_data");
                                     Some({
-                                        let mut data = String::default();
+                                        let mut data = String::new();
                                         reader.read_to_string(&mut data).expect("Reading saved String should never fail");
                                         let btf_data_model: swagger::ByteArray = match serde_json::from_str(&data) {
                                             Ok(model) => model,
@@ -299,7 +404,7 @@ where
                                     Some(field) => {
                                         let mut reader = field[0].data.readable().expect("Unable to read field for extra_params");
                                     Some({
-                                        let mut data = String::default();
+                                        let mut data = String::new();
                                         reader.read_to_string(&mut data).expect("Reading saved String should never fail");
                                         let extra_params_model: Vec<String> = match serde_json::from_str(&data) {
                                             Ok(model) => model,
@@ -321,6 +426,7 @@ where
                                 let result = api_impl.start_post(
                                             param_program_data_buf,
                                             param_program_type,
+                                            param_program_name,
                                             param_btf_data,
                                             param_extra_params.as_ref(),
                                         &context
@@ -443,6 +549,7 @@ where
                 }
 
                 _ if path.matched(paths::ID_LIST) => method_not_allowed(),
+                _ if path.matched(paths::ID_LOG) => method_not_allowed(),
                 _ if path.matched(paths::ID_START) => method_not_allowed(),
                 _ if path.matched(paths::ID_STOP) => method_not_allowed(),
                 _ => Ok(Response::builder()
@@ -463,6 +570,8 @@ impl<T> RequestParser<T> for ApiRequestParser {
         match *request.method() {
             // ListGet - GET /list
             hyper::Method::GET if path.matched(paths::ID_LIST) => Some("ListGet"),
+            // LogPost - POST /log
+            hyper::Method::POST if path.matched(paths::ID_LOG) => Some("LogPost"),
             // StartPost - POST /start
             hyper::Method::POST if path.matched(paths::ID_START) => Some("StartPost"),
             // StopPost - POST /stop

@@ -53,6 +53,23 @@ paths:
                 $ref: '#/components/schemas/_stop_post_200_response'
           description: Status of stopping the task
       summary: Stop a task by id or name
+  /log:
+    post:
+      description: get log from server
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/_log_post_request'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_log_post_200_response'
+          description: send log
+      summary: get log
 components:
   schemas:
     _list_get_200_response:
@@ -77,6 +94,7 @@ components:
         id: 0
       properties:
         id:
+          format: unit64
           type: integer
         name:
           type: string
@@ -88,12 +106,20 @@ components:
         status:
           type: string
       type: object
+    _log_post_request:
+      properties:
+        id:
+          format: unit64
+          type: integer
+      type: object
     _start_post_request:
       properties:
         program_data_buf:
           format: binary
           type: string
         program_type:
+          type: string
+        program_name:
           type: string
         btf_data:
           format: binary
@@ -102,5 +128,17 @@ components:
           items:
             type: string
           type: array
+      type: object
+    _log_post_200_response:
+      example:
+        stdout: stdout
+        stderr: stderr
+      properties:
+        stdout:
+          description: stdout
+          type: string
+        stderr:
+          description: stderr
+          type: string
       type: object
 

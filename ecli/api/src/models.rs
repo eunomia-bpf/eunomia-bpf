@@ -302,6 +302,289 @@ impl std::convert::TryFrom<hyper::header::HeaderValue>
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct LogPost200Response {
+    /// stdout
+    #[serde(rename = "stdout")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stdout: Option<String>,
+
+    /// stderr
+    #[serde(rename = "stderr")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stderr: Option<String>,
+}
+
+impl LogPost200Response {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> LogPost200Response {
+        LogPost200Response {
+            stdout: None,
+            stderr: None,
+        }
+    }
+}
+
+/// Converts the LogPost200Response value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::string::ToString for LogPost200Response {
+    fn to_string(&self) -> String {
+        let params: Vec<Option<String>> = vec![
+            self.stdout
+                .as_ref()
+                .map(|stdout| vec!["stdout".to_string(), stdout.to_string()].join(",")),
+            self.stderr
+                .as_ref()
+                .map(|stderr| vec!["stderr".to_string(), stderr.to_string()].join(",")),
+        ];
+
+        params.into_iter().flatten().collect::<Vec<_>>().join(",")
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a LogPost200Response value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for LogPost200Response {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub stdout: Vec<String>,
+            pub stderr: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing LogPost200Response".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "stdout" => intermediate_rep.stdout.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "stderr" => intermediate_rep.stderr.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing LogPost200Response".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(LogPost200Response {
+            stdout: intermediate_rep.stdout.into_iter().next(),
+            stderr: intermediate_rep.stderr.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<LogPost200Response> and hyper::header::HeaderValue
+
+#[cfg(any(feature = "client", feature = "server"))]
+impl std::convert::TryFrom<header::IntoHeaderValue<LogPost200Response>>
+    for hyper::header::HeaderValue
+{
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<LogPost200Response>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match hyper::header::HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for LogPost200Response - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(any(feature = "client", feature = "server"))]
+impl std::convert::TryFrom<hyper::header::HeaderValue>
+    for header::IntoHeaderValue<LogPost200Response>
+{
+    type Error = String;
+
+    fn try_from(hdr_value: hyper::header::HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <LogPost200Response as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into LogPost200Response - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct LogPostRequest {
+    #[serde(rename = "id")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<i32>,
+}
+
+impl LogPostRequest {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> LogPostRequest {
+        LogPostRequest { id: None }
+    }
+}
+
+/// Converts the LogPostRequest value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::string::ToString for LogPostRequest {
+    fn to_string(&self) -> String {
+        let params: Vec<Option<String>> = vec![self
+            .id
+            .as_ref()
+            .map(|id| vec!["id".to_string(), id.to_string()].join(","))];
+
+        params.into_iter().flatten().collect::<Vec<_>>().join(",")
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a LogPostRequest value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for LogPostRequest {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub id: Vec<i32>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing LogPostRequest".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "id" => intermediate_rep.id.push(
+                        <i32 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing LogPostRequest".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(LogPostRequest {
+            id: intermediate_rep.id.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<LogPostRequest> and hyper::header::HeaderValue
+
+#[cfg(any(feature = "client", feature = "server"))]
+impl std::convert::TryFrom<header::IntoHeaderValue<LogPostRequest>> for hyper::header::HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<LogPostRequest>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match hyper::header::HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for LogPostRequest - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(any(feature = "client", feature = "server"))]
+impl std::convert::TryFrom<hyper::header::HeaderValue> for header::IntoHeaderValue<LogPostRequest> {
+    type Error = String;
+
+    fn try_from(hdr_value: hyper::header::HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <LogPostRequest as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into LogPostRequest - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct StopPost200Response {
     #[serde(rename = "status")]
     #[serde(skip_serializing_if = "Option::is_none")]

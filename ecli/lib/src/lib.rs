@@ -101,12 +101,11 @@ pub enum ClientSubCommand {
     #[clap(name = "log", about = "show log of running task with id")]
     Log(LogCommand),
 
-    #[clap(name = "pause", about = "pause running tasks with id")]
-    Pause(PauseCommand),
+    // #[clap(name = "pause", about = "pause running tasks with id")]
+    // Pause(PauseCommand),
 
-    #[clap(name = "resume", about = "resume paused tasks with id")]
-    Resume(ResumeCommand),
-
+    // #[clap(name = "resume", about = "resume paused tasks with id")]
+    // Resume(ResumeCommand),
     #[clap(name = "list", about = "list the ebpf programs running on endpoint")]
     List,
 }
@@ -143,8 +142,8 @@ macro_rules! gen_cmd {
 
 gen_cmd!(StopCommand);
 gen_cmd!(LogCommand);
-gen_cmd!(PauseCommand);
-gen_cmd!(ResumeCommand);
+// gen_cmd!(PauseCommand);
+// gen_cmd!(ResumeCommand);
 
 pub fn init_log() {
     let mut builder = Builder::from_default_env();
