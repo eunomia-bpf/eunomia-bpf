@@ -73,11 +73,3 @@ native-tls = "0.2"
 [target.'cfg(not(any(target_os = "macos", target_os = "windows", target_os = "ios")))'.dev-dependencies]
 tokio-openssl = "0.6"
 openssl = "0.10"
-
-[[example]]
-name = "client"
-required-features = ["client"]
-
-[[example]]
-name = "server"
-required-features = ["server"]

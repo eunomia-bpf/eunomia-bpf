@@ -9,11 +9,18 @@ mod json_runner;
 mod oci;
 mod runner;
 mod tar_reader;
-
-use runner::run;
 use signal_hook::{consts::SIGINT, iterator::Signals};
 use std::{process, thread};
-
+mod wasm_bpf_runner;
+use clap::{Parser, Subcommand};
+use env_logger::{Builder, Target};
+use error::EcliResult;
+use oci::{
+    auth::{login, logout},
+    pull, push,
+};
+// use runner::start_server;
+use runner::{client_action, run, start_server};
 /// ecli subcommands, including run, push, pull, login, logout.
 #[derive(Subcommand)]
 pub enum Action {
@@ -85,14 +92,14 @@ struct Args {
 #[derive(Parser)]
 pub struct ClientCmd {
     #[clap(subcommand)]
-    cmd: ClientSubCommand,
+    pub cmd: ClientSubCommand,
 
     #[clap(flatten)]
-    opts: ClientOpts,
+    pub opts: ClientOpts,
 }
 
 #[derive(Parser)]
-enum ClientSubCommand {
+pub enum ClientSubCommand {
     #[clap(name = "start", about = "start an ebpf programs on endpoint")]
     Start(StartCommand),
 
@@ -104,32 +111,32 @@ enum ClientSubCommand {
 }
 
 #[derive(Parser)]
-struct ClientOpts {
+pub struct ClientOpts {
     #[clap(short, long, help = "endpoint", default_value = "127.0.0.1")]
-    endpoint: String,
+    pub endpoint: String,
 
     #[clap(short, long, help = "enpoint port", default_value = "8527")]
-    port: u16,
+    pub port: u16,
 
     #[clap(short, long, help = "transport with https", default_value = "false")]
-    secure: bool,
+    pub secure: bool,
 }
 
 #[derive(Parser)]
-struct StartCommand {
+pub struct StartCommand {
     #[clap(required = true)]
-    prog: Vec<String>,
+    pub prog: Vec<String>,
     #[clap(long)]
-    extra_args: Option<Vec<String>>,
+    pub extra_args: Option<Vec<String>>,
 }
 
 #[derive(Parser)]
-struct StopCommand {
+pub struct StopCommand {
     #[clap(required = true)]
-    id: Vec<i32>,
+    pub id: Vec<i32>,
 }
 
-fn init_log() {
+pub fn init_log() {
     let mut builder = Builder::from_default_env();
     builder.target(Target::Stdout);
     builder.init();

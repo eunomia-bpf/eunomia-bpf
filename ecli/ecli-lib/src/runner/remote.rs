@@ -1,7 +1,9 @@
-use crate::config::*;
-use crate::error::{EcliError, EcliResult};
-use crate::json_runner::json::handle_json;
-use crate::wasm_bpf_runner::wasm::handle_wasm;
+use crate::{
+    config::*,
+    error::{EcliError, EcliResult},
+    json_runner::handle_json,
+    wasm_bpf_runner::wasm::handle_wasm,
+};
 use async_trait::async_trait;
 use eunomia_rs::TempDir;
 use hyper::server::conn::Http;
@@ -15,7 +17,7 @@ use std::marker::PhantomData;
 use swagger::auth::MakeAllowAllAuthenticator;
 use swagger::ApiError;
 pub use swagger::{AuthData, ContextBuilder, EmptyContext, Has, Push, XSpanIdString};
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, sync::oneshot::Receiver};
 
 #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "ios")))]
 use openssl::ssl::{Ssl, SslAcceptor, SslFiletype, SslMethod};
@@ -28,7 +30,7 @@ pub type ClientContext = swagger::make_context_ty!(
 );
 
 /// Builds an SSL implementation for Simple HTTPS from some hard-coded file names
-pub async fn create(addr: &str, https: bool) {
+pub async fn create(addr: String, https: bool, shutdown_rx: Receiver<()>) {
     let addr = addr.parse().expect("Failed to parse bind address");
 
     let server = Server::new();
@@ -68,6 +70,7 @@ pub async fn create(addr: &str, https: bool) {
                         let tls = tokio_openssl::SslStream::new(ssl, tcp).map_err(|_| ())?;
                         let service = service.await.map_err(|_| ())?;
 
+                        // TODO: shutdown of https server
                         Http::new()
                             .serve_connection(tls, service)
                             .await
@@ -80,6 +83,9 @@ pub async fn create(addr: &str, https: bool) {
         // Using HTTP
         hyper::server::Server::bind(&addr)
             .serve(service)
+            .with_graceful_shutdown(async {
+                shutdown_rx.await.ok();
+            })
             .await
             .unwrap()
     }
