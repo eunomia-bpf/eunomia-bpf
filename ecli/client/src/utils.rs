@@ -18,8 +18,8 @@ impl TryFrom<Action> for RunArgs {
             return Err(EcliError::ParamErr("prog not present".to_string()));
         }
         Ok(Self {
-            no_cache: no_cache.unwrap_or_default(),
-            export_to_json: json.unwrap_or_default(),
+            no_cache,
+            export_to_json: json,
             file: prog.remove(0),
             extra_arg: prog,
             prog_type: ProgramType::Undefine,

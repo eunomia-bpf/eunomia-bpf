@@ -19,13 +19,18 @@ struct Args {
     action: Action,
 }
 
+/// ecli subcommands, including run, push, pull, login, logout.
 #[derive(Subcommand)]
 pub enum Action {
+    /// run ebpf program
     Run {
-        #[arg(long, short = 'n')]
-        no_cache: Option<bool>,
-        #[arg(long, short = 'j')]
-        json: Option<bool>,
+        /// run without cache
+        #[arg(long, short = 'n', default_value_t = false)]
+        no_cache: bool,
+        /// json output format
+        #[arg(long, short = 'j', default_value_t = false)]
+        json: bool,
+        /// program path or url
         #[arg(allow_hyphen_values = true)]
         prog: Vec<String>,
     },
@@ -33,26 +38,34 @@ pub enum Action {
     #[clap(name = "client", about = "Client operations")]
     Client(ClientCmd),
 
+    /// push wasm or oci image to registry
     Push {
+        /// wasm module path
         #[arg(long, short, default_value_t = ("app.wasm").to_string())]
         module: String,
+        /// oci image path
         #[arg()]
         image: String,
     },
 
+    /// pull oci image from registry
     Pull {
+        /// wasm module url
         #[arg(short, long, default_value_t = ("app.wasm").to_string())]
         output: String,
+        /// oci image url
         #[arg()]
         image: String,
     },
-
+    /// login to oci registry
     Login {
+        /// oci login url
         #[arg()]
         url: String,
     },
-
+    /// logout from registry
     Logout {
+        /// oci logout url
         #[arg()]
         url: String,
     },

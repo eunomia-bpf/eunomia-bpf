@@ -28,9 +28,8 @@ pub async fn create(dst: crate::runner::Dst) -> std::io::Result<()> {
     let state = AppState::new();
 
     HttpServer::new(move || {
-        // move counter into the closure
         App::new()
-            .app_data(web::Data::from(Arc::clone(&state))) // <- register the created data
+            .app_data(web::Data::from(Arc::clone(&state)))
             .service(list_get)
             .service(start_post)
             .service(stop_post)
@@ -45,9 +44,7 @@ pub async fn create(dst: crate::runner::Dst) -> std::io::Result<()> {
 /// Get list of running tasks
 #[get("/list")]
 async fn list_get(data: web::Data<AppState>) -> Result<impl Responder> {
-    // let context = context.clone();
     info!("Recieved List request");
-    // info!("list_get() - X-Span-ID: {:?}", context.get().0.clone());
 
     let server_data = data.get_lock();
 
@@ -104,7 +101,7 @@ async fn start_post(
     ))
 }
 
-/// Stop a task by id or name
+/// Stop a task by id
 #[post("/stop")]
 async fn stop_post(
     data: web::Data<AppState>,

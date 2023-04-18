@@ -17,11 +17,6 @@ use env_logger::{Builder, Target};
 
 pub use signal_hook::{consts::SIGINT, iterator::Signals};
 
-#[allow(dead_code)]
-#[allow(non_upper_case_globals)]
-#[allow(non_camel_case_types)]
-pub mod eunomia_bpf;
-
 /// ecli subcommands, including run, push, pull, login, logout.
 #[derive(Subcommand)]
 pub enum Action {

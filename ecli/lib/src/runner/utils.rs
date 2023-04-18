@@ -161,6 +161,7 @@ impl ServerData {
         }
     }
 
+    /// follow the log update
     pub fn get_log_follow(&self, id: &usize) -> Option<(String, String)> {
         let LogMsg {
             mut stdout,
@@ -183,6 +184,7 @@ impl ServerData {
         self.prog_info.get(id).map(|v| v.1.clone())
     }
 
+    /// get `LogMsg` struct
     pub fn get_prog_log(&self, id: &usize) -> LogMsg {
         match self.get_type_of(id).unwrap() {
             ProgramType::WasmModule => self.wasm_tasks.get(id).unwrap().log_msg.clone(),
@@ -211,14 +213,7 @@ impl ServerData {
 
         match prog_type {
             ProgramType::JsonEunomia => {
-                // let task = self.json_tasks.remove(&id);
-                // if let Some(t) = task {
-                //     if t.stop().await.is_ok() {
-                //         return Ok(StopPostResponse::gen_rsp(
-                //             format!("{} terminated", &prog_name).as_str(),
-                //         ));
-                //     };
-                // }
+                // TODO: Json program Stop
                 return Ok(StopPostResponse::gen_rsp("fail to terminate"));
             }
             ProgramType::WasmModule => {
@@ -259,6 +254,7 @@ impl WasmModuleProgram {
     }
 }
 
+// TODO: Json program start & stop
 #[derive(Clone)]
 pub struct JsonEunomiaProgram {
     _ptr: Arc<Mutex<usize>>,
@@ -291,10 +287,8 @@ impl LogMsgInner {
 }
 
 pub trait LogHandle {
-    /// get all log msg
     fn read_log_all(&self) -> Result<String, std::string::FromUtf8Error>;
 
-    /// follow the log
     fn follow_log(&mut self) -> String;
 }
 

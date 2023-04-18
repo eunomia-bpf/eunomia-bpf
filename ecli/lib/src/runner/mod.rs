@@ -11,7 +11,6 @@ use std::{
 };
 pub mod models;
 pub mod response;
-// pub mod ws_log;
 use log::{debug, info};
 use response::LogPostResponse;
 use serde_json::json;
@@ -290,10 +289,14 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
 
             info!("{:?}", &rsp);
 
-            let rsp_json_text = rsp.unwrap().text().await.unwrap();
+            let rsp_json_text = rsp
+                .unwrap()
+                .text()
+                .await
+                .expect("parse text from respond fail");
 
             let StartPostResponse::ListOfRunningTasks(rsp_msg) =
-                serde_json::from_str(rsp_json_text.as_str()).expect("parse resp body fail");
+                serde_json::from_str(rsp_json_text.as_str()).expect("parse resp body to json fail");
 
             println!("{}", json!(rsp_msg));
 
@@ -321,7 +324,8 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
                 let rsp_json_text = rsp.unwrap().text().await.unwrap();
 
                 let StopPostResponse::StatusOfStoppingTheTask(rsp_msg) =
-                    serde_json::from_str(rsp_json_text.as_str()).expect("parse response body fail");
+                    serde_json::from_str(rsp_json_text.as_str())
+                        .expect("parse response body to json fail");
 
                 println!("{}", json!(rsp_msg));
             }
@@ -333,7 +337,7 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
             url.push_str("/log");
 
             let req_body = LogPostRequest {
-                id: Some(id.get(0).unwrap().clone()),
+                id: Some(*id.get(0).unwrap()),
                 follow,
             };
 
@@ -351,7 +355,7 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
                     let rsp_json_text = rsp.unwrap().text().await.unwrap();
                     let LogPostResponse::SendLog(LogPost200Response { stdout, stderr }) =
                         serde_json::from_str(rsp_json_text.as_str())
-                            .expect("parse response body fail");
+                            .expect("parse response body to json fail");
 
                     if let Some(s) = stdout {
                         if !s.is_empty() {

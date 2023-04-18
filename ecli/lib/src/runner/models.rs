@@ -1,3 +1,8 @@
+//!  SPDX-License-Identifier: MIT
+//!
+//! Copyright (c) 2023, eunomia-bpf
+//! All rights reserved.
+//!
 #![allow(unused_qualifications)]
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
