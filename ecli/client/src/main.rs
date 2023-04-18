@@ -4,9 +4,14 @@
 //! All rights reserved.
 //!
 use clap::{Parser, Subcommand};
+use signal_hook::{consts::SIGINT, iterator::Signals};
+use std::{process, thread};
 
 mod utils;
 
+pub use clap::{Parser, Subcommand};
+pub use env_logger::{Builder, Target};
+pub use error::EcliResult;
 use lib::{
     error::*,
     init_log,
@@ -17,14 +22,17 @@ use lib::{
     runner::{client_action, run},
     ClientCmd, Signals, SIGINT,
 };
+pub use oci::{
+    auth::{login, logout},
+    pull, push,
+};
+use runner::run;
+pub use runner::RemoteArgs;
+use runner::{client_action, run, start_server};
+pub use signal_hook::{consts::SIGINT, iterator::Signals};
 use std::process;
 use std::thread;
-
-#[derive(Parser)]
-struct Args {
-    #[command(subcommand)]
-    action: Action,
-}
+pub use std::{process, thread};
 
 /// ecli subcommands, including run, push, pull, login, logout.
 #[derive(Subcommand)]
@@ -73,6 +81,85 @@ pub enum Action {
         #[arg()]
         url: String,
     },
+}
+fn init_log() {
+    let mut builder = Builder::from_default_env();
+    builder.target(Target::Stdout);
+    builder.init();
+}
+
+#[derive(Parser)]
+pub struct ClientCmd {
+    #[clap(subcommand)]
+    pub cmd: ClientSubCommand,
+
+    #[clap(flatten)]
+    pub opts: ClientOpts,
+}
+
+#[derive(Parser)]
+pub enum ClientSubCommand {
+    #[clap(name = "start", about = "start an ebpf programs on endpoint")]
+    Start(StartCommand),
+
+    #[clap(name = "stop", about = "stop running tasks on endpoint with id")]
+    Stop(StopCommand),
+
+    #[clap(name = "list", about = "list the ebpf programs running on endpoint")]
+    List,
+}
+
+#[derive(Parser)]
+pub struct ClientOpts {
+    #[clap(short, long, help = "endpoint", default_value = "127.0.0.1")]
+    pub endpoint: String,
+
+    #[clap(short, long, help = "enpoint port", default_value = "8527")]
+    pub port: u16,
+
+    #[clap(short, long, help = "transport with https", default_value = "false")]
+    pub secure: bool,
+}
+
+#[derive(Parser)]
+pub struct StartCommand {
+    #[clap(required = true)]
+    pub prog: Vec<String>,
+    #[clap(long)]
+    pub extra_args: Option<Vec<String>>,
+}
+
+#[derive(Parser)]
+pub struct StopCommand {
+    #[clap(required = true)]
+    pub id: Vec<i32>,
+}
+
+pub fn init_log() {
+    let mut builder = Builder::from_default_env();
+    builder.target(Target::Stdout);
+    builder.init();
+}
+use clap::{Parser, Subcommand};
+mod utils;
+
+use lib::{
+    error::*,
+    init_log,
+    oci::{
+        auth::{login, logout},
+        pull, push,
+    },
+    process,
+    runner::{client_action, run},
+    ClientCmd, {Signals, SIGINT},
+};
+use std::thread;
+
+#[derive(Parser)]
+struct Args {
+    #[command(subcommand)]
+    action: Action,
 }
 
 #[tokio::main]

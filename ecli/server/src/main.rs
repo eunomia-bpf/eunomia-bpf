@@ -9,6 +9,15 @@ mod utils;
 use lib::{error::*, init_log, runner::start_server, Signals, SIGINT};
 use std::{process, thread};
 
+use lib::{
+    error::*,
+    init_log, process,
+    runner::start_server,
+    {Signals, SIGINT},
+};
+use std::thread;
+use std::thread;
+
 #[derive(Parser)]
 struct Args {
     #[arg(short, long)]

@@ -77,6 +77,7 @@ impl ProgramConfigData {
             extra_arg: args.extra_arg,
             btf_path: btf_dir_path,
             prog_type: args.prog_type,
+            prog_type: args.prog_type.clone(),
             export_format_type: if args.export_to_json {
                 ExportFormatType::Json
             } else {
