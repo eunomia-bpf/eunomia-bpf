@@ -3,25 +3,20 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use std::time::Instant;
-
-use actix_web::{get, post, HttpRequest};
+use actix_web::{get, post};
 use actix_web::{web, App, HttpServer, Responder, Result};
 
 use crate::config::*;
 use crate::runner::models::{ListGet200ResponseTasksInner, LogPostRequest};
 use crate::runner::response::*;
 use crate::runner::utils::*;
-use actix_web::error::ErrorBadRequest;
-use actix_web::{get, post};
-use actix_web::{web, App, HttpServer, Responder, Result};
 use log::info;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 pub struct AppState(Mutex<ServerData>);
 
 impl AppState {
-    fn new() -> Arc<Self> {
+    pub fn new() -> Arc<Self> {
         Arc::new(Self(Mutex::new(ServerData::new())))
     }
     fn get_lock(&self) -> MutexGuard<ServerData> {
@@ -29,7 +24,7 @@ impl AppState {
     }
 }
 
-pub async fn create(dst: crate::runner::Dst, _https: bool) -> std::io::Result<()> {
+pub async fn create(dst: crate::runner::Dst) -> std::io::Result<()> {
     let state = AppState::new();
 
     HttpServer::new(move || {

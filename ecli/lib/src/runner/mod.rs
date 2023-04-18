@@ -22,7 +22,7 @@ pub use crate::ClientSubCommand;
 use crate::{
     config::{ProgramConfigData, ProgramType},
     error::{EcliError, EcliResult},
-    json_runner::json::handle_json,
+    json_runner::handle_json,
     oci::{default_schema_port, parse_img_url, wasm_pull},
     runner::response::{ListGetResponse, StartPostResponse, StopPostResponse},
     wasm_bpf_runner::wasm::handle_wasm,
@@ -168,7 +168,6 @@ pub struct ClientArgs {
     pub addr: String,
     pub port: u16,
     pub follow: bool,
-    pub secure: bool,
     pub run_args: RunArgs,
 }
 
@@ -210,15 +209,12 @@ impl Dst {
 }
 
 pub async fn start_server(args: RemoteArgs) -> EcliResult<()> {
-    if let Action::Server {
-        port, addr, secure, ..
-    } = args.server.unwrap()
-    {
+    if let Action::Server { port, addr, .. } = args.server.unwrap() {
         let dst: Dst = Dst(addr, port);
 
         println!("Server start at {}", dst.to_string());
 
-        let _ = server::create(dst, secure).await;
+        let _ = server::create(dst).await;
     }
     Ok(())
 }
@@ -234,24 +230,12 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
         addr,
         port,
         follow,
-        secure,
         run_args,
     } = args.client.unwrap();
 
     let client = Client::new();
 
-    if secure {
-        return Err(EcliError::Other(format!(
-            "Transport with https not implement yet!"
-        )));
-    }
-
-    let url = format!(
-        "{}://{}:{}",
-        if secure { "https" } else { "http" },
-        addr,
-        port
-    );
+    let url = format!("http://{}:{}", addr, port);
 
     match action_type {
         ClientActions::List => {

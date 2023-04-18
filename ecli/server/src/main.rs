@@ -6,24 +6,19 @@
 use clap::Parser;
 mod utils;
 
-use lib::{error::*, init_log, runner::start_server, Signals, SIGINT};
 use std::{process, thread};
 
 use lib::{
     error::*,
-    init_log, process,
+    init_log,
     runner::start_server,
     {Signals, SIGINT},
 };
-use std::thread;
-use std::thread;
 
 #[derive(Parser)]
 struct Args {
     #[arg(short, long)]
     config: Option<String>,
-    // #[arg(short, long, default_value = "false")]
-    // secure: bool,
     #[clap(short, long, help = "server port", default_value = "8527")]
     port: u16,
     #[arg(short, long, default_value = "127.0.0.1")]

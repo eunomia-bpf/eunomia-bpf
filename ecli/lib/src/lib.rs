@@ -42,8 +42,6 @@ pub enum Action {
     Server {
         #[arg(short, long)]
         config: Option<String>,
-        #[arg(short, long, default_value = "false")]
-        secure: bool,
         #[clap(short, long, help = "server port", default_value = "8527")]
         port: u16,
         #[arg(short, long, default_value = "127.0.0.1")]
@@ -171,32 +169,4 @@ pub fn init_log() {
     let mut builder = Builder::from_default_env();
     builder.target(Target::Stdout);
     builder.init();
-}
-
-#[tokio::main]
-async fn main() -> EcliResult<()> {
-    let signals = Signals::new([SIGINT]);
-    thread::spawn(move || match signals {
-        Ok(mut signals_info) => {
-            for sig in signals_info.forever() {
-                println!("Received signal {:?}", sig);
-                process::exit(0);
-            }
-            println!("Got signals info: {:?}", signals_info);
-        }
-        Err(error) => {
-            eprintln!("Error getting signals info: {}", error);
-        }
-    });
-    init_log();
-    let args = Args::parse();
-    match args.action {
-        Action::Run { .. } => run(args.action.try_into()?).await,
-        Action::Push { .. } => push(args.action.try_into()?).await,
-        Action::Pull { .. } => pull(args.action.try_into()?).await,
-        Action::Login { url } => login(url).await,
-        Action::Logout { url } => logout(url),
-        Action::Client(..) => client_action(args.action.try_into()?).await,
-        Action::Server { .. } => start_server(args.action.try_into()?).await,
-    }
 }

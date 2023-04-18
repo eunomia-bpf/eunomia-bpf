@@ -8,15 +8,6 @@ use crate::config::ExportFormatType;
 use crate::config::ProgramConfigData;
 use crate::config::ProgramType;
 use crate::error::EcliError;
-use crate::runner::models::ListGet200Response;
-use crate::runner::models::ListGet200ResponseTasksInner;
-use crate::runner::models::LogPost200Response;
-use crate::runner::models::StopPost200Response;
-use crate::runner::EcliResult;
-use crate::runner::ListGetResponse;
-use crate::runner::LogPostResponse;
-use crate::runner::StartPostResponse;
-use crate::runner::StopPostResponse;
 use crate::runner::{
     models::{
         ListGet200Response, ListGet200ResponseTasksInner, LogPost200Response, StopPost200Response,
@@ -31,10 +22,7 @@ use wasm_bpf_rs::{
     handle::WasmProgramHandle, pipe::ReadableWritePipe, run_wasm_bpf_module_async, Config,
 };
 
-use crate::eunomia_bpf::{destroy_eunomia_skel, eunomia_bpf};
-
 use std::{
-    ptr::NonNull,
     {collections::HashMap, fs::write},
     {io::Cursor, sync::Arc},
 };
@@ -49,34 +37,6 @@ pub struct ServerData {
     pub json_tasks: HashMap<usize, JsonEunomiaProgram>,
     pub prog_info: HashMap<usize, (String, ProgramType)>,
     pub global_count: Arc<AtomicUsize>,
-}
-
-struct EunomiaBpfPtr(NonNull<eunomia_bpf>);
-
-unsafe impl Send for EunomiaBpfPtr {}
-unsafe impl Sync for EunomiaBpfPtr {}
-
-impl Drop for EunomiaBpfPtr {
-    fn drop(&mut self) {
-        let _ = self.terminate();
-    }
-}
-
-impl EunomiaBpfPtr {
-    #[allow(unused)]
-    fn from_raw_ptr(p: *mut eunomia_bpf) -> Self {
-        let ptr = NonNull::<eunomia_bpf>::new(p).expect("ptr of `eunomia_bpf` is null!");
-        Self(ptr)
-    }
-
-    fn get_raw(&mut self) -> *mut eunomia_bpf {
-        NonNull::as_ptr(self.0)
-    }
-
-    fn terminate(&mut self) -> EcliResult<()> {
-        unsafe { destroy_eunomia_skel(self.get_raw()) }
-        Ok(())
-    }
 }
 
 pub trait ProgStart {
@@ -148,7 +108,7 @@ impl ProgStart for ServerData {
             program_data_buf: program_data_buf.unwrap().as_slice().to_owned(),
             extra_arg: extra_params.unwrap(),
             prog_type: ProgramType::JsonEunomia,
-            export_format_type: ExportFormatType::ExportPlantText,
+            export_format_type: ExportFormatType::PlainText,
         };
 
         self.global_count.fetch_add(1, SeqCst);
@@ -251,14 +211,14 @@ impl ServerData {
 
         match prog_type {
             ProgramType::JsonEunomia => {
-                let task = self.json_tasks.remove(&id);
-                if let Some(t) = task {
-                    if t.stop().await.is_ok() {
-                        return Ok(StopPostResponse::gen_rsp(
-                            format!("{} terminated", &prog_name).as_str(),
-                        ));
-                    };
-                }
+                // let task = self.json_tasks.remove(&id);
+                // if let Some(t) = task {
+                //     if t.stop().await.is_ok() {
+                //         return Ok(StopPostResponse::gen_rsp(
+                //             format!("{} terminated", &prog_name).as_str(),
+                //         ));
+                //     };
+                // }
                 return Ok(StopPostResponse::gen_rsp("fail to terminate"));
             }
             ProgramType::WasmModule => {
@@ -301,25 +261,10 @@ impl WasmModuleProgram {
 
 #[derive(Clone)]
 pub struct JsonEunomiaProgram {
-    ptr: Arc<Mutex<EunomiaBpfPtr>>,
+    _ptr: Arc<Mutex<usize>>,
 
     #[allow(dead_code)]
     log_msg: LogMsg,
-}
-
-impl JsonEunomiaProgram {
-    #[allow(unused)]
-    fn new(ptr: EunomiaBpfPtr, log_msg: LogMsg) -> Self {
-        Self {
-            ptr: Arc::new(Mutex::new(ptr)),
-            log_msg,
-        }
-    }
-    // TODO: ?
-
-    async fn stop(self) -> EcliResult<()> {
-        self.ptr.lock_owned().await.terminate()
-    }
 }
 
 #[derive(Clone)]

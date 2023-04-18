@@ -2,12 +2,13 @@
 name = "lib"
 version = "0.1.0"
 edition = "2021"
-build = "build.rs"
+# build = "build.rs"
 
 [dependencies]
 base64 = "0.21.0"
 clap = { version = "4.0.32", features = ["derive"] }
 eunomia-rs = {path = "../../eunomia-sdks/eunomia-rs"}
+bpf-loader-lib = { path = "../../bpf-loader-rs/bpf-loader-lib" }
 env_logger = "0.9.0"
 log = "0.4.17"
 rpassword = "7.2.0"
@@ -23,7 +24,6 @@ tar = "0.4"
 wasm-bpf-rs = "0.2.1"
 wasmtime-wasi = "5.0.0"
 
-# openapi_client = { path = "../api" }
 openssl = "0.10.45"
 tokio-openssl = "0.6.3"
 blake3 = "1.3.3"

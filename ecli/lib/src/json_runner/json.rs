@@ -3,14 +3,7 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-<<<<<<<< HEAD:ecli/lib/src/json_runner/json.rs
-|||||||| parent of 10743ce (chore: resolve conflict):ecli/src/json_runner/json.rs
-use std::ffi::CStr;
-========
 
-use std::ffi::CStr;
->>>>>>>> 10743ce (chore: resolve conflict):ecli/ecli-lib/src/json_runner/json.rs
-use std::ffi::CString;
 use std::os::raw::c_char;
 use std::os::raw::c_void;
 use std::ptr::null_mut;
@@ -18,39 +11,19 @@ use std::ptr::null_mut;
 use crate::config::ExportFormatType;
 use crate::config::ProgramConfigData;
 use crate::error::{EcliError, EcliResult};
+use std::ffi::CString;
 
-<<<<<<<< HEAD:ecli/lib/src/json_runner/json.rs
-use crate::eunomia_bpf::{
-    export_format_type_EXPORT_JSON, export_format_type_EXPORT_PLANT_TEXT,
-    load_and_attach_eunomia_skel, open_eunomia_skel_from_json_package_with_args,
-    wait_and_poll_events_to_handler,
-};
-|||||||| parent of 10743ce (chore: resolve conflict):ecli/src/json_runner/json.rs
-use super::eunomia_bpf::export_format_type_EXPORT_JSON;
-use super::eunomia_bpf::export_format_type_EXPORT_PLANT_TEXT;
-use super::eunomia_bpf::load_and_attach_eunomia_skel;
-use super::eunomia_bpf::open_eunomia_skel_from_json_package_with_args;
-use super::eunomia_bpf::wait_and_poll_events_to_handler;
-========
 use crate::eunomia_bpf;
-
 pub use eunomia_bpf::{
     export_format_type_EXPORT_JSON, export_format_type_EXPORT_PLANT_TEXT,
     load_and_attach_eunomia_skel, open_eunomia_skel_from_json_package_with_args,
     parse_args_to_json_config, wait_and_poll_events_to_handler,
 };
->>>>>>>> 10743ce (chore: resolve conflict):ecli/ecli-lib/src/json_runner/json.rs
 
 unsafe extern "C" fn handler(
     _ctx: *mut ::std::os::raw::c_void,
     event: *const ::std::os::raw::c_char,
-<<<<<<<< HEAD:ecli/lib/src/json_runner/json.rs
     size: crate::eunomia_bpf::size_t,
-|||||||| parent of 10743ce (chore: resolve conflict):ecli/src/json_runner/json.rs
-    _size: super::eunomia_bpf::size_t,
-========
-    _size: eunomia_bpf::size_t,
->>>>>>>> 10743ce (chore: resolve conflict):ecli/ecli-lib/src/json_runner/json.rs
 ) {
     println!(
         "{}",

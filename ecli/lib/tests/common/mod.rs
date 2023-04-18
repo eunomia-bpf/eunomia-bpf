@@ -8,11 +8,6 @@ pub const RETRY_MAX: u16 = 3;
 
 use crate::ADDRESS;
 
-pub async fn start_server() -> impl Future<Output = Result<(), std::io::Error>> {
-    let addr = "127.0.0.1".to_string();
-    lib::runner::server::create(lib::runner::Dst(addr, 8527), false)
-}
-
 pub fn is_port_open(address: &str) -> bool {
     if std::net::TcpStream::connect(address).is_ok() {
         return true;
@@ -40,8 +35,8 @@ pub mod client_tests {
                     ..Default::default()
                 },
                 addr: "127.0.0.1".to_string(),
+                follow: false,
                 port: 8527,
-                secure: false,
             }),
             server: None,
         };
@@ -56,9 +51,9 @@ pub mod client_tests {
                 run_args: RunArgs {
                     ..Default::default()
                 },
+                follow: false,
                 addr: "127.0.0.1".to_string(),
                 port: 8527,
-                secure: false,
             }),
             server: None,
         };
@@ -71,6 +66,7 @@ pub mod client_tests {
             client: Some(ClientArgs {
                 action_type: runner::ClientActions::Start,
                 id: vec![0],
+                follow: false,
                 run_args: RunArgs {
                     // test transport of file
                     file: "tests/test.json".to_string(),
@@ -79,7 +75,6 @@ pub mod client_tests {
                 },
                 addr: "127.0.0.1".to_string(),
                 port: 8527,
-                secure: false,
             }),
             server: None,
         };
@@ -91,6 +86,7 @@ pub mod client_tests {
             client: Some(ClientArgs {
                 action_type: runner::ClientActions::Start,
                 id: vec![0],
+                follow: false,
                 run_args: RunArgs {
                     // test transport of file
                     file: "tests/bootstrap.wasm".to_string(),
@@ -99,7 +95,6 @@ pub mod client_tests {
                 },
                 addr: "127.0.0.1".to_string(),
                 port: 8527,
-                secure: false,
             }),
             server: None,
         };
