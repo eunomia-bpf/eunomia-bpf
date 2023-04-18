@@ -6,16 +6,23 @@
 use crate::config::ExportFormatType;
 use crate::config::ProgramConfigData;
 use crate::config::ProgramType;
+use crate::error::EcliError;
+use crate::runner::models::ListGet200Response;
+use crate::runner::models::ListGet200ResponseTasksInner;
+use crate::runner::models::LogPost200Response;
+use crate::runner::models::StopPost200Response;
 use crate::runner::EcliResult;
+use crate::runner::ListGetResponse;
+use crate::runner::LogPostResponse;
+use crate::runner::StartPostResponse;
+use crate::runner::StopPostResponse;
+use crate::EcliResult;
+use actix_web::body::BoxBody;
+use actix_web::http::header::ContentType;
+use actix_web::HttpRequest;
+use actix_web::HttpResponse;
+use actix_web::Responder;
 use eunomia_rs::TempDir;
-use openapi_client::models::ListGet200Response;
-use openapi_client::models::ListGet200ResponseTasksInner;
-use openapi_client::models::LogPost200Response;
-use openapi_client::models::StopPost200Response;
-use openapi_client::ListGetResponse;
-use openapi_client::LogPostResponse;
-use openapi_client::StartPostResponse;
-use openapi_client::StopPostResponse;
 use swagger::ApiError;
 use wasm_bpf_rs::handle::WasmProgramHandle;
 use wasm_bpf_rs::pipe::ReadableWritePipe;
@@ -28,6 +35,8 @@ use std::ptr::NonNull;
 use std::{collections::HashMap, fs::write};
 use std::{io::Cursor, sync::Arc};
 use tokio::sync::Mutex;
+
+use super::server::StartReq;
 
 #[derive(Clone)]
 pub struct Server<C> {
@@ -97,22 +106,23 @@ impl<'a> StartupElements<'a> {
     }
 }
 pub trait ProgStart {
-    fn wasm_start(&mut self, startup_elem: StartupElements) -> Result<i32, ApiError>;
-    fn _json_start(&mut self, startup_elem: StartupElements) -> Result<i32, ApiError>;
+    fn wasm_start(&mut self, startup_elem: StartReq) -> Result<i32, EcliError>;
+    fn json_start(&mut self, startup_elem: StartReq) -> Result<i32, EcliError>;
     // fn json_start() -> ();
     fn tar_start(
         &mut self,
-        startup_elem: StartupElements,
+        startup_elem: StartReq,
         btf_data: Option<swagger::ByteArray>,
     ) -> Result<i32, ApiError>;
 }
 
 impl ProgStart for ServerData {
-    fn wasm_start(&mut self, startup_elem: StartupElements) -> Result<i32, ApiError> {
-        let StartupElements {
+    fn wasm_start(&mut self, startup_elem: StartReq) -> Result<i32, EcliError> {
+        let crate::runner::StartReq {
             program_name,
             program_data_buf,
             extra_params,
+            ..
         } = startup_elem;
 
         let id = self.global_count;
@@ -127,8 +137,12 @@ impl ProgStart for ServerData {
             Box::new(stderr.clone()),
         );
 
-        let (wasm_handle, _) =
-            run_wasm_bpf_module_async(&program_data_buf, &extra_params, config).unwrap();
+        let (wasm_handle, _) = run_wasm_bpf_module_async(
+            &program_data_buf.unwrap().as_slice(),
+            &extra_params.unwrap(),
+            config,
+        )
+        .unwrap();
 
         let wasm_log = LogMsg::new(stdout, stderr);
 
@@ -136,7 +150,7 @@ impl ProgStart for ServerData {
             .insert(id, WasmModuleProgram::new(wasm_handle, wasm_log));
 
         self.prog_info
-            .insert(id, (program_name, ProgramType::WasmModule));
+            .insert(id, (program_name.unwrap(), ProgramType::WasmModule));
 
         self.global_count += 1;
 
@@ -144,11 +158,12 @@ impl ProgStart for ServerData {
     }
 
     #[allow(unused)]
-    fn _json_start(&mut self, startup_elem: StartupElements) -> Result<i32, ApiError> {
-        let StartupElements {
+    fn json_start(&mut self, startup_elem: StartReq) -> Result<i32, EcliError> {
+        let StartReq {
             program_name,
             program_data_buf,
             extra_params,
+            ..
         } = startup_elem;
         let id = self.global_count;
 
@@ -156,8 +171,8 @@ impl ProgStart for ServerData {
             url: String::default(),
             use_cache: false,
             btf_path: None,
-            program_data_buf,
-            extra_arg: extra_params.clone(),
+            program_data_buf: program_data_buf.unwrap().as_slice().to_owned(),
+            extra_arg: extra_params.unwrap(),
             prog_type: ProgramType::JsonEunomia,
             export_format_type: ExportFormatType::ExportPlantText,
         };
@@ -177,13 +192,15 @@ impl ProgStart for ServerData {
     #[allow(unused)]
     fn tar_start(
         &mut self,
-        startup_elem: StartupElements,
+        startup_elem: StartReq,
         btf_data: Option<swagger::ByteArray>,
     ) -> Result<i32, ApiError> {
-        let StartupElements {
+        let StartReq {
             program_name,
             program_data_buf,
             extra_params,
+            btf_data,
+            ..
         } = startup_elem;
 
         let id = self.global_count;
@@ -237,7 +254,7 @@ impl ServerData {
         &mut self,
         id: i32,
         prog_info: (String, ProgramType),
-    ) -> Result<StopPostResponse, ApiError> {
+    ) -> Result<StopPostResponse, EcliError> {
         let (prog_name, prog_type) = prog_info;
 
         match prog_type {
@@ -247,12 +264,12 @@ impl ServerData {
                     .remove(&(id.checked_abs().unwrap() as usize));
                 if let Some(t) = task {
                     if t.stop().await.is_ok() {
-                        return StopPost200Response::gen_stop_resp(
+                        return Ok(StopPostResponse::gen_rsp(
                             format!("{} terminated", &prog_name).as_str(),
-                        );
+                        ));
                     };
                 }
-                return StopPost200Response::gen_stop_resp("fail to terminate");
+                return Ok(StopPostResponse::gen_rsp("fail to terminate"));
             }
             ProgramType::WasmModule => {
                 let task = self
@@ -264,13 +281,13 @@ impl ServerData {
 
                     if handler.terminate().is_ok() {
                         self.prog_info.remove(&(id.checked_abs().unwrap() as usize));
-                        return StopPost200Response::gen_stop_resp(
+                        return Ok(StopPostResponse::gen_rsp(
                             format!("{} terminated", &prog_name).as_str(),
-                        );
+                        ));
                     }
-                    return StopPost200Response::gen_stop_resp("fail to terminate");
+                    return Ok(StopPostResponse::gen_rsp("fail to terminate"));
                 } else {
-                    return Err(ApiError("WasmModule handler notfound".to_string()));
+                    return Err(EcliError::Other("WasmModule handler notfound".to_string()));
                 }
             }
             _ => unimplemented!(),
@@ -325,7 +342,7 @@ pub struct LogMsg {
     stderr: LogMsgInner,
 }
 
-macro_rules! log_method {
+macro_rules! impl_log_method {
     ($n: ident, $l:ident) => {
         impl LogMsg {
             pub fn $n(&mut self) -> String {
@@ -346,8 +363,8 @@ macro_rules! log_method {
     };
 }
 
-log_method!(get_stdout, stdout);
-log_method!(get_stderr, stderr);
+impl_log_method!(get_stdout, stdout);
+impl_log_method!(get_stderr, stderr);
 
 #[derive(Clone)]
 struct LogMsgInner {
@@ -383,18 +400,16 @@ impl<C> Server<C> {
     }
 }
 
-pub(crate) trait StopRsp {
-    fn gen_stop_resp(status: &str) -> Result<StopPostResponse, ApiError> {
-        Ok(StopPostResponse::StatusOfStoppingTheTask(
-            StopPost200Response {
-                status: Some(status.into()),
-            },
-        ))
+impl StopPostResponse {
+    pub fn gen_rsp(status: &str) -> StopPostResponse {
+        StopPostResponse::StatusOfStoppingTheTask(StopPost200Response {
+            status: Some(status.into()),
+        })
     }
 }
 
-pub(crate) trait StartRsp {
-    fn gen_start_resp(id: i32) -> StartPostResponse {
+impl StartPostResponse {
+    pub fn gen_rsp(id: i32) -> StartPostResponse {
         StartPostResponse::ListOfRunningTasks(ListGet200Response {
             status: Some("Ok".into()),
             tasks: Some(vec![ListGet200ResponseTasksInner {
@@ -404,29 +419,39 @@ pub(crate) trait StartRsp {
         })
     }
 }
-
-pub(crate) trait ListRsp {
-    fn gen_list_resp(tsks: Vec<ListGet200ResponseTasksInner>) -> Result<ListGetResponse, ApiError> {
-        Ok(ListGetResponse::ListOfRunningTasks(ListGet200Response {
+impl ListGetResponse {
+    pub fn gen_rsp(tsks: Vec<ListGet200ResponseTasksInner>) -> ListGetResponse {
+        ListGetResponse::ListOfRunningTasks(ListGet200Response {
             status: Some("Ok".into()),
             tasks: Some(tsks),
-        }))
+        })
     }
 }
 
-pub(crate) trait LogRsp {
-    fn gen_log_resp(
-        stdout: Option<String>,
-        stderr: Option<String>,
-    ) -> Result<LogPostResponse, ApiError> {
-        Ok(LogPostResponse::SendLog(LogPost200Response {
-            stdout,
-            stderr,
-        }))
+impl LogPostResponse {
+    pub fn gen_rsp(stdout: Option<String>, stderr: Option<String>) -> LogPostResponse {
+        LogPostResponse::SendLog(LogPost200Response { stdout, stderr })
     }
 }
 
-impl StartRsp for StartPostResponse {}
-impl StopRsp for StopPost200Response {}
-impl ListRsp for ListGetResponse {}
-impl LogRsp for LogPostResponse {}
+macro_rules! impl_responder {
+    ($n: ident) => {
+        impl Responder for $n {
+            type Body = BoxBody;
+
+            fn respond_to(self, _req: &HttpRequest) -> HttpResponse<Self::Body> {
+                let body = serde_json::to_string(&self).unwrap();
+
+                // Create response and set content type
+                HttpResponse::Ok()
+                    .content_type(ContentType::json())
+                    .body(body)
+            }
+        }
+    };
+}
+
+impl_responder!(StartPostResponse);
+impl_responder!(StopPostResponse);
+impl_responder!(ListGetResponse);
+impl_responder!(LogPostResponse);

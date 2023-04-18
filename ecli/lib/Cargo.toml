@@ -23,13 +23,14 @@ tar = "0.4"
 wasm-bpf-rs = "0.2.1"
 wasmtime-wasi = "5.0.0"
 
-openapi_client = { path = "../api" }
+# openapi_client = { path = "../api" }
 async-trait = "0.1.66"
 hyper = "0.14.25"
 futures = "0.3.26"
 openssl = "0.10.45"
 tokio-openssl = "0.6.3"
 blake3 = "1.3.3"
+actix-web = "4.3.1"
 
 [dev-dependencies]
 anyhow = "1.0.70"
