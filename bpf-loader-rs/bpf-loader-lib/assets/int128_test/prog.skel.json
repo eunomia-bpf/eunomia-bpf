@@ -1,0 +1,1 @@
+{"bpf_skel":{"data_sections":[{"name":".bss","variables":[{"name":"__eunomia_dummy_S_ptr","type":"struct S *"}]}],"maps":[{"ident":"bss","mmaped":true,"name":"prog_bpf.bss"}],"obj_name":"prog_bpf","progs":null},"eunomia_version":"0.3.2","export_types":[{"members":[{"name":"a","type":"__int128_t"},{"name":"b","type":"__uint128_t"}],"name":"S","size":32,"type_id":4}]}

@@ -104,9 +104,8 @@ pub(crate) fn dump_int(btf_int: &BtfInt, range: &[u8]) -> Result<Value> {
             (32, _) => json!(result as u32),
             (64, BtfIntEncoding::Signed) => json!(result as i64),
             (64, _) => json!(result as u64),
-            (128, BtfIntEncoding::Signed) => json!(result as i128),
-            #[allow(clippy::unnecessary_cast)]
-            (128, _) => json!(result as u128),
+            (128, BtfIntEncoding::Signed) => json!((result as i128).to_string()),
+            (128, _) => json!(result.to_string()),
             (a, _) => {
                 bail!("Unsupported integer length: {} in bits", a);
             }
@@ -243,6 +242,7 @@ mod tests {
     use crate::tests::{get_assets_dir, ExampleTestStruct};
     use btf::types::Btf;
     use object::ElfFile;
+    use serde::Deserialize;
 
     use super::dump_to_json;
 
@@ -257,5 +257,26 @@ mod tests {
         let out_json = dump_to_json(&btf, 2, &bin[..]).unwrap();
         let d: ExampleTestStruct = serde_json::from_value(out_json).unwrap();
         d.test_with_example_data();
+    }
+    #[test]
+    fn test_dump_to_json_with_i128() {
+        let assets_dir = get_assets_dir();
+        let elf = std::fs::read(assets_dir.join("int128_test").join("prog.bpf.o")).unwrap();
+        let mut bin = vec![];
+        bin.extend((-(1i128 << 90)).to_ne_bytes().into_iter());
+        bin.extend(((1u128 << 127) + 10).to_ne_bytes().into_iter());
+
+        let elf: ElfFile = ElfFile::parse(&elf[..]).unwrap();
+        let btf = Btf::load(&elf).unwrap();
+        // type_id = 4 is the struct we want
+        let out_json = dump_to_json(&btf, 4, &bin[..]).unwrap();
+        #[derive(Deserialize)]
+        struct S {
+            a: String,
+            b: String,
+        }
+        let de = serde_json::from_value::<S>(out_json).unwrap();
+        assert_eq!(de.a, "-1237940039285380274899124224");
+        assert_eq!(de.b, "170141183460469231731687303715884105738");
     }
 }
