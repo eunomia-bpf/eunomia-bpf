@@ -236,6 +236,14 @@ pub async fn client_action(args: RemoteArgs) -> EcliResult<()> {
 
     let url = format!("http://{}:{}", addr, port);
 
+    for n in id.clone().into_iter() {
+        if n.is_negative() {
+            return Err(EcliError::ParamErr(
+                "program id should be positive".to_string(),
+            ));
+        }
+    }
+
     match action_type {
         ClientActions::List => {
             let mut url = url.clone();

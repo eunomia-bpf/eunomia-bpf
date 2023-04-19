@@ -111,7 +111,11 @@ async fn stop_post(
     info!("Recieved stop command, but has not fully implemented");
     info!("stop with id: {:?}", &list_req.id);
 
-    let id = list_req.id.unwrap().checked_abs().unwrap() as usize;
+    let id = list_req
+        .id
+        .unwrap()
+        .checked_abs()
+        .expect("checked on client") as usize;
 
     let mut server_data = data.get_lock();
 
@@ -132,7 +136,11 @@ async fn log_post(
     data: web::Data<AppState>,
     log_req: web::Json<LogPostRequest>,
 ) -> Result<impl Responder> {
-    let id: usize = log_req.id.unwrap().checked_abs().unwrap() as usize;
+    let id: usize = log_req
+        .id
+        .unwrap()
+        .checked_abs()
+        .expect("checked on client") as usize;
     let follow = log_req.follow;
 
     let server_data = data.get_lock();
