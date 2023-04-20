@@ -26,7 +26,7 @@ use crate::error::{EcliError, EcliResult};
 
 use wasm::wasm_push;
 
-use self::wasm::{pull::PullArgs, push::PushArgs};
+pub use self::wasm::{pull::PullArgs, push::PushArgs};
 
 /// A helper function to get the default port for http or https
 pub fn default_schema_port(schema: &str) -> EcliResult<u16> {

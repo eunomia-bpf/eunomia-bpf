@@ -3,6 +3,8 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
+use std::str::FromStr;
+
 use crate::{
     error::{EcliError, EcliResult},
     runner::RunArgs,
@@ -12,6 +14,7 @@ use crate::{
 pub use bpf_loader_lib::export_event::ExportFormatType;
 
 /// The ProgramType
+#[derive(Clone, Debug, PartialEq)]
 pub enum ProgramType {
     /// Unknown
     Undefine,
@@ -38,6 +41,19 @@ impl TryFrom<&str> for ProgramType {
         }
     }
 }
+
+impl FromStr for ProgramType {
+    type Err = EcliError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "JsonEunomia" => Ok(ProgramType::JsonEunomia),
+            "Tar" => Ok(ProgramType::Tar),
+            "WasmModule" => Ok(ProgramType::WasmModule),
+            &_ => Err(EcliError::Other("fail parse program type str".to_string())),
+        }
+    }
+}
 /// Definition of a ebpf container or program to run
 pub struct ProgramConfigData {
     /// The program source, URL or local files
@@ -58,19 +74,19 @@ pub struct ProgramConfigData {
 
 impl ProgramConfigData {
     /// Load a program configuration
-    pub async fn async_try_from(args: &mut RunArgs) -> EcliResult<Self> {
+    pub async fn async_try_from(mut args: RunArgs) -> EcliResult<Self> {
         let _prog_buf = args.get_file_content().await?;
         let (prog_buf, btf_dir_path) = match args.prog_type {
             ProgramType::Tar => unpack_tar(args.get_file_content().await?.as_slice()),
             _ => (args.get_file_content().await?, None),
         };
         Ok(Self {
-            url: args.file.clone(),
+            url: args.file,
             use_cache: !args.no_cache,
             program_data_buf: prog_buf,
-            extra_arg: args.extra_arg.clone(),
+            extra_arg: args.extra_arg,
             btf_path: btf_dir_path,
-            prog_type: ProgramType::Undefine,
+            prog_type: args.prog_type,
             export_format_type: if args.export_to_json {
                 ExportFormatType::Json
             } else {

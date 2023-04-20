@@ -37,7 +37,7 @@ Packing ebpf object and config into package.json...
 Run:
 
 ```console
-$ sudo ecli  examples/bpftools/mdflush/package.json
+$ sudo ecli run examples/bpftools/mdflush/package.json
 TIME     PID     COMM    DISK
 03:13:49 16770  sync     md0
 03:14:08 16864  sync     md0

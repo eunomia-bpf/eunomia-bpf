@@ -54,5 +54,5 @@ Packing ebpf object and config into package.json...
 Run:
 
 ```console
-sudo ecli ./package.json
+sudo ecli run ./package.json
 ```

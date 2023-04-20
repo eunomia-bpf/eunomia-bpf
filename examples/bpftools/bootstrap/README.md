@@ -39,7 +39,7 @@ yourself started.
 Here's an example output in minimum process duration mode:
 
 ```console
-$ sudo ecli  examples/bpftools/bootstrap/package.json
+$ sudo ecli run examples/bpftools/bootstrap/package.json
 TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT  
 20:18:47  30428  2915    0          0            sh      /bin/sh   0
 20:18:47  30429  30428   0          0            which   /usr/bin/which 0

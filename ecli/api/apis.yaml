@@ -1,0 +1,192 @@
+openapi: 3.0.3
+info:
+  title: ecli API
+  description: APIs provided by ecli
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8527
+
+paths:
+  /list:
+    get:
+      summary: Get list of running tasks
+      responses:
+        '200':
+          description: List of running tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  tasks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          format: unit64
+                        name:
+                          type: string
+    description: Get list of running tasks
+  /start:
+    post:
+      summary: Start a new task
+      requestBody:
+        description: Task data
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                program_data_buf:
+                  type: string
+                  format: binary
+                program_type:
+                  type: string
+                program_name:
+                  type: string
+                btf_data:
+                  type: string
+                  format: binary
+                extra_params:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: List of running tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  tasks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          format: unit64
+                        name:
+                          type: string
+    description: Start a new task
+  /stop:
+    post:
+      summary: Stop a task by id or name
+      requestBody:
+        description: Task id or name
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  format: unit64
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Status of stopping the task
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+    description: Stop a task by id or name
+  /log:
+    post:
+      summary: get log
+      description: get log from server
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  format: unit64
+      responses:
+        '200':
+          description: send log
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stdout:
+                    type: string
+                    description: stdout
+                  stderr:
+                    type: string
+                    description: stderr
+
+  # /pause:
+  #   post:
+  #     summary: Pause a task by id or name
+  #     requestBody:
+  #       description: Task id or name
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             type: object
+  #             properties:
+  #               id:
+  #                 type: integer
+  #                 format: unit64
+  #               name:
+  #                 type: string
+  #     responses:
+  #       '200':
+  #         description: Status of pausing the task
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 status:
+  #                   type: string
+  #   description: Pause a task by id or name
+
+  # /resume:
+  #   post:
+  #     summary: Resume a task by id or name
+  #     requestBody:
+  #       description: Task id or name
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             type: object
+  #             properties:
+  #               id:
+  #                 type: integer
+  #                 format: unit64
+  #               name:
+  #                 type: string
+  #     responses:
+  #       '200':
+  #         description: Status of the task
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 status:
+  #                   type: string
+  #   description: Resume a task by id or name
+

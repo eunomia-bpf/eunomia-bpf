@@ -1,25 +1,23 @@
-//!  SPDX-License-Identifier: MIT
-//!
-//! Copyright (c) 2023, eunomia-bpf
-//! All rights reserved.
-//!
-mod config;
-mod error;
-mod json_runner;
-mod oci;
-mod runner;
-mod tar_reader;
-mod wasm_bpf_runner;
 use clap::{Parser, Subcommand};
-use env_logger::{Builder, Target};
-use error::EcliResult;
-use oci::{
-    auth::{login, logout},
-    pull, push,
+mod utils;
+
+use lib::{
+    error::*,
+    init_log,
+    oci::{
+        auth::{login, logout},
+        pull, push,
+    },
+    runner::{client_action, run},
+    ClientCmd, {Signals, SIGINT},
 };
-use runner::run;
-use signal_hook::{consts::SIGINT, iterator::Signals};
 use std::{process, thread};
+
+#[derive(Parser)]
+struct Args {
+    #[command(subcommand)]
+    action: Action,
+}
 
 /// ecli subcommands, including run, push, pull, login, logout.
 #[derive(Subcommand)]
@@ -36,6 +34,10 @@ pub enum Action {
         #[arg(allow_hyphen_values = true)]
         prog: Vec<String>,
     },
+
+    #[clap(name = "client", about = "Client operations")]
+    Client(ClientCmd),
+
     /// push wasm or oci image to registry
     Push {
         /// wasm module path
@@ -45,6 +47,7 @@ pub enum Action {
         #[arg()]
         image: String,
     },
+
     /// pull oci image from registry
     Pull {
         /// wasm module url
@@ -68,21 +71,9 @@ pub enum Action {
     },
 }
 
-#[derive(Parser)]
-struct Args {
-    #[command(subcommand)]
-    action: Action,
-}
-
-fn init_log() {
-    let mut builder = Builder::from_default_env();
-    builder.target(Target::Stdout);
-    builder.init();
-}
-
 #[tokio::main]
 async fn main() -> EcliResult<()> {
-    let signals = Signals::new([SIGINT]);
+    let signals = Signals::new(&[SIGINT]);
     thread::spawn(move || match signals {
         Ok(mut signals_info) => {
             for sig in signals_info.forever() {
@@ -103,5 +94,6 @@ async fn main() -> EcliResult<()> {
         Action::Pull { .. } => pull(args.action.try_into()?).await,
         Action::Login { url } => login(url).await,
         Action::Logout { url } => logout(url),
+        Action::Client(..) => client_action(args.action.try_into()?).await,
     }
 }

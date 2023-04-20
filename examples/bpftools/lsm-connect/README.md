@@ -27,7 +27,7 @@ Packing ebpf object and config into package.json...
 Run:
 
 ```console
-sudo ecli  examples/bpftools/lsm-connect/package.json
+sudo ecli run examples/bpftools/lsm-connect/package.json
 ```
 
 ## reference
