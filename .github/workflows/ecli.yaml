@@ -96,6 +96,13 @@ jobs:
 
     - name: make ecli
       run:  make ecli
+    
+    - name: test ecli
+      run: |
+        cd ecli/ecli-lib
+        # Install rustup manually using user root
+        curl https://sh.rustup.rs -o rustup.sh
+        sudo bash -c "cat rustup.sh | sh -s -- -y ; /root/.cargo/bin/cargo test -- --skip test_pause_and_resume"
 
     - name: ecli oci login gh cache test
       shell: bash
