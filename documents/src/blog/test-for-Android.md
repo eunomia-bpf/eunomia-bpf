@@ -48,7 +48,7 @@
 ### [bootstrap](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/bootstrap)
 
 运行输出如下：
-```
+```sh
 TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT
 09:09:19  10217  479     0          0            sh      /system/bin/sh 0
 09:09:19  10217  479     0          0            ps      /system/bin/ps 0
@@ -59,7 +59,7 @@ TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT
 ```
 ### [tcpstates](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/tcpstates)
 开始监测后在 Linux 环境中通过 `wget` 下载 Web 页面：
-```
+```sh
 TIME     SADDR   DADDR   SKADDR  TS_US   DELTA_US  PID     OLDSTATE  NEWSTATE  FAMILY  SPORT   DPORT   TASK
 09:07:46  0x4007000200005000000000000f02000a 0x5000000000000f02000a8bc53f77 18446635827774444352 3315344998 0 10115 7 2 2 0 80 wget
 09:07:46  0x40020002d98e50003d99f8090f02000a 0xd98e50003d99f8090f02000a8bc53f77 18446635827774444352 3315465870 120872 0 2 1 2 55694 80 swapper/0
@@ -70,7 +70,7 @@ TIME     SADDR   DADDR   SKADDR  TS_US   DELTA_US  PID     OLDSTATE  NEWSTATE  F
 09:07:47  0x400200020000bb01db794a690f02000a 0xbb01db794a690f02000aea2afb8e 18446635827774427776 3316535591 0 1469 2 7 2 37386 443 ChromiumNet
 ```
 开始检测后在 Android Studio 模拟界面打开 Chrome 浏览器并访问百度页面：
-```
+```sh
 TIME     SADDR   DADDR   SKADDR  TS_US   DELTA_US  PID     OLDSTATE  NEWSTATE  FAMILY  SPORT   DPORT   TASK
 07:46:58  0x400700020000bb01000000000f02000a 0xbb01000000000f02000aeb6f2270 18446631020066638144 192874641 0 3305 7 2 2 0 443 NetworkService
 07:46:58  0x40020002d28abb01494b6ebe0f02000a 0xd28abb01494b6ebe0f02000aeb6f2270 18446631020066638144 192921938 47297 3305 2 1 2 53898 443 NetworkService
@@ -96,7 +96,7 @@ TIME     SADDR   DADDR   SKADDR  TS_US   DELTA_US  PID     OLDSTATE  NEWSTATE  F
 ## 失败案例
 ### [fentry-link](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/fentry-link)
 可以成功 build，但运行报错：
-```
+```sh
 libbpf: prog 'do_unlinkat': failed to attach: Device or resource busy
 libbpf: prog 'do_unlinkat': failed to auto-attach: -16
 failed to attach skeleton
@@ -104,7 +104,7 @@ Error: BpfError("load and attach ebpf program failed")
 ```
 ### [opensnoop](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/opensnoop)
 可以成功 build，但运行报错：
-```
+```sh
 libbpf: failed to determine tracepoint 'syscalls/sys_enter_open' perf event ID: No such file or directory
 libbpf: prog 'tracepoint__syscalls__sys_enter_open': failed to create tracepoint 'syscalls/sys_enter_open' perf event: No such file or directory
 libbpf: prog 'tracepoint__syscalls__sys_enter_open': failed to auto-attach: -2
@@ -114,7 +114,7 @@ Error: BpfError("load and attach ebpf program failed")
 后经查看发现内核未开启 `CONFIG_FTRACE_SYSCALLS` 选项，导致无法使用 syscalls 的 tracepoint。
 ### [runqlat](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/runqlat)
 构建报错：
-```
+```sh
 Compiling bpf object...
 $ clang -g -O2 -target bpf -Wno-unknown-attributes -D__TARGET_ARCH_x86 -idirafter /usr/local/include -idirafter /usr/lib/llvm-11/lib/clang/11.0.1/include -idirafter /usr/include/x86_64-linux-gnu -idirafter /usr/include  -I/tmp/eunomia.9fwyJN/include -I/tmp/eunomia.9fwyJN/include/vmlinux/x86  -I/root/eunomia-bpf/examples/bpftools/runqlat -c examples/bpftools/runqlat/runqlat.bpf.temp.c -o examples/bpftools/runqlat/runqlat.bpf.o
  In file included from examples/bpftools/runqlat/runqlat.bpf.temp.c:10:
