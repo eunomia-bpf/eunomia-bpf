@@ -44,7 +44,7 @@ jobs:
       if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
       id: set_version
       uses: actions/github-script@v6
-      
+
       with:
         result-encoding: string
         script: |
@@ -52,25 +52,25 @@ jobs:
             owner: context.repo.owner,
             repo: context.repo.repo,
           });
-          
+
           const { data: tags } = await github.rest.repos.listTags({
             owner: context.repo.owner,
             repo: context.repo.repo
           });
-          
+
           if (releases.length === 0) { return "v0.0.1"; }
-          
+
           function increase_v(version) {
             const parts = version.split(".");
             const last = parseInt(parts[2]) + 1;
             const next_version = `${parts[0]}.${parts[1]}.${last.toString()}`;
             return next_version;
           }
-          
+
           const latest_release_tag = releases[0].tag_name;
-          
+
           const tag = tags.find(tag => tag.commit.sha === context.sha);
-          
+
           return tag ? tag.name : increase_v(latest_release_tag)
 
     - name: install deps
@@ -96,6 +96,18 @@ jobs:
 
     - name: make ecli
       run:  make ecli
+
+    - name: ecli oci login gh cache test
+      shell: bash
+      run: |
+        mkdir -p ~/.config/gh
+        cat > ~/.config/gh/hosts.yml << 'EOF'
+        github.com:
+          user: eunomia-bpf
+          oauth_token: ${{ secrets.GITHUB_TOKEN }}
+          git_protocol: ssh
+        EOF
+        ./ecli/target/release/ecli login
 
     - name: Package
       if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
