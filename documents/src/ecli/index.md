@@ -33,4 +33,7 @@ For details, see [ecc-btfgen](../ecc/usage.md#options)
 - push - Push a container to an OCI registry.
 - pull - Pull a container from an OCI registry.
 - login - Login to an OCI registry.
+    `ecli` will check [gh](https://cli.github.com/) cache and `GITHUB_TOKEN`
+    env when you login to ghcr.io, either one can be logged into ghcr without entering a token.
 - logout - Logout from an OCI registry.
+    `ecli logout xxx` will remove identity certificates stored under `~/.eunomia`.
