@@ -41,3 +41,4 @@
   - [eunomia-bpf 0.3.0 发布：只需编写内核态代码，轻松构建、打包、发布完整的 eBPF 应用](blog/0.3.0-release.md)
   - [eunomia-bpf：展望 2023，让 eBPF 插上 Wasm 的翅膀](blog/coolbpf-eunomia.md)
   - [eBPF 进阶: 内核新特性进展一览](blog/bpf-news.md)
+  - [ecli 在安卓 13 上的运行测试](blog/test-for-Android.md)

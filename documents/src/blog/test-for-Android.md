@@ -1,4 +1,8 @@
->摘要：本文主要记录了笔者在 Android Studio Emulator 中测试高版本 Android Kernel 对基于 libbpf 的 CO-RE 技术支持程度的探索过程、结果和遇到的问题。测试采用的方式是在 Android Shell 环境下构建 Debian 环境，并基于此尝试构建 eunomia-bpf 工具链、运行其测试用例。
+# ecli 在安卓 13 上的运行测试
+>作者：CH3CHOHCH3
+
+# 摘要
+本文主要记录了笔者在 Android Studio Emulator 中测试高版本 Android Kernel 对基于 libbpf 的 CO-RE 技术支持程度的探索过程、结果和遇到的问题。测试采用的方式是在 Android Shell 环境下构建 Debian 环境，并基于此尝试构建 eunomia-bpf 工具链、运行其测试用例。
 # 背景
 截至目前（2023-04），Android 还未对 eBPF 程序的动态加载做出较好的支持，无论是以 bcc 为代表的带编译器分发方案，还是基于 btf 和 libbpf 的 CO-RE 方案，都在较大程度上离不开 Linux 环境的支持，无法在 Android 系统上很好地运行[^WeiShu]。
 
