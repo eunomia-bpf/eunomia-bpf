@@ -17,7 +17,6 @@
   - [lua](./ecc/config-lua-depreciate.md)
 - [ecli](./ecli/index.md)
   - [docker](./ecli/docker.md)
-- [bpf-loader](./bpf-loader/README.md)
 - [Docker manual](ecli-dockerfile-usage.md)
 - [Manual (Chinese)](mannual.md)
 - [Online Demo](online.md)

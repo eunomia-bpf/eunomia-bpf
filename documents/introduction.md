@@ -35,7 +35,7 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
     Generating export types...
     Packing ebpf object and config into package.json...
     $ sudo ./ecli examples/bpftools/bootstrap/package.json
-    TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT  
+    TIME     PID     PPID    EXIT_CODE  DURATION_NS  COMM    FILENAME  EXIT_EVENT
     22:01:04  46310  2915    0          0            sh      /bin/sh   0
     22:01:04  46311  46310   0          0            which   /usr/bin/which 0
     22:01:04  46311  46310   0          2823776      which             1
@@ -106,10 +106,10 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
     Trace open family syscalls.
 
     Optional arguments:
-      -h, --help    shows help message and exits 
-      -v, --version prints version information and exits 
-      --verbose     prints libbpf debug information 
-      --pid_target  Process ID to trace 
+      -h, --help    shows help message and exits
+      -v, --version prints version information and exits
+      --verbose     prints libbpf debug information
+      --pid_target  Process ID to trace
       --tgid_target Thread ID to trace
     ```
 
@@ -139,7 +139,7 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
 
     ```console
     $ sudo ecli opensnoop.json
-    TIME     PID     TPID    SIG     RET     COMM    
+    TIME     PID     TPID    SIG     RET     COMM
     22:58:28  77121  3168    0       0       cpptools-srv
     22:58:29  69044  3168    0       0       cpptools-srv
     22:58:29  3014   2906    0       0       code
@@ -187,11 +187,9 @@ we have a loader library, a compile toolchain, and some additional tools like cl
 
 ![eunomia-arch.png](images/eunomia-arch.png)
 
-### An bpf-loader library
+### An bpf-loader-rs library
 
-A wrapper of main functions of libbpf, provide the ability to dynamically load eBPF code to the kernel and run it with a simple JSON and a few API.
-
-see [bpf-loader](../bpf-loader) for details.
+A wrapper of main functions of libbpf-rs, provide the ability to dynamically load eBPF code to the kernel and run it with a simple JSON and a few API.
 
 A [simple cli interface](../ecli) is provided for bpf-loader library, which you can use it to start any eBPF program from a url in a command. You can download it from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/).
 

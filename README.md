@@ -26,7 +26,7 @@ With eunnomia-bpf, you can:
 - simplify `distributing` eBPF programs:
   - A [tool](ecli/) for push, pull and run pre-compiled eBPF programs as `OCI` images in Wasm module
   - Run eBPF programs from `cloud` or `URL` within [`1` line of bash](documents/introduction.md#dynamic-load-and-run-co-re-ebpf-kernel-code-from-the-cloud-with-url-or-oci-image) without recompiling, kernel version and architecture independent.
-  - [Dynamically load](bpf-loader) eBPF programs with `JSON` config file or `Wasm` module.
+  - [Dynamically load](bpf-loader-rs) eBPF programs with `JSON` config file or `Wasm` module.
 
 For more information, see [documents/introduction.md](documents/introduction.md).
 
@@ -82,7 +82,7 @@ You can get pre-compiled eBPF programs running from the cloud to the kernel in `
 
 ## Examples
 
-See [examples](examples) for details about simple eBPF tools and eunomia-bpf library usage. 
+See [examples](examples) for details about simple eBPF tools and eunomia-bpf library usage.
 
 See [github.com/eunomia-bpf/wasm-bpf/tree/main/examples](https://github.com/eunomia-bpf/wasm-bpf/tree/main/examples) for Wasm eBPF programs and examples.
 

@@ -15,12 +15,3 @@ In general, we develop an approach to compile, transmit, and run most libbpf CO-
 
 So, the only thing you need to do is focus on writing a single eBPF program in the kernel. We have a compiler here: [eunomia-cc](../eunomia-cc)
 
-
-## Build
-
-You will nedd to build the [eunomia-bpf](https://github.com/eunomia-bpf/eunomia-bpf) as a library first, then you can use it in your program.
-
-```sh
-cd bpf-loader
-make install
-```

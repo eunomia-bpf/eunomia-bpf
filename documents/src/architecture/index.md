@@ -5,11 +5,11 @@ we have a loader library, a compile toolchain, and some additional tools like cl
 
 ![eunomia-arch.png](../img/eunomia-arch.png)
 
-## An bpf-loader library
+## An bpf-loader-rs library
 
-A wrapper of main functions of libbpf, provide the ability to dynamically load eBPF code to the kernel and run it with a simple JSON and a few API.
+A wrapper of main functions of libbpf-rs, provide the ability to dynamically load eBPF code to the kernel and run it with a simple JSON and a few API.
 
-see [bpf-loader](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/bpf-loader) for details.
+see [bpf-loader-rs](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/bpf-loader-rs) for details.
 
 A [simple cli interface](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/ecli) is provided for bpf-loader library, which you can use it to start any eBPF program from a url in a command. You can download it from [release](https://github.com/eunomia-bpf/eunomia-bpf/releases/).
 
