@@ -168,8 +168,11 @@ sudo ecli run package.json
 <li>run - Run the ebpf program as tar or json.</li>
 <li>push - Push a container to an OCI registry.</li>
 <li>pull - Pull a container from an OCI registry.</li>
-<li>login - Login to an OCI registry.</li>
-<li>logout - Logout from an OCI registry.</li>
+<li>login - Login to an OCI registry.
+<code>ecli</code> will check <a href="https://cli.github.com/">gh</a> cache and <code>GITHUB_TOKEN</code>
+env when you login to ghcr.io, either one can be logged into ghcr without entering a token.</li>
+<li>logout - Logout from an OCI registry.
+<code>ecli logout xxx</code> will remove identity certificates stored under <code>~/.eunomia</code>.</li>
 </ul>
 
                     </main>
