@@ -24,11 +24,11 @@
 
 我们有一个加载器库，一个编译工具链，以及一些额外的工具，如cli和一个自定义指标导出器。
 
-### 一个bpf-loader库
+### lib bpf-loader-rs
 
-这个库包含了 `libbpf` 的主要函数，提供了将 `eBPF` 代码动态加载到内核的能力，并使用 `JSON` 和简单的 `API` 运行它。
+这个库包含了 `libbpf-rs` 的主要函数，提供了将 `eBPF` 代码动态加载到内核的能力，并使用 `JSON` 和简单的 `API` 运行它。
 
-查看 [bpf-loader](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/ecli) 以获得更多细节信息
+查看 [bpf-loader-rs](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/bpf-loader-rs) 以获得更多细节信息
 
 我们提供了[一个简单的cli接口](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/ecli), 使得您可以通过在命令行输入URL的方式启动任何eBPF程序。您可以从[release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)版本中下载样例:
 
@@ -40,11 +40,11 @@ $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # sim
 
 ### 一个从Wasm模块加载eBPF程序的库
 
-使用 `bpf-loader` 库从`Wasm`模块加载eBPF程序，您可以编写`Wasm`模块来操作eBPF程序或在用户空间`Wasm`运行时处理数据。这个想法很简单:
+使用 `bpf-loader-rs` 库从`Wasm`模块加载eBPF程序，您可以编写`Wasm`模块来操作eBPF程序或在用户空间`Wasm`运行时处理数据。这个想法很简单:
 
-1. 使用 `eunomia-cc` 工具链将 `eBPF` 代码骨架编译成 `JSON` 格式
+1. 使用 `ecc` 工具链将 `eBPF` 代码骨架编译成 `JSON` 格式
 2. 在 `Wasm` 模块中嵌入 `JSON` 数据，并为操作eBPF程序框架提供一些API
-3. 从 `Wasm` 模块加载 `JSON` 数据，并使用 `bpf-loader` 库运行eBPF程序框架
+3. 从 `Wasm` 模块加载 `JSON` 数据，并使用 `bpf-loader-rs` 库运行eBPF程序框架
 
 在单个 `Wasm` 模块中可以有多个 `eBPF` 程序。
 
@@ -53,7 +53,7 @@ $ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # sim
 ### 一个帮助您生成预编译eBPF数据的编译工具链
 
 该工具链可以和docker一样使用，在一个命令中生成预编译的eBPF数据:
-详细信息请参见 [eunomia-cc](compiler)。
+详细信息请参见 [ec](compiler)。
 您也可以简单地使用 [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) 作为一个模板，将修改推送到这里后使用github action可以帮助您编译CO-RE ebpf代码!
 
 ### 一个可观测性工具

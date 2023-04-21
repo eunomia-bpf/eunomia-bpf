@@ -3,7 +3,6 @@ ignore:
   - "examples"
   - "eunomia-sdks"
   - "third_party"
-  - "bpf-loader/include/helpers/syscall_helpers.h"
 
 coverage:
   status:
@@ -13,12 +12,6 @@ coverage:
         # adjust accordingly based on how flaky your tests are
         # this allows a 0.5% drop from the previous base commit coverage
         threshold: 0.5%
-
-      bpf-loader:
-        target: auto
-        threshold: 0.5%
-        paths:
-          - bpf-loader
 
       compiler:
         target: auto

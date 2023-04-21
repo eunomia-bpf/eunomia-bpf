@@ -27,13 +27,12 @@ install rust toolchain
 curl https://sh.rustup.rs -sSf | sh -s
 ```
 
-## build bpf-loader
+## build bpf-loader-rs
 
-bpf-loader is our core library written in C++17. It has no other dependencies except libbpf.
+bpf-loader-rs is our core library written in Rust.
 
 ```shell
-$ git submodule update --init --recursive --remote       # check out libbpf
-$ make bpf-loader                              # build ebpf-loader
+$ make bpf-loader-rs  #build ebpf-loader-rs
 ```
 
 The recommended compiler is gcc9 or later.
@@ -48,22 +47,12 @@ $ make ecli
 
 reference: https://github.com/libbpf/libbpf-bootstrap
 
-## build wasm lib
-
-```shell
-$ make wasm-runtime
-```
-
-Please install WASI SDK, download the [wasi-sdk](https://github.com/CraneStation/wasi-sdk/releases) release and extract the archive to default path /opt/wasi-sdk if you want to compile c code to wasm.
-
 ## build compiler
 
 ```shell
 $ make ecc
 ```
-
 ## more details
-
 
 - You can check the Makefile at project root for more details: [Makefile](../Makefile)
 - You may want to refer to our CI for more build info: [.github/workflowsubuntu.yml](../.github/workflows/ubuntu.yml)

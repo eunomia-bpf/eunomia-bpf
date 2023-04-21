@@ -27,13 +27,12 @@ install rust toolchain
 curl https://sh.rustup.rs -sSf | sh -s
 ```
 
-## build bpf-loader
+## build bpf-loader-rs
 
 bpf-loader is our core library written in C++17. It has no other dependencies except libbpf.
 
 ```shell
-$ git submodule update --init --recursive --remote       # check out libbpf
-$ make bpf-loader                              # build ebpf-loader
+$ make bpf-loader-rs # build ebpf-loader-rs
 ```
 
 The recommended compiler is gcc9 or later.
