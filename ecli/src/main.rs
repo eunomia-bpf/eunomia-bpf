@@ -57,13 +57,13 @@ pub enum Action {
     /// login to oci registry
     Login {
         /// oci login url
-        #[arg()]
+        #[arg(default_value = ("https://ghcr.io").to_string())]
         url: String,
     },
     /// logout from registry
     Logout {
         /// oci logout url
-        #[arg()]
+        #[arg(default_value = ("ghcr.io").to_string())]
         url: String,
     },
 }
