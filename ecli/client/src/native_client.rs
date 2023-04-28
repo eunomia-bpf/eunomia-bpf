@@ -18,7 +18,6 @@ use crate::helper::load_prog_buf_and_guess_type;
 
 pub(crate) async fn run_native(
     export_json: bool,
-    _no_cache: bool,
     prog: String,
     args: &[String],
     user_prog_type: Option<ProgramType>,

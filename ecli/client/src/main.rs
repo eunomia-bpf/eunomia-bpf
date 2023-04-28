@@ -22,9 +22,6 @@ pub enum Action {
     /// run ebpf program
     #[cfg(feature = "native")]
     Run {
-        /// run without cache
-        #[arg(long, short = 'n', default_value_t = false, help = "Run without cache")]
-        no_cache: bool,
         /// json output format
         #[arg(
             long,
@@ -102,11 +99,10 @@ async fn main() -> Result<()> {
         #[cfg(feature = "native")]
         Action::Run {
             json,
-            no_cache,
             prog,
             extra_args,
             prog_type,
-        } => native_client::run_native(json, no_cache, prog, &extra_args, prog_type).await,
+        } => native_client::run_native(json, prog, &extra_args, prog_type).await,
         Action::Push { image, module } => {
             push(PushArgs {
                 file: module,
