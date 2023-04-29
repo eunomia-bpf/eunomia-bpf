@@ -36,7 +36,7 @@ Packing ebpf object and config into package.json...
 Run:
 
 ```console
-$ sudo ./ecli examples/bpftools/tcpstates/package.json -h
+$ sudo ./ecli run examples/bpftools/tcpstates/package.json -h
 Usage: tcpstates_bpf [--help] [--version] [--verbose] [--filter_by_sport] [--filter_by_dport] [--target_family VAR]
 
 A simple eBPF program

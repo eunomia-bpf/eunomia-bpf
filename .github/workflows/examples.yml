@@ -37,6 +37,11 @@ jobs:
               make -C examples/tests install-deps
               make -C examples/tests install-wasm-clang
 
+      - name: Set up python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10' 
+
       - name: test build runners
         run:  |
               make -C examples
@@ -44,3 +49,7 @@ jobs:
       - name: test examples
         run:  |
               make -C examples/tests test
+
+      - name: test ecli server api
+        run:  |
+              python ecli/tests/api-test.py

@@ -25,7 +25,7 @@ result, while kretprobe can only access the result.
 fentry and fexit programs are available starting from 5.5 kernels.
 
 ```console
-$ sudo ecli  examples/bpftools/fentry-link/package.json
+$ sudo ecli run  examples/bpftools/fentry-link/package.json
 Runing eBPF program...
 ```
 
@@ -62,7 +62,7 @@ $ sudo cat /sys/kernel/debug/tracing/trace_pipe
 - Run and help:
 
     ```console
-    sudo ecli  examples/bpftools/fentry-link/package.json -h
+    sudo ecli run examples/bpftools/fentry-link/package.json -h
     Usage: fentry_link_bpf [--help] [--version] [--verbose]
 
     A simple eBPF program

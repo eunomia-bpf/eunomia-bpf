@@ -14,7 +14,7 @@ It creates a qdisc on the `lo` interface and attaches the `tc_ingress` BPF progr
 It reports the metadata of the IP packets that coming into the `lo` interface.
 
 ```shell
-$ sudo ecli ./package.json
+$ sudo ecli run ./package.json
 ...
 Successfully started! Please run `sudo cat /sys/kernel/debug/tracing/trace_pipe` to see output of the BPF program.
 ......
@@ -53,5 +53,5 @@ Packing ebpf object and config into package.json...
 Run:
 
 ```console
-sudo ecli ./package.json
+sudo ecli run ./package.json
 ```
