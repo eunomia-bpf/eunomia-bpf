@@ -23,7 +23,7 @@ struct {
  * specified (and auto-attach is not possible) or the above format is specified for
  * auto-attach.
  */
-SEC("uprobe//bin/bash:readline")
+SEC("uretprobe//bin/bash:readline")
 int BPF_KRETPROBE(printret, const void* ret) {
     struct str_t data;
     char comm[TASK_COMM_LEN];
