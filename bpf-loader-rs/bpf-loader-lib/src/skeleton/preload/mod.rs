@@ -11,12 +11,13 @@ use crate::{
     meta::{EunomiaObjectMeta, RunnerConfig},
     skeleton::preload::{
         attach::{attach_tc, AttachLink},
-        section_loader::load_section_data,
+        section_loader::load_section_data_with_skel_value,
     },
 };
 use anyhow::{anyhow, bail, Context, Result};
 use libbpf_rs::OpenObject;
 use log::debug;
+use object::Object;
 
 use super::{handle::PollingHandle, BpfSkeleton};
 pub(crate) mod attach;
@@ -84,8 +85,13 @@ impl PreLoadBpfSkeleton {
                 .ok_or_else(|| anyhow!("Map name {} not found in value sizes", map_name))?
                 as usize;
 
-            let mut buffer = vec![0; buffer_size];
-            load_section_data(self.btf.borrow_btf(), section, &mut buffer)
+            let mut buffer =
+                if let Some(v) = self.btf.borrow_elf().section_data_by_name(&section.name) {
+                    v.to_vec()
+                } else {
+                    vec![0; buffer_size]
+                };
+            load_section_data_with_skel_value(self.btf.borrow_btf(), section, &mut buffer)
                 .with_context(|| anyhow!("Failed to load section {}", section.name))?;
             debug!("Loaded buffer: {:?}", buffer);
             map.set_initial_value(&buffer[..])

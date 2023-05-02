@@ -1,0 +1,1 @@
+{"bpf_skel":{"data_sections":[{"name":".rodata","variables":[{"name":"fmt2","type":"char[8]"}]}],"maps":[{"ident":"rodata","mmaped":true,"name":"test_bpf.rodata"}],"obj_name":"test_bpf","progs":[{"attach":"tp_btf/sched_wakeup","link":true,"name":"sched_wakeup"}]},"eunomia_version":"0.3.3"}

@@ -16,7 +16,7 @@ pub struct BtfContainer {
     bin: Vec<u8>,
     #[borrows(bin)]
     #[covariant]
-    elf: ElfFile<'this>,
+    pub(crate) elf: ElfFile<'this>,
     #[borrows(elf)]
     #[covariant]
     pub(crate) btf: Btf<'this>,
