@@ -230,11 +230,10 @@ mod tests {
             .borrow_btf()
             .types()
             .iter()
-            .filter_map(|v| match v {
+            .find_map(|v| match v {
                 BtfType::Datasec(d) if d.name == ".rodata" => Some(d),
                 _ => None,
             })
-            .next()
             .unwrap();
         for var in rodata_sec.vars.iter() {
             let var_type = btf.borrow_btf().type_by_id(var.type_id);
