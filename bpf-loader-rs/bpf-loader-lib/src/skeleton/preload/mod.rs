@@ -8,6 +8,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     btf_container::BtfContainer,
+    elf_container::ElfContainer,
     meta::{EunomiaObjectMeta, RunnerConfig},
     skeleton::preload::{
         attach::{attach_tc, AttachLink},
@@ -17,7 +18,7 @@ use crate::{
 use anyhow::{anyhow, bail, Context, Result};
 use libbpf_rs::OpenObject;
 use log::debug;
-use object::Object;
+use object::{Object, ObjectSection};
 
 use super::{handle::PollingHandle, BpfSkeleton};
 pub(crate) mod attach;
@@ -41,6 +42,8 @@ pub struct PreLoadBpfSkeleton {
     // Value sizes of maps this program hold
     // This is a workaround for libbpf-rs not exposing bpf_map* in OpenMap
     pub(crate) map_value_sizes: HashMap<String, u32>,
+
+    pub(crate) raw_elf: ElfContainer,
 }
 
 impl PreLoadBpfSkeleton {
@@ -53,6 +56,15 @@ impl PreLoadBpfSkeleton {
         // This function differs from the C++ version `int bpf_skeleton::load_and_attach_prog(void)`
         // Because we put the call to bpf_object_open in `BpfSkeletonBuilder::build`
         // So Here are just the calls to load and attach
+
+        debug!(
+            "Section names of ELF: {:?}",
+            self.raw_elf
+                .borrow_elf()
+                .sections()
+                .map(|v| v.name().map(|t| t.to_string()))
+                .collect::<Vec<_>>()
+        );
 
         // Initialize data for sections
         for section in self.meta.bpf_skel.data_sections.iter() {
@@ -84,13 +96,23 @@ impl PreLoadBpfSkeleton {
                 .get(map_name)
                 .ok_or_else(|| anyhow!("Map name {} not found in value sizes", map_name))?
                 as usize;
-
-            let mut buffer =
-                if let Some(v) = self.btf.borrow_elf().section_data_by_name(&section.name) {
-                    v.to_vec()
-                } else {
-                    vec![0; buffer_size]
-                };
+            debug!("Buffer size: {}", buffer_size);
+            let mut buffer = if let Some(v) = self
+                .raw_elf
+                .borrow_elf()
+                .section_data_by_name(&section.name)
+            {
+                debug!("Using buffer from ELF");
+                v.to_vec()
+            } else {
+                debug!("Using empty buffer");
+                vec![0; buffer_size]
+            };
+            if buffer.len() < buffer_size {
+                // Ensure correct size for zero-filled sections, e.g bss
+                buffer.resize(buffer_size, 0);
+            }
+            debug!("Buffer before filling: {:?}", buffer);
             load_section_data_with_skel_value(self.btf.borrow_btf(), section, &mut buffer)
                 .with_context(|| anyhow!("Failed to load section {}", section.name))?;
             debug!("Loaded buffer: {:?}", buffer);

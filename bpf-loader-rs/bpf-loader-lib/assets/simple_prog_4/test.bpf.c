@@ -3,10 +3,10 @@
 
 const char fmt2[] = "abcdefg";
 
-SEC("tp_btf/sched_wakeup")
-int sched_wakeup(void* ctx) {
-    int a = 1;
-    bpf_printk("Process ID: %d enter sys openat\n", a);
+SEC("tp/sched/sched_process_exec")
+int handle_exec(void* ctx) {
+    int a = 0x12345678;
+    bpf_printk("Created %d\n", a);
     return 0;
 }
 

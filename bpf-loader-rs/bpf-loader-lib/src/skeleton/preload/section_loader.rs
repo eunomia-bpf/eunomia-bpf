@@ -214,6 +214,7 @@ mod tests {
         .unwrap();
         let btf = BtfContainer::new_from_binary(&skel.bpf_object).unwrap();
         let mut rodata_bin = btf
+            .borrow_elf_container()
             .borrow_elf()
             .section_data_by_name(".rodata")
             .unwrap()
@@ -242,7 +243,7 @@ mod tests {
             println!("Var {}->{}, received data: {:?}", var, var_type, data_slice);
             let should_be = match var_type.name() {
                 "fmt2" => b"abcdefg\0".as_slice(),
-                "sched_wakeup.____fmt" => b"Process ID: %d enter sys openat\n\0",
+                "handle_exec.____fmt" => b"Created %d\n\0",
                 s => panic!("Unexpected var name {}", s),
             };
             assert_eq!(data_slice, should_be);

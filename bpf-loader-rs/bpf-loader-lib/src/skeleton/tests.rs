@@ -6,6 +6,7 @@
 
 use std::{
     cell::RefCell,
+    io::{BufRead, BufReader},
     rc::Rc,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -178,4 +179,42 @@ fn test_pause_resume_terminate_1() {
     // Terminate the worker
     polling_handle.terminate();
     join_handle.join().unwrap().unwrap();
+}
+
+#[test]
+fn test_run_prog_with_static_const_vars() {
+    let package: ComposedObject = serde_json::from_str(
+        &std::fs::read_to_string(get_assets_dir().join("simple_prog_4").join("package.json"))
+            .unwrap(),
+    )
+    .unwrap();
+    let (handle_tx, handle_rx) = std::sync::mpsc::channel::<PollingHandle>();
+    std::thread::spawn(move || {
+        let skel = BpfSkeletonBuilder::from_json_package(&package, None)
+            .build()
+            .unwrap()
+            .load_and_attach()
+            .unwrap();
+        handle_tx.send(skel.create_poll_handle()).unwrap();
+        skel.wait_for_no_export_program().unwrap();
+    });
+    let handle = handle_rx.recv().unwrap();
+    let pipe = std::fs::OpenOptions::new()
+        .read(true)
+        .open("/sys/kernel/tracing/trace_pipe")
+        .unwrap();
+    let mut reader = BufReader::new(pipe);
+
+    std::process::Command::new("echo")
+        .arg("qaq")
+        .output()
+        .unwrap();
+    std::thread::sleep(Duration::from_secs(2));
+    let mut line = String::new();
+    reader.read_line(&mut line).unwrap();
+    // Read twice to handle the interrupted line
+    reader.read_line(&mut line).unwrap();
+
+    assert!(line.contains("Created 305419896"));
+    handle.terminate();
 }
