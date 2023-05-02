@@ -207,6 +207,8 @@ impl NativeTaskManager {
                     .meta
                     .build_argument_parser()
                     .map_err(|e| Error::Bpf(format!("Failed to build argument parser: {}", e)))?;
+                let mut args = args.to_vec();
+                args.insert(0, String::from("prog"));
                 let matches = arg_parser
                     .try_get_matches_from(args)
                     .map_err(|e| Error::Bpf(format!("Failed to parse argument: {}", e)))?;
