@@ -204,17 +204,22 @@ fn test_run_prog_with_static_const_vars() {
         .open("/sys/kernel/tracing/trace_pipe")
         .unwrap();
     let mut reader = BufReader::new(pipe);
-
+    let mut line = String::default();
     std::process::Command::new("echo")
         .arg("qaq")
         .output()
         .unwrap();
-    std::thread::sleep(Duration::from_secs(2));
-    let mut line = String::new();
-    reader.read_line(&mut line).unwrap();
-    // Read twice to handle the interrupted line
-    reader.read_line(&mut line).unwrap();
+    let begin = std::time::Instant::now();
+    loop {
+        reader.read_line(&mut line).unwrap();
+        println!("{}", line);
 
-    assert!(line.contains("Created 305419896"));
-    handle.terminate();
+        if line.contains("Created 305419896") {
+            handle.terminate();
+            break;
+        }
+        if begin.elapsed().as_millis() > 10 * 1000 {
+            panic!("Failed to fetch `Created 305419896` from trace_pipe");
+        }
+    }
 }

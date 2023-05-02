@@ -234,7 +234,7 @@ mod tests {
                 BtfType::Datasec(d) if d.name == ".rodata" => Some(d),
                 _ => None,
             })
-            .nth(0)
+            .next()
             .unwrap();
         for var in rodata_sec.vars.iter() {
             let var_type = btf.borrow_btf().type_by_id(var.type_id);
