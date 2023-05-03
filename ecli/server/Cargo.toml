@@ -1,6 +1,6 @@
 [package]
 name = "ecli-server"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "The server cli wrapper of ecli"
 license = "MIT"
@@ -8,7 +8,7 @@ license = "MIT"
 [dependencies]
 ecli-lib = { path = "../ecli-lib", features = [
     "http-server",
-], version = "0.2.0" }
+], version = "0.2.1" }
 tokio = { version = "1.24.2", features = ["rt-multi-thread"] }
 clap = { version = "4.0.32", features = ["derive"] }
 ecli-server-codegen = { path = "../server-codegen" }
