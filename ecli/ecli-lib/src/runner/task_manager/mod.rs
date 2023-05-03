@@ -140,7 +140,7 @@ impl NativeTaskManager {
 
                 if let Err(e) = thread_handle
                     .join()
-                    .map_err(|_| Error::ThreadJoin(format!("Failed to join")))?
+                    .map_err(|_| Error::ThreadJoin("Failed to join".to_string()))?
                 {
                     if format!("{:?}", e).contains("Wasm program terminated") {
                     } else {
@@ -159,7 +159,7 @@ impl NativeTaskManager {
                 polling_handle.terminate();
                 join_handle
                     .join()
-                    .map_err(|_| Error::ThreadJoin(format!("Failed to join")))?
+                    .map_err(|_| Error::ThreadJoin("Failed to join".to_string()))?
                     .map_err(|e| {
                         Error::Bpf(format!("Failed to wait for the thread's exiting: {:?}", e))
                     })?;
@@ -207,6 +207,8 @@ impl NativeTaskManager {
                     .meta
                     .build_argument_parser()
                     .map_err(|e| Error::Bpf(format!("Failed to build argument parser: {}", e)))?;
+                let mut args = args.to_vec();
+                args.insert(0, String::from("prog"));
                 let matches = arg_parser
                     .try_get_matches_from(args)
                     .map_err(|e| Error::Bpf(format!("Failed to parse argument: {}", e)))?;

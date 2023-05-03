@@ -17,6 +17,7 @@ use std::{
 
 use crate::{
     btf_container::BtfContainer,
+    elf_container::ElfContainer,
     helper::btf::{create_elf_with_btf_section, get_current_system_btf_file},
     meta::{ComposedObject, EunomiaObjectMeta, RunnerConfig},
     skeleton::{BTF_PATH_ENV_NAME, VMLINUX_BTF_PATH},
@@ -188,6 +189,7 @@ impl<'a> BpfSkeletonBuilder<'a> {
             btf,
             meta: self.object_meta.clone(),
             map_value_sizes,
+            raw_elf: ElfContainer::new_from_binary(self.bpf_object)?,
         })
     }
 }

@@ -6,6 +6,8 @@
 
 /// A container to hold self-reference stuff
 pub mod btf_container;
+/// Another container to hold self-reference stuff
+pub mod elf_container;
 /// The event exporter
 pub mod export_event;
 /// Some helper functions

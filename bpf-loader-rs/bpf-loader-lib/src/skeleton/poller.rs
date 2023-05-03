@@ -42,6 +42,7 @@ impl BpfSkeleton {
     pub(crate) fn wait_for_no_export_program(&self) -> Result<()> {
         program_poll_loop!(self.handle, {
             std::hint::spin_loop();
+            std::thread::sleep(Duration::from_millis(1));
         });
         Ok(())
     }
