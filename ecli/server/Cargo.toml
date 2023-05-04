@@ -11,7 +11,7 @@ ecli-lib = { path = "../ecli-lib", features = [
 ], version = "0.2.1" }
 tokio = { version = "1.24.2", features = ["rt-multi-thread"] }
 clap = { version = "4.0.32", features = ["derive"] }
-ecli-server-codegen = { path = "../server-codegen" }
+ecli-server-codegen = { path = "../server-codegen", version = "1.0.0" }
 hyper = { version = "0.14", features = ["full"] }
 log = "0.4.17"
 ctrlc = "3.2.5"
