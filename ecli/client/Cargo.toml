@@ -1,5 +1,5 @@
 [package]
-name = "ecli"
+name = "ecli-rs"
 version = "0.2.1"
 edition = "2021"
 description = "The client cli wrapper of ecli"
