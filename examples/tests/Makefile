@@ -15,7 +15,7 @@ install-deps:
 	make -C $(ECC_DIR)
 	make -C $(ECC_DIR) install
 	make -C $(ECLI_DIR) install
-	cp $(ECLI_DIR)target/release/ecli ./ecli
+	cp $(ECLI_DIR)target/release/ecli-rs ./ecli
 
 # test with the files in bpf-loader
 TEST_CASES_DIRS=$(shell ls -l $(TEST_EXAMPLE_DIR) | grep ^d | awk '{print $$9}')

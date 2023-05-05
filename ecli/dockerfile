@@ -3,7 +3,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libelf1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY ./target/release/ecli /root/ecli
+COPY ./target/release/ecli-rs /root/ecli
 
 WORKDIR /root
 
