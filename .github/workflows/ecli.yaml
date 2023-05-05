@@ -114,14 +114,14 @@ jobs:
           oauth_token: ${{ secrets.GITHUB_TOKEN }}
           git_protocol: ssh
         EOF
-        ./ecli/target/release/ecli login
+        ./ecli/target/release/ecli-rs login
 
     - name: Package
       if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
       shell: bash
       run: |
         mkdir release
-        cp ecli/target/release/ecli ./release/
+        cp ecli/target/release/ecli-rs ./release/ecli
         cd release
         tar czvf ./ecli-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz ecli
 

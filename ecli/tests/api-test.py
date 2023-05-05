@@ -18,7 +18,7 @@ def run(cmd):
 
 if __name__ == "__main__":
     log_level = "RUST_LOG=info "
-    cli_bin = ["ecli/target/release/ecli"]
+    cli_bin = ["ecli/target/release/ecli-rs"]
     server_bin = ["ecli/target/release/eserver"]
     env_dbg = os.environ.copy()
     env_dbg["RUST_LOG"] = "info"
