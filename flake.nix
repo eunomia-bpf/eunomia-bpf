@@ -2,15 +2,58 @@
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "nixpkgs/nixos-unstable";
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, flake-utils, nixpkgs }:
+  outputs = { self, flake-utils, nixpkgs, pre-commit-hooks }:
     flake-utils.lib.eachSystem
       (with flake-utils.lib.system;
-      [ x86_64-linux aarch64-linux riscv64-linux ])
+      [ x86_64-linux aarch64-linux ]) # riscv64-linux commented since precommithook doesn't support yet.
       (system:
         let
-          pkgs = import nixpkgs { inherit system; };
+          pkgs = import nixpkgs {
+            inherit system;
+
+            # this workaround could be removed after https://github.com/eunomia-bpf/eunomia-bpf/issues/183 closing.
+            overlays = [
+              (final: prev: {
+                bpftool =
+                  prev.bpftool.overrideAttrs (old: {
+                    version = "eunomia-edition-20230129";
+                    src = prev.fetchFromGitHub {
+                      owner = "eunomia-bpf";
+                      repo = "bpftool";
+                      rev = "05940344f5db18d0cb1bc1c42e628f132bc93123";
+                      sha256 = "sha256-g2gjixfuGwVnFlqCMGLWVPbtKOSpQI+vZwIZciXFPTc=";
+                      fetchSubmodules = true;
+                    };
+                    patches = [ ];
+
+                    nativeBuildInputs = with pkgs;[ bison flex llvmPackages_15.clang pkg-config ];
+                    buildInputs =
+                      with pkgs;[ libopcodes libbfd ]
+                        ++ (with pkgs;
+                      [ elfutils zlib readline libcap llvmPackages_15.llvm ]); # enable full feature
+
+                    preConfigure = ''
+                      substituteInPlace ./src/Makefile \
+                        --replace '/usr/local' "$out" \
+                        --replace '/usr'       "$out" \
+                        --replace '/sbin'      '/bin'
+                    '';
+
+                    buildFlags = [ "bpftool" ];
+
+                    installPhase = ''
+                      make -C src install
+                    '';
+                  });
+              })
+            ];
+          };
         in
         rec {
           packages =
@@ -32,9 +75,7 @@
                   };
 
                   nativeBuildInputs = with pkgs;[
-                    llvmPackages_14.clang
                     pkg-config
-                    cmake
                     zlib.static
                     elfutils
                     zlib
@@ -49,16 +90,14 @@
                     rust.rustc
                   ]);
 
-                  dontUseCmakeConfigure = true;
-
                   preBuild = ''
-                    make -C ./bpf-loader INSTALL_LOCATION=$out/lib -e install
                     cd ${cargoRoot}
                   '';
 
                   installPhase = ''
                     mkdir -p $out/bin
-                    install -Dm 755 target/release/ecli $out/bin/
+                    install -Dm 755 target/release/ecli-rs $out/bin/
+                    install -Dm 755 target/release/ecli-server $out/bin/
                   '';
                 };
 
@@ -92,8 +131,11 @@
                 dontUseCmakeConfigure = true;
 
                 preBuild = ''
-                  make -C compiler
-                  cd ${cargoRoot}
+                    mkdir -p compiler/workspace/include/vmlinux
+                    cp -r third_party/vmlinux compiler/workspace/include/vmlinux
+                    cp ${pkgs.bpftool}/bin/bpftool compiler/workspace/bin
+                    cd ${cargoRoot}
+                    cargo build --release
                 '';
 
                 installPhase = ''
@@ -103,8 +145,27 @@
 
               };
             };
-          devShells.default = pkgs.mkShell {
-            inputsFrom = with packages; [ ecc ecli ];
+          devShells = rec {
+            default = pkgs.mkShell {
+              inputsFrom = with packages;
+                [ ecc ecli ];
+            };
+
+            ebpf-dev = default // pkgs.mkShell {
+              buildInputs = with packages; [ ecc ecli ];
+            };
           };
+
+          checks = with pkgs; {
+            pre-commit-check =
+              pre-commit-hooks.lib.${system}.run
+                {
+                  src = lib.cleanSource ./.;
+                  hooks = lib.genAttrs
+                    [ "shellcheck" "mdsh" "black" "clippy" "cargo-check" "typos" ]
+                    (n: { enable = true; });
+                };
+          };
+
         });
 }
