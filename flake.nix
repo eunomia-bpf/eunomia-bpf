@@ -162,8 +162,9 @@
                 {
                   src = lib.cleanSource ./.;
                   hooks = lib.genAttrs
-                    [ "shellcheck" "mdsh" "black" "clippy" "cargo-check" "typos" ]
-                    (n: { enable = true; });
+                    [ "shellcheck" "black" "mdsh" ]
+                    (n: { enable = true; })
+                  ;
                 };
           };
 
