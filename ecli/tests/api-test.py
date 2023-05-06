@@ -27,8 +27,8 @@ if __name__ == "__main__":
     examples = map(lambda x: x + "/package.json", list_dir(example_path))
 
     priv = "sudo"
-    for cmdpath in os.environ['PATH'].split(':'):
-        if os.path.isdir(cmdpath) and 'doas' in os.listdir(cmdpath):
+    for cmdpath in os.environ["PATH"].split(":"):
+        if os.path.isdir(cmdpath) and "doas" in os.listdir(cmdpath):
             priv = "doas"
     server_proc = subprocess.Popen([priv] + server_bin, env=env_dbg)
 
