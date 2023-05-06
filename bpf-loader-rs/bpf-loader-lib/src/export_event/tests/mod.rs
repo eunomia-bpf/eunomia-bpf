@@ -58,7 +58,7 @@ fn test_user_defined_state() {
         .set_export_event_handler(Arc::new(MyEventHandler))
         .set_export_format(ExportFormatType::Json)
         .set_user_context(UserState { val: 0x12345678 })
-        .build_for_ringbuf(&skel.export_types[..], btf)
+        .build_for_single_value(&skel.export_types[0], btf)
         .unwrap();
     match &exporter.internal_impl {
         ExporterInternalImplementation::RingBufProcessor {

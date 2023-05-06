@@ -29,6 +29,8 @@ use crate::{
 
 use super::builder::BpfSkeletonBuilder;
 
+mod multiple_export_type;
+
 #[test]
 fn test_load_rodata_and_bss() {
     let mut skel = serde_json::from_str::<ComposedObject>(

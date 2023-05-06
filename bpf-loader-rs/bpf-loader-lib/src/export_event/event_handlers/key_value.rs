@@ -150,13 +150,13 @@ impl InternalSampleMapProcessor for Log2HistExportEventHandler {
             if member.bit_offset % 8 != 0 {
                 bail!("bit fields are not supported now");
             }
-            if member.meta.name == "slots" {
+            if member.field_name == "slots" {
                 slots = Some(SlotsDef {
                     offset,
                     length_in_u32: (member.size as u32) / 4,
                 });
             } else {
-                write!(outbuf, "{} = ", member.meta.name).unwrap();
+                write!(outbuf, "{} = ", member.field_name).unwrap();
                 dump_to_string(
                     btf,
                     member.type_id,

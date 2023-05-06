@@ -66,11 +66,10 @@ pub(crate) fn check_export_types_btf(
             }
 
             result.push(CheckedExportedMember {
-                meta: meta_mem.clone(),
+                field_name: meta_mem.name.to_string(),
                 type_id,
                 bit_offset: bit_off,
                 size: size as usize,
-                bit_size: bit_sz as u32,
                 output_header_offset: 0,
             });
         }
@@ -114,18 +113,16 @@ pub(crate) fn check_sample_types_btf(
         for (i, btf_mem) in comp.members.iter().enumerate() {
             let mem_type_id = btf_mem.type_id;
             let bit_off = btf_mem.bit_offset;
-            let bit_sz = btf_mem.bit_size;
             check_and_push_export_type_btf(
                 btf,
                 mem_type_id,
                 bit_off,
-                bit_sz as _,
                 &mut result,
                 members.as_ref().map(|v| v.members[i].clone()),
             )?;
         }
     } else {
-        check_and_push_export_type_btf(btf, type_id, 0, 0, &mut result, None)?;
+        check_and_push_export_type_btf(btf, type_id, 0, &mut result, None)?;
     }
     Ok(result)
 }
@@ -134,7 +131,6 @@ fn check_and_push_export_type_btf(
     btf: &Btf,
     type_id: u32,
     bit_off: u32,
-    bit_sz: u32,
     out: &mut Vec<CheckedExportedMember>,
     member_meta: Option<ExportedTypesStructMemberMeta>,
 ) -> Result<()> {
@@ -152,11 +148,10 @@ fn check_and_push_export_type_btf(
         }
     };
     out.push(CheckedExportedMember {
-        meta: member_meta,
+        field_name: member_meta.name,
         type_id,
         bit_offset: bit_off,
         size: size as usize,
-        bit_size: bit_sz,
         output_header_offset: 0,
     });
     Ok(())
@@ -194,10 +189,9 @@ mod tests {
         };
         for (a, b) in checked_types.iter().zip(st.members.iter()) {
             assert_eq!(a.bit_offset, b.bit_offset);
-            assert_eq!(a.bit_size, b.bit_size as u32);
             assert_eq!(a.size, btf.get_size_of(b.type_id) as usize);
             assert_eq!(a.type_id, b.type_id);
-            assert_eq!(a.meta.name, b.name);
+            assert_eq!(a.field_name, b.name);
         }
     }
 }

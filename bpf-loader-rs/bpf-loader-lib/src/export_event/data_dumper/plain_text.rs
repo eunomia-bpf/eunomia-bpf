@@ -10,7 +10,12 @@ use btf::types::Btf;
 use crate::export_event::{data_dumper::json::dump_to_json, CheckedExportedMember};
 
 pub(crate) fn dump_to_string(btf: &Btf, type_id: u32, data: &[u8], out: &mut String) -> Result<()> {
-    out.push_str(&serde_json::to_string(&dump_to_json(btf, type_id, data)?)?);
+    out.push_str(&match dump_to_json(btf, type_id, data)? {
+        // Remove semicolons..
+        serde_json::Value::String(s) => s,
+        serde_json::Value::Number(v) => v.to_string(),
+        t => t.to_string(),
+    });
     Ok(())
 }
 
@@ -30,7 +35,7 @@ pub(crate) fn dump_to_string_with_checked_types(
         if member.bit_offset % 8 != 0 {
             bail!(
                 "Bit field found in member {}, but it is not supported now",
-                member.meta.name
+                member.field_name
             );
         }
         dump_to_string(

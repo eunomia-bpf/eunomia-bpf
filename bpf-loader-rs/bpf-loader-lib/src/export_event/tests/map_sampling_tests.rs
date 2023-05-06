@@ -156,11 +156,11 @@ fn create_exporter(
     let exporter = EventExporterBuilder::new()
         .set_export_event_handler(handler)
         .set_export_format(export_format)
-        .build_for_map_sampling(
+        .build_for_key_value(
             things.key_id,
             things.value_id,
             &sample_map.sample.as_ref().unwrap(),
-            &meta.export_types[..],
+            &meta.export_types[0],
             things.btf.clone(),
         )
         .unwrap();
@@ -206,7 +206,7 @@ fn test_export_format_json() {
 
 const EXPECTED_OUTPUT_LOG2HISTS_LINES: [&str; 29] = [
     "key =  305419896",
-    "comm = \"COMM-STR\"",
+    "comm = COMM-STR",
     "     (unit)              : count    distribution",
     "         0 -> 1          : 1000     |*************************************** |",
     "         2 -> 3          : 1001     |*************************************** |",

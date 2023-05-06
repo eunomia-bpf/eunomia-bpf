@@ -1,0 +1,94 @@
+{
+    "bpf_skel": {
+        "data_sections": [
+            {
+                "name": ".rodata",
+                "variables": [
+                    {
+                        "name": "min_duration_ns",
+                        "type": "unsigned long long"
+                    }
+                ]
+            },
+            {
+                "name": ".bss",
+                "variables": [
+                    {
+                        "name": "__dummy1",
+                        "type": "struct event_exit *"
+                    },
+                    {
+                        "name": "__dummy2",
+                        "type": "struct event_exec *"
+                    }
+                ]
+            }
+        ],
+        "maps": [
+            {
+                "ident": "exec_start",
+                "name": "exec_start"
+            },
+            {
+                "ident": "rb_exec",
+                "name": "rb_exec",
+                "export_config": {
+                    "custom_members": [
+                        {
+                            "name": "comm?",
+                            "offset": 8,
+                            "btf_type_id": 150
+                        },
+                        {
+                            "name": "ppid",
+                            "offset": 4,
+                            "btf_type_id": 2
+                        },
+                        {
+                            "name": "fname",
+                            "offset": 24,
+                            "btf_type_id": 322
+                        },
+                        {
+                            "name": "pid",
+                            "offset": 0,
+                            "btf_type_id": 2
+                        }
+                    ]
+                }
+            },
+            {
+                "ident": "rb_exit",
+                "name": "rb_exit",
+                "export_config": {
+                    "btf_type_id": 316
+                }
+            },
+            {
+                "ident": "rodata",
+                "mmaped": true,
+                "name": "multiple.rodata"
+            },
+            {
+                "ident": "bss",
+                "mmaped": true,
+                "name": "multiple.bss"
+            }
+        ],
+        "obj_name": "multiple_bpf",
+        "progs": [
+            {
+                "attach": "tp/sched/sched_process_exec",
+                "link": true,
+                "name": "handle_exec"
+            },
+            {
+                "attach": "tp/sched/sched_process_exit",
+                "link": true,
+                "name": "handle_exit"
+            }
+        ]
+    },
+    "eunomia_version": "0.3.3",
+    "enable_multiple_export_types": true
+}
