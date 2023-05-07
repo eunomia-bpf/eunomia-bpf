@@ -2,13 +2,14 @@
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "nixpkgs/nixos-unstable";
+    wasm-bpf.url = "github:eunomia-bpf/wasm-bpf";
     pre-commit-hooks = {
       url = "github:cachix/pre-commit-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, flake-utils, nixpkgs, pre-commit-hooks }:
+  outputs = { self, flake-utils, nixpkgs, pre-commit-hooks, wasm-bpf }:
     flake-utils.lib.eachSystem
       (with flake-utils.lib.system;
       [ x86_64-linux aarch64-linux ]) # riscv64-linux commented since precommithook doesn't support yet.
@@ -20,6 +21,7 @@
             # this workaround could be removed after https://github.com/eunomia-bpf/eunomia-bpf/issues/183 closing.
             overlays = [
               (final: prev: {
+                wasm-bpf = wasm-bpf.packages.${system}.wasm-bpf;
                 bpftool =
                   prev.bpftool.overrideAttrs (old: {
                     version = "eunomia-edition-20230129";
@@ -101,7 +103,7 @@
                   '';
                 };
 
-              ecc = pkgs.llvmPackages_latest.libcxxStdenv.mkDerivation rec{
+              ecc = pkgs.stdenv.mkDerivation rec{
                 pname = "ecc";
 
                 inherit version;
@@ -131,14 +133,14 @@
                 dontUseCmakeConfigure = true;
 
                 preBuild = ''
-                    mkdir -p compiler/workspace/include/vmlinux
-                    cp -r third_party/vmlinux compiler/workspace/include/vmlinux
-                    cp ${pkgs.bpftool}/bin/bpftool compiler/workspace/bin
-                    cd ${cargoRoot}
-                    cargo build --release
+                  mkdir -p compiler/workspace/include/vmlinux
+                  cp -r third_party/vmlinux compiler/workspace/include/vmlinux
+                  cp ${pkgs.bpftool}/bin/bpftool compiler/workspace/bin
+                  cd ${cargoRoot}
+                  cargo build --release
                 '';
 
-                installPhase = ''
+                postInstall = ''
                   mkdir -p $out/bin
                   install -Dm 755 target/release/ecc $out/bin/
                 '';
@@ -152,7 +154,8 @@
             };
 
             ebpf-dev = default // pkgs.mkShell {
-              buildInputs = with packages; [ ecc ecli ];
+              buildInputs = (with packages; [ ecc ecli ])
+                ++ [ pkgs.wasm-bpf ];
             };
           };
 
