@@ -1,0 +1,32 @@
+name: build eunomia-bpf (flake)
+on:
+  pull_request:
+    branches: ["*"]
+  push:
+    branches: ["master"]
+
+jobs:
+  check:
+    name: "build eunomia-bpf (flake)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v20
+
+      - name: build ecc
+        run: |
+          nix build .#ecc --print-build-logs
+        shell: bash
+
+      - name: build ecli
+        run: |
+          nix build .#ecc --print-build-logs
+        shell: bash
+
+      - name: build dev env
+        run: |
+          nix develop .#devShells.x86_64-linux.ebpf-dev --print-build-logs
+        shell: bash
