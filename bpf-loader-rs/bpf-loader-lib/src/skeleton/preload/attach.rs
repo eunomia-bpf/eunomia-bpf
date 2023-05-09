@@ -8,16 +8,18 @@ use anyhow::{anyhow, bail, Context, Result};
 use libbpf_rs::{
     libbpf_sys::{
         bpf_tc_attach, bpf_tc_hook, bpf_tc_hook_create, bpf_tc_hook_destroy, bpf_tc_opts,
+        bpf_xdp_attach, bpf_xdp_detach, bpf_xdp_attach_opts,
     },
     Link, Program,
 };
 use log::error;
 
-use crate::meta::{ProgMeta, TCProgExtraMeta};
+use crate::meta::{ProgMeta, TCProgExtraMeta, XDPProgExtraMeta};
 
 pub(crate) enum AttachLink {
     BpfLink(Link),
     TCAttach(Box<bpf_tc_hook>),
+    XDPAttach(i32, u32, Box<bpf_xdp_attach_opts>),
 }
 
 impl Drop for AttachLink {
@@ -30,8 +32,34 @@ impl Drop for AttachLink {
                     error!("Failed to destroy tc hook: {}", err);
                 }
             }
+            AttachLink::XDPAttach(ifindex, flags, opts) => {
+                let err = unsafe { bpf_xdp_detach(*ifindex, *flags, &**opts) };
+                if err != 0 {
+                    error!("Failed to detach xdp hook");
+                }
+            }
         }
     }
+}
+
+pub(crate) fn attach_xdp(program: &Program, meta: &ProgMeta) -> Result<AttachLink> {
+    let xdp_extra_meta = serde_json::from_value::<XDPProgExtraMeta>(meta.others.clone())
+        .with_context(|| anyhow!("Failed to deserialize xdp extra meta"))?;
+
+    let ifindex = xdp_extra_meta.ifindex;
+    let flags = xdp_extra_meta.flags;
+    let prog_fd = program.fd();
+
+    let mut xdp_attach_opts = Box::new(unsafe { std::mem::zeroed::<bpf_xdp_attach_opts>() });
+    xdp_attach_opts.sz = std::mem::size_of::<bpf_xdp_attach_opts>() as _;
+    xdp_attach_opts.old_prog_fd = xdp_extra_meta.xdpopts.old_prog_fd;
+
+    let err = unsafe { bpf_xdp_attach(ifindex, prog_fd, flags, &*xdp_attach_opts) };
+    if err < 0 {
+        bail!("Failed to attach xdp: {}", err);
+    }
+
+    Ok(AttachLink::XDPAttach(ifindex, flags, xdp_attach_opts))
 }
 
 pub(crate) fn attach_tc(program: &Program, meta: &ProgMeta) -> Result<AttachLink> {

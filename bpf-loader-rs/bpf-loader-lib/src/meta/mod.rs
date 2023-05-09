@@ -152,6 +152,35 @@ pub struct ProgMeta {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+/// Extra fields in prog meta for XDP programs
+pub struct XDPProgExtraMeta {
+    #[serde(default = "default_helpers::default_i32::<1>")]
+    /// Which interface to hook
+    pub ifindex: i32,
+    #[serde(default = "default_helpers::default_u32::<0>")]
+    /// XDP hook flags
+    pub flags: u32,
+    #[serde(default)]
+    /// XDP Hook options
+    pub xdpopts: XDPOpts,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+/// XDP hook options
+pub struct XDPOpts {
+    #[serde(default = "default_helpers::default_i32::<0>")]
+    /// old bpf program fd
+    pub old_prog_fd: i32,
+}
+impl Default for XDPOpts {
+    fn default() -> Self {
+        Self {
+            old_prog_fd: 0,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 /// Extra fields in prog meta for TC programs
 pub struct TCProgExtraMeta {
     #[serde(default)]
