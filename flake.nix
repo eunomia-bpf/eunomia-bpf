@@ -148,12 +148,15 @@
               };
             };
           devShells = rec {
-            default = pkgs.mkShell {
+
+            default = eunomia-dev;
+
+            eunomia-dev = pkgs.mkShell {
               inputsFrom = with packages;
                 [ ecc ecli ];
             };
 
-            ebpf-dev = default // pkgs.mkShell {
+            ebpf-dev = eunomia-dev // pkgs.mkShell {
               buildInputs = (with packages; [ ecc ecli ])
                 ++ [ pkgs.wasm-bpf ];
             };
