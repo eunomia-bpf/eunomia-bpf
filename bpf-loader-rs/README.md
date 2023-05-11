@@ -50,3 +50,16 @@ TIME     PID    PPID   EXIT_CODE DURATION_NS COMM   FILENAME EXIT_EVENT ET
 17:01:23  506674 486903 0        0           "sh"   "/bin/sh" false     "EVENT_TYPE__ENTER(0)"
 17:01:23  506675 506674 0        0           "ps"   "/usr/bin/ps" false "EVENT_TYPE__ENTER(0)"
 ```
+
+## The Skeleton (with multiple export type support)
+
+- If `enable_multiple_export_types` in `EunomiaObjectMeta` is set to `true`, then multiple export types will be supported. Otherwise the behavior is compatible to the old version
+
+The `export_types` field will be ignored if multiple export types is enabled.
+
+There will be a field `export_config` under the `MapMeta` of each map, it can be either of the four variants:
+
+- String `"no_export"`. indicating that this map is not used for exporting
+- String `"default"`. Only applies to sample maps. indicating that this map is used for exporting, and the export struct type will be read from BTF and the map's `btf_value_type_if`
+- Object `{"btf_type_id": <u32>}`. Applies to all maps. Indicate that use this btf type as the map's export type. For ringbuf or perfevent, it will be used to interprete the data that kernel programs send. For sample maps, it will be used to interprete the value of maps
+- Object `{"custom_members" : [{"name": <String>, "offset": <usize>, "btf_type_id": <u32>}]}`. Applies to all maps. Indicates that the map will export a struct containing the described members. `name` is the name of the field. `offset` is its offset. `btf_type_id` is the type id of the field.
