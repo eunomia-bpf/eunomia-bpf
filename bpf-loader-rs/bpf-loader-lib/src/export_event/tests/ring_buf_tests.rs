@@ -37,7 +37,7 @@ fn create_exporter(
     let exporter = EventExporterBuilder::new()
         .set_export_event_handler(handler)
         .set_export_format(export_format)
-        .build_for_ringbuf(&skel.export_types[..], btf)
+        .build_for_single_value(&skel.export_types[0], btf)
         .unwrap();
     exporter
 }
@@ -79,7 +79,7 @@ fn test_export_format_json() {
     data.test_with_example_data();
 }
 
-const EXPECTED_PLAIN_TEXT_OUTPUT_LINE2:&str = "[[[0,1,2,3],[256,257,258,259],[512,513,514,515]],[[65536,65537,65538,65539],[65792,65793,65794,65795],[66048,66049,66050,66051]]] \"A-String\" [\"hello 0\",\"hello 1\",\"hello 2\",\"hello 3\",\"hello 4\",\"hello 5\",\"hello 6\",\"hello 7\",\"hello 8\",\"hello 9\"] 1.2300000190734863 4.56 18 -18 4660 -4660 305419896 -305419896 1311768467463790320 -1311768467463790320 \"E_A(0)\"";
+const EXPECTED_PLAIN_TEXT_OUTPUT_LINE2:&str = "[[[0,1,2,3],[256,257,258,259],[512,513,514,515]],[[65536,65537,65538,65539],[65792,65793,65794,65795],[66048,66049,66050,66051]]] A-String [\"hello 0\",\"hello 1\",\"hello 2\",\"hello 3\",\"hello 4\",\"hello 5\",\"hello 6\",\"hello 7\",\"hello 8\",\"hello 9\"] 1.2300000190734863 4.56 18 -18 4660 -4660 305419896 -305419896 1311768467463790320 -1311768467463790320 E_A(0)";
 const EXPECTED_PLAIN_TEXT_OUTPUT_LINE1:&str = "TIME     ARR1   STR    STR_ARR FT     DBL    U8V    I8V    U16V   I16V   U32V   I32V   U64V   I64V   E      ";
 
 #[test]

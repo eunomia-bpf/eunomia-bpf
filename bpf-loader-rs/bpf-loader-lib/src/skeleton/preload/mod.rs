@@ -11,7 +11,7 @@ use crate::{
     elf_container::ElfContainer,
     meta::{EunomiaObjectMeta, RunnerConfig},
     skeleton::preload::{
-        attach::{attach_xdp, attach_tc, AttachLink},
+        attach::{attach_tc, attach_xdp, AttachLink},
         section_loader::load_section_data_with_skel_value,
     },
 };

@@ -16,6 +16,7 @@ use serde_json::{json, Value};
 
 use crate::export_event::CheckedExportedMember;
 
+/// The caller is responsible to ensure data is large enough
 pub(crate) fn dump_to_json(btf: &Btf, type_id: u32, data: &[u8]) -> Result<Value> {
     let ty = btf
         .types()
@@ -62,12 +63,24 @@ pub(crate) fn dump_to_json_with_checked_types(
 
     for member in checked_export_value_member_types.iter() {
         result.insert(
-            member.meta.name.clone(),
+            member.field_name.clone(),
             dump_to_json(
                 btf,
                 member.type_id,
-                &data[(member.bit_offset / 8) as usize
-                    ..((member.bit_offset / 8) as usize + member.size)],
+                data.get(
+                    (member.bit_offset / 8) as usize
+                        ..((member.bit_offset / 8) as usize + member.size),
+                )
+                .ok_or_else(|| {
+                    anyhow!(
+                        "Input buffer is too small when trying to slice bytes for field {}.\
+                 Required {}..{} to be valid. member: {:#?}",
+                        member.field_name,
+                        member.bit_offset / 8,
+                        (member.bit_offset / 8) as usize + member.size,
+                        member
+                    )
+                })?,
             )?,
         );
     }
@@ -118,8 +131,10 @@ pub(crate) fn dump_int(btf_int: &BtfInt, range: &[u8]) -> Result<Value> {
 pub(crate) fn dump_pointer(range: &[u8]) -> Result<Value> {
     Ok(if range.len() == 4 {
         json!(u32::from_le_bytes(range[0..4].try_into()?))
-    } else {
+    } else if range.len() == 8 {
         json!(u64::from_le_bytes(range[0..8].try_into()?))
+    } else {
+        bail!("Invalid pointer size: {}", range.len())
     })
 }
 
@@ -149,7 +164,9 @@ pub(crate) fn dump_array(btf: &Btf, arr: &BtfArray, type_id: u32, range: &[u8]) 
             result.push(dump_to_json(
                 btf,
                 arr.val_type_id,
-                &range[i * elem_size..(i + 1) * elem_size],
+                range
+                    .get(i * elem_size..(i + 1) * elem_size)
+                    .ok_or_else(|| anyhow!("Failed to slice {}-th element for array", i))?,
             )?);
         }
         Ok(json!(result))
@@ -198,7 +215,11 @@ pub(crate) fn dump_composed_type(btf: &Btf, comp: &BtfComposite, range: &[u8]) -
             dump_to_json(
                 btf,
                 elem.type_id,
-                &range[(elem.bit_offset / 8) as usize..(elem.bit_offset / 8 + elem_size) as usize],
+                range
+                    .get((elem.bit_offset / 8) as usize..(elem.bit_offset / 8 + elem_size) as usize)
+                    .ok_or_else(|| {
+                        anyhow!("Failed to slice member {:?} for struct {}", elem, comp.name)
+                    })?,
             )?,
         );
     }

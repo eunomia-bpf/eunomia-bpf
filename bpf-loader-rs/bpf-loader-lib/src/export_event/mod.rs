@@ -35,15 +35,15 @@
 use crate::{
     btf_container::BtfContainer,
     export_event::checker::check_sample_types_btf,
-    meta::{ExportedTypesStructMemberMeta, ExportedTypesStructMeta, MapSampleMeta, SampleMapType},
+    meta::{ExportedTypesStructMeta, MapSampleMeta, SampleMapType},
 };
 use anyhow::{anyhow, bail, Context, Result};
-use log::warn;
 use std::{any::Any, fmt::Display, sync::Arc};
 
 use self::{
     checker::check_export_types_btf,
     event_handlers::{get_plain_text_checked_types_header, key_value, simple_value},
+    type_descriptor::{CheckedExportedMember, TypeDescriptor},
 };
 
 pub(crate) mod checker;
@@ -51,7 +51,8 @@ pub(crate) mod data_dumper;
 pub(crate) mod event_handlers;
 #[cfg(test)]
 mod tests;
-
+/// Contains utilities to describe where to obtain the export type of a map
+pub mod type_descriptor;
 #[derive(Clone, Copy)]
 /// Describe the export format type
 pub enum ExportFormatType {
@@ -167,16 +168,6 @@ pub(crate) trait InternalSimpleValueEventProcessor {
 pub(crate) trait InternalSampleMapProcessor {
     fn handle_event(&self, key_buffer: &[u8], value_buffer: &[u8]) -> Result<()>;
 }
-#[derive(Debug, Clone)]
-pub(crate) struct CheckedExportedMember {
-    pub(crate) meta: ExportedTypesStructMemberMeta,
-    pub(crate) type_id: u32,
-    pub(crate) bit_offset: u32,
-    pub(crate) size: usize,
-    #[allow(unused)]
-    pub(crate) bit_size: u32,
-    pub(crate) output_header_offset: usize,
-}
 
 /// The builder of the EventExporter
 pub struct EventExporterBuilder {
@@ -221,22 +212,14 @@ impl EventExporterBuilder {
             ..self
         }
     }
-    /// Build an EventExporter which is suitable for processing ringbuf data
-    /// export_types: The type of the data that kernel program sends. Currently there can only be one type. The types will be verified using BTF
-    /// btf_container: The BTF information
-    pub fn build_for_ringbuf(
+    /// Build an exporter use TypeDescriptor. Which can easily specify the source to obtain the value type
+    pub fn build_for_single_value_with_type_descriptor(
         self,
-        export_types: &[ExportedTypesStructMeta],
+        export_type: TypeDescriptor,
         btf_container: Arc<BtfContainer>,
     ) -> Result<Arc<EventExporter>> {
-        if export_types.is_empty() {
-            bail!("No export types found");
-        }
-        if export_types.len() > 1 {
-            warn!("Warning: mutiple export types not supported now. use the first struct as output event.");
-        }
         let mut checked_exported_members =
-            check_export_types_btf(&export_types[0], btf_container.borrow_btf())?;
+            export_type.build_checked_exported_members(btf_container.borrow_btf())?;
 
         Ok(Arc::new_cyclic(move |me| {
             let internal_event_processor: Box<dyn InternalSimpleValueEventProcessor> =
@@ -263,7 +246,6 @@ impl EventExporterBuilder {
                     }),
                 };
             EventExporter {
-                // format_type: self.export_format,
                 user_export_event_handler: self.export_event_handler,
                 user_ctx: self.user_ctx,
                 btf_container,
@@ -274,37 +256,38 @@ impl EventExporterBuilder {
             }
         }))
     }
-    /// Build an EventExporter to process sampling map
-    /// key_type_id: The type id of the map key
-    /// value_type_id: The type id of the map value
-    /// sample_config: Detailed configuration of the sampling map
-    /// export_types: Value types of the map, will be verified
-    /// btf_container: The btf information
-    pub fn build_for_map_sampling(
+    /// Build an EventExporter which is suitable for processing value-only data
+    /// export_types: The type of the data that kernel program sends. The types will be verified using BTF
+    /// btf_container: The BTF information
+    pub fn build_for_single_value(
         self,
-        key_type_id: u32,
-        value_type_id: u32,
-        sample_config: &MapSampleMeta,
-        export_types: &[ExportedTypesStructMeta],
+        export_type: &ExportedTypesStructMeta,
         btf_container: Arc<BtfContainer>,
     ) -> Result<Arc<EventExporter>> {
-        if export_types.len() > 1 {
-            warn!("Warning: mutiple export types not supported now. use the first struct as output event.");
-        }
-        let btf = btf_container.borrow_btf();
-        let member = if export_types.len() == 1 {
-            Some(&export_types[0])
-        } else {
-            None
-        };
-        let mut checked_key_types = check_sample_types_btf(btf, key_type_id, None)
-            .with_context(|| anyhow!("Failed to check key type"))?;
-        let mut checked_value_types = check_sample_types_btf(btf, value_type_id, member.cloned())
-            .with_context(|| anyhow!("Failed to check value type"))?;
-        if let ExportFormatType::PlainText = self.export_format {
-            if let SampleMapType::LinearHist = sample_config.ty {
-                bail!("Linear hist sampling is not supported now");
-            }
+        let checked_members = check_export_types_btf(export_type, btf_container.borrow_btf())?;
+        Self::build_for_single_value_with_type_descriptor(
+            self,
+            TypeDescriptor::CheckedMembers(checked_members),
+            btf_container,
+        )
+    }
+    /// Build an EventExporter, but use TypeDescriptor to indicate where to fetch the value type
+    pub fn build_for_key_value_with_type_desc(
+        self,
+        key_export_type: TypeDescriptor,
+        value_export_type: TypeDescriptor,
+        sample_config: &MapSampleMeta,
+        btf_container: Arc<BtfContainer>,
+    ) -> Result<Arc<EventExporter>> {
+        let mut checked_key_types =
+            key_export_type.build_checked_exported_members(btf_container.borrow_btf())?;
+        let mut checked_value_types =
+            value_export_type.build_checked_exported_members(btf_container.borrow_btf())?;
+
+        if matches!(self.export_format, ExportFormatType::PlainText)
+            && matches!(sample_config.ty, SampleMapType::LinearHist)
+        {
+            bail!("Linear hist sampling is not supported now");
         }
         Ok(Arc::new_cyclic(move |me| {
             let internal_sample_map_processor: Box<dyn InternalSampleMapProcessor> = match self
@@ -350,5 +333,32 @@ impl EventExporterBuilder {
                 btf_container,
             }
         }))
+    }
+    /// Build an EventExporter to process sampling map
+    /// key_type_id: The type id of the map key
+    /// value_type_id: The type id of the map value
+    /// sample_config: Detailed configuration of the sampling map
+    /// export_types: Value types of the map, will be verified
+    /// btf_container: The btf information
+    pub fn build_for_key_value(
+        self,
+        key_type_id: u32,
+        value_type_id: u32,
+        sample_config: &MapSampleMeta,
+        export_type: &ExportedTypesStructMeta,
+        btf_container: Arc<BtfContainer>,
+    ) -> Result<Arc<EventExporter>> {
+        let btf = btf_container.borrow_btf();
+        let checked_key_types = check_sample_types_btf(btf, key_type_id, None)
+            .with_context(|| anyhow!("Failed to check key type"))?;
+        let checked_value_types =
+            check_sample_types_btf(btf, value_type_id, Some(export_type.clone()))
+                .with_context(|| anyhow!("Failed to check value type"))?;
+        self.build_for_key_value_with_type_desc(
+            TypeDescriptor::CheckedMembers(checked_key_types),
+            TypeDescriptor::CheckedMembers(checked_value_types),
+            sample_config,
+            btf_container,
+        )
     }
 }

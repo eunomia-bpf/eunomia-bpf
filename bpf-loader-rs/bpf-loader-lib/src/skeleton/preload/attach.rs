@@ -8,7 +8,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use libbpf_rs::{
     libbpf_sys::{
         bpf_tc_attach, bpf_tc_hook, bpf_tc_hook_create, bpf_tc_hook_destroy, bpf_tc_opts,
-        bpf_xdp_attach, bpf_xdp_detach, bpf_xdp_attach_opts,
+        bpf_xdp_attach, bpf_xdp_attach_opts, bpf_xdp_detach,
     },
     Link, Program,
 };

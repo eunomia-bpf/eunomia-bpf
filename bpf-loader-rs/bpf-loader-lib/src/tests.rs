@@ -11,6 +11,13 @@ use serde::Deserialize;
 pub(crate) fn get_assets_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets")
 }
+#[allow(unused)]
+pub(crate) fn start_logger() {
+    flexi_logger::Logger::try_with_str("debug")
+        .unwrap()
+        .start()
+        .unwrap();
+}
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct ExampleTestStruct {

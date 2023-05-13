@@ -17,8 +17,7 @@ pub(crate) fn get_plain_text_checked_types_header(
     for ty in checked_member.iter_mut() {
         ty.output_header_offset = header.len();
         let type_name = ty
-            .meta
-            .name
+            .field_name
             .chars()
             .map(|v| v.to_ascii_uppercase())
             .collect::<String>();

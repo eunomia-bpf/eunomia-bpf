@@ -129,7 +129,7 @@ impl NativeTaskManager {
             TaskImpl::Wasm {
                 thread_handle,
                 should_exit,
-                mut prog_handle, // We cant drop it before we kill the wasm program
+                prog_handle, // Drop it freely!!!!!!
             } => {
                 prog_handle
                     .terminate()
@@ -142,7 +142,10 @@ impl NativeTaskManager {
                     .join()
                     .map_err(|_| Error::ThreadJoin("Failed to join".to_string()))?
                 {
-                    if format!("{:?}", e).contains("Wasm program terminated") {
+                    let formatted_str = format!("{:?}", e);
+                    if formatted_str.contains("Wasm program terminated")
+                        || formatted_str.contains("receiving on a closed channel")
+                    {
                     } else {
                         return Err(Error::Bpf(format!(
                             "Failed to wait for the worker: {:?}",

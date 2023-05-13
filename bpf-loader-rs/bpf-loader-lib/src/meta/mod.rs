@@ -123,6 +123,39 @@ pub struct MapSampleMeta {
     pub clear_map: bool,
 }
 
+/// Describe a member of an overriding struct
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+pub struct OverridedStructMember {
+    /// Name of the field
+    pub name: String,
+    /// Offset of the field. in bytes
+    pub offset: usize,
+    /// BTF type id of the field
+    pub btf_type_id: u32,
+}
+/// Describe whether and how a map's value will be exported
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+pub enum MapExportConfig {
+    /// Don't export
+    #[serde(rename = "no_export")]
+    NoExport,
+    /// Use this btf type to specify the export value
+    #[serde(rename = "btf_type_id")]
+    ExportUseBtf(u32),
+    /// Use the custom members to specify the export value
+    #[serde(rename = "custom_members")]
+    ExportUseCustomMembers(Vec<OverridedStructMember>),
+    /// Use default configuration from BTF. This only applies to sample maps
+    #[serde(rename = "default")]
+    Default,
+}
+
+impl Default for MapExportConfig {
+    fn default() -> Self {
+        Self::NoExport
+    }
+}
+
 /// Describe a map
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct MapMeta {
@@ -130,12 +163,15 @@ pub struct MapMeta {
     pub name: String,
     /// TODO: get to know what's this
     pub ident: String,
-    /// If the value of this map will be used to describe a data section
+    /// Whether the value of this map will be used to describe a data section
     #[serde(default = "default_helpers::default_bool::<false>")]
     pub mmaped: bool,
     /// Extra info if this map will be used for sampling
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sample: Option<MapSampleMeta>,
+    /// The export config of this map
+    #[serde(default)]
+    pub export_config: MapExportConfig,
 }
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 /// Describe the meta of a bpf program
@@ -167,17 +203,11 @@ pub struct XDPProgExtraMeta {
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 /// XDP hook options
+#[derive(Default)]
 pub struct XDPOpts {
     #[serde(default = "default_helpers::default_i32::<0>")]
     /// old bpf program fd
     pub old_prog_fd: i32,
-}
-impl Default for XDPOpts {
-    fn default() -> Self {
-        Self {
-            old_prog_fd: 0,
-        }
-    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
@@ -367,6 +397,12 @@ pub struct EunomiaObjectMeta {
     /// print config
     /// print the types and names of export headers
     pub print_header: bool,
+    /// Whether to enable support of multiple export types
+    /// If set to false, bpf-loader-rs will keep compatibility to the old version
+    /// If set to true, the field `export_config` of each map will be used
+    /// and the `export_types` field will be ignored
+    #[serde(default = "default_helpers::default_bool::<false>")]
+    pub enable_multiple_export_types: bool,
 }
 #[derive(Deserialize, Serialize, PartialEq, Eq)]
 pub(crate) struct ComposedObjectInner {
