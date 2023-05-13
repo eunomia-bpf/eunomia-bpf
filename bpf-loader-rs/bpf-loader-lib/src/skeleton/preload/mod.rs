@@ -11,7 +11,7 @@ use crate::{
     elf_container::ElfContainer,
     meta::{EunomiaObjectMeta, RunnerConfig},
     skeleton::preload::{
-        attach::{attach_tc, AttachLink},
+        attach::{attach_xdp, attach_tc, AttachLink},
         section_loader::load_section_data_with_skel_value,
     },
 };
@@ -149,6 +149,9 @@ impl PreLoadBpfSkeleton {
             match bpf_prog.section() {
                 "tc" => links.push(attach_tc(bpf_prog, prog_meta).with_context(|| {
                     anyhow!("Failed to attach tc program `{}`", prog_meta.name)
+                })?),
+                "xdp" => links.push(attach_xdp(bpf_prog, prog_meta).with_context(|| {
+                    anyhow!("Failed to attach xdp program `{}`", prog_meta.name)
                 })?),
                 s => bail!("Unsupported attach type: {}", s),
             }
