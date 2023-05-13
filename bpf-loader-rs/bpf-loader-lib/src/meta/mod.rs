@@ -203,17 +203,11 @@ pub struct XDPProgExtraMeta {
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 /// XDP hook options
+#[derive(Default)]
 pub struct XDPOpts {
     #[serde(default = "default_helpers::default_i32::<0>")]
     /// old bpf program fd
     pub old_prog_fd: i32,
-}
-impl Default for XDPOpts {
-    fn default() -> Self {
-        Self {
-            old_prog_fd: 0,
-        }
-    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
