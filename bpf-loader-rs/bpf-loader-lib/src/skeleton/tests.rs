@@ -264,3 +264,44 @@ fn test_xdp_attach_and_detach() {
         }
     }
 }
+
+#[test]
+fn test_tc_attach_and_detach() {
+    let package: ComposedObject = serde_json::from_str(
+        &std::fs::read_to_string(get_assets_dir().join("simple_prog_6").join("package.json"))
+            .unwrap(),
+    )
+    .unwrap();
+    let (handle_tx, handle_rx) = std::sync::mpsc::channel::<PollingHandle>();
+    let join_handle: JoinHandle<Result<()>> = std::thread::spawn(move || {
+        let skel = BpfSkeletonBuilder::from_json_package(&package, None)
+            .build()
+            .unwrap()
+            .load_and_attach()
+            .unwrap();
+        handle_tx.send(skel.create_poll_handle()).unwrap();
+        skel.wait_for_no_export_program().unwrap();
+        Ok(())
+    });
+    let handle = handle_rx.recv().unwrap();
+    let pipe = std::fs::OpenOptions::new()
+        .read(true)
+        .open("/sys/kernel/tracing/trace_pipe")
+        .unwrap();
+    let mut reader = BufReader::new(pipe);
+    let mut line = String::default();
+    let begin = std::time::Instant::now();
+    loop {
+        reader.read_line(&mut line).unwrap();
+        println!("{}", line);
+
+        if line.contains("Got IP packet: tot_len:") {
+            handle.terminate();
+            join_handle.join().unwrap().unwrap();
+            break;
+        }
+        if begin.elapsed().as_millis() > 10 * 1000 {
+            panic!("Failed to fetch `Got IP packet: tot_len:` from trace_pipe");
+        }
+    }
+}
