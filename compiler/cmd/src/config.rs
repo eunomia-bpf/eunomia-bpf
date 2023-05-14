@@ -379,7 +379,7 @@ pub fn get_wasm_header_path(args: &Options) -> String {
 
 /// embed workspace
 #[derive(RustEmbed)]
-#[folder = "../workspace/"]
+#[folder = "workspace/"]
 struct Workspace;
 
 pub fn init_eunomia_workspace(tmp_workspace: &TempDir) -> Result<()> {
