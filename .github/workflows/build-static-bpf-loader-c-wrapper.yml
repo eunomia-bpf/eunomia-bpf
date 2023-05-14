@@ -24,7 +24,7 @@ jobs:
 
     - name: Build bpf-loader-c-wrapper
       run: |
-          cd bpf-loader-lib/bpf-loader-c-wrapper
+          cd bpf-loader-rs/bpf-loader-c-wrapper
           cargo build --release
     - name: Merge several archives
       run: |
