@@ -1,0 +1,43 @@
+name: Build the static library of `bpf-loader-c-wrapper`
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+
+    - name: install deps
+      run: |
+          sudo make install-deps
+
+    - name: Build bpf-loader-c-wrapper
+      run: |
+          cd bpf-loader-rs/bpf-loader-c-wrapper
+          cargo build --release
+    - name: Merge several archives
+      run: |
+        cp ./bpf-loader-rs/target/release/libeunomia.a .
+        cp /usr/lib/x86_64-linux-gnu/libz.a .
+        cp /usr/lib/x86_64-linux-gnu/libelf.a .
+        llvm-ar x libeunomia.a
+        llvm-ar x libelf.a
+        llvm-ar x libz.a
+        rm *.a
+        llvm-ar q libeunomia.a *.o
+
+    - name: Upload build result
+      uses: actions/upload-artifact@v2.3.1
+      with:
+        path: "libeunomia.a"

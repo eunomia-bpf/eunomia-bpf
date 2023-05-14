@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 enum export_format_type {
-    EXPORT_PLANT_TEXT,
+    EXPORT_PLAIN_TEXT,
     EXPORT_JSON,
     EXPORT_RAW_EVENT,
 };
