@@ -28,7 +28,7 @@ jobs:
           cargo build --release
     - name: Merge several archives
       run: |
-        cp ./runtime/target/release/libeunomia.a .
+        cp ./bpf-loader-rs/target/release/libeunomia.a .
         cp /usr/lib/x86_64-linux-gnu/libz.a .
         cp /usr/lib/x86_64-linux-gnu/libelf.a .
         llvm-ar x libeunomia.a
