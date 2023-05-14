@@ -35,7 +35,7 @@ jobs:
         llvm-ar x libelf.a
         llvm-ar x libz.a
         rm *.a
-        llvm-ar q libeunomia *.o
+        llvm-ar q libeunomia.a *.o
 
     - name: Upload build result
       uses: actions/upload-artifact@v2.3.1
