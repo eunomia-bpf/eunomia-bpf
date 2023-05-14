@@ -24,12 +24,12 @@
                 wasm-bpf = wasm-bpf.packages.${system}.wasm-bpf;
                 bpftool =
                   prev.bpftool.overrideAttrs (old: {
-                    version = "eunomia-edition-20230129";
+                    version = "eunomia-edition-20230311";
                     src = prev.fetchFromGitHub {
                       owner = "eunomia-bpf";
                       repo = "bpftool";
-                      rev = "05940344f5db18d0cb1bc1c42e628f132bc93123";
-                      sha256 = "sha256-g2gjixfuGwVnFlqCMGLWVPbtKOSpQI+vZwIZciXFPTc=";
+                      rev = "252f0675c1c66daca7c6623bae112c2ea2f8d61e";
+                      sha256 = "sha256-OMnF61IwHPY+JRHXExZwXWKjRBSn2Ah2T/Py1yuirNc=";
                       fetchSubmodules = true;
                     };
                     patches = [ ];
