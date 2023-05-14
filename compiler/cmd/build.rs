@@ -100,10 +100,10 @@ fn main() -> anyhow::Result<()> {
         std::fs::remove_dir_all(&workspace_path)
             .with_context(|| anyhow!("Failed to remove existsing workspace dir"))?;
     }
-    std::fs::create_dir(&workspace_path)
+    std::fs::create_dir_all(&workspace_path)
         .with_context(|| anyhow!("Failed to create workspace dir"))?;
-    std::fs::create_dir(workspace_path.join("bin"))?;
-    std::fs::create_dir(workspace_path.join("include"))?;
+    std::fs::create_dir_all(workspace_path.join("bin"))?;
+    std::fs::create_dir_all(workspace_path.join("include"))?;
     let bpftool_repo_dir = workdir().join(bpftool_repodir());
     std::fs::copy(
         bpftool_repo_dir.join("src/bpftool"),
