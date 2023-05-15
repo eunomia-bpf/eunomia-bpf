@@ -4,6 +4,7 @@ version = "0.3.3"
 edition = "2021"
 license = "MIT"
 description = "A compiler to produce ebpf programs that can be run by ecli"
+repository = "https://github.com/eunomia-bpf/eunomia-bpf"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
