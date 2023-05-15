@@ -7,7 +7,7 @@ use ecli_lib::{
         pull, push, PullArgs, PushArgs,
     },
 };
-use std::process;
+use std::sync::atomic::Ordering;
 
 #[cfg(feature = "http")]
 mod http_client;
@@ -91,7 +91,7 @@ async fn main() -> Result<()> {
         .map_err(|e| Error::Log(format!("Failed to start logger: {}", e)))?;
 
     ctrlc::set_handler(move || {
-        process::exit(0);
+        native_client::TERMINATED.store(true, Ordering::Relaxed);
     })
     .ok();
     let args = Args::parse();

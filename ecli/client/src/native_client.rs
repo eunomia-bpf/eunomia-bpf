@@ -4,6 +4,8 @@
 //! All rights reserved.
 //!
 use std::time::Duration;
+use std::sync::atomic::Ordering;
+use std::sync::atomic::AtomicBool;
 
 use ecli_lib::{
     config::ProgramType,
@@ -15,6 +17,8 @@ use ecli_lib::{
 };
 
 use crate::helper::load_prog_buf_and_guess_type;
+
+pub static TERMINATED: AtomicBool = AtomicBool::new(false);
 
 pub(crate) async fn run_native(
     export_json: bool,
@@ -46,6 +50,11 @@ pub(crate) async fn run_native(
             }
             last_poll = Some(cursor + 1);
         }
+        if TERMINATED.load(Ordering::Relaxed) {
+            break;
+        }
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
+    client.terminate_program(handle).await?;
+    Ok(())
 }
