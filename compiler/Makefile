@@ -64,7 +64,9 @@ $(BPFTOOL):
 
 $(ECC): $(BPFTOOL)
 	cd cmd && cargo build --release
-	ln -s ./cmd/workspace workspace
+	cargo install cargo-out-dir
+	cd cmd && cargo build # Run a debug build to create the workspace directory 
+	cd cmd && cp -r `cargo out-dir`/workspace ..
 	cp $(ECC) workspace/bin/ecc
 
 install:
