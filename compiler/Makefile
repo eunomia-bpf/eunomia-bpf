@@ -63,12 +63,8 @@ $(BPFTOOL):
 	$(MAKE) -C $(BPFTOOL_SRC)/src
 
 $(ECC): $(BPFTOOL)
-	rm -rf workspace
-	mkdir -p workspace/bin workspace/include
-	cp $(BPFTOOL) workspace/bin/bpftool
-	cp -r $(BPFTOOL_SRC)/src/libbpf/include/bpf workspace/include/bpf
-	cp -r ../third_party/vmlinux workspace/include/vmlinux
 	cd cmd && cargo build --release
+	ln -s ./cmd/workspace workspace
 	cp $(ECC) workspace/bin/ecc
 
 install:

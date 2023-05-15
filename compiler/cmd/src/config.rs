@@ -5,13 +5,14 @@
 //!
 use anyhow::Result;
 use clap::Parser;
-use eunomia_rs::{copy_dir_all, TempDir};
+use fs_extra::dir::CopyOptions;
 use rust_embed::RustEmbed;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::result::Result::Ok;
 use std::{fs, path};
 use tar::Builder;
+use tempfile::TempDir;
 
 pub struct Options {
     pub tmpdir: TempDir,
@@ -45,7 +46,7 @@ impl EunomiaWorkspace {
         let tmp_workspace = TempDir::new().unwrap();
         if let Some(ref p) = opts.parameters.workspace_path {
             let src = Path::new(p);
-            copy_dir_all(src, tmp_workspace.path())?;
+            fs_extra::dir::copy(src, tmp_workspace.path(), &CopyOptions::default())?;
         } else {
             init_eunomia_workspace(&tmp_workspace)?
         }
@@ -216,7 +217,7 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
         btf_tmp.to_string_lossy(),
         btf_tmp.to_string_lossy(),
         bpftool_path,
-        get_output_object_path(&args),
+        get_output_object_path(args),
         custom_archive_path.to_string_lossy(),
         btf_tmp.to_string_lossy(),
         custom_archive_path.to_string_lossy()
@@ -236,11 +237,11 @@ pub fn package_btfhub_tar(args: &Options) -> Result<()> {
     let tar = &get_output_tar_path(args);
     let tar_path = Path::new(tar);
     let btf_path = Path::new(&args.compile_opts.output_path).join("custom-archive");
-    let package = fs::File::create(&tar_path).unwrap();
+    let package = fs::File::create(tar_path).unwrap();
 
     let mut tar = Builder::new(package);
-    let mut object = fs::File::open(&get_output_object_path(args)).unwrap();
-    let mut json = fs::File::open(&get_output_package_config_path(args)).unwrap();
+    let mut object = fs::File::open(get_output_object_path(args)).unwrap();
+    let mut json = fs::File::open(get_output_package_config_path(args)).unwrap();
 
     tar.append_dir_all(".", btf_path).unwrap();
     tar.append_file("package.json", &mut json).unwrap();
@@ -379,7 +380,7 @@ pub fn get_wasm_header_path(args: &Options) -> String {
 
 /// embed workspace
 #[derive(RustEmbed)]
-#[folder = "../workspace/"]
+#[folder = "workspace/"]
 struct Workspace;
 
 pub fn init_eunomia_workspace(tmp_workspace: &TempDir) -> Result<()> {

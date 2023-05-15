@@ -175,8 +175,8 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
     }
     if args.compile_opts.btfgen {
         fetch_btfhub_repo(&args.compile_opts).unwrap();
-        generate_tailored_btf(&args).unwrap();
-        package_btfhub_tar(&args).unwrap();
+        generate_tailored_btf(args).unwrap();
+        package_btfhub_tar(args).unwrap();
     }
     res
 }
@@ -231,9 +231,10 @@ fn pack_object_in_config(args: &Options) -> Result<()> {
 #[cfg(test)]
 mod test {
     const TEMP_EUNOMIA_DIR: &str = "/tmp/eunomia";
-    use eunomia_rs::TempDir;
     use std::path;
     use std::process::Command;
+
+    use tempfile::TempDir;
 
     use super::*;
 
