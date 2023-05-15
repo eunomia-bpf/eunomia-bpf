@@ -87,10 +87,8 @@ fn main() -> anyhow::Result<()> {
     println!("cargo:rerun-if-env-changed=BPFTOOL_REF");
     println!("cargo:rerun-if-env-changed=VMLINUX_REPO");
     println!("cargo:rerun-if-env-changed=VMLINUX_REF");
-    println!("cargo:rerun-if-changed=workspace");
 
-    let workspace_path =
-        PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("workspace");
+    let workspace_path = workdir().join("workspace");
 
     fetch_and_build_bpftool()?;
     fetch_git_repo(&vmlinux_repo(), &vmlinux_ref(), &vmlinux_repodir())
@@ -116,6 +114,8 @@ fn main() -> anyhow::Result<()> {
         &CopyOptions::default(),
     )
     .with_context(|| anyhow!("Failed to copy libbpf headers"))?;
+    // Avoid copying the .git folder
+    std::fs::remove_dir_all(workdir().join(vmlinux_repodir()).join(".git"))?;
     fs_extra::dir::copy(
         workdir().join(vmlinux_repodir()),
         workspace_path.join("include"),

@@ -2,7 +2,7 @@ TEST_EXAMPLE_DIR ?= ../bpftools/
 TEST_TIME ?= 2
 ECLI_DIR ?= ../../ecli/
 ECC_DIR ?= ../../compiler/
-ECC_BIN ?= ../../compiler/workspace/bin/ecc
+ECC_BIN ?= ../../compiler/workspace/bin/ecc-rs
 
 # TODO: maybe use the compile docker to test?
 

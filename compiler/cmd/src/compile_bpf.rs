@@ -140,7 +140,7 @@ fn do_compile(args: &Options, temp_source_file: &str) -> Result<()> {
     }
 
     // add version
-    meta_json["eunomia_version"] = json!(include_str!("../../../VERSION"));
+    meta_json["eunomia_version"] = json!(env!("CARGO_PKG_VERSION"));
 
     let meta_config_str = if args.compile_opts.yaml {
         serde_yaml::to_string(&meta_json)?
