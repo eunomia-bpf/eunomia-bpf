@@ -1,5 +1,5 @@
 [package]
-name = "ecc"
+name = "ecc-rs"
 version = "0.3.3"
 edition = "2021"
 license = "MIT"
