@@ -280,10 +280,15 @@ pub fn parse_source_documents(
 
 #[cfg(test)]
 mod test {
-    use std::fs;
+    use std::{fs, path::Path};
 
-    use super::*;
-    use eunomia_rs::TempDir;
+    use serde_json::json;
+    use tempfile::TempDir;
+
+    use crate::config::{init_eunomia_workspace, CompileOptions, Options};
+
+    use super::parse_source_documents;
+
     const TEMP_EUNOMIA_DIR: &str = "/tmp/eunomia";
 
     fn create_args() -> Options {
