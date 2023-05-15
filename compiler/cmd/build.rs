@@ -114,6 +114,8 @@ fn main() -> anyhow::Result<()> {
         &CopyOptions::default(),
     )
     .with_context(|| anyhow!("Failed to copy libbpf headers"))?;
+    // Avoid copying the .git folder
+    std::fs::remove_dir_all(workdir().join(vmlinux_repodir()).join(".git"))?;
     fs_extra::dir::copy(
         workdir().join(vmlinux_repodir()),
         workspace_path.join("include"),
