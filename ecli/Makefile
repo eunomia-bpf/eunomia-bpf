@@ -6,6 +6,7 @@ build:
 install:
 	rm -rf target/
 	cargo build --release
+	rm -rf ~/.eunomia
 	mkdir -p ~/.eunomia/bin
 	cp ./target/release/ecli-rs ~/.eunomia/bin/ecli
 
