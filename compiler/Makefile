@@ -5,7 +5,7 @@ CLANG ?= clang
 LLVM_STRIP ?= llvm-strip
 BPFTOOL_SRC := $(abspath ../third_party/bpftool)
 BPFTOOL := $(BPFTOOL_SRC)/src/bpftool
-ECC := cmd/target/release/ecc
+ECC := cmd/target/release/ecc-rs
 ARCH := $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/' | sed 's/riscv64/riscv/')
 VMLINUX := ../third_party/vmlinux/$(ARCH)/vmlinux.h
 # Use our own libbpf API headers and Linux UAPI headers distributed with
@@ -67,7 +67,7 @@ $(ECC): $(BPFTOOL)
 	cargo install cargo-out-dir
 	cd cmd && cargo build # Run a debug build to create the workspace directory 
 	cd cmd && cp -r `cargo out-dir`/workspace ..
-	cp $(ECC) workspace/bin/ecc
+	cp $(ECC) workspace/bin/ecc-rs
 
 install:
 	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia
