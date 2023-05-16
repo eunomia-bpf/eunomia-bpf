@@ -90,7 +90,8 @@ fn main() -> anyhow::Result<()> {
 
     let workspace_path = workdir().join("workspace");
 
-    fetch_and_build_bpftool()?;
+    fetch_and_build_bpftool()
+        .with_context(|| anyhow!("Failed to fetch or build the repo of bpftool"))?;
     fetch_git_repo(&vmlinux_repo(), &vmlinux_ref(), &vmlinux_repodir())
         .with_context(|| anyhow!("Failed to fetch vmlinux headers"))?;
     if workspace_path.exists() {
