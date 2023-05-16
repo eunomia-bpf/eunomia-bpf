@@ -100,8 +100,10 @@ fn main() -> anyhow::Result<()> {
     }
     std::fs::create_dir_all(&workspace_path)
         .with_context(|| anyhow!("Failed to create workspace dir"))?;
-    std::fs::create_dir_all(workspace_path.join("bin"))?;
-    std::fs::create_dir_all(workspace_path.join("include"))?;
+    std::fs::create_dir_all(workspace_path.join("bin"))
+        .with_context(|| anyhow!("Failed to create `bin` directory of workspace"))?;
+    std::fs::create_dir_all(workspace_path.join("include"))
+        .with_context(|| anyhow!("Failed to create `include` directory of workspace"))?;
     let bpftool_repo_dir = workdir().join(bpftool_repodir());
     std::fs::copy(
         bpftool_repo_dir.join("src/bpftool"),
@@ -115,7 +117,8 @@ fn main() -> anyhow::Result<()> {
     )
     .with_context(|| anyhow!("Failed to copy libbpf headers"))?;
     // Avoid copying the .git folder
-    std::fs::remove_dir_all(workdir().join(vmlinux_repodir()).join(".git"))?;
+    std::fs::remove_dir_all(workdir().join(vmlinux_repodir()).join(".git"))
+        .with_context(|| anyhow!("Failed to remove .git directory "))?;
     fs_extra::dir::copy(
         workdir().join(vmlinux_repodir()),
         workspace_path.join("include"),
