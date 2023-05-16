@@ -124,9 +124,9 @@ jobs:
       shell: bash
       run: |
         mkdir release
-        cp compiler/workspace/bin/ecc ./release/
+        cp compiler/workspace/bin/ecc-rs ./release/
         cd release
-        tar czvf ./ecc-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz ecc
+        tar czvf ./ecc-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz ecc-rs
 
     - name: Publish
       if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
@@ -134,7 +134,7 @@ jobs:
       with:
           files: |
             release/ecc-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz
-            release/ecc
+            release/ecc-rs
           prerelease: false
           tag_name: ${{ steps.set_version.outputs.result }}
           generate_release_notes: true
