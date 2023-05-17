@@ -56,7 +56,7 @@ jobs:
           platforms: linux/arm64
           # Note: tags has to be all lower-case
           tags: |
-            ghcr.io/${{ github.repository_owner }}/ecc-aarch64:latest
+            ghcr.io/${{ env.REPO_OWNER }}/ecc-aarch64:latest
           push: true
 
 
