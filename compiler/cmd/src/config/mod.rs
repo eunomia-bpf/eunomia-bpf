@@ -3,9 +3,10 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use anyhow::Result;
+use anyhow::{bail, Result};
 use clap::Parser;
 use fs_extra::dir::CopyOptions;
+use log::debug;
 use rust_embed::RustEmbed;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
@@ -14,20 +15,23 @@ use std::{fs, path};
 use tar::Builder;
 use tempfile::TempDir;
 
+use crate::handle_runscrpt_with_log;
+use crate::helper::get_eunomia_data_dir;
+
 pub struct Options {
     pub tmpdir: TempDir,
-    pub compile_opts: CompileOptions,
+    pub compile_opts: CompileArgs,
 }
 
 impl Options {
-    fn check_compile_opts(opts: &mut CompileOptions) -> Result<()> {
+    fn check_compile_opts(opts: &mut CompileArgs) -> Result<()> {
         if opts.header_only {
             // treat header as a source file
             opts.export_event_header.clone_from(&opts.source_path);
         }
         Ok(())
     }
-    pub fn init(mut opts: CompileOptions, tmp_workspace: TempDir) -> Result<Options> {
+    pub fn init(mut opts: CompileArgs, tmp_workspace: TempDir) -> Result<Options> {
         Self::check_compile_opts(&mut opts)?;
         Ok(Options {
             compile_opts: opts.clone(),
@@ -41,7 +45,7 @@ pub struct EunomiaWorkspace {
 }
 
 impl EunomiaWorkspace {
-    pub fn init(opts: CompileOptions) -> Result<EunomiaWorkspace> {
+    pub fn init(opts: CompileArgs) -> Result<EunomiaWorkspace> {
         // create workspace
         let tmp_workspace = TempDir::new().unwrap();
         if let Some(ref p) = opts.parameters.workspace_path {
@@ -66,70 +70,73 @@ impl EunomiaWorkspace {
     about = "eunomia-bpf compiler",
     long_about = "see https://github.com/eunomia-bpf/eunomia-bpf for more information"
 )]
-pub struct CompileOptions {
-    /// path of the bpf.c file to compile
-    #[arg()]
+pub struct CompileArgs {
+    #[arg(help = "path of the bpf.c file to compile")]
     pub source_path: String,
 
-    /// path of the bpf.h header for defining event struct
-    #[arg(default_value_t = ("").to_string())]
+    #[arg(default_value_t = ("").to_string(), help = "path of the bpf.h header for defining event struct")]
     pub export_event_header: String,
 
-    /// path of output bpf object
-    #[arg(short, long, default_value_t = ("").to_string())]
+    #[arg(short, long, default_value_t = ("").to_string(), help = "path of output bpf object")]
     pub output_path: String,
 
-    /// parameters related to compilation
-    #[clap(flatten)]
-    pub parameters: CompileParams,
-
-    /// print the command execution
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short, long, default_value_t = false, help = "Show more logs")]
     pub verbose: bool,
 
-    /// output config skel file in yaml
-    #[arg(short, long, default_value_t = false)]
+    #[arg(
+        short,
+        long,
+        default_value_t = false,
+        help = "output config skel file in yaml instead of JSON"
+    )]
     pub yaml: bool,
 
-    /// generate a bpf object for struct definition
-    /// in header file only
-    #[arg(long, default_value_t = false)]
+    #[arg(
+        long,
+        default_value_t = false,
+        help = "generate a bpf object for struct definition with header file only"
+    )]
     pub header_only: bool,
 
-    /// generate wasm include header
-    #[arg(long, default_value_t = false)]
+    #[arg(long, default_value_t = false, help = "generate wasm include header")]
     pub wasm_header: bool,
 
-    /// fetch custom btfhub archive file
-    #[arg(short, long, default_value_t = false)]
+    #[arg(
+        short,
+        long,
+        default_value_t = false,
+        help = "fetch custom btfhub archive file"
+    )]
     pub btfgen: bool,
 
-    /// directory to save btfhub archive file
-    #[arg(long, default_value_t = format!("{}/.eunomia/btfhub-archive", home::home_dir().unwrap().to_string_lossy()))]
+    #[arg(long, default_value_t = format!("{}/btfhub-archive", get_eunomia_data_dir().unwrap().to_string_lossy()), help = "directory to save btfhub archive file")]
     pub btfhub_archive: String,
+    /// parameters related to compilation
+    #[clap(flatten)]
+    pub parameters: CompileExtraArgs,
 }
 
 #[derive(Parser, Debug, Default, Clone)]
-pub struct CompileParams {
-    /// custom workspace path
-    #[arg(short, long)]
+pub struct CompileExtraArgs {
+    #[arg(short, long, help = "custom workspace path")]
     pub workspace_path: Option<String>,
 
-    /// additional c flags for clang
-    #[arg(short, long, default_value_t = ("").to_string())]
+    #[arg(short, long, default_value_t = ("").to_string(), help = "additional c flags for clang")]
     pub additional_cflags: String,
 
-    /// path of clang binary
-    #[arg(short, long, default_value_t = ("clang").to_string())]
+    #[arg(short, long, default_value_t = ("clang").to_string(), help = "path of clang binary")]
     pub clang_bin: String,
 
-    /// path of llvm strip binary
-    #[arg(short, long, default_value_t = ("llvm-strip").to_string())]
+    #[arg(short, long, default_value_t = ("llvm-strip").to_string(), help = "path of the llvm-strip binary")]
     pub llvm_strip_bin: String,
 
-    /// do not pack bpf object in config file
-    #[arg(short, long, default_value_t = false)]
-    pub subskeleton: bool,
+    #[arg(
+        short,
+        long,
+        default_value_t = true,
+        help = "Generate a `package.json` containing the binary of the ELF file of the ebpf program"
+    )]
+    pub generate_package_json: bool,
 }
 
 /// Get output path for json: output.meta.json
@@ -175,7 +182,7 @@ pub fn get_output_tar_path(args: &Options) -> String {
 }
 
 /// download the btfhub archives
-pub fn fetch_btfhub_repo(args: &CompileOptions) -> Result<String> {
+pub fn fetch_btfhub_repo(args: &CompileArgs) -> Result<String> {
     if Path::new(&args.btfhub_archive).exists() {
         Ok(format!(
             "skip: btfhub-archive directory already exist in {}",
@@ -186,12 +193,7 @@ pub fn fetch_btfhub_repo(args: &CompileOptions) -> Result<String> {
             "git clone --depth 1 https://github.com/aquasecurity/btfhub-archive {} && rm -rf {}/.git",
             &args.btfhub_archive, &args.btfhub_archive
         );
-        let (code, output, error) = run_script::run_script!(command).unwrap();
-
-        if code != 0 {
-            println!("{}", error);
-            return Err(anyhow::anyhow!("failed to fetch btfhub archive"));
-        }
+        let output = handle_runscrpt_with_log!(command, "Failed to fetch btfhub archive");
         Ok(output)
     }
 }
@@ -223,12 +225,7 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
         custom_archive_path.to_string_lossy()
     );
 
-    let (code, output, error) = run_script::run_script!(command).unwrap();
-
-    if code != 0 {
-        println!("$ {}\n {}", command, error);
-        return Err(anyhow::anyhow!("failed to generate tailored btf files"));
-    }
+    let output = handle_runscrpt_with_log!(command, "Failed to generate tailored btf files");
 
     Ok(output)
 }
@@ -258,19 +255,11 @@ pub fn get_source_file_temp_path(args: &Options) -> String {
 }
 
 /// Get include paths from clang
-pub fn get_bpf_sys_include(args: &CompileOptions) -> Result<String> {
+pub fn get_bpf_sys_include(args: &CompileArgs) -> Result<String> {
     let mut command = args.parameters.clang_bin.clone();
     command += r#" -v -E - </dev/null 2>&1 | sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }'
      "#;
-    let (code, output, error) = run_script::run_script!(command).unwrap();
-    if code != 0 {
-        println!("$ {}\n {}", command, error);
-        return Err(anyhow::anyhow!("failed to get bpf sys include"));
-    }
-    if args.verbose {
-        println!("$ {}\n{}", command, output);
-    }
-
+    let output = handle_runscrpt_with_log!(command, "Failed to get bpf sys include");
     Ok(output
         .chars()
         .map(|x| match x {
@@ -281,7 +270,7 @@ pub fn get_bpf_sys_include(args: &CompileOptions) -> Result<String> {
 }
 
 /// Get target arch: x86 or arm, etc
-pub fn get_target_arch(args: &CompileOptions) -> Result<String> {
+pub fn get_target_arch() -> String {
     let arch = match std::env::consts::ARCH {
         "x86_64" => "x86",
         "aarch64" => "arm64",
@@ -291,11 +280,9 @@ pub fn get_target_arch(args: &CompileOptions) -> Result<String> {
         arch => arch,
     };
 
-    if args.verbose {
-        println!("Target architecture: {arch}")
-    }
+    debug!("Target architecture: {arch}");
 
-    Ok(arch.to_string())
+    arch.to_string()
 }
 
 /// Get eunomia home include dirs
@@ -312,7 +299,7 @@ pub fn get_eunomia_include(args: &Options) -> Result<String> {
     };
     let eunomia_include = eunomia_include.join("include");
     let vmlinux_include = eunomia_include.join("vmlinux");
-    let vmlinux_include = vmlinux_include.join(get_target_arch(&args.compile_opts)?);
+    let vmlinux_include = vmlinux_include.join(get_target_arch());
     Ok(format!(
         "-I{} -I{}",
         eunomia_include.to_str().unwrap(),
@@ -353,8 +340,7 @@ pub fn get_base_dir_include(source_path: &str) -> Result<String> {
     let base_dir = match fs::canonicalize(base_dir) {
         Ok(p) => p,
         Err(e) => {
-            println!("cannot find compile dir: {}", e);
-            return Err(anyhow::anyhow!(e.to_string()));
+            bail!("Cannot find compile dir: {}", e);
         }
     };
     Ok(format!("-I{}", base_dir.to_str().unwrap()))
@@ -404,87 +390,4 @@ pub fn init_eunomia_workspace(tmp_workspace: &TempDir) -> Result<()> {
 }
 
 #[cfg(test)]
-mod test {
-    use super::*;
-    use clap::Parser;
-
-    fn init_options(copt: CompileOptions) {
-        let mut opts = Options::init(copt, TempDir::new().unwrap()).unwrap();
-        opts.compile_opts.parameters.subskeleton = true;
-    }
-
-    #[test]
-    fn test_parse_args() {
-        init_options(CompileOptions::parse_from(&["ecc", "../test/client.bpf.c"]));
-        init_options(CompileOptions::parse_from(&[
-            "ecc",
-            "../test/client.bpf.c",
-            "-o",
-            "test.o",
-        ]));
-        init_options(CompileOptions::parse_from(&[
-            "ecc",
-            "../test/client.bpf.c",
-            "test.h",
-            "-v",
-        ]));
-        init_options(CompileOptions::parse_from(&[
-            "ecc",
-            "../test/client.bpf.c",
-            "test.h",
-            "-y",
-        ]));
-        init_options(CompileOptions::parse_from(&[
-            "ecc",
-            "../test/client.bpf.c",
-            "-c",
-            "clang",
-        ]));
-        init_options(CompileOptions::parse_from(&[
-            "ecc",
-            "../test/client.bpf.c",
-            "-l",
-            "llvm-strip",
-        ]));
-        init_options(CompileOptions::parse_from(&[
-            "ecc",
-            "../test/client.bpf.c",
-            "--header-only",
-        ]));
-        init_options(CompileOptions::parse_from(&[
-            "ecc",
-            "../test/client.bpf.c",
-            "-w",
-            "/tmp/test",
-        ]));
-    }
-
-    #[test]
-    fn test_get_base_dir_include_fail() {
-        let source_path = "/xxx/test.c";
-        let _ = get_base_dir_include(source_path).unwrap_err();
-    }
-
-    #[test]
-    fn test_init_eunomia_workspace() {
-        let tmp_workspace = TempDir::new().unwrap();
-        init_eunomia_workspace(&tmp_workspace).unwrap();
-        // check if workspace and file successfully created
-        let bpftool_path = tmp_workspace.path().join("bin/bpftool");
-        assert!(bpftool_path.exists());
-        let _ = fs::create_dir_all("/tmp/test_workspace");
-        // test specifiy workspace
-        let _w1 = EunomiaWorkspace::init(CompileOptions::parse_from(&[
-            "ecc",
-            "../test/client.bpf.c",
-            "-w",
-            "/tmp/test_workspace",
-        ]))
-        .unwrap();
-
-        // test default workspace
-        let _w2 =
-            EunomiaWorkspace::init(CompileOptions::parse_from(&["ecc", "../test/client.bpf.c"]))
-                .unwrap();
-    }
-}
+mod tests;

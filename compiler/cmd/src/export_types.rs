@@ -6,7 +6,7 @@
 use std::fs;
 
 use crate::config::*;
-use anyhow::Result;
+use anyhow::{bail, Result};
 use regex::Regex;
 const _EXPORT_C_TEMPLATE: &str = r#"
 // do not use this file: auto generated
@@ -20,7 +20,7 @@ const _EXPORT_C_TEMPLATE: &str = r#"
 const REGEX_STRUCT_PATTREN: &str = r#"struct\s+(\w+)\s*\{"#;
 
 // find all structs in event header
-pub fn find_all_export_structs(args: &CompileOptions) -> Result<Vec<String>> {
+pub fn find_all_export_structs(args: &CompileArgs) -> Result<Vec<String>> {
     let mut export_structs: Vec<String> = Vec::new();
     let export_struct_header = fs::read_to_string(&args.export_event_header)?;
     let re = Regex::new(REGEX_STRUCT_PATTREN).unwrap();
@@ -34,14 +34,13 @@ pub fn find_all_export_structs(args: &CompileOptions) -> Result<Vec<String>> {
 
 /// add unused_ptr_for_structs to preserve BTF info
 /// optional: add  __attribute__((preserve_access_index)) for structs to preserve BTF info
-pub fn add_unused_ptr_for_structs(args: &CompileOptions, file_path: &str) -> Result<()> {
+pub fn add_unused_ptr_for_structs(args: &CompileArgs, file_path: &str) -> Result<()> {
     let export_struct_names = find_all_export_structs(args)?;
     let content = fs::read_to_string(file_path);
     let mut content = match content {
         Ok(content) => content,
         Err(e) => {
-            println!("access file {} error: {}", file_path, e);
-            return Err(e.into());
+            bail!("Failed to access file {}, {}", file_path, e);
         }
     };
 
@@ -61,7 +60,7 @@ mod test {
     #[test]
     fn test_match_struct() {
         let tmp_file = "/tmp/tmp_test_event.h";
-        let arg = CompileOptions {
+        let arg = CompileArgs {
             export_event_header: tmp_file.to_string(),
             ..Default::default()
         };
@@ -83,7 +82,7 @@ mod test {
     fn test_add_unused_ptr_for_structs() {
         let tmp_file = "tmp_test_event.h";
         let tmp_source_file = "tmp_test_event.c";
-        let arg = CompileOptions {
+        let arg = CompileArgs {
             export_event_header: tmp_file.to_string(),
             ..Default::default()
         };

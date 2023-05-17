@@ -11,6 +11,7 @@ use crate::config::*;
 use anyhow::anyhow;
 use anyhow::Result;
 use clang::{documentation::CommentChild, *};
+use log::warn;
 use serde_json::{json, Value};
 
 fn parse_source_files<'a>(
@@ -19,7 +20,7 @@ fn parse_source_files<'a>(
     source_path: &'a str,
 ) -> Result<TranslationUnit<'a>> {
     let bpf_sys_include = get_bpf_sys_include(&args.compile_opts)?;
-    let target_arch = get_target_arch(&args.compile_opts)?;
+    let target_arch = get_target_arch();
     let target_arch = String::from("-D__TARGET_ARCH_") + &target_arch;
     let eunomia_include = get_eunomia_include(args)?;
     let base_dir_include = get_base_dir_include(source_path)?;
@@ -76,8 +77,8 @@ fn process_comment_child(child: CommentChild, value: &mut Value, default_cmd: &s
                 Ok(v) => v,
                 Err(_) => {
                     // if text is not json, use it as string
-                    print!("warning: text is not json: {}", text);
-                    println!(" use it as a string");
+                    warn!("warning: text is not json: {}", text);
+                    warn!(" use it as a string");
                     json!(&text)
                 }
             };
@@ -285,7 +286,7 @@ mod test {
     use serde_json::json;
     use tempfile::TempDir;
 
-    use crate::config::{init_eunomia_workspace, CompileOptions, Options};
+    use crate::config::{init_eunomia_workspace, CompileArgs, Options};
 
     use super::parse_source_documents;
 
@@ -308,7 +309,7 @@ mod test {
         fs::write(&event_path, include_str!("../test/event.h")).unwrap();
         Options {
             tmpdir: tmp_workspace,
-            compile_opts: CompileOptions {
+            compile_opts: CompileArgs {
                 source_path: source_path.to_str().unwrap().to_string(),
                 ..Default::default()
             },
