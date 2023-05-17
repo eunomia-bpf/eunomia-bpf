@@ -3,7 +3,8 @@ name: Build and public ecc docker image
 on:
   push:
     branches: "master"
-
+env:
+  GITHUB_REPO_OWNER: ${{ github.repository_owner }}
 jobs:
   # define job to build and publish docker image
   build-and-push-ecc-image:
@@ -28,7 +29,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
+      - name: downcase REPO
+        run: |
+          echo "REPO_OWNER=${GITHUB_REPO_OWNER,,}" >>${GITHUB_ENV}
+      - name: use REPO
+        run: |
+          echo "The value of REPO_OWNER is: ${REPO_OWNER}"
       - name: Build ecc-x86_64 image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
         with:
@@ -38,7 +44,7 @@ jobs:
           platforms: linux/amd64
           # Note: tags has to be all lower-case
           tags: |
-            ghcr.io/${{ github.repository_owner }}/ecc-x86_64:latest
+            ghcr.io/${{ env.REPO_OWNER }}/ecc-x86_64:latest
           push: true
 
       - name: Build ecc-aarch64 image and push to GitHub Container Registry
@@ -50,7 +56,7 @@ jobs:
           platforms: linux/arm64
           # Note: tags has to be all lower-case
           tags: |
-            ghcr.io/${{ github.repository_owner }}/ecc-aarch64:latest
+            ghcr.io/${{ env.REPO_OWNER }}/ecc-aarch64:latest
           push: true
 
 
