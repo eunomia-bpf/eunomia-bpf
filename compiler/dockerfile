@@ -28,7 +28,7 @@ ARG CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 
 RUN make ecc    && \
     make -C compiler install    && \
-    rm -rf compiler/cmd/target
+    cd compiler/cmd && cargo clean
 
 WORKDIR /usr/local/src/compiler
 
