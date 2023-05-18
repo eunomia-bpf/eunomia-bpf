@@ -18,8 +18,7 @@ impl Options {
             .ok_or_else(|| anyhow!("Source path should be a file, and thus it must have filename"))?
             .to_str()
             .ok_or_else(|| anyhow!("Failed to cast to string"))?
-            .split(".")
-            .nth(0)
+            .split('.').next()
             .unwrap()
             .to_string();
         Ok(Options {
