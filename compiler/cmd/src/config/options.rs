@@ -41,7 +41,7 @@ impl Options {
     /// Get output path for json: output.meta.json
     pub fn get_output_config_path(&self) -> PathBuf {
         let output_path = self.get_output_directory();
-        
+
         if self.compile_opts.yaml {
             output_path.join(format!("{}.skel.yaml", self.object_name))
         } else {
