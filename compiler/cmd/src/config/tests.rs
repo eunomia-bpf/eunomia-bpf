@@ -14,7 +14,7 @@ use super::{get_base_dir_include_args, CompileArgs, Options};
 
 fn init_options(copt: CompileArgs) {
     let mut opts = Options::init(copt, TempDir::new().unwrap()).unwrap();
-    opts.compile_opts.parameters.generate_package_json = false;
+    opts.compile_opts.parameters.no_generate_package_json = true;
 }
 
 #[test]

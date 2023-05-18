@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use super::CompileArgs;
 use anyhow::{anyhow, Result};
@@ -18,12 +18,19 @@ impl Options {
             .ok_or_else(|| anyhow!("Source path should be a file, and thus it must have filename"))?
             .to_str()
             .ok_or_else(|| anyhow!("Failed to cast to string"))?
+            .split(".")
+            .nth(0)
+            .unwrap()
             .to_string();
         Ok(Options {
             compile_opts: opts.clone(),
             tmpdir: tmp_workspace,
             object_name,
         })
+    }
+    #[allow(unused)]
+    pub fn get_workspace_directory(&self) -> &Path {
+        self.tmpdir.path()
     }
 
     /// Get the output directory of the current compilation
@@ -68,6 +75,14 @@ impl Options {
     }
     pub fn get_source_file_temp_path(&self) -> PathBuf {
         self.get_output_directory().join("temp.c")
+    }
+    pub fn get_standalone_executable_path(&self) -> PathBuf {
+        self.get_output_directory()
+            .join(format!("{}.out", self.object_name))
+    }
+    pub fn get_standalone_source_file_path(&self) -> PathBuf {
+        self.get_output_directory()
+            .join(format!("{}.standalone.c", self.object_name))
     }
 }
 

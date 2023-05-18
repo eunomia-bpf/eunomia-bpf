@@ -3,6 +3,7 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
+use crate::bpf_compiler::standalone::build_standalone_executable;
 use crate::config::{
     fetch_btfhub_repo, generate_tailored_btf, get_base_dir_include_args, get_bpf_sys_include_args,
     get_bpftool_path, get_eunomia_include_args, package_btfhub_tar, Options,
@@ -20,6 +21,8 @@ use serde_json::{json, Value};
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::{fs, path::Path};
+
+pub(crate) mod standalone;
 
 /// compile bpf object
 fn compile_bpf_object(
@@ -162,12 +165,13 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
     if !args.compile_opts.export_event_header.is_empty() {
         fs::remove_file(temp_source_file)?;
     }
-    if args.compile_opts.parameters.generate_package_json {
+    if !args.compile_opts.parameters.no_generate_package_json {
         pack_object_in_config(args).with_context(|| anyhow!("Failed to generate package json"))?;
     }
     // If we want a standalone executable..?
     if args.compile_opts.parameters.standalone {
-        // let package_json_bytes = std::fs::read(get)
+        build_standalone_executable(args)
+            .with_context(|| anyhow!("Failed to build standalone executable"))?;
     }
     if args.compile_opts.wasm_header {
         pack_object_in_wasm_header(args)

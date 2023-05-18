@@ -103,10 +103,6 @@ fn test_generate_custom_btf() {
 
 #[test]
 fn test_compile_bpf() {
-    flexi_logger::Logger::try_with_str("debug")
-        .unwrap()
-        .start()
-        .unwrap();
     let (test_bpf, test_event, tmp_dir) = setup_tests("test_compile_bpf");
 
     let source_path = tmp_dir.join("client.bpf.c");

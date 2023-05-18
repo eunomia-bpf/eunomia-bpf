@@ -121,17 +121,17 @@ pub struct CompileExtraArgs {
     #[arg(
         short,
         long,
-        default_value_t = true,
-        help = "Generate a `package.json` containing the binary of the ELF file of the ebpf program"
+        default_value_t = false,
+        help = "Don't generate a `package.json` containing the binary of the ELF file of the ebpf program"
     )]
-    pub generate_package_json: bool,
+    pub no_generate_package_json: bool,
 
     #[arg(
         long,
         short = 's',
         default_value_t = false,
-        help = "Produce standalone executable; Can only be used when `generate_package_json` is on",
-        requires = "generate_package_json"
+        help = "Produce standalone executable; Can only be used when `no_generate_package_json` is disabled",
+        conflicts_with = "no_generate_package_json"
     )]
     pub standalone: bool,
 }
