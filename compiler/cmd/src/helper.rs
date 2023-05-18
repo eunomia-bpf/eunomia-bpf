@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Result};
-
-pub(crate) fn get_eunomia_data_dir() -> Result<PathBuf> {
+use log::debug;
+/// Get the data directory of eunomia ($HOME/.eunomia)
+pub fn get_eunomia_data_dir() -> Result<PathBuf> {
     let dir = home::home_dir()
         .ok_or_else(|| anyhow!("Unable to get home directory of the current user"))?
         .join(".eunomia");
@@ -15,4 +16,54 @@ pub(crate) fn get_eunomia_data_dir() -> Result<PathBuf> {
         })?;
     }
     Ok(dir)
+}
+
+/// Get target arch: x86 or arm, etc
+pub fn get_target_arch() -> String {
+    let arch = match std::env::consts::ARCH {
+        "x86_64" => "x86",
+        "aarch64" => "arm64",
+        "powerpc64" => "powerpc",
+        "mips64" => "mips",
+        "riscv64" => "riscv",
+        arch => arch,
+    };
+
+    debug!("Target architecture: {arch}");
+
+    arch.to_string()
+}
+
+#[macro_export]
+macro_rules! handle_runscript_output {
+    ($code:expr, $command:expr, $output:expr, $error: expr, $error_msg: literal) => {
+        if $code != 0 {
+            log::info!("$ {}", $command);
+            log::info!("{}", $output);
+            log::error!("{}", $error);
+            anyhow::bail!(concat!($error_msg, "(exit code = {})"), $code);
+        }
+    };
+}
+#[macro_export]
+macro_rules! handle_runscript {
+    ($command: expr, $error_msg: literal) => {{
+        use anyhow::anyhow;
+        use anyhow::Context;
+        let (code, output, error) =
+            run_script::run_script!($command).with_context(|| anyhow!($error_msg))?;
+        $crate::handle_runscript_output!(code, $command, output, error, $error_msg);
+        output
+    }};
+}
+
+#[macro_export]
+macro_rules! handle_runscrpt_with_log {
+    ($command: expr, $error_msg: literal) => {{
+        use log::debug;
+        let output = $crate::handle_runscript!($command, $error_msg);
+        debug!("$ {}", $command);
+        debug!("{}", output);
+        output
+    }};
 }

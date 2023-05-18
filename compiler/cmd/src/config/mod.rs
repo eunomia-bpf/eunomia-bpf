@@ -16,7 +16,7 @@ use tar::Builder;
 use tempfile::TempDir;
 
 use crate::handle_runscrpt_with_log;
-use crate::helper::get_eunomia_data_dir;
+use crate::helper::{get_eunomia_data_dir, get_target_arch};
 
 pub struct Options {
     pub tmpdir: TempDir,
@@ -269,22 +269,6 @@ pub fn get_bpf_sys_include(args: &CompileArgs) -> Result<String> {
         .collect())
 }
 
-/// Get target arch: x86 or arm, etc
-pub fn get_target_arch() -> String {
-    let arch = match std::env::consts::ARCH {
-        "x86_64" => "x86",
-        "aarch64" => "arm64",
-        "powerpc64" => "powerpc",
-        "mips64" => "mips",
-        "riscv64" => "riscv",
-        arch => arch,
-    };
-
-    debug!("Target architecture: {arch}");
-
-    arch.to_string()
-}
-
 /// Get eunomia home include dirs
 pub fn get_eunomia_include(args: &Options) -> Result<String> {
     let eunomia_tmp_workspace = args.tmpdir.path();
@@ -292,14 +276,11 @@ pub fn get_eunomia_include(args: &Options) -> Result<String> {
     let eunomia_include = match eunomia_include.canonicalize() {
         Ok(path) => path,
         Err(e) => {
-            return Err(anyhow::anyhow!(
-                e.to_string() + ": failed to find eunomia workspace"
-            ))
+            bail!("Failed to find eunomia workspace: {}", e.to_string());
         }
     };
     let eunomia_include = eunomia_include.join("include");
-    let vmlinux_include = eunomia_include.join("vmlinux");
-    let vmlinux_include = vmlinux_include.join(get_target_arch());
+    let vmlinux_include = eunomia_include.join("vmlinux").join(get_target_arch());
     Ok(format!(
         "-I{} -I{}",
         eunomia_include.to_str().unwrap(),
@@ -315,9 +296,7 @@ pub fn get_bpftool_path(tmp_workspace: &TempDir) -> Result<String> {
     let bpftool = match bpftool.canonicalize() {
         Ok(path) => path,
         Err(e) => {
-            return Err(anyhow::anyhow!(
-                e.to_string() + ": failed to find bpftool binary"
-            ))
+            bail!("failed to find bpftool binary in the workspace: {}", e);
         }
     };
     let f = std::fs::File::open(&bpftool)?;

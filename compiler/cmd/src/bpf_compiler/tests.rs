@@ -10,9 +10,10 @@ use tempfile::TempDir;
 
 use crate::compile_bpf;
 use crate::config::{
-    get_bpf_sys_include, get_eunomia_include, get_target_arch, init_eunomia_workspace, CompileArgs,
+    get_bpf_sys_include, get_eunomia_include, init_eunomia_workspace, CompileArgs,
     CompileExtraArgs, Options,
 };
+use crate::helper::get_target_arch;
 use crate::tests::get_test_assets_dir;
 
 use super::pack_object_in_config;
@@ -90,7 +91,7 @@ fn test_generate_custom_btf() {
     compile_bpf(&args).unwrap();
     args.compile_opts.yaml = true;
     compile_bpf(&args).unwrap();
-    let _ = fs::remove_dir_all(tmp_dir);
+    fs::remove_dir_all(tmp_dir).unwrap();
 }
 
 #[test]
@@ -122,7 +123,7 @@ fn test_compile_bpf() {
     compile_bpf(&args).unwrap();
     args.compile_opts.yaml = true;
     compile_bpf(&args).unwrap();
-    let _ = fs::remove_dir_all(tmp_dir);
+    fs::remove_dir_all(tmp_dir).unwrap();
 }
 
 #[test]

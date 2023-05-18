@@ -6,29 +6,19 @@
 use crate::config::{
     fetch_btfhub_repo, generate_tailored_btf, get_base_dir_include, get_bpf_sys_include,
     get_bpftool_path, get_eunomia_include, get_output_config_path, get_output_object_path,
-    get_source_file_temp_path, get_target_arch, package_btfhub_tar, Options,
+    get_source_file_temp_path, package_btfhub_tar, Options,
 };
 use crate::document_parser::parse_source_documents;
+use crate::helper::get_target_arch;
 use crate::wasm::pack_object_in_wasm_header;
 use crate::{export_types::*, handle_runscrpt_with_log};
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
-use log::{error, info};
+use log::info;
 use serde_json::{json, Value};
 use std::io::prelude::*;
 use std::{fs, path::Path};
-
-fn parse_json_output(output: &str) -> Result<Value> {
-    match serde_json::from_str(output) {
-        Ok(v) => Ok(v),
-        Err(e) => {
-            error!("cannot parse json output: {}", e);
-            error!("{}", output);
-            Err(anyhow::anyhow!("failed to parse json output"))
-        }
-    }
-}
 
 /// compile bpf object
 fn compile_bpf_object(args: &Options, source_path: &str, output_path: &str) -> Result<()> {
@@ -71,13 +61,11 @@ fn get_export_types_json(args: &Options, output_bpf_object_path: &String) -> Res
         "{} btf dump file {} format c -j",
         bpftool_bin, output_bpf_object_path
     );
-    // let (code, output, error) = run_script::run_script!(command).unwrap();
-
-    // handle_runscript_output!(code, command, output, error, "Failed to compile bpf object");
     let output = handle_runscrpt_with_log!(command, "Failed to dump BTF from the compiler file!");
-    // fiter the output to get the export types json
+    // filter the output to get the export types json
     let export_structs = find_all_export_structs(&args.compile_opts)?;
-    let export_types_json: Value = parse_json_output(&output).unwrap();
+    let export_types_json: Value =
+        serde_json::from_str(&output).with_context(|| anyhow!("Failed to parse btf json"))?;
     let export_types_json = export_types_json["structs"]
         .as_array()
         .unwrap()
@@ -101,7 +89,8 @@ fn do_compile(args: &Options, temp_source_file: &str) -> Result<()> {
     info!("Compiling bpf object...");
     compile_bpf_object(args, temp_source_file, &output_bpf_object_path)?;
     let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_path, args)?;
-    let bpf_skel = parse_json_output(&bpf_skel_json)?;
+    let bpf_skel = serde_json::from_str::<Value>(&bpf_skel_json)
+        .with_context(|| anyhow!("Failed to parse json skeleton"))?;
     let bpf_skel_with_doc =
         match parse_source_documents(args, &args.compile_opts.source_path, bpf_skel.clone()) {
             Ok(v) => v,
@@ -120,7 +109,8 @@ fn do_compile(args: &Options, temp_source_file: &str) -> Result<()> {
     if !args.compile_opts.export_event_header.is_empty() {
         info!("Generating export types...");
         let export_types_json = get_export_types_json(args, &output_bpf_object_path)?;
-        let export_types_json: Value = parse_json_output(&export_types_json)?;
+        let export_types_json: Value = serde_json::from_str(&export_types_json)
+            .with_context(|| anyhow!("Failed to parse export type json"))?;
         meta_json["export_types"] = export_types_json;
     }
 
@@ -177,7 +167,7 @@ fn pack_object_in_config(args: &Options) -> Result<()> {
     let encode_bpf_object = base64::encode(compressed_bytes);
     let output_json_path = get_output_config_path(args);
     let meta_json_str = fs::read_to_string(&output_json_path).unwrap();
-    let meta_json: Value = if let Ok(json) = parse_json_output(&meta_json_str) {
+    let meta_json: Value = if let Ok(json) = serde_json::from_str::<Value>(&meta_json_str) {
         json
     } else {
         serde_yaml::from_str(&meta_json_str).unwrap()

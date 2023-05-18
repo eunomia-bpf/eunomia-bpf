@@ -7,7 +7,11 @@ extern crate clang;
 use std::path::Path;
 use std::result::Result::Ok;
 
-use crate::config::*;
+use crate::config::Options;
+use crate::config::get_base_dir_include;
+use crate::config::get_bpf_sys_include;
+use crate::config::get_eunomia_include;
+use crate::helper::get_target_arch;
 use anyhow::anyhow;
 use anyhow::Result;
 use clang::{documentation::CommentChild, *};
@@ -21,7 +25,7 @@ fn parse_source_files<'a>(
 ) -> Result<TranslationUnit<'a>> {
     let bpf_sys_include = get_bpf_sys_include(&args.compile_opts)?;
     let target_arch = get_target_arch();
-    let target_arch = String::from("-D__TARGET_ARCH_") + &target_arch;
+    let target_arch = format!("-D__TARGET_ARCH_{target_arch}");
     let eunomia_include = get_eunomia_include(args)?;
     let base_dir_include = get_base_dir_include(source_path)?;
     let mut compile_args = vec![

@@ -56,7 +56,10 @@ pub fn add_unused_ptr_for_structs(args: &CompileArgs, file_path: &str) -> Result
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use std::fs;
+
+    use crate::{config::CompileArgs, export_types::{find_all_export_structs, add_unused_ptr_for_structs}};
+
     #[test]
     fn test_match_struct() {
         let tmp_file = "/tmp/tmp_test_event.h";
