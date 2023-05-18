@@ -1,3 +1,9 @@
+//!  SPDX-License-Identifier: MIT
+//!
+//! Copyright (c) 2023, eunomia-bpf
+//! All rights reserved.
+//!
+
 const TEMP_EUNOMIA_DIR: &str = "/tmp/eunomia";
 use std::io::Write;
 use std::path::PathBuf;
