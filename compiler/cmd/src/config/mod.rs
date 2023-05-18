@@ -3,7 +3,7 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
 use fs_extra::dir::CopyOptions;
 use log::debug;
@@ -18,27 +18,9 @@ use tempfile::TempDir;
 use crate::handle_runscrpt_with_log;
 use crate::helper::{get_eunomia_data_dir, get_target_arch};
 
-pub struct Options {
-    pub tmpdir: TempDir,
-    pub compile_opts: CompileArgs,
-}
+pub(crate) mod options;
 
-impl Options {
-    fn check_compile_opts(opts: &mut CompileArgs) -> Result<()> {
-        if opts.header_only {
-            // treat header as a source file
-            opts.export_event_header.clone_from(&opts.source_path);
-        }
-        Ok(())
-    }
-    pub fn init(mut opts: CompileArgs, tmp_workspace: TempDir) -> Result<Options> {
-        Self::check_compile_opts(&mut opts)?;
-        Ok(Options {
-            compile_opts: opts.clone(),
-            tmpdir: tmp_workspace,
-        })
-    }
-}
+pub(crate) use self::options::Options;
 
 pub struct EunomiaWorkspace {
     pub options: Options,
@@ -77,8 +59,12 @@ pub struct CompileArgs {
     #[arg(default_value_t = ("").to_string(), help = "path of the bpf.h header for defining event struct")]
     pub export_event_header: String,
 
-    #[arg(short, long, default_value_t = ("").to_string(), help = "path of output bpf object")]
-    pub output_path: String,
+    #[arg(
+        short,
+        long,
+        help = "A directory to put the generated files; If not provided, will use the source location"
+    )]
+    pub output_path: Option<String>,
 
     #[arg(short, long, default_value_t = false, help = "Show more logs")]
     pub verbose: bool,
@@ -137,48 +123,15 @@ pub struct CompileExtraArgs {
         help = "Generate a `package.json` containing the binary of the ELF file of the ebpf program"
     )]
     pub generate_package_json: bool,
-}
 
-/// Get output path for json: output.meta.json
-pub fn get_output_config_path(args: &Options) -> String {
-    let output_path = if args.compile_opts.output_path.is_empty() {
-        path::Path::new(&args.compile_opts.source_path).with_extension("")
-    } else {
-        path::Path::new(&args.compile_opts.output_path).to_path_buf()
-    };
-    let output_json_path = if args.compile_opts.yaml {
-        output_path.with_extension("skel.yaml")
-    } else {
-        output_path.with_extension("skel.json")
-    };
-    output_json_path.to_str().unwrap().to_string()
-}
-
-/// Get output path for bpf object: output.bpf.o  
-pub fn get_output_object_path(args: &Options) -> String {
-    let output_path = if args.compile_opts.output_path.is_empty() {
-        path::Path::new(&args.compile_opts.source_path).with_extension("")
-    } else {
-        path::Path::new(&args.compile_opts.output_path).to_path_buf()
-    };
-    let output_object_path = output_path.with_extension("bpf.o");
-    output_object_path.to_str().unwrap().to_string()
-}
-
-pub fn get_object_name(args: &Options) -> String {
-    let object_path = &get_output_object_path(args);
-    let name = object_path.split('/').last().unwrap();
-    name.to_string()
-}
-
-pub fn get_output_tar_path(args: &Options) -> String {
-    let output_path = if args.compile_opts.output_path.is_empty() {
-        path::Path::new(&args.compile_opts.source_path).with_extension("")
-    } else {
-        path::Path::new(&args.compile_opts.output_path).to_path_buf()
-    };
-    let output_object_path = output_path.with_extension("tar");
-    output_object_path.to_str().unwrap().to_string()
+    #[arg(
+        long,
+        short = 's',
+        default_value_t = false,
+        help = "Produce standalone executable; Can only be used when `generate_package_json` is on",
+        requires = "generate_package_json"
+    )]
+    pub standalone: bool,
 }
 
 /// download the btfhub archives
@@ -204,7 +157,7 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
     let btf_archive_path = Path::new(&args.compile_opts.btfhub_archive);
     let btf_tmp = args.tmpdir.path();
 
-    let custom_archive_path = Path::new(&args.compile_opts.output_path).join("custom-archive");
+    let custom_archive_path = args.get_output_directory().join("custom-archive");
     let command = format!(
         r#"
         cp -r {} {}/btfhub-archive
@@ -219,7 +172,7 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
         btf_tmp.to_string_lossy(),
         btf_tmp.to_string_lossy(),
         bpftool_path,
-        get_output_object_path(args),
+        args.get_output_object_path().to_string_lossy(),
         custom_archive_path.to_string_lossy(),
         btf_tmp.to_string_lossy(),
         custom_archive_path.to_string_lossy()
@@ -231,27 +184,26 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
 }
 
 pub fn package_btfhub_tar(args: &Options) -> Result<()> {
-    let tar = &get_output_tar_path(args);
-    let tar_path = Path::new(tar);
-    let btf_path = Path::new(&args.compile_opts.output_path).join("custom-archive");
-    let package = fs::File::create(tar_path).unwrap();
+    let tar_path = args.get_output_tar_path();
+    let btf_path = args.get_output_directory().join("custom-archive");
+    let package =
+        fs::File::create(tar_path).with_context(|| anyhow!("Failed to create the tar"))?;
 
     let mut tar = Builder::new(package);
-    let mut object = fs::File::open(get_output_object_path(args)).unwrap();
-    let mut json = fs::File::open(get_output_package_config_path(args)).unwrap();
+    let mut object = fs::File::open(args.get_output_object_path())
+        .with_context(|| anyhow!("Failed to open the object file for putting in the tar"))?;
+    let mut json = fs::File::open(args.get_output_package_config_path())
+        .with_context(|| anyhow!("Failed to open the package json to put in the tar"))?;
 
-    tar.append_dir_all(".", btf_path).unwrap();
-    tar.append_file("package.json", &mut json).unwrap();
-    tar.append_file(&get_object_name(args), &mut object)
-        .unwrap();
-    tar.finish().unwrap();
+    tar.append_dir_all(".", btf_path)
+        .with_context(|| anyhow!("Failed to add btf archives into tar"))?;
+    tar.append_file("package.json", &mut json)
+        .with_context(|| anyhow!("Failed to add package.json into tar"))?;
+    tar.append_file(&args.object_name, &mut object)
+        .with_context(|| anyhow!("Failed to add target object into the tar"))?;
+    tar.finish()
+        .with_context(|| anyhow!("Failed to write out the tar"))?;
     Ok(())
-}
-
-pub fn get_source_file_temp_path(args: &Options) -> String {
-    let source_path = path::Path::new(&args.compile_opts.source_path);
-    let source_file_temp_path = source_path.with_extension("temp.c");
-    source_file_temp_path.to_str().unwrap().to_string()
 }
 
 /// Get include paths from clang
@@ -308,9 +260,9 @@ pub fn get_bpftool_path(tmp_workspace: &TempDir) -> Result<String> {
 }
 
 /// Get base dir of source path as include args
-pub fn get_base_dir_include(source_path: &str) -> Result<String> {
+pub fn get_base_dir_include(source_path: impl AsRef<Path>) -> Result<String> {
     // add base dir as include path
-    let base_dir = path::Path::new(source_path).parent().unwrap();
+    let base_dir = path::Path::new(source_path.as_ref()).parent().unwrap();
     let base_dir = if base_dir == path::Path::new("") {
         path::Path::new("./")
     } else {
@@ -323,24 +275,6 @@ pub fn get_base_dir_include(source_path: &str) -> Result<String> {
         }
     };
     Ok(format!("-I{}", base_dir.to_str().unwrap()))
-}
-
-pub fn get_output_package_config_path(args: &Options) -> String {
-    let output_json_path = get_output_config_path(args);
-    let output_package_config_path = Path::new(&output_json_path)
-        .parent()
-        .unwrap()
-        .join("package.json");
-    output_package_config_path.to_str().unwrap().to_string()
-}
-
-pub fn get_wasm_header_path(args: &Options) -> String {
-    let output_json_path = get_output_config_path(args);
-    let output_wasm_header_path = Path::new(&output_json_path)
-        .parent()
-        .unwrap()
-        .join("ewasm-skel.h");
-    output_wasm_header_path.to_str().unwrap().to_string()
 }
 
 /// embed workspace

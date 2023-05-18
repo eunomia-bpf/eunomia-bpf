@@ -3,7 +3,7 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use std::fs;
+use std::{fs, path::PathBuf};
 
 use clap::Parser;
 use tempfile::TempDir;
@@ -65,8 +65,7 @@ fn test_parse_args() {
 
 #[test]
 fn test_get_base_dir_include_fail() {
-    let source_path = "/xxx/test.c";
-    let _ = get_base_dir_include(source_path).unwrap_err();
+    get_base_dir_include(&PathBuf::from("/xxx/test.c")).unwrap_err();
 }
 
 #[test]

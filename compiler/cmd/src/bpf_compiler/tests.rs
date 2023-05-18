@@ -10,14 +10,15 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::{fs, path};
 
+use clap::Parser;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
+use log::debug;
 use tempfile::TempDir;
 
 use crate::compile_bpf;
 use crate::config::{
-    get_bpf_sys_include, get_eunomia_include, init_eunomia_workspace, CompileArgs,
-    CompileExtraArgs, Options,
+    get_bpf_sys_include, get_eunomia_include, init_eunomia_workspace, CompileArgs, Options,
 };
 use crate::helper::get_target_arch;
 use crate::tests::get_test_assets_dir;
@@ -45,9 +46,8 @@ fn test_get_attr() {
     init_eunomia_workspace(&tmp_workspace).unwrap();
     let args = Options {
         tmpdir: tmp_workspace,
-        compile_opts: CompileArgs {
-            ..Default::default()
-        },
+        compile_opts: CompileArgs::try_parse_from(["ecc", "_"]).unwrap(),
+        object_name: "".to_string(),
     };
 
     let sys_include = get_bpf_sys_include(&args.compile_opts).unwrap();
@@ -61,7 +61,7 @@ fn test_get_attr() {
 #[test]
 fn test_generate_custom_btf() {
     let (test_bpf, test_event, tmp_dir) = setup_tests("_test_generate_custom_btf");
-
+    println!("Working directory: {:?}", tmp_dir);
     let source_path = tmp_dir.join("client.bpf.c");
     println!("source_path: {}", source_path.to_str().unwrap());
     fs::write(&source_path, test_bpf).unwrap();
@@ -77,22 +77,22 @@ fn test_generate_custom_btf() {
             .args(["https://github.com/aquasecurity/btfhub-archive/raw/main/ubuntu/16.04/x86_64/4.10.0-1004-gcp.btf.tar.xz", "-O", &tar_path])
             .output()
             .expect("failed to get btfhub file");
-
+    let cp_args = CompileArgs::try_parse_from([
+        "ecc",
+        source_path.to_str().unwrap(),
+        event_path.to_str().unwrap(),
+        "--output-path",
+        tmp_dir.to_str().unwrap(),
+        "--btfgen",
+        "--btfhub-archive",
+        &btfhub_archive_path,
+    ])
+    .unwrap();
+    debug!("{:#?}", cp_args);
     let mut args = Options {
         tmpdir: tmp_workspace,
-        compile_opts: CompileArgs {
-            btfgen: true,
-            btfhub_archive: btfhub_archive_path,
-            source_path: source_path.to_str().unwrap().to_string(),
-            output_path: "/tmp/eunomia/test".to_string(),
-            export_event_header: event_path.to_str().unwrap().to_string(),
-            parameters: CompileExtraArgs {
-                clang_bin: "clang".to_string(),
-                llvm_strip_bin: "llvm-strip".to_string(),
-                ..Default::default()
-            },
-            ..Default::default()
-        },
+        compile_opts: cp_args,
+        object_name: "test".to_string(),
     };
     compile_bpf(&args).unwrap();
     args.compile_opts.yaml = true;
@@ -111,20 +111,18 @@ fn test_compile_bpf() {
     fs::write(&event_path, test_event).unwrap();
     let tmp_workspace = TempDir::new().unwrap();
     init_eunomia_workspace(&tmp_workspace).unwrap();
-
+    let cp_args = CompileArgs::try_parse_from([
+        "ecc",
+        source_path.to_str().unwrap(),
+        event_path.to_str().unwrap(),
+        "--output-path",
+        tmp_dir.to_str().unwrap(),
+    ])
+    .unwrap();
     let mut args = Options {
         tmpdir: tmp_workspace,
-        compile_opts: CompileArgs {
-            source_path: source_path.to_str().unwrap().to_string(),
-            output_path: "/tmp/eunomia/test".to_string(),
-            export_event_header: event_path.to_str().unwrap().to_string(),
-            parameters: CompileExtraArgs {
-                clang_bin: "clang".to_string(),
-                llvm_strip_bin: "llvm-strip".to_string(),
-                ..Default::default()
-            },
-            ..Default::default()
-        },
+        compile_opts: cp_args,
+        object_name: "test".to_string(),
     };
     compile_bpf(&args).unwrap();
     args.compile_opts.yaml = true;
@@ -142,20 +140,18 @@ fn test_export_multi_and_pack() {
     fs::write(&event_path, test_event).unwrap();
     let tmp_workspace = TempDir::new().unwrap();
     init_eunomia_workspace(&tmp_workspace).unwrap();
-
+    let cp_args = CompileArgs::try_parse_from([
+        "ecc",
+        source_path.to_str().unwrap(),
+        event_path.to_str().unwrap(),
+        "--output-path",
+        tmp_dir.to_str().unwrap(),
+    ])
+    .unwrap();
     let args = Options {
         tmpdir: tmp_workspace,
-        compile_opts: CompileArgs {
-            source_path: source_path.to_str().unwrap().to_string(),
-            output_path: "/tmp/eunomia/export_multi_struct_test".to_string(),
-            export_event_header: event_path.to_str().unwrap().to_string(),
-            parameters: CompileExtraArgs {
-                clang_bin: "clang".to_string(),
-                llvm_strip_bin: "llvm-strip".to_string(),
-                ..Default::default()
-            },
-            ..Default::default()
-        },
+        compile_opts: cp_args,
+        object_name: "export_multi_struct_test".to_string(),
     };
     compile_bpf(&args).unwrap();
     pack_object_in_config(&args).unwrap();

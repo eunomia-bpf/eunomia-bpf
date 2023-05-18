@@ -3,7 +3,7 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use std::fs;
+use std::{fs, path::Path};
 
 use crate::config::*;
 use anyhow::{bail, Result};
@@ -34,13 +34,14 @@ pub fn find_all_export_structs(args: &CompileArgs) -> Result<Vec<String>> {
 
 /// add unused_ptr_for_structs to preserve BTF info
 /// optional: add  __attribute__((preserve_access_index)) for structs to preserve BTF info
-pub fn add_unused_ptr_for_structs(args: &CompileArgs, file_path: &str) -> Result<()> {
+pub fn add_unused_ptr_for_structs(args: &CompileArgs, file_path: impl AsRef<Path>) -> Result<()> {
+    let file_path = file_path.as_ref();
     let export_struct_names = find_all_export_structs(args)?;
     let content = fs::read_to_string(file_path);
     let mut content = match content {
         Ok(content) => content,
         Err(e) => {
-            bail!("Failed to access file {}, {}", file_path, e);
+            bail!("Failed to access file {:?}, {}", file_path, e);
         }
     };
 
@@ -56,7 +57,9 @@ pub fn add_unused_ptr_for_structs(args: &CompileArgs, file_path: &str) -> Result
 
 #[cfg(test)]
 mod test {
-    use std::fs;
+    use std::{fs, path::PathBuf};
+
+    use clap::Parser;
 
     use crate::{
         config::CompileArgs,
@@ -66,10 +69,7 @@ mod test {
     #[test]
     fn test_match_struct() {
         let tmp_file = "/tmp/tmp_test_event.h";
-        let arg = CompileArgs {
-            export_event_header: tmp_file.to_string(),
-            ..Default::default()
-        };
+        let arg: CompileArgs = CompileArgs::try_parse_from(["ecc", "_", tmp_file]).unwrap();
         let test_event = r#"
             struct eventqwrd3 { int x };
             struct event2 { int x };
@@ -87,11 +87,8 @@ mod test {
     #[test]
     fn test_add_unused_ptr_for_structs() {
         let tmp_file = "tmp_test_event.h";
-        let tmp_source_file = "tmp_test_event.c";
-        let arg = CompileArgs {
-            export_event_header: tmp_file.to_string(),
-            ..Default::default()
-        };
+        let tmp_source_file = PathBuf::from("tmp_test_event.c");
+        let arg = CompileArgs::try_parse_from(["ecc", "_", tmp_file]).unwrap();
         let test_event = r#"
             struct eventqwrd3 { int x };
             struct event2 { int x };
@@ -99,11 +96,11 @@ mod test {
         "#;
         let test_source_content_res = "const volatile struct eventqwrd3 * __eunomia_dummy_eventqwrd3_ptr  __attribute__((unused));\nconst volatile struct event2 * __eunomia_dummy_event2_ptr  __attribute__((unused));\nconst volatile struct event3 * __eunomia_dummy_event3_ptr  __attribute__((unused));\n";
         fs::write(tmp_file, test_event).unwrap();
-        fs::write(tmp_source_file, "").unwrap();
-        add_unused_ptr_for_structs(&arg, tmp_source_file).unwrap();
-        let content = fs::read_to_string(tmp_source_file).unwrap();
+        fs::write(&tmp_source_file, "").unwrap();
+        add_unused_ptr_for_structs(&arg, &tmp_source_file).unwrap();
+        let content = fs::read_to_string(&tmp_source_file).unwrap();
         assert_eq!(test_source_content_res, content);
         fs::remove_file(tmp_file).unwrap();
-        fs::remove_file(tmp_source_file).unwrap();
+        fs::remove_file(&tmp_source_file).unwrap();
     }
 }

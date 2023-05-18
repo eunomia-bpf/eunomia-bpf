@@ -13,7 +13,7 @@ base = {};
 "#;
 
 pub fn pack_object_in_wasm_header(args: &Options) -> Result<()> {
-    let json_path = get_output_package_config_path(args);
+    let json_path = args.get_output_package_config_path();
     let json_str = fs::read_to_string(json_path)?;
     let json = json_str.replace('"', "\\\"");
     let content = format!(
@@ -26,7 +26,7 @@ pub fn pack_object_in_wasm_header(args: &Options) -> Result<()> {
     "#,
         json
     );
-    let wasm_path = get_wasm_header_path(args);
+    let wasm_path = args.get_wasm_header_path();
     fs::write(wasm_path, content)?;
     Ok(())
 }

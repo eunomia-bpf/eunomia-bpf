@@ -21,7 +21,7 @@ use serde_json::{json, Value};
 fn parse_source_files<'a>(
     index: &'a Index<'a>,
     args: &'a Options,
-    source_path: &'a str,
+    source_path: &'a Path,
 ) -> Result<TranslationUnit<'a>> {
     let bpf_sys_include = get_bpf_sys_include(&args.compile_opts)?;
     let target_arch = get_target_arch();
@@ -258,7 +258,7 @@ pub fn parse_source_documents(
     let index = Index::new(&clang, false, true);
     let _source_path = Path::new(source_path);
     let canonic_source_path = _source_path.canonicalize().unwrap();
-    let tu = parse_source_files(&index, args, canonic_source_path.to_str().unwrap())?;
+    let tu = parse_source_files(&index, args, &canonic_source_path)?;
 
     // Get the entities in this translation unit
     let entities = tu
@@ -285,7 +285,10 @@ pub fn parse_source_documents(
 
 #[cfg(test)]
 mod test {
-    use std::{fs, path::Path};
+    use std::{
+        fs,
+        path::{Path, PathBuf},
+    };
 
     use serde_json::json;
     use tempfile::TempDir;
@@ -317,6 +320,12 @@ mod test {
                 source_path: source_path.to_str().unwrap().to_string(),
                 ..Default::default()
             },
+            object_name: PathBuf::from(source_path)
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string(),
         }
     }
 
