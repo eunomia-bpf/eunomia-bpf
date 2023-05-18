@@ -15,7 +15,7 @@ impl Options {
         check_compile_opts(&mut opts)?;
         let object_name = PathBuf::from(&opts.source_path)
             .file_name()
-            .unwrap()
+            .ok_or_else(|| anyhow!("Source path should be a file, and thus it must have filename"))?
             .to_str()
             .ok_or_else(|| anyhow!("Failed to cast to string"))?
             .to_string();
@@ -33,7 +33,7 @@ impl Options {
         } else {
             PathBuf::from(&self.compile_opts.source_path)
                 .parent()
-                .unwrap()
+                .expect("Source path should be a file, and thus it must have parent directory")
                 .to_path_buf()
         }
     }
@@ -41,12 +41,12 @@ impl Options {
     /// Get output path for json: output.meta.json
     pub fn get_output_config_path(&self) -> PathBuf {
         let output_path = self.get_output_directory();
-        let output_json_path = if self.compile_opts.yaml {
+        
+        if self.compile_opts.yaml {
             output_path.join(format!("{}.skel.yaml", self.object_name))
         } else {
             output_path.join(format!("{}.skel.json", self.object_name))
-        };
-        output_json_path
+        }
     }
     /// Get output path for bpf object: output.bpf.o  
     pub fn get_output_object_path(&self) -> PathBuf {

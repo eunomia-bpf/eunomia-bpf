@@ -18,7 +18,8 @@ use tempfile::TempDir;
 
 use crate::compile_bpf;
 use crate::config::{
-    get_bpf_sys_include, get_eunomia_include, init_eunomia_workspace, CompileArgs, Options,
+    get_bpf_sys_include_args, get_eunomia_include_args, init_eunomia_workspace, CompileArgs,
+    Options,
 };
 use crate::helper::get_target_arch;
 use crate::tests::get_test_assets_dir;
@@ -50,12 +51,12 @@ fn test_get_attr() {
         object_name: "".to_string(),
     };
 
-    let sys_include = get_bpf_sys_include(&args.compile_opts).unwrap();
-    println!("{}", sys_include);
+    let sys_include = get_bpf_sys_include_args(&args.compile_opts).unwrap();
+    println!("{:?}", sys_include);
     let target_arch = get_target_arch();
     println!("{}", target_arch);
-    let eunomia_include = get_eunomia_include(&args).unwrap();
-    println!("{}", eunomia_include);
+    let eunomia_include = get_eunomia_include_args(&args).unwrap();
+    println!("{:?}", eunomia_include);
 }
 
 #[test]
@@ -102,6 +103,10 @@ fn test_generate_custom_btf() {
 
 #[test]
 fn test_compile_bpf() {
+    flexi_logger::Logger::try_with_str("debug")
+        .unwrap()
+        .start()
+        .unwrap();
     let (test_bpf, test_event, tmp_dir) = setup_tests("test_compile_bpf");
 
     let source_path = tmp_dir.join("client.bpf.c");

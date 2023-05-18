@@ -7,12 +7,13 @@ extern crate clang;
 use std::path::Path;
 use std::result::Result::Ok;
 
-use crate::config::get_base_dir_include;
-use crate::config::get_bpf_sys_include;
-use crate::config::get_eunomia_include;
+use crate::config::get_base_dir_include_args;
+use crate::config::get_bpf_sys_include_args;
+use crate::config::get_eunomia_include_args;
 use crate::config::Options;
 use crate::helper::get_target_arch;
 use anyhow::anyhow;
+use anyhow::Context;
 use anyhow::Result;
 use clang::{documentation::CommentChild, *};
 use log::warn;
@@ -23,36 +24,29 @@ fn parse_source_files<'a>(
     args: &'a Options,
     source_path: &'a Path,
 ) -> Result<TranslationUnit<'a>> {
-    let bpf_sys_include = get_bpf_sys_include(&args.compile_opts)?;
+    let bpf_sys_include = get_bpf_sys_include_args(&args.compile_opts)?;
     let target_arch = get_target_arch();
     let target_arch = format!("-D__TARGET_ARCH_{target_arch}");
-    let eunomia_include = get_eunomia_include(args)?;
-    let base_dir_include = get_base_dir_include(source_path)?;
+    let eunomia_include = get_eunomia_include_args(args)?;
+    let base_dir_include = get_base_dir_include_args(source_path)?;
     let mut compile_args = vec![
-        "-g",
-        "-O2",
-        "-target bpf",
-        "-Wno-unknown-attributes ",
-        &target_arch,
+        "-g".to_string(),
+        "-O2".to_string(),
+        "-target bpf".to_string(),
+        "-Wno-unknown-attributes".to_string(),
+        target_arch,
     ];
-    compile_args.append(&mut bpf_sys_include.split(' ').collect::<Vec<&str>>());
-    compile_args.append(&mut eunomia_include.split(' ').collect::<Vec<&str>>());
-    compile_args.push(&base_dir_include);
-    compile_args.append(
-        &mut args
-            .compile_opts
-            .parameters
-            .additional_cflags
-            .split(' ')
-            .collect::<Vec<&str>>(),
-    );
+    compile_args.extend(bpf_sys_include);
+    compile_args.extend(eunomia_include);
+    compile_args.extend(base_dir_include);
+    compile_args.extend(args.compile_opts.parameters.additional_cflags.clone());
 
     // Parse a source file into a translation unit
     let tu = index
         .parser(source_path)
         .arguments(&compile_args)
         .parse()
-        .unwrap();
+        .with_context(|| anyhow!("Failed to build translation unit"))?;
     Ok(tu)
 }
 

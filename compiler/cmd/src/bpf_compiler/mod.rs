@@ -4,14 +4,15 @@
 //! All rights reserved.
 //!
 use crate::config::{
-    fetch_btfhub_repo, generate_tailored_btf, get_base_dir_include, get_bpf_sys_include,
-    get_bpftool_path, get_eunomia_include, package_btfhub_tar, Options,
+    fetch_btfhub_repo, generate_tailored_btf, get_base_dir_include_args, get_bpf_sys_include_args,
+    get_bpftool_path, get_eunomia_include_args, package_btfhub_tar, Options,
 };
 use crate::document_parser::parse_source_documents;
+use crate::export_types::{add_unused_ptr_for_structs, find_all_export_structs};
+use crate::handle_std_command_with_log;
 use crate::helper::get_target_arch;
 use crate::wasm::pack_object_in_wasm_header;
-use crate::{export_types::*, handle_runscrpt_with_log};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
 use log::{debug, info};
@@ -32,29 +33,27 @@ fn compile_bpf_object(
         "Compiling bpf object: output: {:?}, source: {:?}",
         output_path, source_path
     );
-    let bpf_sys_include = get_bpf_sys_include(&args.compile_opts)?;
-    debug!("Sys include: {}", bpf_sys_include);
+    let bpf_sys_include = get_bpf_sys_include_args(&args.compile_opts)?;
+    debug!("Sys include: {:?}", bpf_sys_include);
     let target_arch = get_target_arch();
 
-    let command = format!(
-        "{} -g -O2 -target bpf -Wno-unknown-attributes -D__TARGET_ARCH_{} {} {} {} {} -c {} -o {}",
-        args.compile_opts.parameters.clang_bin,
-        target_arch,
-        bpf_sys_include,
-        get_eunomia_include(args)?,
-        args.compile_opts.parameters.additional_cflags,
-        get_base_dir_include(source_path)?,
-        source_path.to_string_lossy(),
-        output_path.to_string_lossy()
-    );
-    handle_runscrpt_with_log!(command, "Failed to run clang");
-    let command = format!(
-        "{} -g {}",
-        args.compile_opts.parameters.llvm_strip_bin,
-        output_path.to_string_lossy()
-    );
-    handle_runscrpt_with_log!(command, "Failed to run llvm-strip");
+    let mut cmd = std::process::Command::new(&args.compile_opts.parameters.clang_bin);
+    cmd.args(["-g", "-O2", "-target", "bpf", "-Wno-unknown-attributes"])
+        .arg(format!("-D__TARGET_ARCH_{}", target_arch))
+        .args(bpf_sys_include)
+        .args(get_eunomia_include_args(args)?)
+        .args(&args.compile_opts.parameters.additional_cflags)
+        .args(get_base_dir_include_args(source_path)?)
+        .arg("-c")
+        .arg(source_path)
+        .arg("-o")
+        .arg(output_path);
 
+    handle_std_command_with_log!(cmd, "Failed to run clang");
+    let mut cmd = std::process::Command::new(&args.compile_opts.parameters.llvm_strip_bin);
+    cmd.arg("-g").arg(output_path);
+
+    handle_std_command_with_log!(cmd, "Failed to run llvm-strip");
     Ok(())
 }
 
@@ -62,12 +61,9 @@ fn compile_bpf_object(
 fn get_bpf_skel_json(object_path: impl AsRef<Path>, args: &Options) -> Result<String> {
     let object_path = object_path.as_ref();
     let bpftool_bin = get_bpftool_path(&args.tmpdir)?;
-    let command = format!(
-        "{} gen skeleton {} -j",
-        bpftool_bin,
-        object_path.to_string_lossy()
-    );
-    let output = handle_runscrpt_with_log!(command, "Failed to generate skeleton json");
+    let mut command = std::process::Command::new(bpftool_bin);
+    command.args(["gen", "skeleton"]).arg(object_path).arg("-j");
+    let output = handle_std_command_with_log!(command, "Failed to generate skeleton json");
     Ok(output)
 }
 
@@ -78,12 +74,13 @@ fn get_export_types_json(
 ) -> Result<String> {
     let output_bpf_object_path = output_bpf_object_path.as_ref();
     let bpftool_bin = get_bpftool_path(&args.tmpdir)?;
-    let command = format!(
-        "{} btf dump file {} format c -j",
-        bpftool_bin,
-        output_bpf_object_path.to_string_lossy()
-    );
-    let output = handle_runscrpt_with_log!(command, "Failed to dump BTF from the compiler file!");
+    let mut command = std::process::Command::new(bpftool_bin);
+    command
+        .args(["btf", "dump", "file"])
+        .arg(output_bpf_object_path)
+        .args(["format", "c", "-j"]);
+    let output =
+        handle_std_command_with_log!(command, "Failed to dump BTF from the compiled file!");
     // filter the output to get the export types json
     let export_structs = find_all_export_structs(&args.compile_opts)?;
     let export_types_json: Value =
@@ -161,7 +158,7 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
         fs::write(&temp_source_file, source_file_content)?;
         add_unused_ptr_for_structs(&args.compile_opts, &temp_source_file)?;
     }
-    let res = do_compile(args, &temp_source_file);
+    do_compile(args, &temp_source_file).with_context(|| anyhow!("Failed to compile"))?;
     if !args.compile_opts.export_event_header.is_empty() {
         fs::remove_file(temp_source_file)?;
     }
@@ -182,7 +179,7 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
         generate_tailored_btf(args).with_context(|| anyhow!("Failed to generate tailored btf"))?;
         package_btfhub_tar(args).with_context(|| anyhow!("Failed to package btfhub tar"))?;
     }
-    res
+    Ok(())
 }
 
 /// pack the object file into a package.json

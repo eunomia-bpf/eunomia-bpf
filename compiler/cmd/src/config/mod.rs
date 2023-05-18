@@ -4,12 +4,12 @@
 //! All rights reserved.
 //!
 use anyhow::{anyhow, bail, Context, Result};
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use fs_extra::dir::CopyOptions;
 use log::debug;
 use rust_embed::RustEmbed;
 use std::os::unix::fs::PermissionsExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::result::Result::Ok;
 use std::{fs, path};
 use tar::Builder;
@@ -29,7 +29,9 @@ pub struct EunomiaWorkspace {
 impl EunomiaWorkspace {
     pub fn init(opts: CompileArgs) -> Result<EunomiaWorkspace> {
         // create workspace
-        let tmp_workspace = TempDir::new().unwrap();
+        let tmp_workspace = TempDir::new().with_context(|| {
+            anyhow!("Failed to create temporary directory to put workspace things")
+        })?;
         if let Some(ref p) = opts.parameters.workspace_path {
             let src = Path::new(p);
             fs_extra::dir::copy(src, tmp_workspace.path(), &CopyOptions::default())?;
@@ -107,8 +109,8 @@ pub struct CompileExtraArgs {
     #[arg(short, long, help = "custom workspace path")]
     pub workspace_path: Option<String>,
 
-    #[arg(short, long, default_value_t = ("").to_string(), help = "additional c flags for clang")]
-    pub additional_cflags: String,
+    #[arg(short, long, help = "additional c flags for clang",action = ArgAction::Append)]
+    pub additional_cflags: Vec<String>,
 
     #[arg(short, long, default_value_t = ("clang").to_string(), help = "path of clang binary")]
     pub clang_bin: String,
@@ -152,7 +154,8 @@ pub fn fetch_btfhub_repo(args: &CompileArgs) -> Result<String> {
 }
 
 pub fn generate_tailored_btf(args: &Options) -> Result<String> {
-    let bpftool_path = get_bpftool_path(&args.tmpdir).unwrap();
+    let bpftool_path =
+        get_bpftool_path(&args.tmpdir).with_context(|| anyhow!("Failed to load bpftool"))?;
 
     let btf_archive_path = Path::new(&args.compile_opts.btfhub_archive);
     let btf_tmp = args.tmpdir.path();
@@ -171,7 +174,7 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
         btf_tmp.to_string_lossy(),
         btf_tmp.to_string_lossy(),
         btf_tmp.to_string_lossy(),
-        bpftool_path,
+        bpftool_path.to_string_lossy(),
         args.get_output_object_path().to_string_lossy(),
         custom_archive_path.to_string_lossy(),
         btf_tmp.to_string_lossy(),
@@ -207,7 +210,7 @@ pub fn package_btfhub_tar(args: &Options) -> Result<()> {
 }
 
 /// Get include paths from clang
-pub fn get_bpf_sys_include(args: &CompileArgs) -> Result<String> {
+pub fn get_bpf_sys_include_args(args: &CompileArgs) -> Result<Vec<String>> {
     let mut command = args.parameters.clang_bin.clone();
     command += r#" -v -E - </dev/null 2>&1 | sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }'
      "#;
@@ -218,51 +221,49 @@ pub fn get_bpf_sys_include(args: &CompileArgs) -> Result<String> {
             '\n' => ' ',
             _ => x,
         })
+        .collect::<String>()
+        .split_ascii_whitespace()
+        .map(|s| s.to_string())
         .collect())
 }
 
 /// Get eunomia home include dirs
-pub fn get_eunomia_include(args: &Options) -> Result<String> {
+pub fn get_eunomia_include_args(args: &Options) -> Result<Vec<String>> {
     let eunomia_tmp_workspace = args.tmpdir.path();
     let eunomia_include = path::Path::new(&eunomia_tmp_workspace);
-    let eunomia_include = match eunomia_include.canonicalize() {
-        Ok(path) => path,
-        Err(e) => {
-            bail!("Failed to find eunomia workspace: {}", e.to_string());
-        }
-    };
+    let eunomia_include = eunomia_include
+        .canonicalize()
+        .with_context(|| anyhow!("Failed to get the absolute path of eunomia's include"))?;
     let eunomia_include = eunomia_include.join("include");
     let vmlinux_include = eunomia_include.join("vmlinux").join(get_target_arch());
-    Ok(format!(
-        "-I{} -I{}",
-        eunomia_include.to_str().unwrap(),
-        vmlinux_include.to_str().unwrap()
-    ))
+    Ok(vec![
+        format!("-I{}", eunomia_include.to_string_lossy()),
+        format!("-I{}", vmlinux_include.to_string_lossy()),
+    ])
 }
 
 /// Get eunomia bpftool path
-pub fn get_bpftool_path(tmp_workspace: &TempDir) -> Result<String> {
-    let eunomia_tmp_workspace = tmp_workspace.path();
-    let eunomia_bin = path::Path::new(&eunomia_tmp_workspace).join("bin");
-    let bpftool = eunomia_bin.join("bpftool");
-    let bpftool = match bpftool.canonicalize() {
-        Ok(path) => path,
-        Err(e) => {
-            bail!("failed to find bpftool binary in the workspace: {}", e);
-        }
-    };
+pub fn get_bpftool_path(tmp_workspace: &TempDir) -> Result<PathBuf> {
+    let bpftool = tmp_workspace
+        .path()
+        .join("bin")
+        .join("bpftool")
+        .canonicalize()
+        .with_context(|| anyhow!("Failed to get the absolute path of bpftool"))?;
     let f = std::fs::File::open(&bpftool)?;
     let metadata = f.metadata()?;
     let mut permissions = metadata.permissions();
     permissions.set_mode(0o744);
     std::fs::set_permissions(&bpftool, permissions)?;
-    Ok(bpftool.to_str().unwrap().to_string())
+    Ok(bpftool)
 }
 
 /// Get base dir of source path as include args
-pub fn get_base_dir_include(source_path: impl AsRef<Path>) -> Result<String> {
+pub fn get_base_dir_include_args(source_path: impl AsRef<Path>) -> Result<Vec<String>> {
     // add base dir as include path
-    let base_dir = path::Path::new(source_path.as_ref()).parent().unwrap();
+    let base_dir = path::Path::new(source_path.as_ref())
+        .parent()
+        .ok_or_else(|| anyhow!("Source path is expected to have a parent directory"))?;
     let base_dir = if base_dir == path::Path::new("") {
         path::Path::new("./")
     } else {
@@ -274,7 +275,7 @@ pub fn get_base_dir_include(source_path: impl AsRef<Path>) -> Result<String> {
             bail!("Cannot find compile dir: {}", e);
         }
     };
-    Ok(format!("-I{}", base_dir.to_str().unwrap()))
+    Ok(vec![format!("-I{}", base_dir.to_string_lossy())])
 }
 
 /// embed workspace
@@ -286,17 +287,16 @@ pub fn init_eunomia_workspace(tmp_workspace: &TempDir) -> Result<()> {
     let eunomia_tmp_workspace = tmp_workspace.path();
 
     for file in Workspace::iter() {
-        let file_path = format!(
-            "{}/{}",
-            eunomia_tmp_workspace.to_string_lossy(),
-            file.as_ref()
-        );
-        let file_dir = Path::new(&file_path).parent().unwrap();
+        let file_path = eunomia_tmp_workspace.join(file.as_ref());
+        let file_dir = file_path.parent().with_context(||anyhow!("All files in the bundled workspace are expected to have a parent directory, but {:?} doesn't have",file_path))?;
         if !file_dir.exists() {
-            std::fs::create_dir_all(file_dir)?;
+            std::fs::create_dir_all(file_dir).with_context(|| {
+                anyhow!("Failed to create the parent directory of {:?}", file_path)
+            })?;
         }
         let content = Workspace::get(file.as_ref()).unwrap();
-        std::fs::write(&file_path, content.data.as_ref())?;
+        std::fs::write(&file_path, content.data.as_ref())
+            .with_context(|| anyhow!("Failed to write out file {:?}", file_path))?;
     }
 
     Ok(())

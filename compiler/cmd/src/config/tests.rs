@@ -10,7 +10,7 @@ use tempfile::TempDir;
 
 use crate::config::{init_eunomia_workspace, EunomiaWorkspace};
 
-use super::{get_base_dir_include, CompileArgs, Options};
+use super::{get_base_dir_include_args, CompileArgs, Options};
 
 fn init_options(copt: CompileArgs) {
     let mut opts = Options::init(copt, TempDir::new().unwrap()).unwrap();
@@ -65,7 +65,7 @@ fn test_parse_args() {
 
 #[test]
 fn test_get_base_dir_include_fail() {
-    get_base_dir_include(&PathBuf::from("/xxx/test.c")).unwrap_err();
+    get_base_dir_include_args(&PathBuf::from("/xxx/test.c")).unwrap_err();
 }
 
 #[test]

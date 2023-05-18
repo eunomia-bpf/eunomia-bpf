@@ -67,3 +67,24 @@ macro_rules! handle_runscrpt_with_log {
         output
     }};
 }
+
+#[macro_export]
+macro_rules! handle_std_command_with_log {
+    ($cmd: expr, $error_msg: literal) => {{
+        use anyhow::bail;
+        let cmd_ref = &mut $cmd;
+        let output = cmd_ref.output().with_context(|| anyhow!($error_msg))?;
+        if !output.status.success() {
+            log::info!("$ {:?} {:?}", cmd_ref.get_program(), cmd_ref.get_args());
+            log::info!("{}", String::from_utf8_lossy(&output.stdout));
+            log::error!("{}", String::from_utf8_lossy(&output.stderr));
+            bail!(
+                concat!($error_msg, "(exit code = {:?})"),
+                output.status.code()
+            );
+        }
+        log::debug!("$ {:?} {:?}", cmd_ref.get_program(), cmd_ref.get_args());
+        log::debug!("{}", String::from_utf8_lossy(&output.stdout));
+        String::from_utf8_lossy(&output.stdout).to_string()
+    }};
+}
