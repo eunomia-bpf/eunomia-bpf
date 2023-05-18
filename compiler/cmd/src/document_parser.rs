@@ -7,10 +7,10 @@ extern crate clang;
 use std::path::Path;
 use std::result::Result::Ok;
 
-use crate::config::Options;
 use crate::config::get_base_dir_include;
 use crate::config::get_bpf_sys_include;
 use crate::config::get_eunomia_include;
+use crate::config::Options;
 use crate::helper::get_target_arch;
 use anyhow::anyhow;
 use anyhow::Result;

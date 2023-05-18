@@ -58,7 +58,10 @@ pub fn add_unused_ptr_for_structs(args: &CompileArgs, file_path: &str) -> Result
 mod test {
     use std::fs;
 
-    use crate::{config::CompileArgs, export_types::{find_all_export_structs, add_unused_ptr_for_structs}};
+    use crate::{
+        config::CompileArgs,
+        export_types::{add_unused_ptr_for_structs, find_all_export_structs},
+    };
 
     #[test]
     fn test_match_struct() {
