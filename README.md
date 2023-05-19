@@ -41,40 +41,40 @@ For more information, see [documents/introduction.md](documents/introduction.md)
 
 You can get pre-compiled eBPF programs running from the cloud to the kernel in `1` line of bash:
 
-    ```bash
-    # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
-    $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
-    $ sudo ./ecli https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json # simply run a pre-compiled ebpf code from a url
-    $ sudo ./ecli sigsnoop:latest # run with a name and download the latest version bpf tool from our repo
-    ```
+```bash
+# download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
+$ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
+$ sudo ./ecli https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json # simply run a pre-compiled ebpf code from a url
+$ sudo ./ecli sigsnoop:latest # run with a name and download the latest version bpf tool from our repo
+```
 
 ## Build or install the project
 
 - Install the `ecli` tool for running eBPF program from the cloud:
 
-    ```console
-    $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
-    $ ./ecli -h
-    Usage: ecli [--help] [--version] [--json] [--no-cache] url-and-args
-    ....
-    ```
+```console
+$ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
+$ ./ecli -h
+Usage: ecli [--help] [--version] [--json] [--no-cache] url-and-args
+....
+```
 
 - Install the `ecc` compiler-toolchain for compiling eBPF kernel code to a `config` file or `Wasm` module(`clang`, `llvm`, and `libclang` should be installed for compiling):
 
-    ```console
-    $ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecc && chmod +x ./ecc
-    $ ./ecc -h
-    eunomia-bpf compiler
-    Usage: ecc [OPTIONS] <SOURCE_PATH> [EXPORT_EVENT_HEADER]
-    ....
-    ```
+```console
+$ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecc && chmod +x ./ecc
+$ ./ecc -h
+eunomia-bpf compiler
+Usage: ecc [OPTIONS] <SOURCE_PATH> [EXPORT_EVENT_HEADER]
+....
+```
 
   or use the docker image for compile:
 
-    ```bash
-    # for x86_64 and aarch64
-    docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest # compile with docker. `pwd` should contains *.bpf.c files and *.h files.
-    ```
+```bash
+# for x86_64 and aarch64
+docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest # compile with docker. `pwd` should contains *.bpf.c files and *.h files.
+```
 
 - build the compiler, runtime library and tools:
 
