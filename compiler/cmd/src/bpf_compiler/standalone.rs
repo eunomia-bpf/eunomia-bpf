@@ -1,3 +1,8 @@
+//!  SPDX-License-Identifier: MIT
+//!
+//! Copyright (c) 2023, eunomia-bpf
+//! All rights reserved.
+//!
 use std::process::Command;
 
 use crate::{config::Options, handle_std_command_with_log, helper::get_eunomia_data_dir};

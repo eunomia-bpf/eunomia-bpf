@@ -1,3 +1,8 @@
+//!  SPDX-License-Identifier: MIT
+//!
+//! Copyright (c) 2023, eunomia-bpf
+//! All rights reserved.
+//!
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Result};
