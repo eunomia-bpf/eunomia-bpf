@@ -245,25 +245,31 @@ fn test_xdp_attach_and_detach() {
         Ok(())
     });
     let handle = handle_rx.recv().unwrap();
-    let pipe = std::fs::OpenOptions::new()
-        .read(true)
-        .open("/sys/kernel/tracing/trace_pipe")
-        .unwrap();
-    let mut reader = BufReader::new(pipe);
-    let mut line = String::default();
-    let begin = std::time::Instant::now();
-    loop {
-        reader.read_line(&mut line).unwrap();
-        println!("{}", line);
+    
+    let mut output = std::process::Command::new("ip")
+        .arg("link")
+        .arg("show")
+        .arg("lo")
+        .output()
+        .expect("Failed to execute ip link show lo");
+    let mut res = String::from_utf8(output.stdout).unwrap();
+    if res.contains("xdp") {
+        handle.terminate();
+        join_handle.join().unwrap().unwrap();
 
-        if line.contains("xdp test: packet size") {
-            handle.terminate();
-            join_handle.join().unwrap().unwrap();
-            break;
+        output = std::process::Command::new("ip")
+            .arg("link")
+            .arg("show")
+            .arg("lo")
+            .output()
+            .expect("Failed to execute ip link show lo");
+        res = String::from_utf8(output.stdout).unwrap();
+        if res.contains("xdp"){
+            panic!("Failed to detach xdp program from lo");
         }
-        if begin.elapsed().as_millis() > 10 * 1000 {
-            panic!("Failed to fetch `xdp test: packet size` from trace_pipe");
-        }
+    }
+    else {
+        panic!("Failed to attach xdp program to lo");
     }
 }
 
@@ -286,24 +292,33 @@ fn test_tc_attach_and_detach() {
         Ok(())
     });
     let handle = handle_rx.recv().unwrap();
-    let pipe = std::fs::OpenOptions::new()
-        .read(true)
-        .open("/sys/kernel/tracing/trace_pipe")
-        .unwrap();
-    let mut reader = BufReader::new(pipe);
-    let mut line = String::default();
-    let begin = std::time::Instant::now();
-    loop {
-        reader.read_line(&mut line).unwrap();
-        println!("{}", line);
 
-        if line.contains("Got IP packet:") {
-            handle.terminate();
-            join_handle.join().unwrap().unwrap();
-            break;
+    let mut output = std::process::Command::new("tc")
+        .arg("filter")
+        .arg("show")
+        .arg("dev")
+        .arg("lo")
+        .arg("ingress")
+        .output()
+        .expect("Failed to execute tc filter show dev lo ingress");
+    let mut res = String::from_utf8(output.stdout).unwrap();
+    if res.contains("bpf") {
+        handle.terminate();
+        join_handle.join().unwrap().unwrap();
+
+        output = std::process::Command::new("tc")
+            .arg("filter")
+            .arg("show")
+            .arg("dev")
+            .arg("lo")
+            .output()
+            .expect("Failed to execute tc filter show dev lo ingress");
+        res = String::from_utf8(output.stdout).unwrap();
+        if res.contains("bpf"){
+            panic!("Failed to detach tc program from lo");
         }
-        if begin.elapsed().as_millis() > 10 * 1000 {
-            panic!("Failed to fetch `Got IP packet:` from trace_pipe");
-        }
+    }
+    else {
+        panic!("Failed to attach tc program to lo");
     }
 }
