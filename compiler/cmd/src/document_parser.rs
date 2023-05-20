@@ -7,47 +7,46 @@ extern crate clang;
 use std::path::Path;
 use std::result::Result::Ok;
 
-use crate::config::*;
+use crate::config::get_base_dir_include_args;
+use crate::config::get_bpf_sys_include_args;
+use crate::config::get_eunomia_include_args;
+use crate::config::Options;
+use crate::helper::get_target_arch;
 use anyhow::anyhow;
+use anyhow::Context;
 use anyhow::Result;
 use clang::{documentation::CommentChild, *};
+use log::warn;
 use serde_json::{json, Value};
 
 fn parse_source_files<'a>(
     index: &'a Index<'a>,
     args: &'a Options,
-    source_path: &'a str,
+    source_path: &'a Path,
 ) -> Result<TranslationUnit<'a>> {
-    let bpf_sys_include = get_bpf_sys_include(&args.compile_opts)?;
-    let target_arch = get_target_arch(&args.compile_opts)?;
-    let target_arch = String::from("-D__TARGET_ARCH_") + &target_arch;
-    let eunomia_include = get_eunomia_include(args)?;
-    let base_dir_include = get_base_dir_include(source_path)?;
+    let bpf_sys_include = get_bpf_sys_include_args(&args.compile_opts)?;
+    let target_arch = get_target_arch();
+    let target_arch = format!("-D__TARGET_ARCH_{target_arch}");
+    let eunomia_include = get_eunomia_include_args(args)?;
+    let base_dir_include = get_base_dir_include_args(source_path)?;
     let mut compile_args = vec![
-        "-g",
-        "-O2",
-        "-target bpf",
-        "-Wno-unknown-attributes ",
-        &target_arch,
+        "-g".to_string(),
+        "-O2".to_string(),
+        "-target bpf".to_string(),
+        "-Wno-unknown-attributes".to_string(),
+        target_arch,
     ];
-    compile_args.append(&mut bpf_sys_include.split(' ').collect::<Vec<&str>>());
-    compile_args.append(&mut eunomia_include.split(' ').collect::<Vec<&str>>());
-    compile_args.push(&base_dir_include);
-    compile_args.append(
-        &mut args
-            .compile_opts
-            .parameters
-            .additional_cflags
-            .split(' ')
-            .collect::<Vec<&str>>(),
-    );
+    compile_args.extend(bpf_sys_include);
+    compile_args.extend(eunomia_include);
+    compile_args.extend(base_dir_include);
+    compile_args.extend(args.compile_opts.parameters.additional_cflags.clone());
 
     // Parse a source file into a translation unit
     let tu = index
         .parser(source_path)
         .arguments(&compile_args)
         .parse()
-        .unwrap();
+        .with_context(|| anyhow!("Failed to build translation unit"))?;
     Ok(tu)
 }
 
@@ -76,8 +75,8 @@ fn process_comment_child(child: CommentChild, value: &mut Value, default_cmd: &s
                 Ok(v) => v,
                 Err(_) => {
                     // if text is not json, use it as string
-                    print!("warning: text is not json: {}", text);
-                    println!(" use it as a string");
+                    warn!("warning: text is not json: {}", text);
+                    warn!(" use it as a string");
                     json!(&text)
                 }
             };
@@ -253,7 +252,7 @@ pub fn parse_source_documents(
     let index = Index::new(&clang, false, true);
     let _source_path = Path::new(source_path);
     let canonic_source_path = _source_path.canonicalize().unwrap();
-    let tu = parse_source_files(&index, args, canonic_source_path.to_str().unwrap())?;
+    let tu = parse_source_files(&index, args, &canonic_source_path)?;
 
     // Get the entities in this translation unit
     let entities = tu
@@ -280,12 +279,15 @@ pub fn parse_source_documents(
 
 #[cfg(test)]
 mod test {
-    use std::{fs, path::Path};
+    use std::{
+        fs,
+        path::{Path, PathBuf},
+    };
 
     use serde_json::json;
     use tempfile::TempDir;
 
-    use crate::config::{init_eunomia_workspace, CompileOptions, Options};
+    use crate::config::{init_eunomia_workspace, CompileArgs, Options};
 
     use super::parse_source_documents;
 
@@ -308,10 +310,16 @@ mod test {
         fs::write(&event_path, include_str!("../test/event.h")).unwrap();
         Options {
             tmpdir: tmp_workspace,
-            compile_opts: CompileOptions {
+            compile_opts: CompileArgs {
                 source_path: source_path.to_str().unwrap().to_string(),
                 ..Default::default()
             },
+            object_name: PathBuf::from(source_path)
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string(),
         }
     }
 
