@@ -8,8 +8,5 @@ pub mod error;
 pub mod oci;
 pub mod runner;
 
-#[cfg(feature = "native-client")]
-pub mod tar_reader;
-
 /// Some helper functions
 pub mod helper;

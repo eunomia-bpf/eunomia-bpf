@@ -18,11 +18,12 @@ use std::{
 use crate::{
     btf_container::BtfContainer,
     elf_container::ElfContainer,
-    helper::btf::{create_elf_with_btf_section, get_current_system_btf_file},
+    helper::btf::create_elf_with_btf_section,
     meta::{ComposedObject, EunomiaObjectMeta, RunnerConfig},
     skeleton::{BTF_PATH_ENV_NAME, VMLINUX_BTF_PATH},
 };
 use anyhow::{anyhow, bail, Result};
+use bpf_compatible_rs::get_current_system_btf_file;
 use libbpf_rs::{
     libbpf_sys::{
         self, bpf_map__name, bpf_map__value_size, bpf_object__btf, bpf_object__next_map,

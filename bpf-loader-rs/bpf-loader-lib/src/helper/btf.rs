@@ -4,13 +4,10 @@
 //! All rights reserved.
 //!
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use btf::types::{BtfConst, BtfIntEncoding, BtfRestrict, BtfType, BtfTypedef, BtfVolatile};
 use faerie::{ArtifactBuilder, Decl, SectionKind};
-use std::{
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::str::FromStr;
 use target_lexicon::triple;
 
 /// Currently, btfdump doesn't support load BTF from a btf archive
@@ -26,18 +23,6 @@ pub(crate) fn create_elf_with_btf_section(btf_data: &[u8], is_64: bool) -> Resul
     obj.declare(".BTF", Decl::section(SectionKind::Data))?;
     obj.define(".BTF", btf_data.to_vec())?;
     Ok(obj.emit()?)
-}
-
-/// Try to get the btf file of the running system under the archive directory
-pub(crate) fn get_current_system_btf_file(archive_path: &Path) -> Result<PathBuf> {
-    let release_info =
-        os_release::OsRelease::new().with_context(|| anyhow!("Failed to load /etc/os-releases"))?;
-    let uname = uname_rs::Uname::new().with_context(|| anyhow!("Failed to call uname"))?;
-    let btf_path = format!(
-        "{}/{}/{}/{}.btf",
-        release_info.id, release_info.version, uname.machine, uname.release
-    );
-    Ok(archive_path.join(btf_path))
 }
 
 pub(crate) trait BtfHelper {

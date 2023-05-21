@@ -14,12 +14,12 @@ use std::{
     time::Duration,
 };
 
+use bpf_compatible_rs::{unpack_tar, tempfile::TempDir};
 use bpf_loader_lib::{
     export_event::{EventHandler, ExportFormatType, ReceivedEventData},
     meta::ComposedObject,
     skeleton::{builder::BpfSkeletonBuilder, handle::PollingHandle},
 };
-use tempdir::TempDir;
 use wasm_bpf_rs::{
     handle::WasmProgramHandle, pipe::ReadableWritePipe, run_wasm_bpf_module_async, Config,
 };
@@ -27,7 +27,6 @@ use wasm_bpf_rs::{
 use crate::{
     config::ProgramType,
     error::{Error, Result},
-    tar_reader::unpack_tar,
 };
 
 use super::{
@@ -184,8 +183,16 @@ impl NativeTaskManager {
             .next_task_id
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let (buf, ty, btf) = if matches!(prog_type, ProgramType::Tar) {
-            let v = unpack_tar(prog_buf)?;
-            (v.0, ProgramType::JsonEunomia, v.1)
+            let v =
+                unpack_tar(prog_buf).map_err(|e| Error::Tar(format!("Failed to unpack: {}", e)))?;
+            (
+                v.0,
+                ProgramType::JsonEunomia,
+                match v.1 {
+                    Some(v) => BtfArchivePath::WithTempdir(v.0.to_string_lossy().to_string(), v.1),
+                    None => BtfArchivePath::None,
+                },
+            )
         } else {
             (
                 prog_buf.to_vec(),
