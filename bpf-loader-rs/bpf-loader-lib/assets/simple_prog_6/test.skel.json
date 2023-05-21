@@ -1,0 +1,1 @@
+{"bpf_skel":{"data_sections":[],"maps":[{"ident":"rodata","name":"tc_bpf.rodata"}],"obj_name":"tc_bpf","progs":[{"attach":"tc","link":true,"name":"tc_ingress","tchook":{"attach_point":"BPF_TC_INGRESS","ifindex":1},"tcopts":{"handle":1,"priority":1}}]},"eunomia_version":"0.3.3"}
