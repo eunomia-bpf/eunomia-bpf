@@ -59,7 +59,5 @@ jobs:
             ghcr.io/${{ env.REPO_OWNER }}/ecc-aarch64:latest
           push: true
 
-
-
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
