@@ -349,5 +349,5 @@ ORAS 的工作原理与您可能已经熟悉的工具(如 docker)类似。它允
 - [当 Wasm 遇见 eBPF：使用 WebAssembly 编写、分发、加载运行 eBPF 程序 | 龙蜥技术 (qq.com)](https://mp.weixin.qq.com/s/ryT7OqWngCjcCkfeSKjutA)
 - [开放容器标准(OCI) 内部分享 (xuanwo.io)](https://xuanwo.io/2019/08/06/oci-intro/)
 - [WebAssembly | MDN (mozilla.org)](https://developer.mozilla.org/zh-CN/docs/WebAssembly)
-- [非网络嵌入 - WebAssembly 中文网|Wasm 中文文档](http://webassembly.org.cn/docs/non-web/)
+- [WebAssembly 中文网|Wasm 中文文档](https://webassembly.org/specs/)
 - [eBPF 在线学习平台：bolipi.com/ebpf/home/online](https://bolipi.com/ebpf/home/online)
