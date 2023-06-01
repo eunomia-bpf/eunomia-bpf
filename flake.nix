@@ -53,6 +53,25 @@
                       make -C src install
                     '';
                   });
+                vmlinux = with pkgs;(stdenv.mkDerivation
+                  {
+                    pname = "vmlinux";
+                    version = "eunomia-edition-20230514";
+
+                    src = fetchFromGitHub {
+                      owner = "eunomia-bpf";
+                      repo = "vmlinux";
+                      rev = "933f83becb45f5586ed5fd089e60d382aeefb409";
+                      sha256 = "sha256-CVEmKkzdFNLKCbcbeSIoM5QjYVLQglpz6gy7+ZFPgCY=";
+                    };
+
+                    installPhase = ''
+                      runHook preInstall
+                      cp -r $src $out
+                      runHook postInstall
+                    '';
+
+                  });
               })
             ];
           };
@@ -113,9 +132,6 @@
 
                 cargoDeps = pkgs.rustPlatform.importCargoLock {
                   lockFile = ./${cargoRoot}/Cargo.lock;
-                  outputHashes = {
-                    "clap-4.0.32" = "sha256-KQ0URmFIVZ2XyUTJ6rmZswf9V5gkZDBBLpCLB7K+uRg=";
-                  };
                 };
 
                 nativeBuildInputs = with pkgs;[ cmake pkg-config elfutils zlib python3 ]
@@ -134,8 +150,9 @@
 
                 preBuild = ''
                   mkdir -p compiler/workspace/include/vmlinux
-                  cp -r third_party/vmlinux compiler/workspace/include/vmlinux
-                  cp ${pkgs.bpftool}/bin/bpftool compiler/workspace/bin
+                  mkdir -p compiler/workspace/bin
+                  cp -r ${pkgs.vmlinux} compiler/workspace/include/vmlinux
+                  cp ${pkgs.bpftool}/bin/bpftool compiler/workspace/bin/bpftool
                   cd ${cargoRoot}
                   cargo build --release
                 '';
