@@ -149,10 +149,12 @@
                 dontUseCmakeConfigure = true;
 
                 preBuild = ''
-                  mkdir -p compiler/workspace/include/vmlinux
-                  mkdir -p compiler/workspace/bin
-                  cp -r ${pkgs.vmlinux} compiler/workspace/include/vmlinux
-                  cp ${pkgs.bpftool}/bin/bpftool compiler/workspace/bin/bpftool
+                  rm compiler/cmd/build.rs # need network access
+                  export OUT_DIR=$(pwd)
+                  mkdir -p $OUT_DIR/workspace/include/vmlinux
+                  mkdir -p $OUT_DIR/workspace/bin
+                  cp -r ${pkgs.vmlinux} $OUT_DIR/workspace/include/vmlinux
+                  cp ${pkgs.bpftool}/bin/bpftool $OUT_DIR/workspace/bin/bpftool
                   cd ${cargoRoot}
                   cargo build --release
                 '';
