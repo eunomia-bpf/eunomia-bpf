@@ -248,13 +248,25 @@ dependencies = [
 ]
 
 [[package]]
-name = "bpf-loader-lib"
+name = "bpf-compatible-rs"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95e36ee42f40113b25ad8c11575c8178c5149749a87f7f388070ac62c8b4690c"
+checksum = "d17e32fee30425e3ba9de536641bd8e510eb5595fc17e734586b18867a64c504"
+dependencies = [
+ "os-release",
+ "tar",
+ "tempfile",
+ "thiserror",
+ "uname-rs",
+]
+
+[[package]]
+name = "bpf-loader-lib"
+version = "0.1.6"
 dependencies = [
  "anyhow",
  "base64 0.21.0",
+ "bpf-compatible-rs",
  "btfdump",
  "chrono",
  "clap 4.2.7",
@@ -266,13 +278,11 @@ dependencies = [
  "libbpf-rs",
  "log",
  "object 0.11.0",
- "os-release",
  "ouroboros",
  "serde",
  "serde_json",
  "serde_with",
  "target-lexicon 0.11.2",
- "uname-rs",
 ]
 
 [[package]]
@@ -357,7 +367,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3be2ededc13f42a5921c08e565b854cb5ff9b88753e2c6ec12c58a24e7e8d4e"
 dependencies = [
  "ambient-authority",
- "rand 0.8.5",
+ "rand",
 ]
 
 [[package]]
@@ -836,11 +846,12 @@ dependencies = [
 
 [[package]]
 name = "ecli-lib"
-version = "0.2.1"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "async-trait",
  "base64 0.21.0",
+ "bpf-compatible-rs",
  "bpf-loader-lib",
  "chrono",
  "ecli-lib",
@@ -856,8 +867,6 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "swagger",
- "tar",
- "tempdir",
  "thiserror",
  "tokio",
  "url",
@@ -866,7 +875,7 @@ dependencies = [
 
 [[package]]
 name = "ecli-rs"
-version = "0.2.1"
+version = "0.2.3"
 dependencies = [
  "clap 4.2.7",
  "ctrlc",
@@ -877,7 +886,7 @@ dependencies = [
 
 [[package]]
 name = "ecli-server"
-version = "0.2.1"
+version = "0.2.3"
 dependencies = [
  "clap 4.2.7",
  "ctrlc",
@@ -1222,12 +1231,6 @@ dependencies = [
  "rustix 0.37.19",
  "windows-sys 0.48.0",
 ]
-
-[[package]]
-name = "fuchsia-cprng"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06f77d526c1a601b7c4cdd98f54b5eaabffc14d5f2f0296febdc7f357c6d3ba"
 
 [[package]]
 name = "futures"
@@ -2466,26 +2469,13 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.4.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "552840b97013b1a26992c11eac34bdd778e464601a4c2054b5f0bff7c6761293"
-dependencies = [
- "fuchsia-cprng",
- "libc",
- "rand_core 0.3.1",
- "rdrand",
- "winapi",
-]
-
-[[package]]
-name = "rand"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
 dependencies = [
  "libc",
  "rand_chacha",
- "rand_core 0.6.4",
+ "rand_core",
 ]
 
 [[package]]
@@ -2495,23 +2485,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
 dependencies = [
  "ppv-lite86",
- "rand_core 0.6.4",
+ "rand_core",
 ]
-
-[[package]]
-name = "rand_core"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a6fdeb83b075e8266dcc8762c22776f6877a63111121f5f8c7411e5be7eed4b"
-dependencies = [
- "rand_core 0.4.2",
-]
-
-[[package]]
-name = "rand_core"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c33a3c44ca05fa6f1807d8e6743f3824e8509beca625669633be0acbdf509dc"
 
 [[package]]
 name = "rand_core"
@@ -2542,15 +2517,6 @@ dependencies = [
  "crossbeam-deque",
  "crossbeam-utils",
  "num_cpus",
-]
-
-[[package]]
-name = "rdrand"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "678054eb77286b51581ba43620cc911abf02758c91f93f479767aed0f90458b2"
-dependencies = [
- "rand_core 0.3.1",
 ]
 
 [[package]]
@@ -2610,15 +2576,6 @@ name = "regex-syntax"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5996294f19bd3aae0453a862ad728f60e6600695733dd5df01da90c54363a3c"
-
-[[package]]
-name = "remove_dir_all"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3acd125665422973a33ac9d3dd2df85edad0f4ae9b00dafb1a05e43a9f5ef8e7"
-dependencies = [
- "winapi",
-]
 
 [[package]]
 name = "reqwest"
@@ -3171,16 +3128,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd1ba337640d60c3e96bc6f0638a939b9c9a7f2c316a1598c279828b3d1dc8c5"
 
 [[package]]
-name = "tempdir"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15f2b5fb00ccdf689e0149d1b1b3c03fead81c2b37735d812fa8bddbbf41b6d8"
-dependencies = [
- "rand 0.4.6",
- "remove_dir_all",
-]
-
-[[package]]
 name = "tempfile"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3705,9 +3652,9 @@ checksum = "0046fef7e28c3804e5e38bfa31ea2a0f73905319b677e57ebe37e49358989b5d"
 
 [[package]]
 name = "wasm-bpf-rs"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e099c146325b76d5672f69a2772c23c9b042a56b259dbe485b9ff462eaf19cd"
+checksum = "348d77a01302263f7ede3aa04752efacbb2105f94308552e98a2286301799c45"
 dependencies = [
  "anyhow",
  "flexi_logger",
@@ -3949,7 +3896,7 @@ dependencies = [
  "memfd",
  "memoffset 0.6.5",
  "paste",
- "rand 0.8.5",
+ "rand",
  "rustix 0.36.13",
  "wasmtime-asm-macros",
  "wasmtime-environ",
