@@ -11,7 +11,7 @@ use crate::{
     elf_container::ElfContainer,
     meta::{EunomiaObjectMeta, RunnerConfig},
     skeleton::preload::{
-        attach::{attach_tc, attach_xdp, AttachLink},
+        attach::{attach_tc, attach_xdp, attach_perf_event, AttachLink},
         section_loader::load_section_data_with_skel_value,
     },
 };
@@ -153,6 +153,12 @@ impl PreLoadBpfSkeleton {
                 "xdp" => links.push(attach_xdp(bpf_prog, prog_meta).with_context(|| {
                     anyhow!("Failed to attach xdp program `{}`", prog_meta.name)
                 })?),
+                "perf_event" => {
+                    let mut perf_links = attach_perf_event(bpf_prog, prog_meta).with_context(|| {
+                        anyhow!("Failed to attach perf event program `{}`", prog_meta.name)
+                    })?;
+                    links.append(&mut perf_links);
+                },
                 s => bail!("Unsupported attach type: {}", s),
             }
         }

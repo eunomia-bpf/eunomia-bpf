@@ -193,6 +193,7 @@ dependencies = [
  "log",
  "object",
  "ouroboros",
+ "perf-event-open-sys",
  "serde",
  "serde_json",
  "serde_with",
@@ -928,6 +929,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e1e076c4e01399b6cd0793a8df42f90bba3ae424671ef421d1608a943155d93"
 dependencies = [
  "byteorder",
+]
+
+[[package]]
+name = "perf-event-open-sys"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c44fb1c7651a45a3652c4afc6e754e40b3d6e6556f1487e2b230bfc4f33c2a8"
+dependencies = [
+ "libc",
 ]
 
 [[package]]

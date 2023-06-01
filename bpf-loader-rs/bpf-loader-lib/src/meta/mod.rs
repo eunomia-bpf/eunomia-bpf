@@ -101,6 +101,9 @@ pub enum SampleMapType {
     #[serde(rename = "linear_hist")]
     /// print the event data as linear hist plain text
     LinearHist,
+    #[serde(rename = "stack_trace")]
+    /// print the event data as stack trace plain text
+    StackTrace,
     #[serde(rename = "default_kv")]
     #[default]
     /// print the event data as key-value format in plain text or json

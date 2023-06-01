@@ -297,6 +297,9 @@ impl EventExporterBuilder {
                     SampleMapType::Log2Hist => Box::new(key_value::Log2HistExportEventHandler {
                         exporter: me.clone(),
                     }),
+                    SampleMapType::StackTrace => Box::new(key_value::StackTraceExportEventHandler {
+                        exporter: me.clone(),
+                    }),
                     SampleMapType::DefaultKV => {
                         let header = String::from("TIME     ");
                         let header =

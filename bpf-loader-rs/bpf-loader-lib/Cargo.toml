@@ -26,6 +26,7 @@ serde_json = "1.0.95"
 serde_with = "2.3.2"
 target-lexicon = "^0.11.2"
 bpf-compatible-rs = "0.1.0"
+perf-event-open-sys = "4.0.0"
 
 [features]
 no-load-bpf-tests = []

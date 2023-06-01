@@ -189,3 +189,13 @@ impl InternalSampleMapProcessor for Log2HistExportEventHandler {
         Ok(())
     }
 }
+
+pub(crate) struct StackTraceExportEventHandler {
+    pub(crate) exporter: Weak<EventExporter>,
+}
+
+impl InternalSampleMapProcessor for StackTraceExportEventHandler {
+    fn handle_event(&self, _key_buffer: &[u8], _value_buffer: &[u8]) -> Result<()> {
+        bail!("To Do");
+    }
+}
