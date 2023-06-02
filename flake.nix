@@ -51,6 +51,7 @@
 
                     installPhase = ''
                       make -C src install
+                      cp -r src/libbpf/include/bpf $out/include
                     '';
                   });
                 vmlinux = with pkgs;(stdenv.mkDerivation
@@ -149,19 +150,19 @@
                 dontUseCmakeConfigure = true;
 
                 preBuild = ''
-                  rm compiler/cmd/build.rs # need network access
+                  rm compiler/cmd/build.rs # requires network access
                   export OUT_DIR=$(pwd)
-                  mkdir -p $OUT_DIR/workspace/include/vmlinux
-                  mkdir -p $OUT_DIR/workspace/bin
+                  mkdir -p $OUT_DIR/workspace/{include,bin}
                   cp -r ${pkgs.vmlinux} $OUT_DIR/workspace/include/vmlinux
-                  cp ${pkgs.bpftool}/bin/bpftool $OUT_DIR/workspace/bin/bpftool
+                  cp ${pkgs.bpftool}/bin/bpftool $OUT_DIR/workspace/bin
+                  cp -r ${pkgs.bpftool}/include $OUT_DIR/workspace
                   cd ${cargoRoot}
                   cargo build --release
                 '';
 
                 postInstall = ''
                   mkdir -p $out/bin
-                  install -Dm 755 target/release/ecc $out/bin/
+                  install -Dm 755 target/release/ecc-rs $out/bin/
                 '';
 
               };
