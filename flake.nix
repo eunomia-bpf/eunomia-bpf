@@ -182,6 +182,22 @@
             };
           };
 
+          apps = {
+            ecc = {
+              type = "app";
+              program = "${self.packages.${system}.ecc}/bin/ecc-rs";
+            };
+            ecli-rs = {
+              type = "app";
+              program = "${self.packages.${system}.ecli}/bin/ecli-rs";
+            };
+            ecli-server = {
+              type = "app";
+              program = "${self.packages.${system}.ecli}/bin/ecli-server";
+            };
+
+          };
+
           checks = with pkgs; {
             pre-commit-check =
               pre-commit-hooks.lib.${system}.run
