@@ -33,4 +33,4 @@ RUN make ecc    && \
 WORKDIR /usr/local/src/compiler
 
 ENTRYPOINT ["make"]
-CMD ["build"]
+CMD ["build-ebpf-program"]
