@@ -1,4 +1,4 @@
-name: Build and test ecli on Ubuntu
+name: Build and test ecli on Ubuntu, and release ecli on various platforms
 
 on:
   push:
@@ -27,52 +27,53 @@ env:
   INSTALL_LOCATION: .local
 
 jobs:
-  build:
+  create-release-version:
+    runs-on: ubuntu-latest
+    if:   github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/fix'))
+    outputs:
+      version: ${{steps.set_version.outputs.result}}
+    steps:
+      - name: Set latest release version
+        id: set_version
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
 
+            const { data: tags } = await github.rest.repos.listTags({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            if (releases.length === 0) { return "v0.0.1"; }
+
+            function increase_v(version) {
+              const parts = version.split(".");
+              const last = parseInt(parts[2]) + 1;
+              const next_version = `${parts[0]}.${parts[1]}.${last.toString()}`;
+              return next_version;
+            }
+
+            const latest_release_tag = releases[0].tag_name;
+
+            const tag = tags.find(tag => tag.commit.sha === context.sha);
+
+            return tag ? tag.name : increase_v(latest_release_tag)
+  build-full-client:
+    needs: create-release-version
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
     strategy:
       matrix:
         target: [ x86_64-unknown-linux-gnu ]
-
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: 'recursive'
-
-    - name: Set latest release version
-      if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
-      id: set_version
-      uses: actions/github-script@v6
-
-      with:
-        result-encoding: string
-        script: |
-          const { data: releases } = await github.rest.repos.listReleases({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-          });
-
-          const { data: tags } = await github.rest.repos.listTags({
-            owner: context.repo.owner,
-            repo: context.repo.repo
-          });
-
-          if (releases.length === 0) { return "v0.0.1"; }
-
-          function increase_v(version) {
-            const parts = version.split(".");
-            const last = parseInt(parts[2]) + 1;
-            const next_version = `${parts[0]}.${parts[1]}.${last.toString()}`;
-            return next_version;
-          }
-
-          const latest_release_tag = releases[0].tag_name;
-
-          const tag = tags.find(tag => tag.commit.sha === context.sha);
-
-          return tag ? tag.name : increase_v(latest_release_tag)
-
     - name: install deps
       run: |
           sudo make -C ecli install-deps
@@ -115,25 +116,145 @@ jobs:
           git_protocol: ssh
         EOF
         ./ecli/target/release/ecli-rs login
-
-    - name: Package
-      if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
-      shell: bash
+    - name: Package ecli
       run: |
-        mkdir release
-        cp ecli/target/release/ecli-rs ./release/ecli
-        cd release
-        tar czvf ./ecli-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz ecli
-
-    - name: Publish
-      if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
-      uses: softprops/action-gh-release@v1
-      with:
-          files: |
-            release/ecli-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz
-            release/ecli
-          prerelease: false
-          tag_name: ${{ steps.set_version.outputs.result }}
-          generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        mkdir -p release
+        cp ecli/target/release/ecli-rs release/ecli
+        tar -czvf release/ecli-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz release/ecli   
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with: 
+        name: "ecli-full-${{needs.create-release-version.outputs.version}}"
+        path: |
+          release/ecli-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz
+          release/ecli
+  build-http-only-client:
+    needs: create-release-version
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{matrix.os}}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Build http-only ecli
+        run: |
+          cd ecli/client
+          cargo build --release --no-default-features --features http
+      - name: Copy `ecli-rs.exe` to `ecli.exe`
+        if: contains(matrix.os,'windows')
+        run:
+          cp ecli/target/release/ecli-rs.exe ecli.exe
+      - name: Package `ecli.exe`
+        if: contains(matrix.os,'windows')
+        uses: vimtor/action-zip@v1
+        with:
+          files: ecli.exe
+          dest: ecli.zip
+      - name: Copy `ecli-rs` to `ecli`
+        if: "!contains(matrix.os,'windows')"
+        run: |
+          mkdir ecli-package
+          cp ecli/target/release/ecli-rs ecli-package/ecli
+      - name: Package `ecli`
+        if: "!contains(matrix.os,'windows')"
+        uses: vimtor/action-zip@v1
+        with:
+          files: ecli-package/ecli
+          dest: ecli.zip
+      - name: Rename `ecli.zip` to proper name
+        id: name
+        run: |
+          mv ecli.zip ecli-http-only-${{matrix.os}}-${{ needs.create-release-version.outputs.version }}.zip
+          echo "zip_name=ecli-http-only-${{matrix.os}}-${{needs.create-release-version.outputs.version}}.zip" >> "$GITHUB_OUTPUT"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with: 
+          name: "ecli-http-only-${{matrix.os}}-${{needs.create-release-version.outputs.version}}"
+          path: |
+            ${{steps.name.outputs.zip_name}}
+  build-native-only-client:
+    needs: create-release-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Build native-only ecli
+        run: |
+          sudo make install-deps
+          cd ecli/client
+          cargo build --release --no-default-features --features native
+      - name: Copy `ecli-rs` to `ecli` and package it
+        run: |
+          mkdir package-ecli
+          cp ecli/target/release/ecli-rs package-ecli/ecli
+          tar -czvf ecli.tar.gz package-ecli/ecli 
+      - name: Rename `ecli.tar.gz` to proper name
+        id: name
+        run: |
+          mv ecli.tar.gz ecli-native-only-ubuntu-latest.tar.gz
+          echo "zip_name=ecli-native-only-ubuntu-latest.tar.gz" >> "$GITHUB_OUTPUT"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with: 
+          name: "ecli-native-only-${{needs.create-release-version.outputs.version}}"
+          path: |
+            ${{steps.name.outputs.zip_name}}
+  build-ecli-server:
+    needs: create-release-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Build ecli-server
+        run: |
+          sudo make install-deps
+          cd ecli/server
+          cargo build --release
+      - name: Package ecli-server
+        run: |
+          cp ecli/target/release/ecli-server 
+          tar -czvf ecli-server.tar.gz ecli-server 
+      - name: Rename `ecli.zip` to proper name
+        id: name
+        run: |
+          mv ecli-server.tar.gz ecli-server-ubuntu-latest.tar.gz
+          echo "zip_name=ecli-server-ubuntu-latest.tar.gz" >> "$GITHUB_OUTPUT"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with: 
+          name: "ecli-server-${{needs.create-release-version.outputs.version}}"
+          path: |
+            ${{steps.name.outputs.zip_name}}
+          
+  publish-release:
+    runs-on: ubuntu-latest
+    needs: [create-release-version, build-full-client, build-http-only-client, build-native-only-client, build-ecli-server]
+    steps:
+      - name: Download build results
+        uses: actions/download-artifact@v3
+        with:
+          path: results
+      - name: List files to release
+        id: list-files
+        run:
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          FILES=`find ./results -type f`
+          echo "$FILES"
+          echo "upload_files<<$EOF" >> "$GITHUB_OUTPUT"
+          echo "$FILES" >> "$GITHUB_OUTPUT"
+          echo "$EOF" >> "$GITHUB_OUTPUT"
+      - name: Publish
+        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' 
+        ##&& github.repository_owner == 'eunomia-bpf'
+        uses: softprops/action-gh-release@v1
+        with:
+            files: ${{steps.list-files.outputs.upload_files}}
+            prerelease: false
+            tag_name: ${{ needs.create-release-version.outputs.version }}
+            generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
