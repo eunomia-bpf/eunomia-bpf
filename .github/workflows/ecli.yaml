@@ -240,7 +240,7 @@ jobs:
           path: results
       - name: List files to release
         id: list-files
-        run:
+        run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           FILES=`find ./results -type f`
           echo "$FILES"
