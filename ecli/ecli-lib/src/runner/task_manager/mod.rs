@@ -14,7 +14,7 @@ use std::{
     time::Duration,
 };
 
-use bpf_compatible_rs::{unpack_tar, tempfile::TempDir};
+use bpf_compatible_rs::{tempfile::TempDir, unpack_tar};
 use bpf_loader_lib::{
     export_event::{EventHandler, ExportFormatType, ReceivedEventData},
     meta::ComposedObject,

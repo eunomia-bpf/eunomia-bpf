@@ -10,7 +10,7 @@ pub mod client;
 /// Some helper functions
 pub mod helper;
 /// APIs for http server
-#[cfg(feature = "native-client")]
+#[cfg(feature = "http-server")]
 pub mod server_http;
 /// A helper to manage tasks running on this machine
 #[cfg(feature = "native-client")]

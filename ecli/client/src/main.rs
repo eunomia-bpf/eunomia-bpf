@@ -7,7 +7,6 @@ use ecli_lib::{
         pull, push, PullArgs, PushArgs,
     },
 };
-use std::sync::atomic::Ordering;
 
 #[cfg(feature = "http")]
 mod http_client;
@@ -90,10 +89,14 @@ async fn main() -> Result<()> {
         .start()
         .map_err(|e| Error::Log(format!("Failed to start logger: {}", e)))?;
 
-    ctrlc::set_handler(move || {
-        native_client::TERMINATED.store(true, Ordering::Relaxed);
-    })
-    .ok();
+    #[cfg(feature = "native")]
+    {
+        use std::sync::atomic::Ordering;
+        ctrlc::set_handler(move || {
+            native_client::TERMINATED.store(true, Ordering::Relaxed);
+        })
+        .ok();
+    }
     let args = Args::parse();
     match args.action {
         #[cfg(feature = "native")]
