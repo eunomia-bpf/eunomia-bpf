@@ -96,9 +96,8 @@ test:
 # 	$(Q)SOURCE_DIR=$(SOURCE_DIR) make -C workspace/scripts generate
 
 .PHONY: build
-build:
-	export PATH=$PATH:~/.eunomia/bin
-	$(Q)workspace/bin/ecc $(shell ls $(SOURCE_DIR)*.bpf.c) $(shell ls -h1 $(SOURCE_DIR)*.h | grep -v .*\.bpf\.h)
+build-ebpf-program:
+	$(Q)~/.eunomia/bin/ecc-rs $(shell ls $(SOURCE_DIR)*.bpf.c) $(shell ls -h1 $(SOURCE_DIR)*.h | grep -v .*\.bpf\.h)
 
 .PHONY: docker
 docker: wasi-sdk-16.0-linux.tar.gz

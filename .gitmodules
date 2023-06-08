@@ -3,5 +3,5 @@
 	url = https://github.com/eunomia-bpf/bpftool
 [submodule "third_party/vmlinux"]
 	path = third_party/vmlinux
-	url = git@github.com:eunomia-bpf/vmlinux.git
+	url = https://github.com/eunomia-bpf/vmlinux
 	branch = main
