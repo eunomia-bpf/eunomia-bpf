@@ -164,16 +164,14 @@ jobs:
           files: ecli-package/ecli
           dest: ecli.zip
       - name: Rename `ecli.zip` to proper name
-        id: name
         run: |
           mv ecli.zip ecli-http-only-${{matrix.os}}-${{ needs.create-release-version.outputs.version }}.zip
-          echo "zip_name=ecli-http-only-${{matrix.os}}-${{needs.create-release-version.outputs.version}}.zip" >> "$GITHUB_OUTPUT"
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with: 
           name: "ecli-http-only-${{matrix.os}}-${{needs.create-release-version.outputs.version}}"
           path: |
-            ${{steps.name.outputs.zip_name}}
+            ecli-http-only-${{matrix.os}}-${{ needs.create-release-version.outputs.version }}.zip
   build-native-only-client:
     needs: create-release-version
     runs-on: ubuntu-latest
