@@ -216,7 +216,7 @@ jobs:
           cargo build --release
       - name: Package ecli-server
         run: |
-          cp ecli/target/release/ecli-server 
+          cp ecli/target/release/ecli-server .
           tar -czvf ecli-server.tar.gz ecli-server 
       - name: Rename `ecli.zip` to proper name
         id: name
