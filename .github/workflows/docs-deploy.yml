@@ -22,27 +22,7 @@ jobs:
       - run: (test -x $HOME/.cargo/bin/mdbook || cargo install mdbook)
       - run: (test -x $HOME/.cargo/bin/mdbook-linkcheck || cargo install mdbook-linkcheck)
       - run: mdbook build documents && mdbook test documents
-      - uses: JamesIves/github-pages-deploy-action@v4.4.1
-        if: ${{ github.event_name == 'push' }}
-        with:
-          branch: gh-pages
-          folder: ./documents/book/html
-  deploy:
-    name: Deploy eBPF data
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    concurrency:
-      group: "pages"
-      cancel-in-progress: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+
       - name: get submodule
         run:  git submodule update --init --recursive --remote
 
@@ -70,6 +50,8 @@ jobs:
         with:
           # Upload entire repository
           path: './examples/bpftools'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@main
+      - uses: JamesIves/github-pages-deploy-action@v4.4.1
+        if: ${{ github.event_name == 'push' }}
+        with:
+          branch: gh-pages
+          folder: ./documents/book/html
