@@ -5,6 +5,7 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -26,3 +27,49 @@ jobs:
         with:
           branch: gh-pages
           folder: ./documents/book/html
+  deploy:
+    name: Deploy eBPF data
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: "pages"
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: get submodule
+        run:  git submodule update --init --recursive --remote
+
+      - name: install deps
+        run: |
+             sudo make -C ecli install-deps
+
+      - name: install test deps
+        run:  |
+              make -C examples/tests install-deps
+              make -C examples/tests install-wasm-clang
+
+      - name: test build runners
+        run:  |
+              make -C examples
+
+      - name: test examples
+        run:  |
+              make -C examples/tests test
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v1
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          # Upload entire repository
+          path: './examples/bpftools'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@main
