@@ -246,7 +246,7 @@ jobs:
           echo "$FILES" >> "$GITHUB_OUTPUT"
           echo "$EOF" >> "$GITHUB_OUTPUT"
       - name: Publish
-        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' 
+        if:   github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/fix'))
         ##&& github.repository_owner == 'eunomia-bpf'
         uses: softprops/action-gh-release@v1
         with:
