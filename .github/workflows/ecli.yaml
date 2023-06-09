@@ -188,11 +188,11 @@ jobs:
         run: |
           mkdir package-ecli
           cp ecli/target/release/ecli-rs package-ecli/ecli
-          tar -czvf ecli.tar.gz package-ecli/ecli 
+          tar -czvf package-ecli/ecli.tar.gz package-ecli/ecli 
       - name: Rename `ecli.tar.gz` to proper name
         id: name
         run: |
-          mv ecli.tar.gz ecli-native-only-ubuntu-latest.tar.gz
+          mv package-ecli/ecli.tar.gz ecli-native-only-ubuntu-latest.tar.gz
           echo "zip_name=ecli-native-only-ubuntu-latest.tar.gz" >> "$GITHUB_OUTPUT"
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
