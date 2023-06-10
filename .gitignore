@@ -9,3 +9,5 @@ eunomia.tar.gz
 shell.nix
 .direnv/
 .envrc
+result*
+*.AppImage
