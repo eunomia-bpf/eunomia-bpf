@@ -13,6 +13,12 @@
           license = licenses.mit;
           maintainers = with maintainers; [ undefined-moe ];
         };
+        vmlinux = pkgs.fetchFromGitHub {
+          owner = "eunomia-bpf";
+          repo = "vmlinux";
+          rev = "933f83becb45f5586ed5fd089e60d382aeefb409";
+          hash = "sha256-CVEmKkzdFNLKCbcbeSIoM5QjYVLQglpz6gy7+ZFPgCY=";
+        };
         ecli = pkgs.stdenv.mkDerivation rec {
           name = "ecli";
           inherit version;
@@ -68,6 +74,43 @@
             cp $src/bin/ecli-server $out/bin/ecli-server
           '';
           inherit meta;
+        };
+        packages.ecc = pkgs.stdenv.mkDerivation rec {
+          name = "ecc";
+          inherit version;
+          src = self;
+          cargoRoot = "compiler/cmd";
+          cargoDeps = pkgs.rustPlatform.importCargoLock {
+            lockFile = ./${cargoRoot}/Cargo.lock;
+          };
+          nativeBuildInputs = with pkgs; [
+            pkg-config
+            elfutils
+            zlib
+            python3
+            cargo
+            rustc
+            rustPlatform.cargoSetupHook
+            rustPlatform.bindgenHook
+          ];
+          buildInputs = with pkgs; [  ];
+          preBuild = ''
+            mkdir -p compiler/workspace/include
+            mkdir -p compiler/workspace/bin
+            ln -s ${vmlinux} compiler/workspace/include/vmlinux
+            cp ${pkgs.bpftool}/bin/bpftool compiler/workspace/bin
+          '';
+          dontMake = true;
+          buildPhase = ''
+            cd compiler/cmd
+            export OUT_DIR=.
+            cargo build --release
+          '';
+          installPhase = ''
+            mkdir -p $out/bin
+            chmod +x target/release/ecc-rs
+            cp target/release/ecc-rs $out/bin/ecc
+          '';
         };
       }
     );
