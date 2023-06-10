@@ -14,6 +14,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write
     steps:
       - uses: actions/checkout@v3.3.0
       - uses: actions-rs/toolchain@v1
@@ -43,13 +44,10 @@ jobs:
         run:  |
               make -C examples/tests test
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v1
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
-        with:
-          # Upload entire repository
-          path: './examples/bpftools'
+      - run:  |
+              rm -rf examples/bpftools/*/.gitignore
+              cp -r examples/bpftools/* ./documents/book/html
+
       - uses: JamesIves/github-pages-deploy-action@v4.4.1
         if: ${{ github.event_name == 'push' }}
         with:
