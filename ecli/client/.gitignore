@@ -1,0 +1,4 @@
+/libs
+/icon.png
+*.AppImage
+/squashfs-root

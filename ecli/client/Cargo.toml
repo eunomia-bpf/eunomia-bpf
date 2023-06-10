@@ -18,3 +18,10 @@ http = ["ecli-lib/http-client"]
 native = ["ecli-lib/native-client", "dep:ctrlc"]
 default = ["http", "native"]
 all = ["http", "native"]
+
+[package.metadata.appimage]
+auto_link = true
+
+[[bin]]
+name = "ecli-rs"
+path = "src/main.rs"
