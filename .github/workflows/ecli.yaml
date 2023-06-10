@@ -95,7 +95,7 @@ jobs:
           wasm-runtime/runtime/rust
           eunomia-sdks/eunomia-rs
     - name: Prepare cargo-appimage
-      uses: eunomia-bpf/prepare-cargo-appimage@v1
+      uses: eunomia-bpf/prepare-cargo-appimage@v2
     - name: Install libfuse
       run: |
         sudo apt-get install -y libfuse2
