@@ -94,9 +94,15 @@ jobs:
           ecli
           wasm-runtime/runtime/rust
           eunomia-sdks/eunomia-rs
-
-    - name: make ecli
-      run:  make ecli
+    - name: Prepare cargo-appimage
+      uses: eunomia-bpf/prepare-cargo-appimage
+    - name: Install libfuse
+      run: |
+        sudo apt-get install -y libfuse2
+    - name: Build full client
+      run:  |
+        cd ecli/client
+        CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecli cargo appimage
     
     - name: test ecli
       run: |
@@ -119,7 +125,7 @@ jobs:
     - name: Package ecli
       run: |
         mkdir -p release
-        cp ecli/target/release/ecli-rs release/ecli
+        cp ecli/client/ecli release/ecli
         tar -czvf release/ecli-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz release/ecli   
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
