@@ -5,6 +5,7 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -13,6 +14,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write
     steps:
       - uses: actions/checkout@v3.3.0
       - uses: actions-rs/toolchain@v1
@@ -21,6 +23,31 @@ jobs:
       - run: (test -x $HOME/.cargo/bin/mdbook || cargo install mdbook)
       - run: (test -x $HOME/.cargo/bin/mdbook-linkcheck || cargo install mdbook-linkcheck)
       - run: mdbook build documents && mdbook test documents
+
+      - name: get submodule
+        run:  git submodule update --init --recursive --remote
+
+      - name: install deps
+        run: |
+             sudo make -C ecli install-deps
+
+      - name: install test deps
+        run:  |
+              make -C examples/tests install-deps
+              make -C examples/tests install-wasm-clang
+
+      - name: test build runners
+        run:  |
+              make -C examples
+
+      - name: test examples
+        run:  |
+              make -C examples/tests test
+
+      - run:  |
+              rm -rf examples/bpftools/*/.gitignore
+              cp -r examples/bpftools/* ./documents/book/html
+
       - uses: JamesIves/github-pages-deploy-action@v4.4.1
         if: ${{ github.event_name == 'push' }}
         with:
