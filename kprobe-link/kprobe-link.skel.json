@@ -1,0 +1,1 @@
+{"bpf_skel":{"data_sections":[],"maps":[{"ident":"rodata","name":"kprobe_l.rodata"}],"obj_name":"kprobe_link_bpf","progs":[{"attach":"kprobe/do_unlinkat","link":true,"name":"do_unlinkat"},{"attach":"kretprobe/do_unlinkat","link":true,"name":"do_unlinkat_exit"}]},"eunomia_version":"0.3.3"}
