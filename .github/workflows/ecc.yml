@@ -105,7 +105,15 @@ jobs:
 
     - name: build ecc
       run:  cd compiler && make && make install
-
+    - name: Prepare cargo-appimage
+      uses: eunomia-bpf/prepare-cargo-appimage@v4
+    - name: Install libfuse
+      run: |
+        sudo apt-get install -y libfuse2
+    - name: Build AppImage
+      run: |
+          cd compiler/cmd
+          CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecc cargo appimage 
     - name: test ecc
       run:  cd compiler && make test
     - name: Upload analysis results to GitHub
@@ -124,7 +132,7 @@ jobs:
       shell: bash
       run: |
         mkdir release
-        cp compiler/workspace/bin/ecc-rs ./release/ecc
+        cp compiler/cmd/ecc ./release/ecc
         cd release
         tar czvf ./ecc-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz ecc
 

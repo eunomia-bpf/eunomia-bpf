@@ -1,2 +1,5 @@
 workspace
 dump*
+/libs
+*.AppImage
+icon.png
