@@ -1,4 +1,4 @@
-name: Build and test compiler on Ubuntu
+name: Build and test compiler on Ubuntu, and release binary
 
 on:
   push:
@@ -43,7 +43,6 @@ jobs:
         submodules: 'recursive'
 
     - name: Set latest release version
-      if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
       id: set_version
       uses: actions/github-script@v6
       with:
@@ -105,7 +104,15 @@ jobs:
 
     - name: build ecc
       run:  cd compiler && make && make install
-
+    - name: Prepare cargo-appimage
+      uses: eunomia-bpf/prepare-cargo-appimage@v4
+    - name: Install libfuse
+      run: |
+        sudo apt-get install -y libfuse2
+    - name: Build AppImage
+      run: |
+          cd compiler/cmd
+          CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecc cargo appimage 
     - name: test ecc
       run:  cd compiler && make test
     - name: Upload analysis results to GitHub
@@ -120,11 +127,10 @@ jobs:
       run: bash <(curl -s https://codecov.io/bash)
 
     - name: Package
-      if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
       shell: bash
       run: |
         mkdir release
-        cp compiler/workspace/bin/ecc-rs ./release/ecc
+        cp compiler/cmd/ecc ./release/ecc
         cd release
         tar czvf ./ecc-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz ecc
 

@@ -29,3 +29,10 @@ anyhow = { version = "1.0.71", features = ["backtrace"] }
 [build-dependencies]
 anyhow = "1.0.71"
 fs_extra = "1.3.0"
+
+[package.metadata.appimage]
+auto_link = true
+
+[[bin]]
+name = "ecc-rs"
+path = "src/main.rs"

@@ -1,20 +1,27 @@
 [package]
 name = "ecli-rs"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 description = "The client cli wrapper of ecli"
 license = "MIT"
 
 [dependencies]
-ecli-lib = { path = "../ecli-lib", version = "0.2.3" }
+ecli-lib = { path = "../ecli-lib", version = "0.2.4" }
 tokio = { version = "1.24.2", features = ["rt-multi-thread"] }
 clap = { version = "4.0.32", features = ["derive"] }
-ctrlc = "3.2.5"
+ctrlc = { version = "3.2.5", optional = true }
 flexi_logger = "0.25.3"
 
 [features]
 
 http = ["ecli-lib/http-client"]
-native = ["ecli-lib/native-client"]
+native = ["ecli-lib/native-client", "dep:ctrlc"]
 default = ["http", "native"]
 all = ["http", "native"]
+
+[package.metadata.appimage]
+auto_link = true
+
+[[bin]]
+name = "ecli-rs"
+path = "src/main.rs"
