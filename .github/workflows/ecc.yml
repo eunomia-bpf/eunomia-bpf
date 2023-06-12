@@ -43,7 +43,7 @@ jobs:
         submodules: 'recursive'
 
     - name: Set latest release version
-      if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
+      # if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
       id: set_version
       uses: actions/github-script@v6
       with:
