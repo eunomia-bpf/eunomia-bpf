@@ -1,4 +1,4 @@
-name: Build and test compiler on Ubuntu
+name: Build and test compiler on Ubuntu, and release binary
 
 on:
   push:
@@ -128,7 +128,6 @@ jobs:
       run: bash <(curl -s https://codecov.io/bash)
 
     - name: Package
-      if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
       shell: bash
       run: |
         mkdir release
@@ -137,7 +136,8 @@ jobs:
         tar czvf ./ecc-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz ecc
 
     - name: Publish
-      if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
+      if:   github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref,'refs/heads/fix')) 
+      #&& github.repository_owner == 'eunomia-bpf'
       uses: softprops/action-gh-release@v1
       with:
           files: |
