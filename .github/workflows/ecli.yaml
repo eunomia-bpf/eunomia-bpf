@@ -126,7 +126,8 @@ jobs:
       run: |
         mkdir -p release
         cp ecli/client/ecli release/ecli
-        tar -czvf release/ecli-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz release/ecli   
+        cd release
+        tar -czvf ecli-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz ecli   
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with: 
@@ -162,7 +163,7 @@ jobs:
           cd ecli/client
           CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecli cargo appimage --no-default-features --features http
           mkdir -p ../target/release
-          cp ecli ../target/release/ecli
+          cp ecli ../target/release/ecli-rs
     
       - name: Copy `ecli-rs.exe` to `ecli.exe`
         if: contains(matrix.os,'windows')
@@ -248,7 +249,7 @@ jobs:
         run: |
           cp ecli/server/ecli-server .
           tar -czvf ecli-server.tar.gz ecli-server 
-      - name: Rename `ecli.zip` to proper name
+      - name: Rename `ecli-server.tar.gz` to proper name
         id: name
         run: |
           mv ecli-server.tar.gz ecli-server-ubuntu-latest.tar.gz
