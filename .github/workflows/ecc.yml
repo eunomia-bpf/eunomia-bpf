@@ -43,7 +43,6 @@ jobs:
         submodules: 'recursive'
 
     - name: Set latest release version
-      # if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
       id: set_version
       uses: actions/github-script@v6
       with:
@@ -136,8 +135,7 @@ jobs:
         tar czvf ./ecc-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz ecc
 
     - name: Publish
-      if:   github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref,'refs/heads/fix')) 
-      #&& github.repository_owner == 'eunomia-bpf'
+      if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
       uses: softprops/action-gh-release@v1
       with:
           files: |
