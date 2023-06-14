@@ -136,6 +136,7 @@ jobs:
     - name: Test cli
       shell: bash
       run: |
+        sudo apt-get update
         sudo apt-get install docker.io -y
         mkdir cli-test
         cd cli-test
