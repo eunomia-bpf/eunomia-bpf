@@ -41,12 +41,12 @@ For more information, see [documents/introduction.md](documents/introduction.md)
 
 You can get pre-compiled eBPF programs running from the cloud to the kernel in `1` line of bash:
 
-    ```bash
-    # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
-    $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
-    $ sudo ./ecli https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json # simply run a pre-compiled ebpf code from a url
-    $ sudo ./ecli sigsnoop:latest # run with a name and download the latest version bpf tool from our repo
-    ```
+```bash
+# download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
+$ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
+$ sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json # simply run a pre-compiled ebpf code from a url
+$ sudo ./ecli run sigsnoop:latest # run with a name and download the latest version bpf tool from our repo
+```
 
 ## Build or install the project
 
@@ -55,7 +55,25 @@ You can get pre-compiled eBPF programs running from the cloud to the kernel in `
     ```console
     $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
     $ ./ecli -h
-    Usage: ecli [--help] [--version] [--json] [--no-cache] url-and-args
+    ecli subcommands, including run, push, pull, login, logout
+
+    Usage: ecli-rs [PROG] [EXTRA_ARGS]... [COMMAND]
+
+    Commands:
+      run     run ebpf program
+      client  Client operations
+      push    
+      pull    pull oci image from registry
+      login   login to oci registry
+      logout  logout from registry
+      help    Print this message or the help of the given subcommand(s)
+
+    Arguments:
+      [PROG]           Not preferred. Only for compatibility to older versions. Ebpf program URL or local path, set it `-` to read the program from stdin
+      [EXTRA_ARGS]...  Not preferred. Only for compatibility to older versions. Extra args to the program; For wasm program, it will be passed directly to it; For JSON program, it will be passed to the generated argument parser
+
+    Options:
+      -h, --help  Print help
     ....
     ```
 
