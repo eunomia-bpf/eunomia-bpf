@@ -11,11 +11,15 @@ use log::debug;
 use crate::{
     config::ProgramType,
     error::{Error, Result},
-    oci::{default_schema_port, parse_img_url, wasm_pull},
+    oci::{default_schema_port, wasm_pull},
 };
 
 /// Load the binary of the given url, and guess its program type
 /// If failed to guess, will just return None
+/// It will try the following order
+/// - Test if the provided url is indicates a local file, if matches, read that and treat it as a JSON or TAR
+/// - Test if the provided url points to a HTTP/HTTPS file. If matches, download that and treat it as a JSON or TAR
+/// - Otherwise, treat the given URL as a OCI image
 pub async fn try_load_program_buf_and_guess_type(
     url: impl AsRef<str>,
 ) -> Result<(Vec<u8>, Option<ProgramType>)> {
@@ -30,13 +34,6 @@ pub async fn try_load_program_buf_and_guess_type(
         let prog_type = ProgramType::try_from(url).ok();
 
         (buf, prog_type)
-    } else if let Ok((_, _, _, repo_url)) = parse_img_url(url) {
-        debug!("Read from repo url: {}", repo_url);
-        let buf = wasm_pull(url)
-            .await
-            .map_err(|e| Error::Http(format!("Failed to poll image from `{}`: {}", url, e)))?;
-
-        (buf, Some(ProgramType::WasmModule))
     } else if let Ok(url) = url::Url::parse(url) {
         debug!(
             "try read content from url: {}",
@@ -66,7 +63,12 @@ pub async fn try_load_program_buf_and_guess_type(
         let prog_type = ProgramType::try_from(url.path()).ok();
         (buf, prog_type)
     } else {
-        return Err(Error::UnknownFileType(format!("Unable to guess fetching way of provided path `{}`. Please provide a local path, URL, or image url",url)));
+        debug!("Read from OCI repo url: {}", url);
+        let buf = wasm_pull(url)
+            .await
+            .map_err(|e| Error::Http(format!("Failed to poll image from `{}`: {}", url, e)))?;
+
+        (buf, Some(ProgramType::WasmModule))
     };
     Ok((buf, prog_type))
 }

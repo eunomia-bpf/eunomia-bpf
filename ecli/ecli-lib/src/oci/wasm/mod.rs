@@ -5,7 +5,7 @@
 //!
 use std::path::Path;
 
-use log::info;
+use log::{debug, info};
 use oci_distribution::{secrets::RegistryAuth, Client, Reference};
 use tokio::{fs::File, io::AsyncReadExt};
 use url::Url;
@@ -41,7 +41,7 @@ pub fn parse_img_url(url: &str) -> Result<(Client, RegistryAuth, Reference, Stri
             }
         }
     };
-
+    debug!("Parsed auth info: {:?}", auth);
     let client = get_client(&img_url)?;
     let Some(host) = img_url.host() else {
         return Err(Error::InvalidParam(format!("invalid url: {}",url)))

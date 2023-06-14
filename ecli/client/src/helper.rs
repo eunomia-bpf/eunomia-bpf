@@ -26,7 +26,7 @@ pub async fn load_prog_buf_and_guess_type(
         }
     } else {
         let (buf, prog_type) = try_load_program_buf_and_guess_type(path).await?;
-        let prog_type = prog_type.or(user_prog_type).ok_or_else(|| {
+        let prog_type = user_prog_type.or(prog_type).ok_or_else(|| {
             Error::InvalidParam(
                 "Failed to guess the program type, please specify it through -p argument"
                     .to_string(),
