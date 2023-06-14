@@ -61,3 +61,15 @@ jobs:
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
+      - name: Test the docker image
+      run: |
+        sudo apt-get install -y docker.io
+        mkdir docker-test
+        cd docker-test
+        cp ../.github/assets/simple.bpf.c
+        docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
+        if [[ ! -f "./package.json" ]]
+        then
+          echo "Docker image failed to produce package.jso"
+          exit 1
+        fi
