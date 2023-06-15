@@ -270,6 +270,12 @@ jobs:
         run: |
           cp ecli/server/ecli-server .
           tar -czvf ecli-server.tar.gz ecli-server 
+      - name: Test CLI
+        run: |
+          mkdir cli-test
+          cd cli-test
+          ../ecli-server -h
+          sudo timeout -s 2 3 ../ecli-server || if [ $? = 124 ]; then exit 0; else exit $?; fi
       - name: Rename `ecli-server.tar.gz` to proper name
         id: name
         run: |
