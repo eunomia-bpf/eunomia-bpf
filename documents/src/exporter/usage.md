@@ -8,7 +8,7 @@ Or you can compile the [opensnoop](https://github.com/eunomia-bpf/eunomia-bpf/tr
 
 ```sh
 $ cd examples/bpftools/opensnoop
-$ docker run -it -v /userpath/eunomia-bpf/examples/bpftools/opensnoop:/src yunwei37/ebpm:latest
+$ docker run -it -v /userpath/eunomia-bpf/examples/bpftools/opensnoop:/src ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
 ```
 
 `userpath` needs to be replaced with your own repo path.

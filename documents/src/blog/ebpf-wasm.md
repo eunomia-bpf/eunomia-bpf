@@ -165,7 +165,7 @@ struct event {
 可以直接使用 eunomia-bpf 的编译工具链将其编译为 JSON 格式，生成一个 package.json 文件，并且可以直接使用 ecli 加载运行：
 
 ```console
-$ docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+$ docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
 make
   BPF      .output/client.bpf.o
   GEN-SKEL .output/client.skel.h
@@ -194,7 +194,7 @@ time pid tpid sig ret comm
 可以直接一行命令，生成 eBPF 程序的用户态 WebAssembly 开发框架：
 
 ```console
-$ docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest gen-wasm-skel
+$ docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest gen-wasm-skel
 make
   GENERATE_PACKAGE_JSON
   GEN-Wasm-SKEL
@@ -250,7 +250,7 @@ int process_event(int ctx, char *e, int str_len)
 最后使用容器镜像即可一行命令完成 WebAssembly/eBPF 程序的编译和打包，使用 ecli 即可一键运行：
 
 ```console
-$ docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest build-wasm
+$ docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest build-wasm
 make
   GENERATE_PACKAGE_JSON
   BUILD-Wasm

@@ -106,10 +106,6 @@ See [github.com/eunomia-bpf/wasm-bpf/tree/main/examples](https://github.com/euno
 
 We also have a prove of concept video: [Writing eBPF programs in Wasm](https://www.bilibili.com/video/BV1JN4y1A76k/).
 
-## Road-map
-
-- [ ] Android support
-
 ## License
 
 MIT LICENSE
