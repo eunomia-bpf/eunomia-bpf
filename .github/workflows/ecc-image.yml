@@ -53,8 +53,8 @@ jobs:
           sudo apt-get install -y docker.io
           mkdir docker-test
           cd docker-test
-          cp ../.github/assets/simple.bpf.c
-          docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
+          cp ../.github/assets/simple.bpf.c .
+          docker run -it -v `pwd`/:/src/ ghcr.io/${{ env.REPO_OWNER }}/ecc-x86_64:latest
           if [[ ! -f "./package.json" ]]
           then
             echo "Docker image failed to produce package.jso"
