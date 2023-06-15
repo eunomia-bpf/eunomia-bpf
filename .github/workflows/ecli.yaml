@@ -200,7 +200,6 @@ jobs:
           cd cli-test
           cp ../.github/assets/package.json .
           ../ecli-package/ecli -h
-          sudo timeout -s 2 3 "../ecli-package/ecli run ./package.json" || if [ $? = 124 ]; then exit 0; else exit $?; fi
       - name: Rename `ecli.zip` to proper name
         run: |
           mv ecli.zip ecli-http-only-${{matrix.os}}-${{ needs.create-release-version.outputs.version }}.zip
@@ -232,6 +231,13 @@ jobs:
           mkdir package-ecli
           cp ecli/client/ecli package-ecli/ecli
           tar -czvf package-ecli/ecli.tar.gz package-ecli/ecli 
+      - name: Test CLI
+        run: |
+          mkdir cli-test
+          cd cli-test
+          cp ../.github/assets/package.json .
+          ../package-ecli/ecli -h
+          sudo timeout -s 2 3 ../package-ecli/ecli run ./package.json || if [ $$? = 124 ]; then exit 0; else exit $$?; fi
       - name: Rename `ecli.tar.gz` to proper name
         id: name
         run: |
