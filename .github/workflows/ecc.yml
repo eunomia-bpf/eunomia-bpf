@@ -133,7 +133,14 @@ jobs:
         cp compiler/cmd/ecc ./release/ecc
         cd release
         tar czvf ./ecc-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz ecc
-
+    - name: Test cli
+      shell: bash
+      run: |
+        mkdir cli-test
+        cd cli-test
+        cp ../.github/assets/simple.bpf.c .
+        ../release/ecc -h
+        ../release/ecc simple.bpf.c
     - name: Publish
       if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
       uses: softprops/action-gh-release@v1

@@ -46,6 +46,20 @@ jobs:
           tags: |
             ghcr.io/${{ env.REPO_OWNER }}/ecc-x86_64:latest
           push: true
+      - name: Test the docker image (x86_64)
+        run: |
+          sudo apt-get update
+          sudo apt-get remove moby-containerd moby-runc 
+          sudo apt-get install -y docker.io
+          mkdir docker-test
+          cd docker-test
+          cp ../.github/assets/simple.bpf.c .
+          docker run -v `pwd`/:/src/ ghcr.io/${{ env.REPO_OWNER }}/ecc-x86_64:latest
+          if [[ ! -f "./package.json" ]]
+          then
+            echo "Docker image failed to produce package.jso"
+            exit 1
+          fi
 
       - name: Build ecc-aarch64 image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
