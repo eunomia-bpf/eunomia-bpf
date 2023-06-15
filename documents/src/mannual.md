@@ -103,7 +103,7 @@ int handle_tp(void *ctx)
 # 下载安装 ecli 二进制
 wget https://aka.pw/bpf-ecli -O /usr/local/ecli && chmod +x /usr/local/ecli
 # 使用容器进行编译，生成一个 package.json 文件，里面是已经编译好的代码和一些辅助信息
-docker run -it -v /path/to/repo:/src yunwei37/ebpm:latest
+docker run -it -v /path/to/repo:/src ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
 # 运行 eBPF 程序（root shell）
 sudo ecli run package.json
 ```
