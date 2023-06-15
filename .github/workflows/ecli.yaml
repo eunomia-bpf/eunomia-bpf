@@ -133,8 +133,6 @@ jobs:
         mkdir cli-test
         cd cli-test
         cp ../.github/assets/package.json .
-        ls ..
-        ld ../release
         ../release/ecli -h
         sudo timeout -s 2 3 ../release/ecli run ./package.json || if [ $$? = 124 ]; then exit 0; else exit $$?; fi
     - name: Upload artifacts
@@ -201,7 +199,7 @@ jobs:
           mkdir cli-test
           cd cli-test
           cp ../.github/assets/package.json .
-          sudo timeout -s 2 3 ../release/ecli run ./package.json || if [ $$? = 124 ]; then exit 0; else exit $$?; fi
+          sudo timeout -s 2 3 ../ecli-package/ecli run ./package.json || if [ $$? = 124 ]; then exit 0; else exit $$?; fi
       - name: Rename `ecli.zip` to proper name
         run: |
           mv ecli.zip ecli-http-only-${{matrix.os}}-${{ needs.create-release-version.outputs.version }}.zip
