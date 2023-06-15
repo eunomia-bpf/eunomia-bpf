@@ -167,7 +167,7 @@
 </code></pre>
 <h2 id="quick-start"><a class="header" href="#quick-start">quick start</a></h2>
 <p>just write some code in the <code>bootstrap.bpf.c</code>, after that, simply run this:</p>
-<pre><code class="language-shell">$ docker run -it -v /path/to/repo:/src yunwei37/ebpm:latest # use absolute path
+<pre><code class="language-shell">$ docker run -it -v /path/to/repo:/src ghcr.io/eunomia-bpf/ecc-`uname -m`:latest # use absolute path
 </code></pre>
 <p>you will get a <code>package.json</code> in your root dir. Just run:</p>
 <pre><code class="language-shell">$ sudo ./ecli run package.json

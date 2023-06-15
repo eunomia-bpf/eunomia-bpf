@@ -359,7 +359,7 @@ TIME     TS      PID     UID     RET     FLAGS   COMM    FNAME
 20:34:23  0      754     0       6       0       irqbalance /proc/stat
 </code></pre>
 <p>或使用 docker 编译:</p>
-<pre><code class="language-shell">docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest
+<pre><code class="language-shell">docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
 </code></pre>
 <p>编译发布后, 也可以轻松从云端一行命令启动任意 eBPF 程序, 例如:</p>
 <pre><code class="language-bash">wget https://aka.pw/bpf-ecli -O ecli &amp;&amp; chmod +x ./ecli     # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
@@ -571,7 +571,7 @@ Usage: ecc [OPTIONS] &lt;SOURCE_PATH&gt; [EXPORT_EVENT_HEADER]
 ....
 </code></pre>
 <p>or use the docker image for compile:</p>
-<pre><code class="language-bash">docker run -it -v `pwd`/:/src/ yunwei37/ebpm:latest # compile with docker. `pwd` should contains *.bpf.c files and *.h files.
+<pre><code class="language-bash">docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest # compile with docker. `pwd` should contains *.bpf.c files and *.h files.
 </code></pre>
 </li>
 </ul>
