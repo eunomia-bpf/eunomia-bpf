@@ -1,12 +1,6 @@
 use clap::{error::ErrorKind, CommandFactory, Parser, Subcommand};
 
-use ecli_lib::{
-    error::{Error, Result},
-    oci::{
-        auth::{login, logout},
-        pull, push, PullArgs, PushArgs,
-    },
-};
+use ecli_lib::error::{Error, Result};
 
 #[cfg(feature = "http")]
 mod http_client;

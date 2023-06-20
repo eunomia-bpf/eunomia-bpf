@@ -4,7 +4,8 @@ members = [
     "ecli-lib",
     "client",
     "server",
-    "server-codegen"
+    "server-codegen",
+    "ecli-oci"
 ]
 
 default-members = [

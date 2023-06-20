@@ -6,20 +6,21 @@
 
 use std::path::PathBuf;
 
-use log::debug;
+use ecli_oci::pull_wasm_image;
+use log::{debug, info};
+use oci_distribution::{secrets::RegistryAuth, Reference};
 
 use crate::{
     config::ProgramType,
     error::{Error, Result},
-    oci::{default_schema_port, wasm_pull},
 };
 
 /// Load the binary of the given url, and guess its program type
 /// If failed to guess, will just return None
 /// It will try the following order
-/// - Test if the provided url is indicates a local file, if matches, read that and treat it as a JSON or TAR
-/// - Test if the provided url points to a HTTP/HTTPS file. If matches, download that and treat it as a JSON or TAR
-/// - Otherwise, treat the given URL as a OCI image
+/// - Test if the provided string is a local file. If matches, read it
+/// - If the string is a URL, then treat it as a HTTP URL, and download it.
+/// - If the string is not an url, treat it as an OCI image tag
 pub async fn try_load_program_buf_and_guess_type(
     url: impl AsRef<str>,
 ) -> Result<(Vec<u8>, Option<ProgramType>)> {
@@ -35,40 +36,46 @@ pub async fn try_load_program_buf_and_guess_type(
 
         (buf, prog_type)
     } else if let Ok(url) = url::Url::parse(url) {
-        debug!(
-            "try read content from url: {}",
-            format!(
-                "{}://{}:{}{}?{}",
-                url.scheme(),
-                if let Some(host) = url.host() {
-                    host.to_string()
-                } else {
-                    return Err(Error::UnknownFileType(format!(
-                        "unknown type of {}, must file path or valid url",
-                        url.as_str()
-                    )));
-                },
-                url.port().unwrap_or(default_schema_port(url.scheme())?),
-                url.path(),
-                url.query().unwrap_or_default()
-            )
-        );
-        let buf = reqwest::get(url.as_str())
-            .await
-            .map_err(|e| Error::Http(format!("Failed to download `{}`: {}", url.as_str(), e)))?
-            .bytes()
-            .await
-            .map_err(|e| Error::Other(format!("Failed to read bytes: {}", e)))?
-            .to_vec();
-        let prog_type = ProgramType::try_from(url.path()).ok();
-        (buf, prog_type)
-    } else {
-        debug!("Read from OCI repo url: {}", url);
-        let buf = wasm_pull(url)
-            .await
-            .map_err(|e| Error::Http(format!("Failed to poll image from `{}`: {}", url, e)))?;
+        debug!("URL parse ok");
+        debug!("Download from {:?}", url);
+        let resp = reqwest::get(url.clone()).await.map_err(|e| {
+            Error::Http(format!("Failed to send request to {}: {}", url.as_str(), e))
+        })?;
+        let data = resp.bytes().await.map_err(|e| {
+            Error::Http(format!(
+                "Failed to read response from {}: {}",
+                url.as_str(),
+                e
+            ))
+        })?;
+        let prog_type = match ProgramType::try_from(url.as_str()) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                info!(
+                    "Failed to guess program type from `{}`: {}",
+                    url.as_str(),
+                    e
+                );
+                None
+            }
+        };
 
-        (buf, Some(ProgramType::WasmModule))
+        (data.to_vec(), prog_type)
+    } else {
+        debug!("Trying OCI tag: {}", url);
+        let image = Reference::try_from(url).map_err(|e| {
+            Error::OciPull(format!(
+                "Failed to parse `{}` into an OCI image reference: {}",
+                url, e
+            ))
+        })?;
+
+        let data = pull_wasm_image(&image, &RegistryAuth::Anonymous, None)
+            .await
+            .map_err(|e| {
+                Error::OciPull(format!("Failed to pull OCI image from `{}`: {}", url, e))
+            })?;
+        (data, Some(ProgramType::WasmModule))
     };
     Ok((buf, prog_type))
 }

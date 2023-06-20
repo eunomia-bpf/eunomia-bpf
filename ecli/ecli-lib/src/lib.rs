@@ -5,7 +5,6 @@
 //!
 pub mod config;
 pub mod error;
-pub mod oci;
 pub mod runner;
 
 /// Some helper functions

@@ -1,0 +1,12 @@
+[package]
+name = "ecli-oci"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.71"
+log = "0.4.19"
+oci-distribution = "0.9.4"
+url = "2.4.0"
