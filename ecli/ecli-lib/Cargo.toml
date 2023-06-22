@@ -32,7 +32,7 @@ swagger = { version = "6.1", features = [
 serde_yaml = "0.9.21"
 home = "0.5.4"
 thiserror = "1.0.40"
-ecli-oci = { path = "../ecli-oci" ,version = "0.1.0"}
+bpf-oci = { path = "../bpf-oci" ,version = "0.1.0"}
 # These deps are only needed when `native-client` feature is enabled
 bpf-loader-lib = { path = "../../bpf-loader-rs/bpf-loader-lib", version = "0.1.3", optional = true }
 wasm-bpf-rs = { version = "0.3.2", optional = true }

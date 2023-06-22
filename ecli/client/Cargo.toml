@@ -11,9 +11,9 @@ tokio = { version = "1.24.2", features = ["rt-multi-thread"] }
 clap = { version = "4.0.32", features = ["derive"] }
 ctrlc = { version = "3.2.5", optional = true }
 flexi_logger = "0.25.3"
-ecli-oci = { path = "../ecli-oci", version = "0.1.0" }
-[features]
+bpf-oci = { path = "../bpf-oci", version = "0.1.0" }
 
+[features]
 http = ["ecli-lib/http-client"]
 native = ["ecli-lib/native-client", "dep:ctrlc"]
 default = ["http", "native"]

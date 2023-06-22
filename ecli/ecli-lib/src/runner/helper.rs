@@ -6,7 +6,10 @@
 
 use std::path::PathBuf;
 
-use ecli_oci::{pull_wasm_image, oci_distribution::{Reference, secrets::RegistryAuth}};
+use bpf_oci::{
+    oci_distribution::{secrets::RegistryAuth, Reference},
+    pull_wasm_image,
+};
 use log::{debug, info};
 
 use crate::{

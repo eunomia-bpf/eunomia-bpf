@@ -5,7 +5,7 @@ members = [
     "client",
     "server",
     "server-codegen",
-    "ecli-oci"
+    "bpf-oci"
 ]
 
 default-members = [

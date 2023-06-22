@@ -1,11 +1,11 @@
 use clap::{error::ErrorKind, Args, CommandFactory, Parser, Subcommand};
 
-use ecli_lib::error::{Error, Result};
-use ecli_oci::{
+use bpf_oci::{
     auth::RegistryAuthExt,
     oci_distribution::{secrets::RegistryAuth, Reference},
     pull_wasm_image, push_wasm_image,
 };
+use ecli_lib::error::{Error, Result};
 
 #[cfg(feature = "http")]
 mod http_client;

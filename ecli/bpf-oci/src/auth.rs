@@ -18,7 +18,7 @@ impl AuthEntry {
         let decoded_str =
             String::from_utf8(decoded).with_context(|| anyhow!("Invalid utf8 chars"))?;
         let (user, pass) = decoded_str
-            .split_once(":")
+            .split_once(':')
             .with_context(|| anyhow!("Unable to find `:` in the auth string"))?;
         Ok(RegistryAuth::Basic(user.to_owned(), pass.to_owned()))
     }
@@ -62,7 +62,7 @@ impl RegistryAuthExt for RegistryAuth {
                 docker_cfg_path
             )
         })?;
-        Ok(auth_entry.extract_registry_auth()?)
+        auth_entry.extract_registry_auth()
     }
     fn load_from_prompt() -> Result<Self>
     where

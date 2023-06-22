@@ -29,7 +29,7 @@ pub async fn pull_wasm_image(
     client: Option<&mut Client>,
 ) -> Result<Vec<u8>> {
     let mut local_client = Client::default();
-    let client = client.unwrap_or_else(|| &mut local_client);
+    let client = client.unwrap_or(&mut local_client);
     let out = client
         .pull(reference, auth, vec![manifest::WASM_LAYER_MEDIA_TYPE])
         .await
@@ -50,7 +50,7 @@ pub async fn push_wasm_image(
     client: Option<&mut Client>,
 ) -> Result<()> {
     let mut local_client = Client::default();
-    let client = client.unwrap_or_else(|| &mut local_client);
+    let client = client.unwrap_or(&mut local_client);
     let layers = vec![ImageLayer::new(
         module.to_vec(),
         manifest::WASM_LAYER_MEDIA_TYPE.to_string(),
@@ -63,7 +63,7 @@ pub async fn push_wasm_image(
     };
     let image_manifest = manifest::OciImageManifest::build(&layers, &config, annotations);
     client
-        .push(&reference, &layers, config, auth, Some(image_manifest))
+        .push(reference, &layers, config, auth, Some(image_manifest))
         .await
         .with_context(|| anyhow!("Failed to push image"))?;
 
