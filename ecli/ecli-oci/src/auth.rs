@@ -69,7 +69,7 @@ impl RegistryAuthExt for RegistryAuth {
         Self: Sized,
     {
         print!("Username: ");
-        let mut username = String::new();
+        let mut username = String::default();
         std::io::stdin().read_line(&mut username)?;
         let password = rpassword::prompt_password("Password: ")?;
         Ok(Self::Basic(username, password))
