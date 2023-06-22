@@ -6,6 +6,7 @@ use bpf_oci::{
     pull_wasm_image, push_wasm_image,
 };
 use ecli_lib::error::{Error, Result};
+use log::warn;
 
 #[cfg(feature = "http")]
 mod http_client;
@@ -41,14 +42,6 @@ struct RunProgArgs {
 pub struct AuthArgs {
     #[arg(
         long,
-        short = 'd',
-        help = "Read user credentials from ~/.docker/config.json",
-        conflicts_with = "prompt",
-        conflicts_with = "UserCredential"
-    )]
-    read_docker: bool,
-    #[arg(
-        long,
         short = 'i',
         help = "Prompt the user to input username and password",
         conflicts_with = "UserCredential"
@@ -81,16 +74,23 @@ impl AuthArgs {
     fn load_registry_auth(&self, image: &Reference) -> Result<RegistryAuth> {
         let result = if self.prompt {
             RegistryAuth::load_from_prompt().map_err(|e| Error::IORead(e.to_string()))?
-        } else if self.read_docker {
-            RegistryAuth::load_from_docker(None, image.registry())
-                .map_err(|e| Error::InvalidParam(e.to_string()))?
         } else if self.credential.password.is_some() {
             RegistryAuth::Basic(
                 self.credential.username.clone().unwrap(),
                 self.credential.password.clone().unwrap(),
             )
         } else {
-            RegistryAuth::Anonymous
+            match RegistryAuth::load_from_docker(None, image.registry()) {
+                Err(e) => {
+                    warn!(
+                        "Failed to read credentials from docker: {}.\
+                     Will login to registry anonymously",
+                        e
+                    );
+                    RegistryAuth::Anonymous
+                }
+                Ok(v) => v,
+            }
         };
         Ok(result)
     }
