@@ -14,6 +14,11 @@ use oci_distribution::{
     Client, Reference,
 };
 
+pub mod auth;
+
+#[cfg(test)]
+pub(crate) mod tests;
+
 use anyhow::{anyhow, Context, Result};
 /// Pull a wasm image from the registry
 /// Use the authencation info provided by `auth`

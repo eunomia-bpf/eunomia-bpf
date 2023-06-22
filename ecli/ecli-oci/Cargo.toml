@@ -7,6 +7,14 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.71"
+base64 = "0.21.2"
+home = "0.5.5"
 log = "0.4.19"
 oci-distribution = "0.9.4"
+rpassword = "7.2.0"
+serde = { version = "1.0.164", features = ["derive"] }
+serde_json = "1.0.97"
 url = "2.4.0"
+
+[dev-dependencies]
+tempfile = "3.6.0"

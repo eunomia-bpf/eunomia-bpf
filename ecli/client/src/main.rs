@@ -1,6 +1,11 @@
-use clap::{error::ErrorKind, CommandFactory, Parser, Subcommand};
+use clap::{error::ErrorKind, Args, CommandFactory, Parser, Subcommand};
 
 use ecli_lib::error::{Error, Result};
+use ecli_oci::{
+    auth::RegistryAuthExt,
+    oci_distribution::{secrets::RegistryAuth, Reference},
+    pull_wasm_image, push_wasm_image,
+};
 
 #[cfg(feature = "http")]
 mod http_client;
@@ -31,7 +36,89 @@ struct RunProgArgs {
     prog_type: Option<ecli_lib::config::ProgramType>,
 }
 
-/// ecli subcommands, including run, push, pull, login, logout.
+#[derive(Parser)]
+#[group(multiple = false, required = false)]
+pub struct AuthArgs {
+    #[arg(
+        long,
+        short = 'd',
+        help = "Read user credentials from ~/.docker/config.json",
+        conflicts_with = "prompt",
+        conflicts_with = "UserCredential"
+    )]
+    read_docker: bool,
+    #[arg(
+        long,
+        short = 'i',
+        help = "Prompt the user to input username and password",
+        conflicts_with = "UserCredential"
+    )]
+    prompt: bool,
+    #[command(flatten)]
+    credential: UserCredential,
+}
+
+#[derive(Args)]
+#[group(multiple = true)]
+pub struct UserCredential {
+    #[arg(
+        long,
+        short,
+        help = "Manually specify the username",
+        requires = "password"
+    )]
+    username: Option<String>,
+    #[arg(
+        long,
+        short,
+        help = "Manually specify the password",
+        requires = "username"
+    )]
+    password: Option<String>,
+}
+
+impl AuthArgs {
+    fn load_registry_auth(&self, image: &Reference) -> Result<RegistryAuth> {
+        let result = if self.prompt {
+            RegistryAuth::load_from_prompt().map_err(|e| Error::IORead(e.to_string()))?
+        } else if self.read_docker {
+            RegistryAuth::load_from_docker(None, image.registry())
+                .map_err(|e| Error::InvalidParam(e.to_string()))?
+        } else if self.credential.password.is_some() {
+            RegistryAuth::Basic(
+                self.credential.username.clone().unwrap(),
+                self.credential.password.clone().unwrap(),
+            )
+        } else {
+            RegistryAuth::Anonymous
+        };
+        Ok(result)
+    }
+}
+
+#[derive(Parser)]
+pub struct OCIArgs {
+    /// oci image path
+    #[arg(help = "Reference of the image")]
+    image: String,
+    #[clap(flatten)]
+    auth: AuthArgs,
+}
+
+impl OCIArgs {
+    fn load_registry_auth_and_registry(&self) -> Result<(Reference, RegistryAuth)> {
+        let image = Reference::try_from(self.image.as_str()).map_err(|e| {
+            Error::InvalidParam(format!(
+                "Unable to parse image reference: {} ({})",
+                self.image, e
+            ))
+        })?;
+        let auth = self.auth.load_registry_auth(&image)?;
+        Ok((image, auth))
+    }
+}
+
+/// ecli subcommands, including run, push, pull.
 #[derive(Subcommand)]
 pub enum Action {
     /// run ebpf program
@@ -65,35 +152,21 @@ pub enum Action {
         /// wasm module path
         #[arg(long, short, default_value_t = ("app.wasm").to_string(), help = "Path to the wasm module")]
         module: String,
-        /// oci image path
-        #[arg(help = "Image URL")]
-        image: String,
+        #[clap(flatten)]
+        oci: OCIArgs,
     },
     /// pull oci image from registry
     Pull {
         /// wasm module url
         #[arg(short, long, default_value_t = ("app.wasm").to_string(), help = "Path to the wasm module")]
         output: String,
-        /// oci image url
-        #[arg(help = "Image URL")]
-        image: String,
-    },
-    /// login to oci registry
-    Login {
-        /// oci login url
-        #[arg(default_value_t = ("https://ghcr.io").to_string(), help = "Login URL")]
-        url: String,
-    },
-    /// logout from registry
-    Logout {
-        /// oci logout url
-        #[arg(default_value_t = ("ghcr.io").to_string(), help = "Logout URL")]
-        url: String,
+        #[clap(flatten)]
+        oci: OCIArgs,
     },
 }
 
 #[derive(Parser)]
-struct Args {
+struct CliArgs {
     #[command(subcommand)]
     action: Option<Action>,
     /// program path or url
@@ -123,7 +196,7 @@ async fn main() -> Result<()> {
         })
         .ok();
     }
-    let args = Args::parse();
+    let args = CliArgs::parse();
 
     #[cfg(feature = "native")]
     {
@@ -141,25 +214,29 @@ async fn main() -> Result<()> {
             extra_args,
             prog_type,
         }) => native_client::run_native(json, prog, &extra_args, prog_type).await,
-        Some(Action::Push { image, module }) => {
-            push(PushArgs {
-                file: module,
-                image_url: image,
-            })
-            .await
+        Some(Action::Push { module, oci }) => {
+            let (image, auth) = oci.load_registry_auth_and_registry()?;
+            let module_bin = tokio::fs::read(&module).await.map_err(Error::IOErr)?;
+
+            push_wasm_image(&auth, &image, None, &module_bin, None)
+                .await
+                .map_err(|e| Error::OciPush(e.to_string()))?;
+
+            Ok(())
         }
-        Some(Action::Pull { image, output }) => {
-            pull(PullArgs {
-                write_file: output,
-                image_url: image,
-            })
-            .await
+        Some(Action::Pull { output, oci }) => {
+            let (image, auth) = oci.load_registry_auth_and_registry()?;
+            let module_bin = pull_wasm_image(&image, &auth, None)
+                .await
+                .map_err(|e| Error::OciPull(e.to_string()))?;
+            tokio::fs::write(output, module_bin)
+                .await
+                .map_err(Error::IOErr)?;
+            Ok(())
         }
-        Some(Action::Login { url }) => login(url).await,
-        Some(Action::Logout { url }) => logout(url),
         #[cfg(feature = "http")]
         Some(Action::Client(cmd)) => http_client::handle_client_command(cmd).await,
-        None => Args::command()
+        None => CliArgs::command()
             .error(
                 ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
                 "Either use subcommand, or directly provide program URL",

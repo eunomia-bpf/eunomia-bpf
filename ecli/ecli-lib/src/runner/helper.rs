@@ -6,9 +6,8 @@
 
 use std::path::PathBuf;
 
-use ecli_oci::pull_wasm_image;
+use ecli_oci::{pull_wasm_image, oci_distribution::{Reference, secrets::RegistryAuth}};
 use log::{debug, info};
-use oci_distribution::{secrets::RegistryAuth, Reference};
 
 use crate::{
     config::ProgramType,
