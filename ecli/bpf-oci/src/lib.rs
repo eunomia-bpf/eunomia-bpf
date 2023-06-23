@@ -58,7 +58,7 @@ pub async fn push_wasm_image(
     )];
     let config = Config {
         annotations: None,
-        data: b"".to_vec(),
+        data: b"{}".to_vec(),
         media_type: manifest::WASM_CONFIG_MEDIA_TYPE.to_string(),
     };
     let image_manifest = manifest::OciImageManifest::build(&layers, &config, annotations);

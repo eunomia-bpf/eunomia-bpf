@@ -1,8 +1,11 @@
+use std::collections::HashMap;
+
+use anyhow::{anyhow, bail, Context};
 use clap::{error::ErrorKind, Args, CommandFactory, Parser, Subcommand};
 
 use bpf_oci::{
     auth::RegistryAuthExt,
-    oci_distribution::{secrets::RegistryAuth, Reference},
+    oci_distribution::{annotations, secrets::RegistryAuth, Reference},
     pull_wasm_image, push_wasm_image,
 };
 use ecli_lib::error::{Error, Result};
@@ -159,6 +162,14 @@ pub enum Action {
         module: String,
         #[clap(flatten)]
         oci: OCIArgs,
+
+        #[clap(
+            short,
+            long,
+            required = false,
+            help = "OCI Annotations to be added to the manifest. Should be like `key=value`"
+        )]
+        annotations: Vec<String>,
     },
     /// pull oci image from registry
     #[clap(about = "Operations about pulling image from registry", after_help = AUTH_HELP)]
@@ -188,7 +199,7 @@ struct CliArgs {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> anyhow::Result<()> {
     flexi_logger::Logger::try_with_env_or_str("info")
         .map_err(|e| Error::Log(format!("Failed to create logger: {}", e)))?
         .start()
@@ -207,7 +218,9 @@ async fn main() -> Result<()> {
     #[cfg(feature = "native")]
     {
         if let Some(prog) = args.prog {
-            native_client::run_native(false, prog, &args.extra_args, None).await?;
+            native_client::run_native(false, prog, &args.extra_args, None)
+                .await
+                .with_context(|| anyhow!("Failed to run native eBPF program"))?;
             return Ok(());
         }
     }
@@ -219,29 +232,58 @@ async fn main() -> Result<()> {
             prog,
             extra_args,
             prog_type,
-        }) => native_client::run_native(json, prog, &extra_args, prog_type).await,
-        Some(Action::Push { module, oci }) => {
-            let (image, auth) = oci.load_registry_auth_and_registry()?;
-            let module_bin = tokio::fs::read(&module).await.map_err(Error::IOErr)?;
-
-            push_wasm_image(&auth, &image, None, &module_bin, None)
+        }) => native_client::run_native(json, prog, &extra_args, prog_type)
+            .await
+            .with_context(|| anyhow!("Failed to run native eBPF program")),
+        Some(Action::Push {
+            module,
+            oci,
+            annotations,
+        }) => {
+            let (image, auth) = oci.load_registry_auth_and_registry().with_context(|| {
+                anyhow!("Failed to extract RegistryAuth and Reference from args")
+            })?;
+            let module_bin = tokio::fs::read(&module)
                 .await
-                .map_err(|e| Error::OciPush(e.to_string()))?;
+                .with_context(|| anyhow!("Failed to read module binary"))?;
+            let mut annotations_map = HashMap::default();
+            for ent in annotations.into_iter() {
+                if let [key, value] = ent.splitn(2, '=').collect::<Vec<_>>()[..] {
+                    annotations_map.insert(key.into(), value.into());
+                } else {
+                    bail!("Annotations should be like `key=value`");
+                }
+            }
+            if !annotations_map
+                .contains_key(&annotations::ORG_OPENCONTAINERS_IMAGE_TITLE.to_owned())
+            {
+                annotations_map.insert(
+                    annotations::ORG_OPENCONTAINERS_IMAGE_TITLE.to_string(),
+                    module,
+                );
+            }
+            push_wasm_image(&auth, &image, Some(annotations_map), &module_bin, None)
+                .await
+                .with_context(|| anyhow!("Failed to push image"))?;
 
             Ok(())
         }
         Some(Action::Pull { output, oci }) => {
-            let (image, auth) = oci.load_registry_auth_and_registry()?;
+            let (image, auth) = oci.load_registry_auth_and_registry().with_context(|| {
+                anyhow!("Failed to extract RegistryAuth and Reference from args")
+            })?;
             let module_bin = pull_wasm_image(&image, &auth, None)
                 .await
-                .map_err(|e| Error::OciPull(e.to_string()))?;
+                .with_context(|| anyhow!("Failed to pull image"))?;
             tokio::fs::write(output, module_bin)
                 .await
-                .map_err(Error::IOErr)?;
+                .with_context(|| anyhow!("Failed to write module binary to local"))?;
             Ok(())
         }
         #[cfg(feature = "http")]
-        Some(Action::Client(cmd)) => http_client::handle_client_command(cmd).await,
+        Some(Action::Client(cmd)) => http_client::handle_client_command(cmd)
+            .await
+            .with_context(|| anyhow!("Failed to process client command")),
         None => CliArgs::command()
             .error(
                 ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
