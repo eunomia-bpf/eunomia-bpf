@@ -118,6 +118,11 @@ impl OCIArgs {
     }
 }
 
+const AUTH_HELP: &str = "About the authencation:\n\
+If neither of -i, -u & -p is provided, will try to read credentials from \
+docker's configuration (~/.docker/config.json) and use them to login into the registry. \
+If unable to read, will login to the registry anonymously";
+
 /// ecli subcommands, including run, push, pull.
 #[derive(Subcommand)]
 pub enum Action {
@@ -147,7 +152,7 @@ pub enum Action {
     #[cfg(feature = "http")]
     #[clap(name = "client", about = "Client operations")]
     Client(http_client::ClientCmd),
-
+    #[clap(about = "Operations about pushing image to registry", after_help = AUTH_HELP)]
     Push {
         /// wasm module path
         #[arg(long, short, default_value_t = ("app.wasm").to_string(), help = "Path to the wasm module")]
@@ -156,6 +161,7 @@ pub enum Action {
         oci: OCIArgs,
     },
     /// pull oci image from registry
+    #[clap(about = "Operations about pulling image from registry", after_help = AUTH_HELP)]
     Pull {
         /// wasm module url
         #[arg(short, long, default_value_t = ("app.wasm").to_string(), help = "Path to the wasm module")]
