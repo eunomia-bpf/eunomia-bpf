@@ -74,7 +74,7 @@ pub async fn push_wasm_image(
 pub fn parse_annotations<T: AsRef<str>>(input: &[T]) -> anyhow::Result<HashMap<String, String>> {
     let mut annotations_map = HashMap::default();
     for ent in input.iter() {
-        if let [key, value] = ent.as_ref().splitn(2, '=').collect::<Vec<_>>()[..] {
+        if let Some((key, value)) = ent.as_ref().split_once('=') {
             annotations_map.insert(key.into(), value.into());
         } else {
             bail!("Annotations should be like `key=value`");

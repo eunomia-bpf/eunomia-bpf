@@ -1,10 +1,9 @@
-
-use anyhow::{anyhow,  Context};
+use anyhow::{anyhow, Context};
 use clap::{error::ErrorKind, Args, CommandFactory, Parser, Subcommand};
 
 use bpf_oci::{
     auth::RegistryAuthExt,
-    oci_distribution::{ secrets::RegistryAuth, Reference},
+    oci_distribution::{secrets::RegistryAuth, Reference},
     parse_annotations_and_insert_image_title, pull_wasm_image, push_wasm_image,
 };
 use ecli_lib::error::{Error, Result};
