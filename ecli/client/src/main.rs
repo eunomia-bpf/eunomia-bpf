@@ -1,12 +1,11 @@
-use std::collections::HashMap;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow,  Context};
 use clap::{error::ErrorKind, Args, CommandFactory, Parser, Subcommand};
 
 use bpf_oci::{
     auth::RegistryAuthExt,
-    oci_distribution::{annotations, secrets::RegistryAuth, Reference},
-    pull_wasm_image, push_wasm_image,
+    oci_distribution::{ secrets::RegistryAuth, Reference},
+    parse_annotations_and_insert_image_title, pull_wasm_image, push_wasm_image,
 };
 use ecli_lib::error::{Error, Result};
 use log::warn;
@@ -246,23 +245,9 @@ async fn main() -> anyhow::Result<()> {
             let module_bin = tokio::fs::read(&module)
                 .await
                 .with_context(|| anyhow!("Failed to read module binary"))?;
-            let mut annotations_map = HashMap::default();
-            for ent in annotations.into_iter() {
-                if let [key, value] = ent.splitn(2, '=').collect::<Vec<_>>()[..] {
-                    annotations_map.insert(key.into(), value.into());
-                } else {
-                    bail!("Annotations should be like `key=value`");
-                }
-            }
-            if !annotations_map
-                .contains_key(&annotations::ORG_OPENCONTAINERS_IMAGE_TITLE.to_owned())
-            {
-                annotations_map.insert(
-                    annotations::ORG_OPENCONTAINERS_IMAGE_TITLE.to_string(),
-                    module,
-                );
-            }
-            push_wasm_image(&auth, &image, Some(annotations_map), &module_bin, None)
+            let annotations = parse_annotations_and_insert_image_title(&annotations, module)?;
+
+            push_wasm_image(&auth, &image, Some(annotations), &module_bin, None)
                 .await
                 .with_context(|| anyhow!("Failed to push image"))?;
 

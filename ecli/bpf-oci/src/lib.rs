@@ -8,6 +8,7 @@ use std::collections::HashMap;
 
 pub use oci_distribution;
 use oci_distribution::{
+    annotations,
     client::{Config, ImageLayer},
     manifest,
     secrets::RegistryAuth,
@@ -19,7 +20,7 @@ pub mod auth;
 #[cfg(test)]
 pub(crate) mod tests;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 /// Pull a wasm image from the registry
 /// Use the authencation info provided by `auth`
 /// Provide your own client if you want to customization
@@ -68,4 +69,31 @@ pub async fn push_wasm_image(
         .with_context(|| anyhow!("Failed to push image"))?;
 
     Ok(())
+}
+/// Parse annotations like key=value into HashMap
+pub fn parse_annotations<T: AsRef<str>>(input: &[T]) -> anyhow::Result<HashMap<String, String>> {
+    let mut annotations_map = HashMap::default();
+    for ent in input.iter() {
+        if let [key, value] = ent.as_ref().splitn(2, '=').collect::<Vec<_>>()[..] {
+            annotations_map.insert(key.into(), value.into());
+        } else {
+            bail!("Annotations should be like `key=value`");
+        }
+    }
+    Ok(annotations_map)
+}
+/// Parse annotations like key=value into HashMap
+/// Will insert ORG_OPENCONTAINERS_IMAGE_TITLE if not provided
+pub fn parse_annotations_and_insert_image_title<T: AsRef<str>>(
+    input: &[T],
+    title: String,
+) -> anyhow::Result<HashMap<String, String>> {
+    let mut ret = parse_annotations(input)?;
+    if !ret.contains_key(&annotations::ORG_OPENCONTAINERS_IMAGE_TITLE.to_owned()) {
+        ret.insert(
+            annotations::ORG_OPENCONTAINERS_IMAGE_TITLE.to_string(),
+            title,
+        );
+    }
+    Ok(ret)
 }
