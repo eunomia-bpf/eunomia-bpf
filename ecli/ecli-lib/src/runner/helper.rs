@@ -4,18 +4,16 @@
 //! All rights reserved.
 //!
 
-use std::path::PathBuf;
-
+use anyhow::anyhow;
+use anyhow::Context;
 use bpf_oci::{
     oci_distribution::{secrets::RegistryAuth, Reference},
     pull_wasm_image,
 };
 use log::{debug, info};
+use std::path::PathBuf;
 
-use crate::{
-    config::ProgramType,
-    error::{Error, Result},
-};
+use crate::{config::ProgramType, error::Error};
 
 /// Load the binary of the given url, and guess its program type
 /// If failed to guess, will just return None
@@ -25,7 +23,7 @@ use crate::{
 /// - If the string is not an url, treat it as an OCI image tag
 pub async fn try_load_program_buf_and_guess_type(
     url: impl AsRef<str>,
-) -> Result<(Vec<u8>, Option<ProgramType>)> {
+) -> anyhow::Result<(Vec<u8>, Option<ProgramType>)> {
     let url = url.as_ref();
     // Is it a local path?
     let path = PathBuf::from(url);
@@ -33,7 +31,7 @@ pub async fn try_load_program_buf_and_guess_type(
         debug!("Read from local file: {}", url);
         let buf = tokio::fs::read(path.as_path())
             .await
-            .map_err(Error::IOErr)?;
+            .with_context(|| anyhow!("Failed to read local file: {}", url))?;
         let prog_type = ProgramType::try_from(url).ok();
 
         (buf, prog_type)
@@ -65,18 +63,12 @@ pub async fn try_load_program_buf_and_guess_type(
         (data.to_vec(), prog_type)
     } else {
         debug!("Trying OCI tag: {}", url);
-        let image = Reference::try_from(url).map_err(|e| {
-            Error::OciPull(format!(
-                "Failed to parse `{}` into an OCI image reference: {}",
-                url, e
-            ))
-        })?;
+        let image = Reference::try_from(url)
+            .with_context(|| anyhow!("Failed to parse `{}` into an OCI image reference", url))?;
 
         let data = pull_wasm_image(&image, &RegistryAuth::Anonymous, None)
             .await
-            .map_err(|e| {
-                Error::OciPull(format!("Failed to pull OCI image from `{}`: {}", url, e))
-            })?;
+            .with_context(|| anyhow!("Failed to pull OCI image from `{}`", url))?;
         (data, Some(ProgramType::WasmModule))
     };
     Ok((buf, prog_type))

@@ -9,7 +9,6 @@ use std::time::Duration;
 
 use ecli_lib::{
     config::ProgramType,
-    error::Result,
     runner::{
         client::{native::EcliNativeClient, AbstractClient},
         LogType,
@@ -25,7 +24,7 @@ pub(crate) async fn run_native(
     prog: String,
     args: &[String],
     user_prog_type: Option<ProgramType>,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let client = EcliNativeClient::default();
     let (buf, prog_type) = load_prog_buf_and_guess_type(&prog, user_prog_type).await?;
 

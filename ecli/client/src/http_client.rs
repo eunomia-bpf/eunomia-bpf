@@ -9,7 +9,6 @@ use clap::ArgAction;
 use clap::Parser;
 use ecli_lib::config::ProgramType;
 use ecli_lib::{
-    error::Result,
     runner::{
         client::{http::EcliHttpClient, AbstractClient},
         ProgramHandle,
@@ -110,7 +109,7 @@ pub struct ResumeCommand {
     pub id: ProgramHandle,
 }
 
-pub(crate) async fn handle_client_command(cmd: ClientCmd) -> Result<()> {
+pub(crate) async fn handle_client_command(cmd: ClientCmd) -> anyhow::Result<()> {
     let client = EcliHttpClient::new(cmd.opts.endpoint)?;
     match cmd.cmd {
         ClientSubCommand::Start(StartCommand {

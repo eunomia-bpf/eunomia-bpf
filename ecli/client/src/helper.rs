@@ -3,6 +3,7 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
+use anyhow::bail;
 use ecli_lib::{
     config::ProgramType,
     error::{Error, Result},
@@ -13,16 +14,13 @@ use tokio::io::AsyncReadExt;
 pub async fn load_prog_buf_and_guess_type(
     path: &str,
     user_prog_type: Option<ProgramType>,
-) -> Result<(Vec<u8>, ProgramType)> {
+) -> anyhow::Result<(Vec<u8>, ProgramType)> {
     if path == "-" {
         let buf = read_stdio_input().await?;
         if let Some(v) = user_prog_type {
             Ok((buf, v))
         } else {
-            Err(Error::InvalidParam(
-                "You must manually specify the -p argument when reading program from stdio"
-                    .to_string(),
-            ))
+            bail!("You must manually specify the -p argument when reading program from stdio");
         }
     } else {
         let (buf, prog_type) = try_load_program_buf_and_guess_type(path).await?;
