@@ -8,11 +8,9 @@ use std::time::Duration;
 use clap::ArgAction;
 use clap::Parser;
 use ecli_lib::config::ProgramType;
-use ecli_lib::{
-    runner::{
-        client::{http::EcliHttpClient, AbstractClient},
-        ProgramHandle,
-    },
+use ecli_lib::runner::{
+    client::{http::EcliHttpClient, AbstractClient},
+    ProgramHandle,
 };
 
 use crate::helper::load_prog_buf_and_guess_type;
