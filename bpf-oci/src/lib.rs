@@ -34,7 +34,7 @@ pub async fn pull_wasm_image(
     let out = client
         .pull(reference, auth, vec![manifest::WASM_LAYER_MEDIA_TYPE])
         .await
-        .with_context(|| anyhow!("Failed to poll wasm image"))?
+        .with_context(|| anyhow!("Failed to pull wasm image"))?
         .layers
         .into_iter()
         .next()
