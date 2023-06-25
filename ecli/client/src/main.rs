@@ -1,12 +1,13 @@
-use clap::{error::ErrorKind, CommandFactory, Parser, Subcommand};
+use anyhow::{anyhow, Context};
+use clap::{error::ErrorKind, Args, CommandFactory, Parser, Subcommand};
 
-use ecli_lib::{
-    error::{Error, Result},
-    oci::{
-        auth::{login, logout},
-        pull, push, PullArgs, PushArgs,
-    },
+use bpf_oci::{
+    auth::RegistryAuthExt,
+    oci_distribution::{secrets::RegistryAuth, Reference},
+    parse_annotations_and_insert_image_title, pull_wasm_image, push_wasm_image,
 };
+use ecli_lib::error::{Error, Result};
+use log::warn;
 
 #[cfg(feature = "http")]
 mod http_client;
@@ -37,7 +38,93 @@ struct RunProgArgs {
     prog_type: Option<ecli_lib::config::ProgramType>,
 }
 
-/// ecli subcommands, including run, push, pull, login, logout.
+#[derive(Parser)]
+#[group(multiple = false, required = false)]
+pub struct AuthArgs {
+    #[arg(
+        long,
+        short = 'i',
+        help = "Prompt the user to input username and password",
+        conflicts_with = "UserCredential"
+    )]
+    prompt: bool,
+    #[command(flatten)]
+    credential: UserCredential,
+}
+
+#[derive(Args)]
+#[group(multiple = true)]
+pub struct UserCredential {
+    #[arg(
+        long,
+        short,
+        help = "Manually specify the username",
+        requires = "password"
+    )]
+    username: Option<String>,
+    #[arg(
+        long,
+        short,
+        help = "Manually specify the password",
+        requires = "username"
+    )]
+    password: Option<String>,
+}
+
+impl AuthArgs {
+    fn load_registry_auth(&self, image: &Reference) -> Result<RegistryAuth> {
+        let result = if self.prompt {
+            RegistryAuth::load_from_prompt().map_err(|e| Error::IORead(e.to_string()))?
+        } else if self.credential.password.is_some() {
+            RegistryAuth::Basic(
+                self.credential.username.clone().unwrap(),
+                self.credential.password.clone().unwrap(),
+            )
+        } else {
+            match RegistryAuth::load_from_docker(None, image.registry()) {
+                Err(e) => {
+                    warn!(
+                        "Failed to read credentials from docker: {}.\
+                     Will login to registry anonymously",
+                        e
+                    );
+                    RegistryAuth::Anonymous
+                }
+                Ok(v) => v,
+            }
+        };
+        Ok(result)
+    }
+}
+
+#[derive(Parser)]
+pub struct OCIArgs {
+    /// oci image path
+    #[arg(help = "Reference of the image")]
+    image: String,
+    #[clap(flatten)]
+    auth: AuthArgs,
+}
+
+impl OCIArgs {
+    fn load_registry_auth_and_registry(&self) -> Result<(Reference, RegistryAuth)> {
+        let image = Reference::try_from(self.image.as_str()).map_err(|e| {
+            Error::InvalidParam(format!(
+                "Unable to parse image reference: {} ({})",
+                self.image, e
+            ))
+        })?;
+        let auth = self.auth.load_registry_auth(&image)?;
+        Ok((image, auth))
+    }
+}
+
+const AUTH_HELP: &str = "About the authencation:\n\
+If neither of -i, -u & -p is provided, will try to read credentials from \
+docker's configuration (~/.docker/config.json) and use them to login into the registry. \
+If unable to read, will login to the registry anonymously";
+
+/// ecli subcommands, including run, push, pull.
 #[derive(Subcommand)]
 pub enum Action {
     /// run ebpf program
@@ -66,40 +153,35 @@ pub enum Action {
     #[cfg(feature = "http")]
     #[clap(name = "client", about = "Client operations")]
     Client(http_client::ClientCmd),
-
+    #[clap(about = "Operations about pushing image to registry", after_help = AUTH_HELP)]
     Push {
         /// wasm module path
         #[arg(long, short, default_value_t = ("app.wasm").to_string(), help = "Path to the wasm module")]
         module: String,
-        /// oci image path
-        #[arg(help = "Image URL")]
-        image: String,
+        #[clap(flatten)]
+        oci: OCIArgs,
+
+        #[clap(
+            short,
+            long,
+            required = false,
+            help = "OCI Annotations to be added to the manifest. Should be like `key=value`"
+        )]
+        annotations: Vec<String>,
     },
     /// pull oci image from registry
+    #[clap(about = "Operations about pulling image from registry", after_help = AUTH_HELP)]
     Pull {
         /// wasm module url
         #[arg(short, long, default_value_t = ("app.wasm").to_string(), help = "Path to the wasm module")]
         output: String,
-        /// oci image url
-        #[arg(help = "Image URL")]
-        image: String,
-    },
-    /// login to oci registry
-    Login {
-        /// oci login url
-        #[arg(default_value_t = ("https://ghcr.io").to_string(), help = "Login URL")]
-        url: String,
-    },
-    /// logout from registry
-    Logout {
-        /// oci logout url
-        #[arg(default_value_t = ("ghcr.io").to_string(), help = "Logout URL")]
-        url: String,
+        #[clap(flatten)]
+        oci: OCIArgs,
     },
 }
 
 #[derive(Parser)]
-struct Args {
+struct CliArgs {
     #[command(subcommand)]
     action: Option<Action>,
     /// program path or url
@@ -115,7 +197,7 @@ struct Args {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> anyhow::Result<()> {
     flexi_logger::Logger::try_with_env_or_str("info")
         .map_err(|e| Error::Log(format!("Failed to create logger: {}", e)))?
         .start()
@@ -129,12 +211,14 @@ async fn main() -> Result<()> {
         })
         .ok();
     }
-    let args = Args::parse();
+    let args = CliArgs::parse();
 
     #[cfg(feature = "native")]
     {
         if let Some(prog) = args.prog {
-            native_client::run_native(false, prog, &args.extra_args, None).await?;
+            native_client::run_native(false, prog, &args.extra_args, None)
+                .await
+                .with_context(|| anyhow!("Failed to run native eBPF program"))?;
             return Ok(());
         }
     }
@@ -146,26 +230,45 @@ async fn main() -> Result<()> {
             prog,
             extra_args,
             prog_type,
-        }) => native_client::run_native(json, prog, &extra_args, prog_type).await,
-        Some(Action::Push { image, module }) => {
-            push(PushArgs {
-                file: module,
-                image_url: image,
-            })
+        }) => native_client::run_native(json, prog, &extra_args, prog_type)
             .await
+            .with_context(|| anyhow!("Failed to run native eBPF program")),
+        Some(Action::Push {
+            module,
+            oci,
+            annotations,
+        }) => {
+            let (image, auth) = oci.load_registry_auth_and_registry().with_context(|| {
+                anyhow!("Failed to extract RegistryAuth and Reference from args")
+            })?;
+            let module_bin = tokio::fs::read(&module)
+                .await
+                .with_context(|| anyhow!("Failed to read module binary"))?;
+            let annotations = parse_annotations_and_insert_image_title(&annotations, module)?;
+
+            push_wasm_image(&auth, &image, Some(annotations), &module_bin, None)
+                .await
+                .with_context(|| anyhow!("Failed to push image"))?;
+
+            Ok(())
         }
-        Some(Action::Pull { image, output }) => {
-            pull(PullArgs {
-                write_file: output,
-                image_url: image,
-            })
-            .await
+        Some(Action::Pull { output, oci }) => {
+            let (image, auth) = oci.load_registry_auth_and_registry().with_context(|| {
+                anyhow!("Failed to extract RegistryAuth and Reference from args")
+            })?;
+            let module_bin = pull_wasm_image(&image, &auth, None)
+                .await
+                .with_context(|| anyhow!("Failed to pull image"))?;
+            tokio::fs::write(output, module_bin)
+                .await
+                .with_context(|| anyhow!("Failed to write module binary to local"))?;
+            Ok(())
         }
-        Some(Action::Login { url }) => login(url).await,
-        Some(Action::Logout { url }) => logout(url),
         #[cfg(feature = "http")]
-        Some(Action::Client(cmd)) => http_client::handle_client_command(cmd).await,
-        None => Args::command()
+        Some(Action::Client(cmd)) => http_client::handle_client_command(cmd)
+            .await
+            .with_context(|| anyhow!("Failed to process client command")),
+        None => CliArgs::command()
             .error(
                 ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
                 "Either use subcommand, or directly provide program URL",
