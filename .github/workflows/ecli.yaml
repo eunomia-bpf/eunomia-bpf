@@ -110,18 +110,6 @@ jobs:
         # Install rustup manually using user root
         curl https://sh.rustup.rs -o rustup.sh
         sudo bash -c "cat rustup.sh | sh -s -- -y ; /root/.cargo/bin/cargo test -- --skip test_pause_and_resume"
-
-    - name: ecli oci login gh cache test
-      shell: bash
-      run: |
-        mkdir -p ~/.config/gh
-        cat > ~/.config/gh/hosts.yml << 'EOF'
-        github.com:
-          user: eunomia-bpf
-          oauth_token: ${{ secrets.GITHUB_TOKEN }}
-          git_protocol: ssh
-        EOF
-        ./ecli/target/release/ecli-rs login
     - name: Package ecli
       run: |
         mkdir -p release
