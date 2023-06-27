@@ -95,7 +95,7 @@ jobs:
           wasm-runtime/runtime/rust
           eunomia-sdks/eunomia-rs
     - name: Prepare cargo-appimage
-      uses: eunomia-bpf/prepare-cargo-appimage@v4
+      uses: eunomia-bpf/prepare-cargo-appimage@v5
     - name: Install libfuse
       run: |
         sudo apt-get install -y libfuse2
@@ -147,7 +147,7 @@ jobs:
           cargo build --release --no-default-features --features http
       - name: Prepare cargo-appimage
         if: "contains(matrix.os, 'ubuntu')"
-        uses: eunomia-bpf/prepare-cargo-appimage@v4
+        uses: eunomia-bpf/prepare-cargo-appimage@v5
       - name: Install libfuse
         if: "contains(matrix.os, 'ubuntu')"
         run: |
@@ -205,7 +205,7 @@ jobs:
         with:
           submodules: 'recursive'
       - name: Prepare cargo-appimage
-        uses: eunomia-bpf/prepare-cargo-appimage@v4
+        uses: eunomia-bpf/prepare-cargo-appimage@v5
       - name: Install libfuse
         run: |
           sudo apt-get install -y libfuse2
@@ -245,7 +245,7 @@ jobs:
         with:
           submodules: 'recursive'
       - name: Prepare cargo-appimage
-        uses: eunomia-bpf/prepare-cargo-appimage@v4
+        uses: eunomia-bpf/prepare-cargo-appimage@v5
       - name: Install libfuse
         run: |
           sudo apt-get install -y libfuse2
