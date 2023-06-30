@@ -96,10 +96,6 @@ fn main() -> anyhow::Result<()> {
 
     let workspace_path = workdir().join("workspace");
 
-    fetch_and_build_bpftool()
-        .with_context(|| anyhow!("Failed to fetch or build the repo of bpftool"))?;
-    fetch_git_repo(&vmlinux_repo(), &vmlinux_ref(), &vmlinux_repodir())
-        .with_context(|| anyhow!("Failed to fetch vmlinux headers"))?;
     if workspace_path.exists() {
         println!("Removing existsing workspace..");
         std::fs::remove_dir_all(&workspace_path)
@@ -107,6 +103,23 @@ fn main() -> anyhow::Result<()> {
     }
     std::fs::create_dir_all(&workspace_path)
         .with_context(|| anyhow!("Failed to create workspace dir"))?;
+
+    if let Ok(v) = std::env::var("ECC_CUSTOM_WORKSPACE_ROOT") {
+        println!("Copying custom workspace");
+        fs_extra::dir::copy(
+            v,
+            workspace_path,
+            &CopyOptions::default().content_only(true),
+        )
+        .with_context(|| anyhow!("Failed to copy custom workspace"))?;
+
+        return Ok(());
+    }
+    fetch_and_build_bpftool()
+        .with_context(|| anyhow!("Failed to fetch or build the repo of bpftool"))?;
+    fetch_git_repo(&vmlinux_repo(), &vmlinux_ref(), &vmlinux_repodir())
+        .with_context(|| anyhow!("Failed to fetch vmlinux headers"))?;
+
     std::fs::create_dir_all(workspace_path.join("bin"))
         .with_context(|| anyhow!("Failed to create `bin` directory of workspace"))?;
     std::fs::create_dir_all(workspace_path.join("include"))
