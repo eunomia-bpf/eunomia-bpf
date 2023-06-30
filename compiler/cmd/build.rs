@@ -93,6 +93,7 @@ fn main() -> anyhow::Result<()> {
     println!("cargo:rerun-if-env-changed=BPFTOOL_REF");
     println!("cargo:rerun-if-env-changed=VMLINUX_REPO");
     println!("cargo:rerun-if-env-changed=VMLINUX_REF");
+    println!("cargo:rerun-if-env-changed=ECC_CUSTOM_WORKSPACE_ROOT");
 
     let workspace_path = workdir().join("workspace");
 
