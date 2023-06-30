@@ -1,4 +1,4 @@
-name: Build and public ecc docker image (x86_64)
+name: Build and publish ecc docker image (x86_64)
 
 on:
   push:

@@ -10,7 +10,8 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Context};
-use fs_extra::dir::CopyOptions;
+use dircpy::copy_dir;
+use dircpy::CopyBuilder;
 
 const DEFAULT_BPFTOOL_REPO: &str = "https://github.com/eunomia-bpf/bpftool";
 const DEFAULT_BPFTOOL_REF: &str = "0594034";
@@ -106,14 +107,8 @@ fn main() -> anyhow::Result<()> {
         .with_context(|| anyhow!("Failed to create workspace dir"))?;
 
     if let Ok(v) = std::env::var("ECC_CUSTOM_WORKSPACE_ROOT") {
-        println!("Copying custom workspace");
-        fs_extra::dir::copy(
-            v,
-            workspace_path,
-            &CopyOptions::default().content_only(true),
-        )
-        .with_context(|| anyhow!("Failed to copy custom workspace"))?;
-
+        println!("Copying custom workspace from {}", v);
+        copy_dir(v, workspace_path).with_context(|| anyhow!("Failed to copy custom workspace"))?;
         return Ok(());
     }
     fetch_and_build_bpftool()
@@ -131,20 +126,19 @@ fn main() -> anyhow::Result<()> {
         workspace_path.join("bin/bpftool"),
     )
     .with_context(|| anyhow!("Failed to copy bpftool binary"))?;
-    fs_extra::dir::copy(
+    copy_dir(
         bpftool_repo_dir.join("src/libbpf/include/bpf"),
-        workspace_path.join("include"),
-        &CopyOptions::default(),
+        workspace_path.join("include/bpf"),
     )
     .with_context(|| anyhow!("Failed to copy libbpf headers"))?;
     // Avoid copying the .git folder
     std::fs::remove_dir_all(workdir().join(vmlinux_repodir()).join(".git"))
         .with_context(|| anyhow!("Failed to remove .git directory "))?;
-    fs_extra::dir::copy(
+    CopyBuilder::new(
         workdir().join(vmlinux_repodir()),
-        workspace_path.join("include"),
-        &CopyOptions::default().copy_inside(true),
+        workspace_path.join("include/vmlinux"),
     )
+    .run()
     .with_context(|| anyhow!("Failed to copy vmlinux headers"))?;
     Ok(())
 }
