@@ -26,7 +26,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
-          ls /usr/lib/gcc-cross/aarch64-linux-gnu/12/
+          ls /usr/lib/gcc-cross/aarch64-linux-gnu/11/
           aarch64-linux-gnu-ld --version
       - name: downcase REPO
         run: |
@@ -79,13 +79,13 @@ jobs:
           export ECC_CUSTOM_WORKSPACE_ROOT=$(pwd)/workspace
           echo "Workspace dir: $ECC_CUSTOM_WORKSPACE_ROOT"
           cd compiler/cmd
-          RUSTFLAGS="-L /usr/lib/gcc-cross/aarch64-linux-gnu/12/" CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-ld cargo build --release --target aarch64-unknown-linux-gnu
+          RUSTFLAGS="-L /usr/lib/gcc-cross/aarch64-linux-gnu/11/" CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-ld cargo build --release --target aarch64-unknown-linux-gnu
       - name: Prepare docker build context
         run: |
           mkdir build-context
           cd build-context
-          cp compiler/cmd/target/aarch64-unknown-linux-gnu/relese/ecc-rs .
-          cp compiler/entry-aarch64.sh .
+          cp ../compiler/cmd/target/aarch64-unknown-linux-gnu/release/ecc-rs .
+          cp ../compiler/entry-aarch64.sh .
       - name: Login to ghcr.io
         uses: docker/login-action@v2
         with:
