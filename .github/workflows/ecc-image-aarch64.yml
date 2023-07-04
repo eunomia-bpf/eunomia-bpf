@@ -97,6 +97,7 @@ jobs:
         with:
           context: ./build-context
           file: ./compiler/dockerfile.aarch64
+          platforms: linux/arm64
           tags: |
             ghcr.io/${{ env.REPO_OWNER }}/ecc-aarch64:latest
           push: true
