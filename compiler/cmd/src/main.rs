@@ -19,6 +19,12 @@ use clap::Parser;
 use config::{CompileArgs, EunomiaWorkspace};
 
 fn main() -> Result<()> {
+    #[cfg(target_arch = "aarch64")]
+    {
+        use anyhow::anyhow;
+        clang_sys::load()
+            .map_err(|e| anyhow!("Failed to load libclang dynamically at runtime: {}", e))?;
+    }
     let args = CompileArgs::parse();
     flexi_logger::Logger::try_with_env_or_str(if args.verbose { "debug" } else { "info" })?
         .start()?;
