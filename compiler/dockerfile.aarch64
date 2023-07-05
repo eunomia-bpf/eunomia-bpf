@@ -2,7 +2,7 @@ FROM ubuntu:20.04
 
 RUN apt-get update
 
-RUN apt-get install -y gcc libclang1-12 libllvm12
+RUN apt-get install -y gcc libclang1-12 libllvm12 clang
 
 COPY ./ecc-rs /ecc
 
