@@ -15,7 +15,12 @@ use crate::helper::get_target_arch;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
-use clang::{documentation::CommentChild, *};
+use clang::documentation::CommentChild;
+use clang::Clang;
+use clang::Entity;
+use clang::EntityKind;
+use clang::Index;
+use clang::TranslationUnit;
 use log::warn;
 use serde_json::{json, Value};
 
