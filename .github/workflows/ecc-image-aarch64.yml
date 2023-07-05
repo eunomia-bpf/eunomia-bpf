@@ -26,8 +26,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
-          ls /usr/lib/gcc-cross/aarch64-linux-gnu/11/
-          aarch64-linux-gnu-ld --version
+          ls /usr/lib/gcc-cross/aarch64-linux-gnu/
+          aarch64-linux-gnu-gcc --version
       - name: downcase REPO
         run: |
           echo "REPO_OWNER=${GITHUB_REPO_OWNER,,}" >>${GITHUB_ENV}
@@ -79,7 +79,7 @@ jobs:
           export ECC_CUSTOM_WORKSPACE_ROOT=$(pwd)/workspace
           echo "Workspace dir: $ECC_CUSTOM_WORKSPACE_ROOT"
           cd compiler/cmd
-          cargo build --release --target aarch64-unknown-linux-gnu
+          RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target aarch64-unknown-linux-gnu
       - name: Prepare docker build context
         run: |
           mkdir build-context
