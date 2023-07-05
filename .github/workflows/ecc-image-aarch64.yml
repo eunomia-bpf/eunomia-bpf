@@ -79,7 +79,7 @@ jobs:
           export ECC_CUSTOM_WORKSPACE_ROOT=$(pwd)/workspace
           echo "Workspace dir: $ECC_CUSTOM_WORKSPACE_ROOT"
           cd compiler/cmd
-          RUSTFLAGS="-L /usr/lib/gcc-cross/aarch64-linux-gnu/11/" CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-ld cargo build --release --target aarch64-unknown-linux-gnu
+          cargo build --release --target aarch64-unknown-linux-gnu
       - name: Prepare docker build context
         run: |
           mkdir build-context
