@@ -72,6 +72,7 @@ jobs:
           cd ../..
           mkdir data
           cp ./compiler/cmd/target/aarch64-unknown-linux-gnu/release/ecc-rs data/ecc
+          ls -lah data
       # Necessary if we want to run things cross platform
       - name: Set up Docker Buildx
         id: buildx
