@@ -84,6 +84,9 @@ jobs:
           run: |
             apt-get update
             apt-get install -y libclang1
+            echo "Installation done"
+            echo "Working directory $(pwd)"
+            chmod +x /data/ecc
             LD_DEBUG=libs /data/ecc > ld_debug_output 2>&1
 
             library_paths=$(awk '/^.+calling init:/{print $4}' ld_debug_output)
