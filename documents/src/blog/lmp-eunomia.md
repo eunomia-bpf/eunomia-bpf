@@ -324,7 +324,7 @@ ORAS 的工作原理与您可能已经熟悉的工具(如 docker)类似。它允
 
 因此，鼓励新的 OCI Artifacts 的作者定义他们自己的组件媒体类型，以使得他们的用户知道如何对其进行操作。
 
-如果您希望立即开始发布 OCI Artifacts，请查看[ORAS CLI](https://oras.land/docs/category/cli)。希望提供给自己用户体验的开发人员应该使用一个 ORAS 客户端开发库。
+如果您希望立即开始发布 OCI Artifacts，请查看[ORAS CLI](https://oras.land/docs/commands/use_oras_cli)。希望提供给自己用户体验的开发人员应该使用一个 ORAS 客户端开发库。
 
 ## 未来的发展方向
 
