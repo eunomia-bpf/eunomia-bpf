@@ -318,7 +318,7 @@ OCI 目前提出的规范有如下这些：
 
 ### ORAS(OCI Registry As Storage)
 
-Registries 正在逐渐演变为通用的组件存储库。为了实现这一目标，ORAS 项目提供了一种将 OCI Artifacts 从 OCI Registries 提交和拉取的方法。正在寻求通用 Registries 客户端的用户可以从[ORAS CLI](https://oras.land/docs/category/cli)中得到帮助，而开发人员可以在[ORAS 客户端的开发库](https://oras.land/docs/category/client-libraries)之上构建自己的客户端。
+Registries 正在逐渐演变为通用的组件存储库。为了实现这一目标，ORAS 项目提供了一种将 OCI Artifacts 从 OCI Registries 提交和拉取的方法。正在寻求通用 Registries 客户端的用户可以从[ORAS CLI](https://oras.land/docs/commands/use_oras_cli)中得到帮助，而开发人员可以在[ORAS 客户端的开发库](https://oras.land/docs/client_libraries/overview)之上构建自己的客户端。
 
 ORAS 的工作原理与您可能已经熟悉的工具(如 docker)类似。它允许您向 OCI Registries 推送(上传)和提取(下载)内容，并处理登录(身份验证)和令牌流(授权)。ORAS 的不同之处在于将焦点从容器映像转移到其他类型的组件上。
 
