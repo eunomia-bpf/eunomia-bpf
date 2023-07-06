@@ -1,4 +1,4 @@
-name: Build and publish ecc docker image (aarch64)
+name: Build and release binary of ecc (aarch64)
 
 on:
   push:
@@ -7,7 +7,7 @@ env:
   GITHUB_REPO_OWNER: ${{ github.repository_owner }}
 jobs:
   # define job to build and publish docker image
-  build-and-push-ecc-image:
+  build-and-release:
     runs-on: ubuntu-latest
     # run only when code is compiling and tests are passing
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
@@ -18,22 +18,6 @@ jobs:
         with:
           submodules: 'recursive'
 
-      # setup Docker buld action
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Install dependencies for cross building
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-          ls /usr/lib/gcc-cross/aarch64-linux-gnu/
-          aarch64-linux-gnu-gcc --version
-      - name: downcase REPO
-        run: |
-          echo "REPO_OWNER=${GITHUB_REPO_OWNER,,}" >>${GITHUB_ENV}
-      - name: use REPO
-        run: |
-          echo "The value of REPO_OWNER is: ${REPO_OWNER}"
       - name: Prepare bpftool and vmlinux repo for building workspace
         # Move more steps outside of the virtual machine
         run: |
@@ -80,26 +64,3 @@ jobs:
           echo "Workspace dir: $ECC_CUSTOM_WORKSPACE_ROOT"
           cd compiler/cmd
           cargo build --release --target aarch64-unknown-linux-gnu
-      - name: Prepare docker build context
-        run: |
-          mkdir build-context
-          cd build-context
-          cp ../compiler/cmd/target/aarch64-unknown-linux-gnu/release/ecc-rs .
-          cp ../compiler/entry-aarch64.sh .
-      - name: Login to ghcr.io
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build the docker image
-        uses: docker/build-push-action@v2
-        with:
-          context: ./build-context
-          file: ./compiler/dockerfile.aarch64
-          platforms: linux/arm64
-          tags: |
-            ghcr.io/${{ env.REPO_OWNER }}/ecc-aarch64:latest
-          push: true
-      - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}

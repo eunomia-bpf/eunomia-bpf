@@ -1,4 +1,4 @@
-name: Build and test compiler on Ubuntu, and release binary
+name: Build and release binary of ecc (x86_64)
 
 on:
   push:
