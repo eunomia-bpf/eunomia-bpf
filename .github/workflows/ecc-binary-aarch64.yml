@@ -17,7 +17,12 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: 'recursive'
-
+      - name: Install dependencies for cross building
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          ls /usr/lib/gcc-cross/aarch64-linux-gnu/
+          aarch64-linux-gnu-gcc --version
       - name: Prepare bpftool and vmlinux repo for building workspace
         # Move more steps outside of the virtual machine
         run: |
