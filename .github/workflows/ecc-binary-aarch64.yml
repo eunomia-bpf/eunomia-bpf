@@ -87,10 +87,11 @@ jobs:
             echo "Installation done"
             echo "Working directory $(pwd)"
             chmod +x /data/ecc
+            echo "Permission set done"
             LD_DEBUG=libs /data/ecc > ld_debug_output 2>&1
-
+            echo "ecc running done"
             library_paths=$(awk '/^.+calling init:/{print $4}' ld_debug_output)
-
+            echo "raw library paths: $library_paths"
             for library_path in $library_paths; do
                 target_path="/data/libs${library_path}"
                 target_dir=$(dirname "$target_path")
