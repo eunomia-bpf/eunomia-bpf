@@ -1,4 +1,4 @@
-name: Build and public ecc docker image
+name: Build and publish ecc docker image (x86_64)
 
 on:
   push:
@@ -60,18 +60,6 @@ jobs:
             echo "Docker image failed to produce package.jso"
             exit 1
           fi
-
-      - name: Build ecc-aarch64 image and push to GitHub Container Registry
-        uses: docker/build-push-action@v2
-        with:
-          # relative path to the place where source code with Dockerfile is located
-          context: ./
-          file: ./compiler/dockerfile
-          platforms: linux/arm64
-          # Note: tags has to be all lower-case
-          tags: |
-            ghcr.io/${{ env.REPO_OWNER }}/ecc-aarch64:latest
-          push: true
-
+          
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

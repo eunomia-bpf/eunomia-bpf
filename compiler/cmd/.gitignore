@@ -3,3 +3,4 @@ dump*
 /libs
 *.AppImage
 icon.png
+build-aarch64.sh
