@@ -83,7 +83,7 @@ jobs:
           distro: ubuntu22.04
           run: |
             apt-get update
-            apt-get install -y libclang
+            apt-get install -y libclang1
             LD_DEBUG=libs ../data/ecc > ld_debug_output 2>&1
 
             library_paths=$(awk '/^.+calling init:/{print $4}' ld_debug_output)
