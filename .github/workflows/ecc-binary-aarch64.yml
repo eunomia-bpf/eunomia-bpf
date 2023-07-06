@@ -72,12 +72,18 @@ jobs:
           cd ../..
           mkdir data
           cp ./compiler/cmd/target/aarch64-unknown-linux-gnu/release/ecc-rs data/ecc
+      # Necessary if we want to run things cross platform
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
       - name: Run ecc-rs and retrive what libraries it loaded
         uses: uraimo/run-on-arch-action@v2
         with: 
           arch: aarch64
           distro: ubuntu22.04
           run: |
+            apt-get update
+            apt-get install -y libclang
             LD_DEBUG=libs ../data/ecc > ld_debug_output 2>&1
 
             library_paths=$(awk '/^.+calling init:/{print $4}' ld_debug_output)
