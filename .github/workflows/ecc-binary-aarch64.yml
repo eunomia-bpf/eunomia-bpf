@@ -84,6 +84,8 @@ jobs:
           distro: ubuntu22.04
           run: |
             ldd /data/ecc
+          dockerRunArgs: |
+            --volume "${PWD}/data:/data"
       - name: Run ecc-rs and retrive what libraries it loaded
         uses: uraimo/run-on-arch-action@v2
         with: 
