@@ -42,7 +42,7 @@ jobs:
         uses: uraimo/run-on-arch-action@v2
         with: 
           arch: aarch64
-          distro: ubuntu20.04
+          distro: ubuntu22.04
           run: |
             apt-get update
             apt-get install -y zlib1g-dev libelf-dev gcc make
@@ -69,3 +69,30 @@ jobs:
           echo "Workspace dir: $ECC_CUSTOM_WORKSPACE_ROOT"
           cd compiler/cmd
           cargo build --release --target aarch64-unknown-linux-gnu
+          cd ../..
+          mkdir data
+          cp ./compiler/cmd/target/aarch64-unknown-linux-gnu/release/ecc-rs data/ecc
+      - name: Run ecc-rs and retrive what libraries it loaded
+        uses: uraimo/run-on-arch-action@v2
+        with: 
+          arch: aarch64
+          distro: ubuntu22.04
+          run: |
+            LD_DEBUG=libs ../data/ecc > ld_debug_output 2>&1
+
+            library_paths=$(awk '/^.+calling init:/{print $4}' ld_debug_output)
+
+            for library_path in $library_paths; do
+                target_path="/data/libs${library_path}"
+                target_dir=$(dirname "$target_path")
+                mkdir -p "$target_dir"
+                echo "Copy $library_path"
+                cp "$library_path" "$target_path"
+            done
+          dockerRunArgs: |
+            --volume "${PWD}/data:/data"
+      - name: Show what libraries were copied
+        run: |
+          sudo chmod 777 ./data -R
+          sudo chown $(whoami) ./data -R
+          find -type f ./data/libs

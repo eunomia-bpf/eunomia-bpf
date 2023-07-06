@@ -53,7 +53,7 @@ jobs:
         uses: uraimo/run-on-arch-action@v2
         with: 
           arch: aarch64
-          distro: ubuntu20.04
+          distro: ubuntu22.04
           run: |
             apt-get update
             apt-get install -y zlib1g-dev libelf-dev gcc make
