@@ -99,4 +99,4 @@ jobs:
         run: |
           sudo chmod 777 ./data -R
           sudo chown $(whoami) ./data -R
-          find -type f ./data/libs
+          find ./data/libs -type f
