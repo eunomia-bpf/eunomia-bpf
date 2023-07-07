@@ -107,7 +107,7 @@ jobs:
       - name: Install libfuse for appimagetool
         run: |
           sudo apt-get update
-          sudo apt-get install libfuse3
+          sudo apt-get install libfuse2
       - name: Clone and install cargo-appimage with aarch64 launcher
         run: |
           git clone https://github.com/eunomia-bpf/cargo-appimage
