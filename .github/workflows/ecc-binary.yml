@@ -69,6 +69,7 @@ jobs:
     strategy:
       matrix:
         target: [ x86_64-unknown-linux-gnu ]
+    needs: create-release-version
     steps:
     - uses: actions/checkout@v3
       with:
@@ -132,7 +133,7 @@ jobs:
         mkdir release
         cp compiler/cmd/ecc ./release/ecc
         cd release
-        tar czvf ./ecc-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz ecc
+        tar czvf ./ecc-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz ecc
     - name: Test cli
       shell: bash
       run: |
@@ -278,12 +279,13 @@ jobs:
         run: |
           find ./results -type f
       - name: Publish
-        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
+        if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
             files: |
-              release/ecc-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz
-              release/ecc
+              ./results/ecc-aarch64/ecc-aarch64
+              ./results/ecc-x86_64/ecc
+              ./results/ecc-x86_64/ecc-x86_64-unknown-linux-gnu-${{ needs.create-release-version.outputs.version }}.tar.gz
             prerelease: false
             tag_name: ${{ needs.create-release-version.outputs.version }}
             generate_release_notes: true
