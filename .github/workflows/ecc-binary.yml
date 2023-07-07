@@ -1,0 +1,293 @@
+name: Build and release standalone binary of ecc
+
+on:
+    push:
+      branches: ["*"]
+      paths:
+        - "ecli/**"
+        - "compiler/**"  # Ensure ecc and ecli releasing at same time
+        - "wasm-rumtime/**"  # Release when dependencies updated
+        - "third_party/**"
+        - "bpf-loader-rs/**"
+        - "eunomia-sdk/**"
+        - ".github/**"
+  
+    pull_request:
+      branches: ["*"]
+      paths:
+        - "ecli/**"
+        - "compiler/**"
+        - "wasm-rumtime/**"
+        - "third_party/**"
+        - "bpf-loader-rs/**"
+        - "eunomia-sdk/**"
+        - ".github/**" 
+env:
+  BUILD_TYPE: Release
+  INSTALL_LOCATION: .local
+  GITHUB_REPO_OWNER: ${{ github.repository_owner }}
+    
+jobs:
+  create-release-version:
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{steps.set_version.outputs.result}}
+    steps:
+      - name: Set latest release version
+        id: set_version
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            
+            const { data: tags } = await github.rest.repos.listTags({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            
+            if (releases.length === 0) { return "v0.0.1"; }
+            
+            function increase_v(version) {
+              const parts = version.split(".");
+              const last = parseInt(parts[2]) + 1;
+              const next_version = `${parts[0]}.${parts[1]}.${last.toString()}`;
+              return next_version;
+            }
+            
+            const latest_release_tag = releases[0].tag_name;
+            
+            const tag = tags.find(tag => tag.commit.sha === context.sha);
+            
+            return tag ? tag.name : increase_v(latest_release_tag)
+  build-x86_64:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [ x86_64-unknown-linux-gnu ]
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+    - name: install deps
+      run: |
+          sudo make -C compiler install-deps
+          cargo install clippy-sarif sarif-fmt grcov
+          rustup component add llvm-tools-preview
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af #@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        components: clippy
+        override: true
+
+    - name: cache dependencies
+      uses: actions/cache@v3
+      id: cache
+      with:
+        path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
+        key: ${{ runner.os }}-dependencies
+
+    - name: Cache rust
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: |
+          compiler/cmd
+          ecli
+          eunomia-sdks/eunomia-rs
+
+    - name: build ecc
+      run:  cd compiler && make && make install
+    - name: Prepare cargo-appimage
+      uses: eunomia-bpf/prepare-cargo-appimage@v5
+    - name: Install libfuse
+      run: |
+        sudo apt-get install -y libfuse2
+    - name: Build AppImage
+      run: |
+          cd compiler/cmd
+          CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecc cargo appimage 
+    - name: test ecc
+      run:  cd compiler && make test
+    - name: Upload analysis results to GitHub
+      if: github.repository_owner == 'eunomia-bpf'
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: compiler/cmd/rust-clippy-results.sarif
+        wait-for-processing: true
+
+    - name: Code coverage using Codecov
+      if: github.repository_owner == 'eunomia-bpf'
+      run: bash <(curl -s https://codecov.io/bash)
+
+    - name: Package
+      shell: bash
+      run: |
+        mkdir release
+        cp compiler/cmd/ecc ./release/ecc
+        cd release
+        tar czvf ./ecc-${{ matrix.target }}-${{ steps.set_version.outputs.result }}.tar.gz ecc
+    - name: Test cli
+      shell: bash
+      run: |
+        mkdir cli-test
+        cd cli-test
+        cp ../.github/assets/simple.bpf.c .
+        ../release/ecc -h
+        ../release/ecc simple.bpf.c
+    - name: Upload build result
+      uses: actions/upload-artifact@v3
+      with:
+        name: ecc-x86_64
+        path: release/*
+
+  build-aarch64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Install dependencies for cross building
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          ls /usr/lib/gcc-cross/aarch64-linux-gnu/
+          aarch64-linux-gnu-gcc --version
+      - name: Prepare bpftool and vmlinux repo for building workspace
+        # Move more steps outside of the virtual machine
+        run: |
+          mkdir workspace
+          mkdir assets
+          cd assets
+          git clone --recursive https://github.com/eunomia-bpf/vmlinux
+          cd vmlinux
+          git checkout 933f83b
+          # Avoid symlink issues
+          rm vmlinux.h
+          cd ..
+          git clone --recursive https://github.com/eunomia-bpf/bpftool
+          cd bpftool
+          git checkout 0594034
+      - name: Build workspace in aarch64 virtual machine
+        uses: uraimo/run-on-arch-action@v2
+        with: 
+          arch: aarch64
+          distro: ubuntu22.04
+          run: |
+            apt-get update
+            apt-get install -y zlib1g-dev libelf-dev gcc make
+            cd /workspace && mkdir bin
+            cd /assets/bpftool/src
+            CFLAGS="-static" make
+            cp bpftool /workspace/bin
+          dockerRunArgs: |
+            --volume "${PWD}/workspace:/workspace"
+            --volume "${PWD}/assets:/assets"
+      - name: Compose the ecc workspace
+        run: |
+          sudo chmod 777 workspace -R
+          sudo chown `whoami` workspace -R
+          cd workspace
+          mkdir include
+          cp -r ../assets/bpftool/src/libbpf/include/bpf include/
+          cp -r ../assets/vmlinux/ include/
+          cp ./include/vmlinux/arm64/vmlinux.h ./include/vmlinux
+      - name: Cross build ecc (aarch64)
+        run: |
+          rustup target add aarch64-unknown-linux-gnu
+          export ECC_CUSTOM_WORKSPACE_ROOT=$(pwd)/workspace
+          echo "Workspace dir: $ECC_CUSTOM_WORKSPACE_ROOT"
+          cd compiler/cmd
+          cargo build --release --target aarch64-unknown-linux-gnu
+          cd ../..
+          mkdir data
+          cp ./compiler/cmd/target/aarch64-unknown-linux-gnu/release/ecc-rs data/ecc
+          cp ./.github/scripts/copy-ecc-aarch64-libs.sh ./data
+          ls -lah data
+      # Necessary if we want to run things cross platform
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Run ecc-rs and retrive what libraries it loaded
+        uses: uraimo/run-on-arch-action@v2
+        with: 
+          arch: aarch64
+          distro: ubuntu22.04
+          run: |
+            apt-get update
+            apt-get install -y libclang1
+            echo "Installation done"
+            echo "Working directory $(pwd)"
+            chmod +x /data/ecc
+            echo "Permission set done"
+            chmod +x /data/copy-ecc-aarch64-libs.sh
+            /data/copy-ecc-aarch64-libs.sh
+          dockerRunArgs: |
+            --volume "${PWD}/data:/data"
+          shell: /bin/bash
+      - name: Show what libraries were copied
+        run: |
+          sudo chmod 777 ./data -R
+          sudo chown $(whoami) ./data -R
+          find ./data/libs -type f
+      - name: Prepare runtime file and cargo-appimage tool
+        uses: eunomia-bpf/prepare-cargo-appimage@v6
+        with: 
+          runtime-url: https://github.com/eunomia-bpf/prepare-cargo-appimage/raw/v6/runtime-aarch64
+      - name: Install libfuse for appimagetool
+        run: |
+          sudo apt-get update
+          sudo apt-get install libfuse2
+      - name: Clone and install cargo-appimage with aarch64 launcher
+        run: |
+          git clone https://github.com/eunomia-bpf/cargo-appimage
+          cd cargo-appimage
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target aarch64-unknown-linux-gnu
+      - name: Compose files and pack them
+        run: |
+          mkdir appimage-root
+          cd appimage-root
+          cp -r ../data/libs/* .
+          mkdir -p usr/bin
+          cp ../data/ecc usr/bin/bin
+          touch icon.png
+          cp ../cargo-appimage/target/aarch64-unknown-linux-gnu/release/cargo-appimage-runner AppRun
+          cp ../.github/scripts/cargo-appimage.desktop .
+          ../appimagetool --runtime-file ../runtime . ../ecc-aarch64
+      - uses: actions/upload-artifact@v3
+        name: Upload build result
+        with:
+          name: ecc-aarch64
+          path: ecc-aarch64
+  release:
+    needs: [create-release-version, build-aarch64, build-x86_64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build results
+        uses: actions/download-artifact@v3
+        with:
+          path: results
+      - name: List build results
+        run: |
+          find ./results -type f
+      - name: Publish
+        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
+        uses: softprops/action-gh-release@v1
+        with:
+            files: |
+              release/ecc-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz
+              release/ecc
+            prerelease: false
+            tag_name: ${{ needs.create-release-version.outputs.version }}
+            generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    
