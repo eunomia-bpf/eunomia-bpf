@@ -279,7 +279,7 @@ jobs:
         run: |
           find ./results -type f
       - name: Publish
-        if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
         uses: softprops/action-gh-release@v1
         with:
             files: |
