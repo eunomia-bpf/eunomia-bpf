@@ -112,7 +112,7 @@ jobs:
         run: |
           git clone https://github.com/eunomia-bpf/cargo-appimage
           cd cargo-appimage
-          RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target aarch64-unknown-linux-gnu
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target aarch64-unknown-linux-gnu
       - name: Compose files and pack them
         run: |
           mkdir appimage-root
