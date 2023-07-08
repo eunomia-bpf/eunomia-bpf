@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=ecc_ecli
+Exec=bin
+Icon=icon
+Type=Application
+Categories=Utility;
+Terminal=true
