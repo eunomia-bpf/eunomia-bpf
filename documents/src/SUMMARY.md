@@ -18,7 +18,7 @@
 - [ecli](./ecli/index.md)
   - [docker](./ecli/docker.md)
 - [Docker manual](ecli-dockerfile-usage.md)
-- [Manual (Chinese)](mannual.md)
+- [Manual (Chinese)](manual.md)
 - [Online Demo](online.md)
 - [Common problems](common_problems.md)
 - [External BTF support](supporting-external-BTF.md)

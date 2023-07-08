@@ -23,7 +23,7 @@ pub enum TypeDescriptor {
     ManuallyOverride(Vec<OverridedStructMember>),
     /// Use a struct described in the BTF
     BtfType { type_id: u32 },
-    /// Directly use there checked members. Keep compatiblities to the old version
+    /// Directly use there checked members. Keep compatibilities to the old version
     CheckedMembers(Vec<CheckedExportedMember>),
 }
 
@@ -40,7 +40,7 @@ impl TypeDescriptor {
                 for mem in override_mems.into_iter() {
                     if btf.types().get(mem.btf_type_id as usize).is_none() {
                         bail!(
-                            "Invalid type id {} for overrided member {}",
+                            "Invalid type id {} for overridden member {}",
                             mem.btf_type_id,
                             mem.name
                         );

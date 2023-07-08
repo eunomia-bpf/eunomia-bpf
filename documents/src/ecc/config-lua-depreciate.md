@@ -1,4 +1,4 @@
-# lua condig
+# lua config
 
 类似于 xmake 和 <https://github.com/iovisor/bcc/tree/master/examples/lua> 的设计，我们打算使用 lua 来帮助进行用户态一些可选信息的配置，例如：
 

@@ -21,7 +21,7 @@ pub enum UnpresentVariableAction {
 impl EunomiaObjectMeta {
     /// Parser the values from the command line parser
     ///
-    /// The clap parser gives us all values as strings, so here will try to parse the strings into the variable's own types (e.g, string, int, unsigned int). If it failes, `Err` will be returned
+    /// The clap parser gives us all values as strings, so here will try to parse the strings into the variable's own types (e.g, string, int, unsigned int). If it fails, `Err` will be returned
     ///
     /// This function will fill the `value` field in the `DataSectionVariableMeta`.
     ///

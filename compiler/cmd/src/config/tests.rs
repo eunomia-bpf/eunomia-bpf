@@ -76,7 +76,7 @@ fn test_init_eunomia_workspace() {
     let bpftool_path = tmp_workspace.path().join("bin/bpftool");
     assert!(bpftool_path.exists());
     let _ = fs::create_dir_all("/tmp/test_workspace");
-    // test specifiy workspace
+    // test specify workspace
     EunomiaWorkspace::init(CompileArgs::parse_from(&[
         "ecc",
         "../test/client.bpf.c",

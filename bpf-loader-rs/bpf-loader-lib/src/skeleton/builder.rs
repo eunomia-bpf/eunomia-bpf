@@ -138,7 +138,7 @@ impl<'a> BpfSkeletonBuilder<'a> {
             );
         }
 
-        // Retrive the btf archive from the loaded bpf_object
+        // Retrieve the btf archive from the loaded bpf_object
         let btf = {
             // SAFETY: This function will always succeed
             let btf = unsafe { bpf_object__btf(open_result) };
