@@ -67,12 +67,12 @@ jobs:
       run: |
         rustup target add aarch64-unknown-linux-gnu
         cd ecli/client
-        RUSTFLAGS="-L $(PWD)/libs" cargo build --release --target aarch64-linux-gnu-gcc
+        RUSTFLAGS="-L $(PWD)/libs" cargo build --release --target aarch64-unknown-linux-gnu
         cd ../..
-        cp ./ecli/target/aarch64-linux-gnu-gcc/release/ecli-rs .
+        cp ./ecli/target/aarch64-unknown-linux-gnu/release/ecli-rs .
         mkdir data
         cp ecli-rs data
-    - name: Run ecli and see what libs was loaded
+    - name: Run ecli and see what libs were loaded
       uses: uraimo/run-on-arch-action@v2
       with: 
         arch: aarch64
