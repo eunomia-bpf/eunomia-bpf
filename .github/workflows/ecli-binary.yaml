@@ -316,11 +316,6 @@ jobs:
         dockerRunArgs: |
           --volume "${PWD}/libbpf:/libbpf"
           --volume "${PWD}/libs:/libs"
-    - name: Upload copied libs for testing
-      uses: actions/upload-artifact@v3
-      with:
-        name: aarch64-libs
-        path: libs
     - name: cache rust build results
       uses: Swatinem/rust-cache@v2
       with:
@@ -407,7 +402,7 @@ jobs:
           echo "$FILES" >> "$GITHUB_OUTPUT"
           echo "$EOF" >> "$GITHUB_OUTPUT"
       - name: Publish
-        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
+        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && ( github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong')
         uses: softprops/action-gh-release@v1
         with:
             files: ${{steps.list-files.outputs.upload_files}}
