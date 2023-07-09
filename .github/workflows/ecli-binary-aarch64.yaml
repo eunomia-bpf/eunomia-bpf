@@ -79,7 +79,8 @@ jobs:
         cp ./ecli/target/aarch64-unknown-linux-gnu/release/ecli-rs .
         mkdir data
         cp ecli-rs data
-    - name: Run ecli and see what libs were loaded
+        cp .github/scripts/copy-libs.sh data
+    - name: Run ecli and see what libs were loaded by ld
       uses: uraimo/run-on-arch-action@v2
       with: 
         arch: aarch64
