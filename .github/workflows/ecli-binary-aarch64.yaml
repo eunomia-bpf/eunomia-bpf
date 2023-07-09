@@ -27,7 +27,18 @@ env:
   INSTALL_LOCATION: .local
 
 jobs:
-  build-full-client:
+  
+  build-full-client-and-server:
+    strategy:
+      matrix:
+        run:
+          - title: ecli-full
+            src_directory: client
+            exe_name: ecli-rs
+          - title: ecli-server
+            src_directory: server
+            exe_name: ecli-rs
+          
     runs-on: ubuntu-22.04
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
     steps:
@@ -68,17 +79,17 @@ jobs:
       with:
         workspaces: |
           ecli
-    - name: Build ecli client
+    - name: Build ${{matrix.run.title}}
       run: |
         rustup target add aarch64-unknown-linux-gnu
         # Install them, so that libbpf will find their headers
         sudo apt-get install libelf-dev zlib1g-dev
-        cd ecli/client
+        cd ecli/${{matrix.run.src_directory}}
         RUSTFLAGS="-L $(pwd)/../../libs" cargo build --release --target aarch64-unknown-linux-gnu
         cd ../..
-        cp ./ecli/target/aarch64-unknown-linux-gnu/release/ecli-rs .
+        cp ./ecli/target/aarch64-unknown-linux-gnu/release/${{matrix.run.exe_name}} .
         mkdir data
-        cp ecli-rs data
+        cp ${{matrix.run.exe_name}} data
         cp .github/scripts/copy-libs.sh data
     - name: Run ecli and see what libs were loaded by ld
       uses: uraimo/run-on-arch-action@v2
@@ -90,10 +101,10 @@ jobs:
           apt-get install -y libelf-dev zlib1g-dev
           echo "Installation done"
           echo "Working directory $(pwd)"
-          chmod +x /data/ecli-rs
+          chmod +x /data/${{matrix.run.exe_name}}
           echo "Permission set done"
           chmod +x /data/copy-libs.sh
-          /data/copy-libs.sh /data/ecli-rs
+          /data/copy-libs.sh /data/${{matrix.run.exe_name}}
         dockerRunArgs: |
           --volume "${PWD}/data:/data"
         shell: /bin/bash
@@ -121,54 +132,16 @@ jobs:
         cd appimage-root
         cp -r ../data/libs/* .
         mkdir -p usr/bin
-        cp ../ecli-rs usr/bin/bin
+        cp ../${{matrix.run.exe_name}} usr/bin/bin
         touch icon.png
         cp ../cargo-appimage/target/aarch64-unknown-linux-gnu/release/cargo-appimage-runner AppRun
         cp ../.github/scripts/cargo-appimage.desktop .
-        ../appimagetool --runtime-file ../runtime . ../ecli-full-aarch64
+        ../appimagetool --runtime-file ../runtime . ../${{matrix.run.exe_name}}-aarch64
     - uses: actions/upload-artifact@v3
       name: Upload build result
       with:
-        name: ecli-full-aarch64
-        path: ecli-full-aarch64
-  build-ecli-server:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: 'recursive'
-      - name: Prepare cargo-appimage
-        uses: eunomia-bpf/prepare-cargo-appimage@v5
-      - name: Install libfuse
-        run: |
-          sudo apt-get install -y libfuse2
-      - name: Build ecli-server
-        run: |
-          sudo make install-deps
-          cd ecli/server
-          CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecli-server cargo appimage
-      - name: Package ecli-server
-        run: |
-          cp ecli/server/ecli-server .
-          tar -czvf ecli-server.tar.gz ecli-server 
-      - name: Test CLI
-        run: |
-          mkdir cli-test
-          cd cli-test
-          ../ecli-server -h
-          sudo timeout -s 2 3 ../ecli-server || if [ $? = 124 ]; then exit 0; else exit $?; fi
-      - name: Rename `ecli-server.tar.gz` to proper name
-        id: name
-        run: |
-          mv ecli-server.tar.gz ecli-server-ubuntu-latest.tar.gz
-          echo "zip_name=ecli-server-ubuntu-latest.tar.gz" >> "$GITHUB_OUTPUT"
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with: 
-          # name: "ecli-server-${{needs.create-release-version.outputs.version}}"
-          path: |
-            ${{steps.name.outputs.zip_name}}
-          
+        name: ${{matrix.run.exe_name}}-aarch64
+        path: ${{matrix.run.exe_name}}-aarch64          
   # publish-release:
   #   runs-on: ubuntu-latest
   #   needs: [create-release-version, build-full-client, build-http-only-client, build-native-only-client, build-ecli-server]
