@@ -66,8 +66,10 @@ jobs:
     - name: Build ecli client
       run: |
         rustup target add aarch64-unknown-linux-gnu
+        # Install them, so that libbpf will find their headers
+        sudo apt-get install libelf-dev zlib1g-dev
         cd ecli/client
-        RUSTFLAGS="-L $(PWD)/libs" cargo build --release --target aarch64-unknown-linux-gnu
+        RUSTFLAGS="-L $(pwd)/libs" cargo build --release --target aarch64-unknown-linux-gnu
         cd ../..
         cp ./ecli/target/aarch64-unknown-linux-gnu/release/ecli-rs .
         mkdir data
