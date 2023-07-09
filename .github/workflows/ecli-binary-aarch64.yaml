@@ -104,7 +104,7 @@ jobs:
           chmod +x /data/${{matrix.run.exe_name}}
           echo "Permission set done"
           chmod +x /data/copy-libs.sh
-          /data/copy-libs.sh /data/${{matrix.run.exe_name}}
+          /data/copy-libs.sh /data/${{matrix.run.exe_name}} --help
         dockerRunArgs: |
           --volume "${PWD}/data:/data"
         shell: /bin/bash
