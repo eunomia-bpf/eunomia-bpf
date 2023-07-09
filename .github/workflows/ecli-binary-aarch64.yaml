@@ -63,6 +63,11 @@ jobs:
       with:
         name: aarch64-libs
         path: libs
+    - name: cache rust build results
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: |
+          ecli
     - name: Build ecli client
       run: |
         rustup target add aarch64-unknown-linux-gnu
@@ -81,7 +86,7 @@ jobs:
         distro: ubuntu22.04
         run: |
           apt-get update
-          apt-get install -y libelf zlib1g
+          apt-get install -y libelf-dev zlib1g-dev
           echo "Installation done"
           echo "Working directory $(pwd)"
           chmod +x /data/ecli-rs
