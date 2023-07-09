@@ -1,4 +1,4 @@
-name: Build and test ecli on Ubuntu, and release ecli on various platforms
+name: Build and test ecli on Ubuntu, and release ecli on various platforms (x86_64)
 
 on:
   push:
