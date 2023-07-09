@@ -63,58 +63,51 @@ jobs:
       with:
         name: aarch64-libs
         path: libs
-
-    - name: cache dependencies
-      uses: actions/cache@v3
-      id: cache
-      with:
-        path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
-        key: ${{ runner.os }}-dependencies
-
-    - name: cache rust
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: |
-          compiler/cmd
-          ecli
-          wasm-runtime/runtime/rust
-          eunomia-sdks/eunomia-rs
-    - name: Prepare cargo-appimage
-      uses: eunomia-bpf/prepare-cargo-appimage@v5
-    - name: Install libfuse
+    - name: Build ecli client
       run: |
-        sudo apt-get install -y libfuse2
-    - name: Build full client
-      run:  |
+        rustup target add aarch64-unknown-linux-gnu
         cd ecli/client
-        CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecli cargo appimage
-    
-    - name: test ecli
-      run: |
-        cd ecli/ecli-lib
-        # Install rustup manually using user root
-        curl https://sh.rustup.rs -o rustup.sh
-        sudo bash -c "cat rustup.sh | sh -s -- -y ; /root/.cargo/bin/cargo test -- --skip test_pause_and_resume"
-    - name: Package ecli
-      run: |
-        mkdir -p release
-        cp ecli/client/ecli release/ecli
-        cd release
-        tar -czvf ecli-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz ecli
-    - name: Test CLI
-      run: |
-        mkdir cli-test
-        cd cli-test
-        cp ../.github/assets/package.json .
-        ../release/ecli -h
-        sudo timeout -s 2 3 ../release/ecli run ./package.json || if [ $? = 124 ]; then exit 0; else exit $?; fi
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+        RUSTFLAGS="-L $(PWD)/libs" cargo build --release --target aarch64-linux-gnu-gcc
+        cd ../..
+        cp ./ecli/target/aarch64-linux-gnu-gcc/release/ecli-rs .
+        mkdir data
+        cp ecli-rs data
+    - name: Run ecli and see what libs was loaded
+      uses: uraimo/run-on-arch-action@v2
       with: 
-        name: "ecli-full-${{needs.create-release-version.outputs.version}}"
-        path: |
-          release/ecli-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz
-          release/ecli
+        arch: aarch64
+        distro: ubuntu22.04
+        run: |
+          apt-get update
+          apt-get install -y libelf zlib1g
+          echo "Installation done"
+          echo "Working directory $(pwd)"
+          chmod +x /data/ecli-rs
+          echo "Permission set done"
+          chmod +x /data/copy-libs.sh
+          /data/copy-libs.sh /data/ecli-rs
+        dockerRunArgs: |
+          --volume "${PWD}/data:/data"
+        shell: /bin/bash
+    - name: Show what libraries were copied
+      run: |
+        sudo chmod 777 ./data -R
+        sudo chown $(whoami) ./data -R
+        find ./data/libs -type f
+    - name: Prepare runtime file and cargo-appimage tool
+      uses: eunomia-bpf/prepare-cargo-appimage@v6
+      with: 
+        runtime-url: https://github.com/eunomia-bpf/prepare-cargo-appimage/raw/v6/runtime-aarch64
+    - name: Install libfuse for appimagetool
+      run: |
+        sudo apt-get update
+        sudo apt-get install libfuse2
+    - name: Clone and install cargo-appimage with aarch64 launcher
+      run: |
+        git clone https://github.com/eunomia-bpf/cargo-appimage
+        cd cargo-appimage
+        CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target aarch64-unknown-linux-gnu
+
   build-ecli-server:
     runs-on: ubuntu-latest
     steps:
