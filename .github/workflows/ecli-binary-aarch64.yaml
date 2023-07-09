@@ -58,7 +58,11 @@ jobs:
         dockerRunArgs: |
           --volume "${PWD}/libbpf:/libbpf"
           --volume "${PWD}/libs:/libs"
-
+    - name: Upload copied libs for testing
+      uses: actions/upload-artifact@v3
+      with:
+        name: aarch64-libs
+        path: libs
 
     - name: cache dependencies
       uses: actions/cache@v3
