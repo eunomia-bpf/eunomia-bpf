@@ -382,7 +382,7 @@ jobs:
         cp ../.github/scripts/cargo-appimage.desktop .
         ../appimagetool --runtime-file ../runtime . ${{matrix.run.exe_name}}-aarch64
         cd ..
-        cp ./appimage-root/${{matrix.run.exe_name}} ${{matrix.run.release_exe_name}}
+        cp ./appimage-root/${{matrix.run.exe_name}}-aarch64 ${{matrix.run.release_exe_name}}-aarch64
     - uses: actions/upload-artifact@v3
       name: Upload build result
       with:
