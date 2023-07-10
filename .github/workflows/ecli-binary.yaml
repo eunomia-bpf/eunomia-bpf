@@ -287,7 +287,7 @@ jobs:
           - title: ecli-server
             src_directory: server
             exe_name: ecli-server
-            release_exe_name: ecli-server
+            release_exe_name: ecli--server
     runs-on: ubuntu-22.04
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
     steps:
@@ -380,9 +380,9 @@ jobs:
         touch icon.png
         cp ../cargo-appimage/target/aarch64-unknown-linux-gnu/release/cargo-appimage-runner AppRun
         cp ../.github/scripts/cargo-appimage.desktop .
-        ../appimagetool --runtime-file ../runtime . ../${{matrix.run.exe_name}}-aarch64
+        ../appimagetool --runtime-file ../runtime . ${{matrix.run.exe_name}}-aarch64
         cd ..
-        cp ${{matrix.run.exe_name}} ${{matrix.run.release_exe_name}}
+        cp ./appimage-root/${{matrix.run.exe_name}} ${{matrix.run.release_exe_name}}
     - uses: actions/upload-artifact@v3
       name: Upload build result
       with:
