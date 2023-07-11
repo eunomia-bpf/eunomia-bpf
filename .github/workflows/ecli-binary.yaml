@@ -1,4 +1,4 @@
-name: Build and test ecli on Ubuntu, and release ecli on various platforms
+name: Build and test and publish ecli binary (multiple platforms and archs)
 
 on:
   push:
@@ -275,10 +275,122 @@ jobs:
           name: "ecli-server-${{needs.create-release-version.outputs.version}}"
           path: |
             ${{steps.name.outputs.zip_name}}
-          
+  build-full-client-and-server-aarch64:
+    needs: create-release-version
+    strategy:
+      matrix:
+        run:
+          - title: ecli-client-full
+            src_directory: client
+            exe_name: ecli-rs
+            release_exe_name: ecli
+          - title: ecli-server
+            src_directory: server
+            exe_name: ecli-server
+            release_exe_name: ecli-server
+    runs-on: ubuntu-22.04
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+    - name: Install dependencies for cross-building
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
+    - name: Clone libbpf for building
+      run: |
+        git clone https://github.com/libbpf/libbpf
+
+    - name: Build libbpf in a qemu virtual machine, and copy libs out
+      uses: uraimo/run-on-arch-action@v2
+      with: 
+        arch: aarch64
+        distro: ubuntu22.04
+        run: |
+          apt-get update
+          apt-get install -y zlib1g-dev libelf-dev gcc make pkg-config
+          cd /libbpf/src
+          make
+          cp libbpf.so /libs
+          cp /usr/lib/aarch64-linux-gnu/libelf.so /libs
+          cp /usr/lib/aarch64-linux-gnu/libz.so /libs
+        dockerRunArgs: |
+          --volume "${PWD}/libbpf:/libbpf"
+          --volume "${PWD}/libs:/libs"
+    - name: cache rust build results
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: |
+          ecli
+    - name: Build ${{matrix.run.title}}
+      run: |
+        rustup target add aarch64-unknown-linux-gnu
+        # Install them, so that libbpf will find their headers
+        sudo apt-get install libelf-dev zlib1g-dev
+        cd ecli/${{matrix.run.src_directory}}
+        RUSTFLAGS="-L $(pwd)/../../libs" cargo build --release --target aarch64-unknown-linux-gnu
+        cd ../..
+        cp ./ecli/target/aarch64-unknown-linux-gnu/release/${{matrix.run.exe_name}} .
+        mkdir data
+        cp ${{matrix.run.exe_name}} data
+        cp .github/scripts/copy-libs.sh data
+    - name: Run ecli and see what libs were loaded by ld
+      uses: uraimo/run-on-arch-action@v2
+      with: 
+        arch: aarch64
+        distro: ubuntu22.04
+        run: |
+          apt-get update
+          apt-get install -y libelf-dev zlib1g-dev
+          echo "Installation done"
+          echo "Working directory $(pwd)"
+          chmod +x /data/${{matrix.run.exe_name}}
+          echo "Permission set done"
+          chmod +x /data/copy-libs.sh
+          /data/copy-libs.sh /data/${{matrix.run.exe_name}} --help
+        dockerRunArgs: |
+          --volume "${PWD}/data:/data"
+        shell: /bin/bash
+    - name: Show what libraries were copied
+      run: |
+        sudo chmod 777 ./data -R
+        sudo chown $(whoami) ./data -R
+        find ./data/libs -type f
+    - name: Prepare runtime file and cargo-appimage tool
+      uses: eunomia-bpf/prepare-cargo-appimage@v6
+      with: 
+        runtime-url: https://github.com/eunomia-bpf/prepare-cargo-appimage/raw/v6/runtime-aarch64
+    - name: Install libfuse for appimagetool
+      run: |
+        sudo apt-get update
+        sudo apt-get install libfuse2
+    - name: Clone and install cargo-appimage with aarch64 launcher
+      run: |
+        git clone https://github.com/eunomia-bpf/cargo-appimage
+        cd cargo-appimage
+        CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target aarch64-unknown-linux-gnu
+    - name: Compose files and pack them
+      run: |
+        mkdir appimage-root
+        cd appimage-root
+        cp -r ../data/libs/* .
+        mkdir -p usr/bin
+        cp ../${{matrix.run.exe_name}} usr/bin/bin
+        touch icon.png
+        cp ../cargo-appimage/target/aarch64-unknown-linux-gnu/release/cargo-appimage-runner AppRun
+        cp ../.github/scripts/cargo-appimage.desktop .
+        ../appimagetool --runtime-file ../runtime . ${{matrix.run.exe_name}}-aarch64
+        cd ..
+        cp ./appimage-root/${{matrix.run.exe_name}}-aarch64 ${{matrix.run.release_exe_name}}-aarch64
+    - uses: actions/upload-artifact@v3
+      name: Upload build result
+      with:
+        name: ${{matrix.run.exe_name}}-aarch64
+        path: ${{matrix.run.release_exe_name}}-aarch64            
   publish-release:
     runs-on: ubuntu-latest
-    needs: [create-release-version, build-full-client, build-http-only-client, build-native-only-client, build-ecli-server]
+    needs: [create-release-version, build-full-client, build-http-only-client, build-native-only-client, build-ecli-server, build-full-client-and-server-aarch64]
     steps:
       - name: Download build results
         uses: actions/download-artifact@v3
@@ -294,7 +406,7 @@ jobs:
           echo "$FILES" >> "$GITHUB_OUTPUT"
           echo "$EOF" >> "$GITHUB_OUTPUT"
       - name: Publish
-        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
+        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && ( github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong')
         uses: softprops/action-gh-release@v1
         with:
             files: ${{steps.list-files.outputs.upload_files}}

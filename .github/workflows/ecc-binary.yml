@@ -210,7 +210,7 @@ jobs:
           cd ../..
           mkdir data
           cp ./compiler/cmd/target/aarch64-unknown-linux-gnu/release/ecc-rs data/ecc
-          cp ./.github/scripts/copy-ecc-aarch64-libs.sh ./data
+          cp ./.github/scripts/copy-libs.sh ./data
           ls -lah data
       # Necessary if we want to run things cross platform
       - name: Set up Docker Buildx
@@ -228,8 +228,8 @@ jobs:
             echo "Working directory $(pwd)"
             chmod +x /data/ecc
             echo "Permission set done"
-            chmod +x /data/copy-ecc-aarch64-libs.sh
-            /data/copy-ecc-aarch64-libs.sh
+            chmod +x /data/copy-libs.sh
+            /data/copy-libs.sh /data/ecc
           dockerRunArgs: |
             --volume "${PWD}/data:/data"
           shell: /bin/bash
