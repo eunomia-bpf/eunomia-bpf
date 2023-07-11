@@ -1,6 +1,7 @@
 name: Build and release standalone binary of ecc
 
 on:
+    workflow_dispatch: 
     push:
       branches: ["*"]
       paths:
