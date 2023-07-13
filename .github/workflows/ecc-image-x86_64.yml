@@ -1,6 +1,7 @@
 name: Build and publish ecc docker image (x86_64)
 
 on:
+  workflow_dispatch: 
   push:
     branches: "master"
 env:
