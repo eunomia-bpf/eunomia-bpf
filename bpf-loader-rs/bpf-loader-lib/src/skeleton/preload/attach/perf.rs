@@ -44,7 +44,11 @@ fn init_perf_monitor(freq: u64) -> Result<Vec<i32>> {
         let pefd =
             unsafe { perf_event_open(&mut attrs, -1, cpu as i32, -1, PERF_FLAG_FD_CLOEXEC as u64) };
         if pefd < 0 {
-            bail!("Failed to call `perf_event_open`");
+            bail!(
+                "Failed to call `perf_event_open`, pefd={}, errno={}",
+                pefd,
+                errno::errno()
+            );
         }
         pefds.push(pefd);
     }
