@@ -165,10 +165,14 @@ impl InternalBufferValueEventProcessor for PlainTextStackTraceExportEventHandler
         let pid = extract_field!(self.field_mapping.pid, result, "pid", u32)?;
         let cpu_id = extract_field!(self.field_mapping.cpu_id, result, "cpu_id", u32)?;
         let comm = extract_field!(self.field_mapping.comm, result, "comm", String)?;
-        let kstack_sz = extract_field!(self.field_mapping.kstack_sz, result, "kstack_sz", i32)?;
-        let ustack_sz = extract_field!(self.field_mapping.ustack_sz, result, "ustack_sz", i32)?;
+        // Their units are bytes, not quadwords
+        let mut kstack_sz = extract_field!(self.field_mapping.kstack_sz, result, "kstack_sz", i32)?;
+        let mut ustack_sz = extract_field!(self.field_mapping.ustack_sz, result, "ustack_sz", i32)?;
         let mut kstack = extract_field!(self.field_mapping.kstack, result, "kstack", Vec<u64>)?;
         let mut ustack = extract_field!(self.field_mapping.ustack, result, "ustack", Vec<u64>)?;
+
+        kstack_sz /= std::mem::size_of::<u64>() as i32;
+        ustack_sz /= std::mem::size_of::<u64>() as i32;
 
         let mut out_str = String::default();
 
@@ -181,7 +185,6 @@ impl InternalBufferValueEventProcessor for PlainTextStackTraceExportEventHandler
         let print_stack = |out: &mut String, src: Source, stack: &[u64]| -> Result<()> {
             if self.with_symbols {
                 print_stack_trace(out, src, stack)
-                    .with_context(|| anyhow!("Failed to generate kernel stack trace"))
             } else {
                 print_stack_trace_without_symbol(out, stack);
                 Ok(())
@@ -191,7 +194,8 @@ impl InternalBufferValueEventProcessor for PlainTextStackTraceExportEventHandler
         if kstack_sz > 0 {
             kstack.resize(kstack_sz as _, 0);
             writeln!(out_str, "Kernel:").unwrap();
-            print_stack(&mut out_str, Source::Kernel(Kernel::default()), &kstack)?;
+            print_stack(&mut out_str, Source::Kernel(Kernel::default()), &kstack)
+                .with_context(|| anyhow!("Failed to generate kernel stack trace"))?;
         } else {
             writeln!(out_str, "No Kernel Stack").unwrap();
         }
@@ -203,7 +207,8 @@ impl InternalBufferValueEventProcessor for PlainTextStackTraceExportEventHandler
                 &mut out_str,
                 Source::Process(Process::new(pid.into())),
                 &ustack,
-            )?;
+            )
+            .with_context(|| anyhow!("Failed to generate userspace stack trace"))?;
         } else {
             writeln!(out_str, "No Userspace Stack").unwrap();
         }
@@ -221,14 +226,25 @@ impl InternalBufferValueEventProcessor for PlainTextStackTraceExportEventHandler
 }
 
 fn print_stack_trace_without_symbol(out: &mut String, stack: &[u64]) {
-    for item in stack {
-        writeln!(out, "{:016x}", item).unwrap();
+    for (i, item) in stack.iter().enumerate() {
+        writeln!(out, "  {} [<{:016x}>]", i, item).unwrap();
     }
 }
 
 fn print_stack_trace(out: &mut String, src: Source, stack: &[u64]) -> Result<()> {
     let addrs = stack.iter().map(|v| (*v) as Addr).collect::<Vec<_>>();
-    let symlist = Symbolizer::new().symbolize(&src, &addrs)?;
+    let symlist = match Symbolizer::new().symbolize(&src, &addrs) {
+        Ok(v) => v,
+        Err(e) => {
+            debug!(
+                "Failed to symbolize stack trace for source {:?},\
+                 will directly print addresses\nError:\n{:?}",
+                src, e
+            );
+            print_stack_trace_without_symbol(out, stack);
+            return Ok(());
+        }
+    };
     for i in 0..addrs.len() {
         if symlist.len() <= i || symlist[i].is_empty() {
             writeln!(out, "  {} [<{:016x}>]", i, addrs[i]).unwrap();
@@ -279,5 +295,5 @@ fn print_stack_trace(out: &mut String, src: Source, stack: &[u64]) -> Result<()>
             }
         }
     }
-    todo!();
+    Ok(())
 }

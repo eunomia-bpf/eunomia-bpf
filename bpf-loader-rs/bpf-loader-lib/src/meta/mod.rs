@@ -186,7 +186,7 @@ pub enum BufferValueInterpreter {
     StackTrace {
         #[serde(default)]
         field_map: StackTraceFieldMapping,
-        #[serde(default = "default_helpers::default_bool::<false>")]
+        #[serde(default = "default_helpers::default_bool::<true>")]
         with_symbols: bool,
     },
 }

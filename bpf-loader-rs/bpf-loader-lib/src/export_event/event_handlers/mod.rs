@@ -9,7 +9,6 @@ use super::CheckedExportedMember;
 pub(crate) mod buffer;
 pub(crate) mod sample_map;
 
-
 pub(crate) fn get_plain_text_checked_types_header(
     checked_member: &mut [CheckedExportedMember],
     prev_header: impl AsRef<str>,

@@ -10,7 +10,6 @@
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
 
 /// @intepreter {"stack_trace": {}}
-
 struct {
 	__uint(type, BPF_MAP_TYPE_RINGBUF);
 	__uint(max_entries, 256 * 1024);
@@ -40,6 +39,5 @@ int profile(void *ctx)
 		bpf_get_stack(ctx, event->ustack, sizeof(event->ustack), BPF_F_USER_STACK);
 
 	bpf_ringbuf_submit(event, 0);
-	bpf_printk("Commiting..");
 	return 0;
 }

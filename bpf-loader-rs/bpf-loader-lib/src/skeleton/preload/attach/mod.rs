@@ -4,11 +4,13 @@
 //! All rights reserved.
 //!
 
+use std::os::fd::{self, FromRawFd};
+
 use libbpf_rs::{
     libbpf_sys::{bpf_tc_hook, bpf_tc_hook_destroy, bpf_xdp_attach_opts, bpf_xdp_detach},
     Link,
 };
-use log::error;
+use log::{debug, error};
 
 pub(crate) mod perf;
 pub(crate) mod tc;
@@ -22,6 +24,7 @@ pub(crate) enum AttachLink {
     BpfLink(Link),
     TCAttach(Box<bpf_tc_hook>),
     XDPAttach(i32, u32, Box<bpf_xdp_attach_opts>),
+    PerfEventAttachWithFd(Link, i32),
 }
 
 impl Drop for AttachLink {
@@ -31,14 +34,19 @@ impl Drop for AttachLink {
             AttachLink::TCAttach(hook) => {
                 let err = unsafe { bpf_tc_hook_destroy(&mut **hook) };
                 if err != 0 {
-                    error!("Failed to destroy tc hook: {}", err);
+                    error!("Failed to destroy tc hook: \n{:?}", err);
                 }
             }
             AttachLink::XDPAttach(ifindex, flags, opts) => {
                 let err = unsafe { bpf_xdp_detach(*ifindex, *flags, &**opts) };
                 if err != 0 {
-                    error!("Failed to detach xdp: {}", err);
+                    error!("Failed to detach xdp: \n{:?}", err);
                 }
+            }
+            AttachLink::PerfEventAttachWithFd(_, fd) => {
+                debug!("Closing pefd {}", fd);
+                // SAFETY: fds are created by us, they are gurateended to be correct
+                let _ = unsafe { fd::OwnedFd::from_raw_fd(*fd as _) };
             }
         }
     }

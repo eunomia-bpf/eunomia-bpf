@@ -42,6 +42,7 @@ macro_rules! program_poll_loop {
             }
             $blk;
         }
+        info!("Program exited");
     }};
 }
 #[ouroboros::self_referencing]
@@ -153,7 +154,8 @@ impl BpfSkeleton {
             event_processor_builder: |v: &Arc<EventExporter>| {
                 let event_processor = match &v.internal_impl {
                     ExporterInternalImplementation::BufferValueProcessor {
-                        event_processor, ..
+                        event_processor,
+                        ..
                     } => &**event_processor,
                     _ => bail!("Expected the exporter uses ringbuf processor"),
                 };
@@ -164,7 +166,7 @@ impl BpfSkeleton {
                 builder
                     .add(map, |data: &[u8]| {
                         if let Err(e) = event_processor.handle_event(data) {
-                            error!("Failed to process event: {}", e);
+                            error!("Failed to process event: \n{:?}", e);
                             -1
                         } else {
                             0
@@ -195,7 +197,8 @@ impl BpfSkeleton {
             event_processor_builder: |v: &Arc<EventExporter>| {
                 let event_processor = match &v.internal_impl {
                     ExporterInternalImplementation::BufferValueProcessor {
-                        event_processor, ..
+                        event_processor,
+                        ..
                     } => &**event_processor,
                     _ => bail!("Expected the exporter uses ringbuf processor"),
                 };
@@ -205,7 +208,7 @@ impl BpfSkeleton {
                 let perf = PerfBufferBuilder::new(map)
                     .sample_cb(|_cpu: i32, data: &[u8]| {
                         if let Err(e) = processor.handle_event(data) {
-                            error!("Failed to handle event for perf array: {}", e);
+                            error!("Failed to handle event for perf array: \n{:?}", e);
                             error_flag.store(true, Ordering::Relaxed);
                         }
                     })
