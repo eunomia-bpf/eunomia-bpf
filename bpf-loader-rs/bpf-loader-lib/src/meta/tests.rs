@@ -54,28 +54,32 @@ fn test_deserialize_meta() {
         name: "exec_start".into(),
         mmaped: false,
         sample: None,
-        export_config: MapExportConfig::NoExport
+        export_config: MapExportConfig::NoExport,
+        intepreter: crate::meta::BufferValueInterpreter::DefaultStruct
     }));
     assert!(maps.contains(&MapMeta {
         ident: "rb".into(),
         name: "rb".into(),
         mmaped: false,
         sample: None,
-        export_config: MapExportConfig::NoExport
+        export_config: MapExportConfig::NoExport,
+        intepreter: crate::meta::BufferValueInterpreter::DefaultStruct
     }));
     assert!(maps.contains(&MapMeta {
         ident: "rodata".into(),
         name: "client_b.rodata".into(),
         mmaped: true,
         sample: None,
-        export_config: MapExportConfig::NoExport
+        export_config: MapExportConfig::NoExport,
+        intepreter: crate::meta::BufferValueInterpreter::DefaultStruct
     }));
     assert!(maps.contains(&MapMeta {
         ident: "bss".into(),
         name: "client_b.bss".into(),
         mmaped: true,
         sample: None,
-        export_config: MapExportConfig::NoExport
+        export_config: MapExportConfig::NoExport,
+        intepreter: crate::meta::BufferValueInterpreter::DefaultStruct
     }));
     assert_eq!(bpf_skel.obj_name, "client_bpf");
     let progs = &bpf_skel.progs;

@@ -6,8 +6,9 @@
 
 use super::CheckedExportedMember;
 
-pub(crate) mod key_value;
-pub(crate) mod simple_value;
+pub(crate) mod buffer;
+pub(crate) mod sample_map;
+
 
 pub(crate) fn get_plain_text_checked_types_header(
     checked_member: &mut [CheckedExportedMember],

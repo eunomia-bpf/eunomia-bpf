@@ -14,8 +14,8 @@ use std::{
 
 use crate::{
     export_event::{
-        EventExporter, ExporterInternalImplementation, InternalSampleMapProcessor,
-        InternalSimpleValueEventProcessor,
+        EventExporter, ExporterInternalImplementation, InternalBufferValueEventProcessor,
+        InternalSampleMapProcessor,
     },
     meta::MapSampleMeta,
 };
@@ -48,7 +48,7 @@ macro_rules! program_poll_loop {
 pub(crate) struct RingBufPollerContext {
     exporter: Arc<EventExporter>,
     #[borrows(exporter)]
-    event_processor: &'this dyn InternalSimpleValueEventProcessor,
+    event_processor: &'this dyn InternalBufferValueEventProcessor,
     #[borrows(event_processor)]
     #[covariant]
     ringbuf: RingBuffer<'this>,
@@ -59,7 +59,7 @@ pub(crate) struct RingBufPollerContext {
 pub(crate) struct PerfEventPollerContext {
     exporter: Arc<EventExporter>,
     #[borrows(exporter)]
-    event_processor: &'this dyn InternalSimpleValueEventProcessor,
+    event_processor: &'this dyn InternalBufferValueEventProcessor,
     error_flag: AtomicBool,
     #[borrows(event_processor, error_flag)]
     #[covariant]
@@ -152,7 +152,7 @@ impl BpfSkeleton {
             exporter,
             event_processor_builder: |v: &Arc<EventExporter>| {
                 let event_processor = match &v.internal_impl {
-                    ExporterInternalImplementation::RingBufProcessor {
+                    ExporterInternalImplementation::BufferValueProcessor {
                         event_processor, ..
                     } => &**event_processor,
                     _ => bail!("Expected the exporter uses ringbuf processor"),
@@ -194,7 +194,7 @@ impl BpfSkeleton {
             error_flag: AtomicBool::new(false),
             event_processor_builder: |v: &Arc<EventExporter>| {
                 let event_processor = match &v.internal_impl {
-                    ExporterInternalImplementation::RingBufProcessor {
+                    ExporterInternalImplementation::BufferValueProcessor {
                         event_processor, ..
                     } => &**event_processor,
                     _ => bail!("Expected the exporter uses ringbuf processor"),

@@ -175,10 +175,16 @@ impl BpfSkeleton {
                 );
             }
             let exporter = match export_type {
-                ExportMapType::RingBuffer => exporter_builder
-                    .build_for_single_value(&self.meta.export_types[0], self.btf.clone())?,
-                ExportMapType::PerfEventArray => exporter_builder
-                    .build_for_single_value(&self.meta.export_types[0], self.btf.clone())?,
+                ExportMapType::RingBuffer => exporter_builder.build_for_single_value(
+                    &self.meta.export_types[0],
+                    self.btf.clone(),
+                    &map_meta.intepreter,
+                )?,
+                ExportMapType::PerfEventArray => exporter_builder.build_for_single_value(
+                    &self.meta.export_types[0],
+                    self.btf.clone(),
+                    &map_meta.intepreter,
+                )?,
                 ExportMapType::Sample(sp) => {
                     let map_info = bpf_map.info().with_context(|| {
                         anyhow!("Failed to get map info for `{}`", bpf_map.name())
@@ -299,6 +305,7 @@ impl BpfSkeleton {
                             .build_for_single_value_with_type_descriptor(
                                 type_desc,
                                 self.btf.clone(),
+                                &map_meta.intepreter,
                             )
                             .with_context(|| anyhow!("Failed to build ringbuf exporter"))?;
                         pollers.push(Poller::RingBuf(
@@ -310,6 +317,7 @@ impl BpfSkeleton {
                             .build_for_single_value_with_type_descriptor(
                                 type_desc,
                                 self.btf.clone(),
+                                &map_meta.intepreter,
                             )
                             .with_context(|| anyhow!("Failed to build perf event exporter"))?;
                         pollers.push(Poller::PerfEvent(

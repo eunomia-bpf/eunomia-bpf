@@ -1,6 +1,6 @@
 [package]
 name = "bpf-loader-lib"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 license = "MIT"
 description = "A library to load json-described ebpf programs, and automatically poll outputs from the program"
@@ -26,6 +26,8 @@ serde_json = "1.0.95"
 serde_with = "2.3.2"
 target-lexicon = "^0.11.2"
 bpf-compatible-rs = "0.1.0"
+perf-event-open-sys = "4.0.0"
+blazesym = "0.2.0-alpha.2"
 
 [features]
 no-load-bpf-tests = []
