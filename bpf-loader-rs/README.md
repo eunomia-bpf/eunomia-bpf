@@ -2,7 +2,7 @@
 
 Here is the project root of `bpf-loader` rewritten in Rust, called `bpf-loader-rs`.
 
-- `bpf-loader-lib`: The core library implemention of `bpf-loader-rs`
+- `bpf-loader-lib`: The core library implementation of `bpf-loader-rs`
 - `bpf-loader-cli`: A CLI which can be used to run skeletons, commandline arguments generating is also supported
 - `bpf-loader-c-wrapper`: The C library of `bpf-loader`. It exports the same interface like the previous C++ one.
 
@@ -61,5 +61,5 @@ There will be a field `export_config` under the `MapMeta` of each map, it can be
 
 - String `"no_export"`. indicating that this map is not used for exporting
 - String `"default"`. Only applies to sample maps. indicating that this map is used for exporting, and the export struct type will be read from BTF and the map's `btf_value_type_if`
-- Object `{"btf_type_id": <u32>}`. Applies to all maps. Indicate that use this btf type as the map's export type. For ringbuf or perfevent, it will be used to interprete the data that kernel programs send. For sample maps, it will be used to interprete the value of maps
+- Object `{"btf_type_id": <u32>}`. Applies to all maps. Indicate that use this btf type as the map's export type. For ringbuf or perfevent, it will be used to interpret the data that kernel programs send. For sample maps, it will be used to interpret the value of maps
 - Object `{"custom_members" : [{"name": <String>, "offset": <usize>, "btf_type_id": <u32>}]}`. Applies to all maps. Indicates that the map will export a struct containing the described members. `name` is the name of the field. `offset` is its offset. `btf_type_id` is the type id of the field.

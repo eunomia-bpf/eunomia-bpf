@@ -41,7 +41,7 @@ impl InternalSampleMapProcessor for JsonExportEventHandler {
             {
                 (checked_key_types, checked_value_types)
             } else {
-                bail!("Unexpected internal implemention");
+                bail!("Unexpected internal implementation");
             };
         let key_out = dump_to_json_with_checked_types(btf, checked_key_types, key_buffer)
             .with_context(|| anyhow!("Failed to dump key type to json"))?;
@@ -97,7 +97,7 @@ impl InternalSampleMapProcessor for DefaultKVStringExportEventHandler {
             {
                 (checked_key_types, checked_value_types)
             } else {
-                bail!("Unexpected internal implemention");
+                bail!("Unexpected internal implementation");
             };
         let now_str = Local::now().format("%H:%M:%S").to_string();
         let mut outbuf = String::default();
@@ -133,7 +133,7 @@ impl InternalSampleMapProcessor for Log2HistExportEventHandler {
             {
                 (checked_key_types, checked_value_types, sample_map_config)
             } else {
-                bail!("Unexpected internal implemention");
+                bail!("Unexpected internal implementation");
             };
         let mut outbuf = String::default();
         write!(outbuf, "key = ").unwrap();

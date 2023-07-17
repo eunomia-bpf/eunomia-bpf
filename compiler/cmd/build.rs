@@ -49,7 +49,7 @@ fn vmlinux_ref() -> String {
 fn fetch_git_repo(url: &str, git_ref: &str, local_dir: &Path) -> anyhow::Result<()> {
     let repo_dir = workdir().join(local_dir);
     if repo_dir.exists() {
-        println!("Removing existsing repodir..");
+        println!("Removing existing repodir..");
         std::fs::remove_dir_all(&repo_dir)?;
     }
     if !Command::new("git")
@@ -99,9 +99,9 @@ fn main() -> anyhow::Result<()> {
     let workspace_path = workdir().join("workspace");
 
     if workspace_path.exists() {
-        println!("Removing existsing workspace..");
+        println!("Removing existing workspace..");
         std::fs::remove_dir_all(&workspace_path)
-            .with_context(|| anyhow!("Failed to remove existsing workspace dir"))?;
+            .with_context(|| anyhow!("Failed to remove existing workspace dir"))?;
     }
     std::fs::create_dir_all(&workspace_path)
         .with_context(|| anyhow!("Failed to create workspace dir"))?;

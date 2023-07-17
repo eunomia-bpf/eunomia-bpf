@@ -4,7 +4,7 @@ Here is the brand new ecli.
 
 There are four crates:
 - `ecli-lib`: Core implementation, which implements OCI-registry operations, ecli-http-server, ecli-http-client, and ecli-native-runner. It also has several features to control the behavior. See below.
-- `client`: The client wrapper. It wraps the `ecli-http-client` and `ecli-native-client` from the `ecli-lib`, and can be enabled seperately by features
+- `client`: The client wrapper. It wraps the `ecli-http-client` and `ecli-native-client` from the `ecli-lib`, and can be enabled separately by features
 - `server`: The server wrapper. It wraps the `ecli-http-server`, and can be directly started to host a HTTP server. The api definitions can be found at `apis.yaml`
 - `server-codegen`: The generated code from `apis.yaml`, containing a server implementation and client implementation. `ecli-lib` implements the underlying service thtough this
 

@@ -166,7 +166,7 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
 - very small and simple! The library itself `<1MB` and no `LLVM/Clang` dependence, can be embedded easily in you project
 - as fast as `<100ms` and little resource need to dynamically load and run eBPF program
 
-Base on `eunomia-bpf`, we have an eBPF pacakge manager in [LMP](https://github.com/linuxkerneltravel/lmp) project, with OCI images and [ORAS](https://github.com/oras-project/oras) for distribution.
+Base on `eunomia-bpf`, we have an eBPF package manager in [LMP](https://github.com/linuxkerneltravel/lmp) project, with OCI images and [ORAS](https://github.com/oras-project/oras) for distribution.
 
 ### [wasm-bpf](https://github.com/eunomia-bpf/wasm-bpf): Write user space code for your eBPF program in WebAssembly
 
