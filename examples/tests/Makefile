@@ -18,7 +18,7 @@ install-deps:
 	cp $(ECLI_DIR)target/release/ecli-rs ./ecli
 
 # test with the files in bpf-loader
-TEST_CASES_DIRS=$(filter-out $(shell ls -l $(TEST_EXAMPLE_DIR) | grep ^d | awk '{print $$9}'), $(SKIP_TESTS))
+TEST_CASES_DIRS=$(filter-out $(SKIP_TESTS),$(shell ls -l $(TEST_EXAMPLE_DIR) | grep ^d | awk '{print $$9}'))
 test: $(TEST_CASES_DIRS)
 
 .PHONY:$(TEST_CASES_DIRS)
