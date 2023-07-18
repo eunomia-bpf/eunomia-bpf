@@ -8,4 +8,4 @@ eunomia-bpf-runner:
 	cd simple-runner-rs && cargo build --release
 
 clean:
-	rm -rf simple-runner/build
+	make -C tests clean
