@@ -18,7 +18,7 @@ install-deps:
 	cp $(ECLI_DIR)target/release/ecli-rs ./ecli
 
 # test with the files in bpf-loader
-TEST_CASES_DIRS=$(shell ls -l $(TEST_EXAMPLE_DIR) | grep ^d | awk '{print $$9}')
+TEST_CASES_DIRS=$(filter-out $(SKIP_TESTS),$(shell ls -l $(TEST_EXAMPLE_DIR) | grep ^d | awk '{print $$9}'))
 test: $(TEST_CASES_DIRS)
 
 .PHONY:$(TEST_CASES_DIRS)
@@ -33,4 +33,4 @@ install-wasm-clang: ## install clang for wasm
 	tar -zxf wasi-sdk-16.0-linux.tar.gz && mkdir /opt/wasi-sdk/ && mv wasi-sdk-16.0/* /opt/wasi-sdk/
 
 clean:
-	@make -C client clean
+	

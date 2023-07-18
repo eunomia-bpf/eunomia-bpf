@@ -233,9 +233,9 @@ impl NativeTaskManager {
                 let join_handle = std::thread::spawn(move || {
                     let skel = BpfSkeletonBuilder::from_json_package(&package, btf_path.as_deref())
                         .build()
-                        .map_err(|e| Error::Bpf(format!("Failed to build skeleton: {}", e)))?
+                        .map_err(|e| Error::Bpf(format!("Failed to build skeleton: {:?}", e)))?
                         .load_and_attach()
-                        .map_err(|e| Error::Bpf(format!("Failed to load and attach: {}", e)))?;
+                        .map_err(|e| Error::Bpf(format!("Failed to load and attach: {:?}", e)))?;
                     tx.send(skel.create_poll_handle()).unwrap();
                     skel.wait_and_poll_to_handler(
                         if export_json {
@@ -269,7 +269,7 @@ impl NativeTaskManager {
                     }
                     Err(e) => {
                         return Err(Error::Bpf(format!(
-                            "Failed to start polling: {:?}, {}",
+                            "Failed to start polling: {:?}, {:?}",
                             join_handle.join().unwrap().unwrap_err(),
                             e
                         )));

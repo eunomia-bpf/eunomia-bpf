@@ -13,3 +13,5 @@ install:
 install-deps:
 	sudo apt install libssl-dev
 	sudo apt install pkg-config
+clean:
+	cargo clean

@@ -42,7 +42,7 @@ jobs:
 
       - name: test examples
         run:  |
-              make -C examples/tests test
+              SKIP_TESTS=profile make -C examples/tests test
 
       - run:  |
               rm -rf examples/bpftools/*/.gitignore

@@ -245,7 +245,7 @@ fn test_xdp_attach_and_detach() {
         Ok(())
     });
     let handle = handle_rx.recv().unwrap();
-    
+
     let mut output = std::process::Command::new("ip")
         .arg("link")
         .arg("show")
@@ -264,11 +264,10 @@ fn test_xdp_attach_and_detach() {
             .output()
             .expect("Failed to execute ip link show lo");
         res = String::from_utf8(output.stdout).unwrap();
-        if res.contains("xdp"){
+        if res.contains("xdp") {
             panic!("Failed to detach xdp program from lo");
         }
-    }
-    else {
+    } else {
         panic!("Failed to attach xdp program to lo");
     }
 }
@@ -314,11 +313,10 @@ fn test_tc_attach_and_detach() {
             .output()
             .expect("Failed to execute tc filter show dev lo ingress");
         res = String::from_utf8(output.stdout).unwrap();
-        if res.contains("bpf"){
+        if res.contains("bpf") {
             panic!("Failed to detach tc program from lo");
         }
-    }
-    else {
+    } else {
         panic!("Failed to attach tc program to lo");
     }
 }
