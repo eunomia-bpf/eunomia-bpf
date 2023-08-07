@@ -31,7 +31,7 @@ With eunnomia-bpf, you can:
 For more information, see [documents/introduction.md](documents/introduction.md).
 
 [^1]: CO-RE: [Compile Once – Run Everywhere](https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html)
-[^2]: WebAssembly or Wasm: https://webassembly.org/
+[^2]: WebAssembly or Wasm: <https://webassembly.org/>
 
 ## Getting Started
 
@@ -39,16 +39,64 @@ For more information, see [documents/introduction.md](documents/introduction.md)
 - example bpf programs: [examples/bpftools](examples/bpftools/)
 - tutorial: [eunomia-bpf/bpf-developer-tutorial](https://github.com/eunomia-bpf/bpf-developer-tutorial)
 
+### run as cli tool or server
+
 You can get pre-compiled eBPF programs running from the cloud to the kernel in `1` line of bash:
 
 ```bash
 # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
 $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
 $ sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json # simply run a pre-compiled ebpf code from a url
+INFO [bpf_loader_lib::skeleton] Running ebpf program...
+TIME     PID    TPID   SIG    RET    COMM   
+01:54:49  77297 8042   0      0      node
+01:54:50  77297 8042   0      0      node
+01:54:50  78788 78787  17     0      which
+01:54:50  78787 8084   17     0      sh
+01:54:50  78790 78789  17     0      ps
+01:54:50  78789 8084   17     0      sh
+01:54:50  78793 78792  17     0      sed
+01:54:50  78794 78792  17     0      cat
+01:54:50  78795 78792  17     0      cat
+
 $ sudo ./ecli run ghcr.io/eunomia-bpf/execve:latest # run with a name and download the latest version bpf tool from our repo
+[79130] node -> /bin/sh -c which ps 
+[79131] sh -> which ps 
+[79132] node -> /bin/sh -c /usr/bin/ps -ax -o pid=,ppid=,pcpu=,pmem=,c 
+[79133] sh -> /usr/bin/ps -ax -o pid=,ppid=,pcpu=,pmem=,command= 
+[79134] node -> /bin/sh -c "/home/yunwei/.vscode-server/bin/2ccd690cbf 
+[79135] sh -> /home/yunwei/.vscode-server/bin/2ccd690cbff 78132 79119 79120 79121 
+[79136] cpuUsage.sh -> sed -n s/^cpu\s//p /proc/stat
 ```
 
-## Build or install the project
+You can also use a server to manage and dynamically install eBPF programs.
+
+Start the server:
+
+```console
+$ sudo ./ecli-server
+[2023-08-08 02:02:03.864009 +08:00] INFO [server/src/main.rs:95] Serving at 127.0.0.1:8527
+```
+
+Use the ecli to control the remote server and manage multiple eBPF programs:
+
+```console
+$ ./ecli client start sigsnoop.json # start the program
+1
+$ ./ecli client log 1 # get the log of the program
+TIME     PID    TPID   SIG    RET    COMM   
+02:05:58  79725 78132  17     0      bash
+02:05:59  77325 77297  0      0      node
+02:05:59  77297 8042   0      0      node
+02:05:59  77297 8042   0      0      node
+02:05:59  79727 79726  17     0      which
+02:05:59  79726 8084   17     0      sh
+02:05:59  79731 79730  17     0      which
+```
+
+For more information, see [documents/src/ecli/server.md](documents/src/ecli/server.md).
+
+## Install the project
 
 - Install the `ecli` tool for running eBPF program from the cloud:
 
