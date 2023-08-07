@@ -72,7 +72,17 @@ $ ./ecli client list # no program is running
 
 For the http api, please refer to [openapi.yaml](../../../ecli/apis.yaml).
 
-You can use curl to access the ecli server:
+You can also use curl to access the ecli server, for example:
 
-```sh
+```console
+$ curl http://127.0.0.1:8527/task # list all running tasks
+{"tasks":[{"status":"running","id":3,"name":"bpf-program-1691432359"}]}
+$ curl -X POST   -H "Content-Type: application/json"   -d '{
+    "id": 3,
+    "log_cursor": 0,
+    "maximum_count": 100
+  }'  http://127.0.0.1:8527/log # get the log of the task 3
+[{"cursor":0,"log":{"log":"TIME     PID    TPID   SIG    RET    COMM   ","timestamp":1691432359,"log_type":"plain"}},{"cursor":1,"log":{"log":"02:19:19  81241 
+....
+,{"cursor":99,"log":{"log":"02:19:28  80808 77297  0      0      node","timestamp":1691432368,"log_type":"plain"}}]
 ```

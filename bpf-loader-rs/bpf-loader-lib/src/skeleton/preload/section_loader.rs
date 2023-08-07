@@ -184,7 +184,7 @@ pub(crate) fn load_section_data_with_skel_value(
                 }
             }
         } else {
-            de!(
+            info!(
                 "User didn't specify custom value for variable {}, use the default one in ELF",
                 var_type_decl.name
             );
