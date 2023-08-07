@@ -43,7 +43,7 @@ pub(crate) async fn run_native(
         let logs = client.fetch_logs(handle, last_poll, None).await?;
         for (cursor, log) in logs.into_iter() {
             if let LogType::Plain = log.log_type {
-                println!("<{}> <{}> {}", log.timestamp, log.log_type, log.log);
+                println!("{}", log.log);
             } else {
                 print!("{}", log.log);
             }
