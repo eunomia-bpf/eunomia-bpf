@@ -163,7 +163,7 @@ pub(crate) async fn handle_client_command(cmd: ClientCmd) -> anyhow::Result<()> 
                             eprint!("{}", log.log);
                         }
                         ecli_lib::runner::LogType::Plain => {
-                            println!("<{}> {}", log.timestamp, log.log);
+                            println!("{}", log.log);
                         }
                     }
                 }

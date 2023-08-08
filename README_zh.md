@@ -1,6 +1,6 @@
-![logo](documents/images/logo.png)
+![logo](documents/src/img/logo.png)
 
-# eunomia-bpf: 一个基于 JSON 配置信息或 Wasm 的 CO-RE eBPF 程序动态加载框架
+# eunomia-bpf：简化并增强eBPF，支持CO-RE[^1]和WebAssembly[^2]
 
 [![Actions Status](https://github.com/eunomia-bpf/eunomia-bpf/workflows/Ubuntu/badge.svg)](https://github.com/eunomia-bpf/eunomia-bpf/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/eunomia-bpf/eunomia-bpf)](https://github.com/eunomia-bpf/eunomia-bpf/releases)
@@ -8,81 +8,148 @@
 [![DeepSource](https://deepsource.io/gh/eunomia-bpf/eunomia-bpf.svg/?label=active+issues&show_trend=true&token=rcSI3J1-gpwLIgZWtKZC-N6C)](https://deepsource.io/gh/eunomia-bpf/eunomia-bpf/?ref=repository-badge)
 [![CodeFactor](https://www.codefactor.io/repository/github/eunomia-bpf/eunomia-bpf/badge)](https://www.codefactor.io/repository/github/eunomia-bpf/eunomia-bpf)
 
-## 概况
+**一个帮助你更容易构建和分发eBPF程序的编译器和运行时框架。**
 
-在 `eunomia-bpf` 中，您可以:
+## 简介
 
-- 只编写内核态代码即可构建完整的运行 `CO-RE` 的 eBPF 应用程序
-- 只编写 eBPF 内核代码并且编译为 JSON，即可动态加载到另一台机器上而不需要重新编译
-- 将eBPF程序编译为 `Wasm` 模块，就可以在用户空间 `Wasm` 运行时中控制eBPF程序或处理数据
-- 拥有非常小和简单的可执行程序, 库本身小于 `1MB` 且不依赖 `LLVM/Clang`，可以轻松嵌入到其他的项目中
-- 以小于 `100ms` 的时间动态加载和运行任何eBPF程序，比 `bcc` 更迅速
+`eunomia-bpf`是一个动态加载库/运行时以及一个编译工具链框架，旨在帮助您更容易地构建和分发eBPF程序。
 
-我们的主要开发在 Github 仓库中完成：<https://github.com/eunomia-bpf/eunomia-bpf>
+有了eunnomia-bpf，您可以：
 
-## 项目架构
+- 简化 `编写` eBPF 程序的库：
+  - 简化构建 CO-RE [^1] `libbpf` eBPF应用程序：[仅编写 eBPF 内核代码](documents/introduction.md#simplify-building-co-re-libbpf-ebpf-applications)，并通过 `perf event`或 `ring buffer` 自动暴露您的数据从内核。
+  - [自动采样数据](documents/introduction.md#automatically-sample-the-data-and-print-hists-in-userspace) 从哈希映射并在用户空间打印直方图。
+  - [自动生成](documents/introduction.md#automatically-generate-and-config-command-line-arguments) 并配置 eBPF 程序的`命令行参数`。
+  - 您可以同时以 `BCC` 或 `libbpf` 的方式编写内核部分。
+- 使用 `Wasm`[^2] 构建eBPF程序：参见 [`Wasm-bpf`](https://github.com/eunomia-bpf/wasm-bpf) 项目
+  - 运行时，库和工具链可以用 C/C++、Rust、Go 等[以 Wasm 编写 eBPF](https://github.com/eunomia-bpf/wasm-bpf)，涵盖从`跟踪`、`网络`、`安全`的使用场景。
+- 简化eBPF程序的`分发`：
+  - 一个[工具](ecli/)用于推送、拉取和运行预编译的eBPF程序作为Wasm模块的`OCI`镜像。
+  - 以[`1`行 bash](documents/introduction.md#dynamic-load-and-run-co-re-ebpf-kernel-code-from-the-cloud-with-url-or-oci-image)从 `云端` 或 `URL` 运行eBPF程序，无需重新编译，独立于内核版本和架构。
+  - 使用 `JSON` 配置文件或 `Wasm` 模块[动态加载](bpf-loader-rs) eBPF 程序。
 
-我们有一个加载器库，一个编译工具链，以及一些额外的工具，如cli和一个自定义指标导出器。
+更多信息，请参见[documents/introduction.md](documents/introduction.md)。
 
-### lib bpf-loader-rs
+[^1]: CO-RE: [编译一次 – 在任何地方运行](https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html)
+[^2]: WebAssembly 或 Wasm: <https://webassembly.org/>
 
-这个库包含了 `libbpf-rs` 的主要函数，提供了将 `eBPF` 代码动态加载到内核的能力，并使用 `JSON` 和简单的 `API` 运行它。
+## 开始使用
 
-查看 [bpf-loader-rs](https://github.com/eunomia-bpf/eunomia-bpf/tree/master/bpf-loader-rs) 以获得更多细节信息
+- Github模板：[eunomia-bpf/ebpm-template](https://github.com/eunomia-bpf/ebpm-template)
+- 示例bpf程序：[examples/bpftools](examples/bpftools/)
+- 教程：[eunomia-bpf/bpf-developer-tutorial](https://github.com/eunomia-bpf/bpf-developer-tutorial)
 
-我们提供了[一个简单的cli接口](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/ecli), 使得您可以通过在命令行输入URL的方式启动任何eBPF程序。您可以从[release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)版本中下载样例:
+### 作为 CLI 工具或服务运行
+
+您可以通过以下方式从云中运行预编译的eBPF程序到内核，只需`1`行bash命令：
 
 ```bash
-# download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
+# 从https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli 下载发布版本
 $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
-$ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json # simply run a pre-compiled ebpf code from a url
+$ sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json # 从URL简单地运行一个预编译的ebpf代码
+INFO [bpf_loader_lib::skeleton] Running ebpf program...
+TIME     PID    TPID   SIG    RET    COMM   
+01:54:49  77297 8042   0      0      node
+01:54:50  77297 8042   0      0      node
+01:54:50  78788 78787  17     0      which
+01:54:50  78787 8084   17     0      sh
+01:54:50  78790 78789  17     0      ps
+01:54:50  78789 8084   17     0      sh
+01:54:50  78793 78792  17     0      sed
+01:54:50  78794 78792  17     0      cat
+01:54:50  78795 78792  17     0      cat
+
+$ sudo ./ecli run ghcr.io/eunomia-bpf/execve:latest # 使用一个名称运行并从我们的仓库下载最新版本的bpf工具
+[79130] node -> /bin/sh -c which ps 
+[79131] sh -> which ps 
+[79132] node -> /bin/sh -c /usr/bin/ps -ax -o pid=,ppid=,pcpu=,pmem=,c 
+[79133] sh -> /usr/bin/ps -ax -o pid=,ppid=,pcpu=,pmem=,command= 
+[79134] node -> /bin/sh -c "/home/yunwei/.vscode-server/bin/2ccd690cbf 
+[79135] sh -> /home/yunwei/.vscode-server/bin/2ccd690cbff 78132 79119 79120 79121 
+[79136] cpuUsage.sh -> sed -n s/^cpu\s//p /proc/stat
 ```
 
-### 一个从Wasm模块加载eBPF程序的库
+您还可以使用服务器来管理和动态安装eBPF程序。
 
-使用 `bpf-loader-rs` 库从`Wasm`模块加载eBPF程序，您可以编写`Wasm`模块来操作eBPF程序或在用户空间`Wasm`运行时处理数据。这个想法很简单:
+启动服务器：
 
-1. 使用 `ecc` 工具链将 `eBPF` 代码骨架编译成 `JSON` 格式
-2. 在 `Wasm` 模块中嵌入 `JSON` 数据，并为操作eBPF程序框架提供一些API
-3. 从 `Wasm` 模块加载 `JSON` 数据，并使用 `bpf-loader-rs` 库运行eBPF程序框架
+```console
+$ sudo ./ecli-server
+[2023-08-08 02:02:03.864009 +08:00] INFO [server/src/main.rs:95] Serving at 127.0.0.1:8527
+```
 
-在单个 `Wasm` 模块中可以有多个 `eBPF` 程序。
+使用ecli来控制远程服务器并管理多个eBPF程序：
 
-您可以在 [wasm-runtime](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/wasm-runtime) 中看到更多细节
+```console
+$ ./ecli client start sigsnoop.json # 开始程序
+1
+$ ./ecli client log 1 # 获取程序日志
+TIME     PID    TPID   SIG    RET    COMM   
+02:05:58  79725 78132  17     0      bash
+02:05:59  77325 77297  0      0      node
+02:05:59  77297 8042   0      0      node
+02:05:59  77297 8042   0      0      node
+02:05:59  79727 79726  17     0      which
+02:05:59  79726 8084   17     0      sh
+02:05:59  79731 79730  17     0      which
+```
 
-### 一个帮助您生成预编译eBPF数据的编译工具链
+有关更多信息，请参见[documents/src/ecli/server.md](documents/src/ecli/server.md)。
 
-该工具链可以和docker一样使用，在一个命令中生成预编译的eBPF数据:
-详细信息请参见 [ec](compiler)。
-您也可以简单地使用 [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) 作为一个模板，将修改推送到这里后使用github action可以帮助您编译CO-RE ebpf代码!
+## 安装项目
 
-### 一个可观测性工具
+- 安装`ecli`工具以从云端运行eBPF程序：
 
-我们提供了一个 `prometheus` 和 `OpenTelemetry` 的输出工具用于定制eBPF指标，它用异步rust编写:[eunomia-exporter](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/eunomia-exporter)
+    ```console
+    $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
+    $ ./ecli -h
+    ecli子命令，包括run、push、pull、login、logout
 
-您可以编译它或从[release](https://github.com/eunomia-bpf/eunomia-bpf/releases/)版本下载它
+    用法: ecli-rs [PROG] [EXTRA_ARGS]... [COMMAND]
 
-### 其他相关项目
+    命令:
+      run     运行ebpf程序
+      client  客户端操作
+      push    
+      pull    从注册表中提取oci图像
+      login   登录到oci注册表
+      logout  从注册表登出
+      help    打印此消息或给定子命令的帮助
 
-- LMP eBPF Hub: [github.com/linuxkerneltravel/lmp](github.com/linuxkerneltravel/lmp)
-- bolipi online compiler & runner: [https://bolipi.com/ebpf/home/online](https://bolipi.com/ebpf/home/online)
+    参数:
+      [PROG]           不推荐使用。只为了与旧版本兼容。Ebpf程序URL或本地路径，设置为`-`可以从stdin读取程序
+      [EXTRA_ARGS]...  不推荐使用。只为了与旧版本兼容。额外的程序参数；对于wasm程序，将直接传递给它；对于JSON程序，将传递给生成的参数解析器
 
-## 工程构建
+    选项:
+      -h, --help  打印帮助
+    ....
+    ```
 
-查看[build](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/documents/build.md)以获得更多细节
+- 安装`ecc`编译器工具链，用于将eBPF内核代码编译为`config`文件或`Wasm`模块（为了编译，需要安装`clang`、`llvm`和`libclang`）：
 
-## 计划路线图
+    ```console
+    $ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecc && chmod +x ./ecc
+    $ ./ecc -h
+    eunomia-bpf编译器
+    用法: ecc [OPTIONS] <SOURCE_PATH> [EXPORT_EVENT_HEADER]
+    ....
+    ```
 
-- [X] 重构 `Eunomia` 项目中的代码并提供快速示例
-- [X] 支持用户空间中的`tracepoints`、`fentry`、`kprobe`、`lsm`和`ring buffer`/`perf event`输出。
-- [X] 使编译更容易使用，更灵活，完全兼容其他 libbpf 程序；
-- [X] 添加可配置的可观测性导出器
-- [X] 使用 Wasm 进行 ebpf 包加载配置，并添加更多 ebpf 程序类型支持
-- [X] 支持更多的 ebpf 程序类型：
-- [X] 为 eunomia-bpf 添加简单的包管理器: LMP
-- [ ] 从 `libbpf` 添加更多功能
-- [ ] 提供 python、go 等 sdk
+  或使用docker镜像进行编译：
 
-## 证书
+    ```bash
+    # 对于x86_64和aarch64
+    docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest # 使用docker进行编译。`pwd`应包含*.bpf.c文件和*.h文件。
+    ```
+
+- 构建编译器、运行库和工具：
+
+  有关构建详细信息，请参见[build](documents/build.md)。
+
+## 示例
+
+有关简单eBPF工具和eunomia-bpf库使用的详细信息，请参见[examples](examples)。
+
+## 许可证
 
 MIT LICENSE
