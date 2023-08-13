@@ -118,6 +118,7 @@ endif
 install-deps:
 	sudo apt-get update
 	sudo apt-get -y install clang libelf1 libelf-dev zlib1g-dev cmake clang llvm libclang-13-dev
+	sudo apt remove libllvm14
 
 # delete failed targets
 .DELETE_ON_ERROR:
