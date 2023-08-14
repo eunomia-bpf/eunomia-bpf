@@ -195,7 +195,7 @@ jobs:
           git checkout 0594034
       - name: Build workspace in docker
         uses: tj-actions/docker-run@v2
-        if: !matrix.platform.is_cross
+        if: "!matrix.platform.is_cross"
         with:
           image: ubuntu:22.04
           name: build-workspace
@@ -270,7 +270,7 @@ jobs:
           shell: /bin/bash
       - name: Run ecc-rs and retrive what libraries it loaded
         uses: tj-actions/docker-run@v2
-        if: !matrix.platform.is_cross
+        if: "!matrix.platform.is_cross"
         with: 
           image: ubuntu:22.04
           name: get-libraries
