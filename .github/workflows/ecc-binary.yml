@@ -244,10 +244,10 @@ jobs:
           distro: ubuntu18.04
           run: |
             apt-get update
-            apt-get install -y clang llvm
+            apt-get install -y clang llvm-9
             cd /data
             chmod +x ecc-${{matrix.platform.name}}
-            ./ecc-${{matrix.platform.name}} .github/assets/simple.bpf.c
+            ./ecc-${{matrix.platform.name}} -l llvm-strip-9 .github/assets/simple.bpf.c
           dockerRunArgs: |
             --volume "${PWD}:/data" --privileged
       - name: Test the binary in a new environment (native)
@@ -257,10 +257,10 @@ jobs:
           image: ubuntu:18.04
           run: |
             apt-get update
-            apt-get install -y clang llvm
+            apt-get install -y clang llvm-9
             cd /data
             chmod +x ecc-${{matrix.platform.name}}
-            ./ecc-${{matrix.platform.name}} .github/assets/simple.bpf.c
+            ./ecc-${{matrix.platform.name}} -l llvm-strip-9 .github/assets/simple.bpf.c
           options: |
             --volume ${{github.workspace}}:/data --privileged
 

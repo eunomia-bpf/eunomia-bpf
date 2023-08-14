@@ -79,6 +79,7 @@ fn fetch_git_repo(url: &str, git_ref: &str, local_dir: &Path) -> anyhow::Result<
 fn fetch_and_build_bpftool() -> anyhow::Result<()> {
     fetch_git_repo(&bpftool_repo(), &bpftool_ref(), &bpftool_repodir())?;
     if !Command::new("make")
+        .arg("-j")
         .current_dir(workdir().join(bpftool_repodir()).join("src"))
         .status()?
         .success()
