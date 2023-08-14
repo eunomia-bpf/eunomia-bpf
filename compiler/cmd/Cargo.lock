@@ -416,6 +416,7 @@ dependencies = [
  "serde_yaml",
  "tar",
  "tempfile",
+ "walkdir",
 ]
 
 [[package]]
