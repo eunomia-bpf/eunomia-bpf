@@ -277,11 +277,15 @@ jobs:
       - name: List build results
         run: |
           find ./results -type f
+      - name: Copy ecc binary x86_64 to ecc
+        run: |
+          cp ./results/ecc-x86_64/ecc-x86_64 ./results/ecc-x86_64/ecc
       - name: Publish
         if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
         uses: softprops/action-gh-release@v1
         with:
             files: |
+              ./results/ecc-x86_64/ecc
               ./results/ecc-x86_64/ecc-x86_64
               ./results/ecc-aarch64/ecc-aarch64
             prerelease: false

@@ -58,7 +58,7 @@ jobs:
           docker run -v `pwd`/:/src/ ghcr.io/${{ env.REPO_OWNER }}/ecc-x86_64:latest
           if [[ ! -f "./package.json" ]]
           then
-            echo "Docker image failed to produce package.jso"
+            echo "Docker image failed to produce package.json"
             exit 1
           fi
           
