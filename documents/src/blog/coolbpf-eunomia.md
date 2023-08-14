@@ -1,4 +1,3 @@
-#! https://zhuanlan.zhihu.com/p/600638396
 # eunomia-bpf：展望 2023，让 eBPF 插上 Wasm 的翅膀
 
 回望过去的 2022 年，有两项技术备受瞩目：eBPF 和 WebAssembly。
