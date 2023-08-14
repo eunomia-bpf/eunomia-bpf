@@ -282,9 +282,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
             files: |
+              ./results/ecc-x86_64/ecc-x86_64
               ./results/ecc-aarch64/ecc-aarch64
-              ./results/ecc-x86_64/ecc
-              ./results/ecc-x86_64/ecc-x86_64-unknown-linux-gnu-${{ needs.create-release-version.outputs.version }}.tar.gz
             prerelease: false
             tag_name: ${{ needs.create-release-version.outputs.version }}
             generate_release_notes: true
