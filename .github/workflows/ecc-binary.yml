@@ -65,91 +65,26 @@ jobs:
             const tag = tags.find(tag => tag.commit.sha === context.sha);
             
             return tag ? tag.name : increase_v(latest_release_tag)
-  build-x86_64:
-    runs-on: ubuntu-latest
+  build-ecc-binary:
     strategy:
+      fail-fast: false
       matrix:
-        target: [ x86_64-unknown-linux-gnu ]
-    needs: create-release-version
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: 'recursive'
-    - name: install deps
-      run: |
-          sudo make -C compiler install-deps
-          cargo install clippy-sarif sarif-fmt grcov
-          rustup component add llvm-tools-preview
-
-    - name: Install Rust toolchain
-      uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af #@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        components: clippy
-        override: true
-
-    - name: cache dependencies
-      uses: actions/cache@v3
-      id: cache
-      with:
-        path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
-        key: ${{ runner.os }}-dependencies
-
-    - name: Cache rust
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: |
-          compiler/cmd
-          ecli
-          eunomia-sdks/eunomia-rs
-
-    - name: build ecc
-      run:  cd compiler && make && make install
-    - name: Prepare cargo-appimage
-      uses: eunomia-bpf/prepare-cargo-appimage@v5
-    - name: Install libfuse
-      run: |
-        sudo apt-get install -y libfuse2
-    - name: Build AppImage
-      run: |
-          cd compiler/cmd
-          CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecc cargo appimage 
-    - name: test ecc
-      run:  cd compiler && make test
-    - name: Upload analysis results to GitHub
-      if: github.repository_owner == 'eunomia-bpf'
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: compiler/cmd/rust-clippy-results.sarif
-        wait-for-processing: true
-
-    - name: Code coverage using Codecov
-      if: github.repository_owner == 'eunomia-bpf'
-      run: bash <(curl -s https://codecov.io/bash)
-
-    - name: Package
-      shell: bash
-      run: |
-        mkdir release
-        cp compiler/cmd/ecc ./release/ecc
-        cd release
-        tar czvf ./ecc-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz ecc
-    - name: Test cli
-      shell: bash
-      run: |
-        mkdir cli-test
-        cd cli-test
-        cp ../.github/assets/simple.bpf.c .
-        ../release/ecc -h
-        ../release/ecc simple.bpf.c
-    - name: Upload build result
-      uses: actions/upload-artifact@v3
-      with:
-        name: ecc-x86_64
-        path: release/*
-
-  build-aarch64:
+        platform:
+          - name: aarch64
+            vmlinux_dir: arm64
+            rust_target: aarch64-unknown-linux-gnu
+            linker_specifier: CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+            appimage_runtime: https://github.com/eunomia-bpf/prepare-cargo-appimage/raw/v6/runtime-aarch64
+            is_cross: true
+            cross_compiler_package: gcc-aarch64-linux-gnu
+            cross_compiler_executable: aarch64-linux-gnu-gcc
+          - name: x86_64
+            vmlinux_dir: x86
+            rust_target: x86_64-unknown-linux-gnu
+            linker_specifier: 
+            appimage_runtime: https://github.com/eunomia-bpf/prepare-cargo-appimage/raw/v6/runtime-x86_64
+            is_cross: false
+    name: Build ecc on ${{matrix.platform.name}}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -157,11 +92,11 @@ jobs:
         with:
           submodules: 'recursive'
       - name: Install dependencies for cross building
+        if: matrix.platform.is_cross
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-          ls /usr/lib/gcc-cross/aarch64-linux-gnu/
-          aarch64-linux-gnu-gcc --version
+          sudo apt-get install -y ${{matrix.platform.cross_compiler_package}}
+          ${{matrix.platform.cross_compiler_executable}} --version
       - name: Prepare bpftool and vmlinux repo for building workspace
         # Move more steps outside of the virtual machine
         run: |
@@ -177,10 +112,26 @@ jobs:
           git clone --recursive https://github.com/eunomia-bpf/bpftool
           cd bpftool
           git checkout 0594034
-      - name: Build workspace in aarch64 virtual machine
+      - name: Build workspace in docker
+        uses: addnab/docker-run-action@v3
+        if: "!matrix.platform.is_cross"
+        with:
+          image: ubuntu:22.04
+          run: |
+            apt-get update
+            apt-get install -y zlib1g-dev libelf-dev gcc make
+            cd /workspace && mkdir bin
+            cd /assets/bpftool/src
+            CFLAGS="-static" make
+            cp bpftool /workspace/bin
+          options: |
+            --volume ${{github.workspace}}/workspace:/workspace
+            --volume ${{github.workspace}}/assets:/assets
+      - name: Build workspace in ${{matrix.platform.name}} virtual machine
         uses: uraimo/run-on-arch-action@v2
+        if: matrix.platform.is_cross
         with: 
-          arch: aarch64
+          arch: ${{matrix.platform.name}}
           distro: ubuntu22.04
           run: |
             apt-get update
@@ -200,27 +151,28 @@ jobs:
           mkdir include
           cp -r ../assets/bpftool/src/libbpf/include/bpf include/
           cp -r ../assets/vmlinux/ include/
-          cp ./include/vmlinux/arm64/vmlinux.h ./include/vmlinux
-      - name: Cross build ecc (aarch64)
+          cp ./include/vmlinux/${{matrix.platform.vmlinux_dir}}/vmlinux.h ./include/vmlinux
+      - name: Build ecc for ${{matrix.platform.rust_target}}
         run: |
-          rustup target add aarch64-unknown-linux-gnu
+          rustup target add ${{matrix.platform.rust_target}}
           export ECC_CUSTOM_WORKSPACE_ROOT=$(pwd)/workspace
           echo "Workspace dir: $ECC_CUSTOM_WORKSPACE_ROOT"
           cd compiler/cmd
-          cargo build --release --target aarch64-unknown-linux-gnu
+          cargo build --release --target ${{matrix.platform.rust_target}}
           cd ../..
           mkdir data
-          cp ./compiler/cmd/target/aarch64-unknown-linux-gnu/release/ecc-rs data/ecc
+          cp ./compiler/cmd/target/${{matrix.platform.rust_target}}/release/ecc-rs data/ecc
           cp ./.github/scripts/copy-libs.sh ./data
           ls -lah data
       # Necessary if we want to run things cross platform
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v2
-      - name: Run ecc-rs and retrive what libraries it loaded
+      - name: Run ecc-rs and retrive what libraries it loaded (cross)
         uses: uraimo/run-on-arch-action@v2
+        if: matrix.platform.is_cross
         with: 
-          arch: aarch64
+          arch: ${{matrix.platform.name}}
           distro: ubuntu22.04
           run: |
             apt-get update
@@ -234,6 +186,22 @@ jobs:
           dockerRunArgs: |
             --volume "${PWD}/data:/data"
           shell: /bin/bash
+      - name: Run ecc-rs and retrive what libraries it loaded (native)
+        uses: addnab/docker-run-action@v3
+        if: "!matrix.platform.is_cross"
+        with: 
+          image: ubuntu:22.04
+          run: |
+            apt-get update
+            apt-get install -y libclang1
+            echo "Installation done"
+            echo "Working directory $(pwd)"
+            chmod +x /data/ecc
+            echo "Permission set done"
+            chmod +x /data/copy-libs.sh
+            /data/copy-libs.sh /data/ecc
+          options: |
+            --volume ${{github.workspace}}/data:/data
       - name: Show what libraries were copied
         run: |
           sudo chmod 777 ./data -R
@@ -242,16 +210,16 @@ jobs:
       - name: Prepare runtime file and cargo-appimage tool
         uses: eunomia-bpf/prepare-cargo-appimage@v6
         with: 
-          runtime-url: https://github.com/eunomia-bpf/prepare-cargo-appimage/raw/v6/runtime-aarch64
+          runtime-url: ${{matrix.platform.appimage_runtime}}
       - name: Install libfuse for appimagetool
         run: |
           sudo apt-get update
           sudo apt-get install libfuse2
-      - name: Clone and install cargo-appimage with aarch64 launcher
+      - name: Clone and install cargo-appimage with ${{matrix.platform.name}} launcher
         run: |
           git clone https://github.com/eunomia-bpf/cargo-appimage
           cd cargo-appimage
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target aarch64-unknown-linux-gnu
+          ${{matrix.platform.linker_specifier}} RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target ${{matrix.platform.rust_target}}
       - name: Compose files and pack them
         run: |
           mkdir appimage-root
@@ -260,16 +228,46 @@ jobs:
           mkdir -p usr/bin
           cp ../data/ecc usr/bin/bin
           touch icon.png
-          cp ../cargo-appimage/target/aarch64-unknown-linux-gnu/release/cargo-appimage-runner AppRun
+          cp ../cargo-appimage/target/${{matrix.platform.rust_target}}/release/cargo-appimage-runner AppRun
           cp ../.github/scripts/cargo-appimage.desktop .
-          ../appimagetool --runtime-file ../runtime . ../ecc-aarch64
+          ../appimagetool --runtime-file ../runtime . ../ecc-${{matrix.platform.name}}
       - uses: actions/upload-artifact@v3
         name: Upload build result
         with:
-          name: ecc-aarch64
-          path: ecc-aarch64
+          name: ecc-${{matrix.platform.name}}
+          path: ecc-${{matrix.platform.name}}
+      - if: matrix.platform.is_cross
+        # qemu-user doesn't seem to handle statically linked binaries well
+        continue-on-error: true
+        name: Test the binary in a new environment (cross)
+        uses: uraimo/run-on-arch-action@v2
+        with: 
+          arch: ${{matrix.platform.name}}
+          distro: ubuntu18.04
+          run: |
+            apt-get update
+            apt-get install -y clang llvm-9
+            cd /data
+            chmod +x ecc-${{matrix.platform.name}}
+            ./ecc-${{matrix.platform.name}} -l llvm-strip-9 .github/assets/simple.bpf.c
+          dockerRunArgs: |
+            --volume "${PWD}:/data" --privileged
+      - name: Test the binary in a new environment (native)
+        uses: addnab/docker-run-action@v3
+        if: "!matrix.platform.is_cross"
+        with:
+          image: ubuntu:18.04
+          run: |
+            apt-get update
+            apt-get install -y clang llvm-9
+            cd /data
+            chmod +x ecc-${{matrix.platform.name}}
+            ./ecc-${{matrix.platform.name}} -l llvm-strip-9 .github/assets/simple.bpf.c
+          options: |
+            --volume ${{github.workspace}}:/data --privileged
+
   release:
-    needs: [create-release-version, build-aarch64, build-x86_64]
+    needs: [create-release-version, build-ecc-binary]
     runs-on: ubuntu-latest
     steps:
       - name: Download build results
@@ -284,9 +282,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
             files: |
+              ./results/ecc-x86_64/ecc-x86_64
               ./results/ecc-aarch64/ecc-aarch64
-              ./results/ecc-x86_64/ecc
-              ./results/ecc-x86_64/ecc-x86_64-unknown-linux-gnu-${{ needs.create-release-version.outputs.version }}.tar.gz
             prerelease: false
             tag_name: ${{ needs.create-release-version.outputs.version }}
             generate_release_notes: true

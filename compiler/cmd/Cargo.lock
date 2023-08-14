@@ -395,7 +395,7 @@ checksum = "56ce8c6da7551ec6c462cbaf3bfbc75131ebbfa1c944aeaa9dab51ca1c5f0c3b"
 
 [[package]]
 name = "ecc-rs"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "anyhow",
  "base64",
@@ -416,6 +416,7 @@ dependencies = [
  "serde_yaml",
  "tar",
  "tempfile",
+ "walkdir",
 ]
 
 [[package]]
