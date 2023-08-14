@@ -151,11 +151,13 @@ jobs:
 
   build-ecc-binary:
     strategy:
+      fail-fast: false
       matrix:
         platform:
           - name: aarch64
             vmlinux_dir: arm64
             rust_target: aarch64-unknown-linux-gnu
+            rust_target_upper: AARCH64_UNKNOWN_LINUX_GNU
             appimage_runtime: https://github.com/eunomia-bpf/prepare-cargo-appimage/raw/v6/runtime-aarch64
             is_cross: true
             cross_compiler_package: gcc-aarch64-linux-gnu
@@ -296,11 +298,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install libfuse2
-      - name: Clone and install cargo-appimage with aarch64 launcher
+      - name: Clone and install cargo-appimage with ${{matrix.platform.name}} launcher
+        if: matrix.platform.is_cross
         run: |
           git clone https://github.com/eunomia-bpf/cargo-appimage
           cd cargo-appimage
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=${{matrix.platform.cross_compiler_executable}} RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target ${{matrix.platform.rust_target}}
+          CARGO_TARGET_${{matrix.platform.rust_target_upper}}_LINKER=${{matrix.platform.cross_compiler_executable}} RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target ${{matrix.platform.rust_target}}
+      - name: Clone and install cargo-appimage
+        if: "!matrix.platform.is_cross"
+        run: |
+          git clone https://github.com/eunomia-bpf/cargo-appimage
+          cd cargo-appimage
+          RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target ${{matrix.platform.rust_target}}
       - name: Compose files and pack them
         run: |
           mkdir appimage-root
