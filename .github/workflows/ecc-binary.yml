@@ -231,6 +231,11 @@ jobs:
           cp ../cargo-appimage/target/${{matrix.platform.rust_target}}/release/cargo-appimage-runner AppRun
           cp ../.github/scripts/cargo-appimage.desktop .
           ../appimagetool --runtime-file ../runtime . ../ecc-${{matrix.platform.name}}
+      - uses: actions/upload-artifact@v3
+        name: Upload build result
+        with:
+          name: ecc-${{matrix.platform.name}}
+          path: ecc-${{matrix.platform.name}}
       - if: matrix.platform.is_cross
         name: Test the binary in a new environment (cross)
         uses: uraimo/run-on-arch-action@v2
@@ -239,7 +244,7 @@ jobs:
           distro: ubuntu18.04
           run: |
             apt-get update
-            apt-get install -y clang
+            apt-get install -y clang llvm
             cd /data
             chmod +x ecc-${{matrix.platform.name}}
             ./ecc-${{matrix.platform.name}} .github/assets/simple.bpf.c
@@ -252,17 +257,13 @@ jobs:
           image: ubuntu:18.04
           run: |
             apt-get update
-            apt-get install -y clang
+            apt-get install -y clang llvm
             cd /data
             chmod +x ecc-${{matrix.platform.name}}
             ./ecc-${{matrix.platform.name}} .github/assets/simple.bpf.c
           options: |
             --volume ${{github.workspace}}:/data --privileged
-      - uses: actions/upload-artifact@v3
-        name: Upload build result
-        with:
-          name: ecc-${{matrix.platform.name}}
-          path: ecc-${{matrix.platform.name}}
+
   release:
     needs: [create-release-version, build-ecc-binary]
     runs-on: ubuntu-latest
