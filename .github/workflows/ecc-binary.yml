@@ -237,6 +237,8 @@ jobs:
           name: ecc-${{matrix.platform.name}}
           path: ecc-${{matrix.platform.name}}
       - if: matrix.platform.is_cross
+        # qemu-user doesn't seem to handle statically linked binaries well
+        continue-on-error: true
         name: Test the binary in a new environment (cross)
         uses: uraimo/run-on-arch-action@v2
         with: 
