@@ -206,8 +206,8 @@ jobs:
             CFLAGS="-static" make
             cp bpftool /workspace/bin
           options: |
-            --volume "${{github.workspace}}/workspace:/workspace"
-            --volume "${{github.workspace}}/assets:/assets"
+            --volume ${{github.workspace}}/workspace:/workspace
+            --volume ${{github.workspace}}/assets:/assets
       - name: Build workspace in ${{matrix.platform.name}} virtual machine
         uses: uraimo/run-on-arch-action@v2
         if: matrix.platform.is_cross
@@ -282,7 +282,7 @@ jobs:
             chmod +x /data/copy-libs.sh
             /data/copy-libs.sh /data/ecc
           options: |
-            --volume "${{github.workspace}}/data:/data"
+            --volume ${{github.workspace}}/data:/data
       - name: Show what libraries were copied
         run: |
           sudo chmod 777 ./data -R
