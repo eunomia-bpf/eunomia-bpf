@@ -152,7 +152,7 @@ jobs:
           cp -r ../assets/bpftool/src/libbpf/include/bpf include/
           cp -r ../assets/vmlinux/ include/
           cp ./include/vmlinux/${{matrix.platform.vmlinux_dir}}/vmlinux.h ./include/vmlinux
-      - name: Build ecc on ${{matrix.plaform.rust_target}}
+      - name: Build ecc on ${{matrix.platform.rust_target}}
         run: |
           rustup target add ${{matrix.platform.rust_target}}
           export ECC_CUSTOM_WORKSPACE_ROOT=$(pwd)/workspace
