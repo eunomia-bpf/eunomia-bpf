@@ -194,12 +194,11 @@ jobs:
           cd bpftool
           git checkout 0594034
       - name: Build workspace in docker
-        uses: tj-actions/docker-run@v2
+        uses: addnab/docker-run-action@v3
         if: "!matrix.platform.is_cross"
         with:
           image: ubuntu:22.04
-          name: build-workspace
-          args: |
+          run: |
             apt-get update
             apt-get install -y zlib1g-dev libelf-dev gcc make
             cd /workspace && mkdir bin
@@ -269,12 +268,11 @@ jobs:
             --volume "${PWD}/data:/data"
           shell: /bin/bash
       - name: Run ecc-rs and retrive what libraries it loaded
-        uses: tj-actions/docker-run@v2
+        uses: addnab/docker-run-action@v3
         if: "!matrix.platform.is_cross"
         with: 
           image: ubuntu:22.04
-          name: get-libraries
-          args: |
+          run: |
             apt-get update
             apt-get install -y libclang1
             echo "Installation done"
