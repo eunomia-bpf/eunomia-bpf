@@ -64,7 +64,7 @@ GPTtrace 使用 ChatGPT 技术，允许开发人员通过自然语言编写 eBPF
 - ChatGPT：<https://chat.openai.com/chat>
 - GPTtrace：<https://github.com/eunomia-bpf/GPTtrace>
 - ChatGPT Python API: <https://github.com/mmabrouk/chatgpt-wrapper>
-- 基于 CO-RE (一次编写，到处运行） libbpf 的 eBPF 开发者教程：通过 20 个小工具一步步学习 eBPF（尝试教会 ChatGPT 编写 eBPF 程序）：<https://github.com/eunomia-bpf/bpf-developer-tutorial>
+- 基于 CO-RE （一次编写，到处运行） libbpf 的 eBPF 开发者教程：通过 20 个小工具一步步学习 eBPF（尝试教会 ChatGPT 编写 eBPF 程序）：<https://github.com/eunomia-bpf/bpf-developer-tutorial>
 - ChatGPT类工具如何实现「降维打击」| 聊天机器人闭门研讨观点总结：<https://mp.weixin.qq.com/s/fB9rguy26ej-alm7l_i8iQ>
 - eunomia-bpf 开源社区：<https://github.com/eunomia-bpf>
 

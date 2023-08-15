@@ -2,11 +2,11 @@
 
 `eunomia-bpf` is a dynamic loading library/runtime and a compile toolchain framework, aim at helping you build and distribute eBPF programs easier.
 
-### Simplify building CO-RE libbpf eBPF applications
+## Simplify building CO-RE libbpf eBPF applications
 
 Just Write libbpf eBPF kernel code only, auto config the userspace part!
 
-#### Automatically exposing your data from kernel
+### Automatically exposing your data from kernel
 
 - Get data automatically from `perf event` or `ring buffer` to userspace:
 
@@ -46,7 +46,7 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
 
     see [bootstrap](../examples/bpftools/bootstrap/bootstrap.bpf.c) for example. This is exactly the same as [bootstrap.bpf.c](https://github.com/libbpf/libbpf-bootstrap/blob/master/examples/c/bootstrap.bpf.c) in [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap) project, but only kernel code is needed.
 
-#### Automatically sample the data and print `hists` in userspace
+### Automatically sample the data and print `hists` in userspace
 
 - Sample the data from hash maps and print them in human readable format with comments:
 
@@ -81,7 +81,7 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
 
     see [examples/bpftools/mdflush.bpf.c](../examples/bpftools/runqlat/runqlat.bpf.c) for example.
 
-#### Automatically generate and config command line arguments
+### Automatically generate and config command line arguments
 
 - Automatically generate and config command line arguments for your eBPF program from the comments in your kernel code:
 
@@ -118,7 +118,7 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
 - `100%` compatible with `libbpf`, [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap/tree/master/examples/c) and `libbpf-rs`, etc: you can compile [libbpf-tools](https://github.com/iovisor/bcc/blob/master/libbpf-tools) kernel code with `eunomia-bpf` and run them without many modification!
 - Not limited to tracing: support `tracepoints`, `kprobe`, `uprobe`, `lsm`, `xdp`, `tc` etc...
 
-### Compile and pack CO-RE eBPF kernel code to a config file
+## Compile and pack CO-RE eBPF kernel code to a config file
 
 - Compile and pack CO-RE eBPF kernel code to a `JSON` or `YAML` config file:
 
@@ -133,7 +133,7 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
 
     You can modify the config file and config the eBPF program behavior to your need.
 
-### Dynamic load and run CO-RE eBPF kernel code from the cloud with URL or OCI image
+## Dynamic load and run CO-RE eBPF kernel code from the cloud with URL or OCI image
 
 - you can dynamically load it on different kernel version without recompile, and without clang/llvm dependency:
 
@@ -168,10 +168,9 @@ Just Write libbpf eBPF kernel code only, auto config the userspace part!
 
 Base on `eunomia-bpf`, we have an eBPF pacakge manager in [LMP](https://github.com/linuxkerneltravel/lmp) project, with OCI images and [ORAS](https://github.com/oras-project/oras) for distribution.
 
-### [wasm-bpf](https://github.com/eunomia-bpf/wasm-bpf): Write user space code for your eBPF program in WebAssembly
+## [wasm-bpf](https://github.com/eunomia-bpf/wasm-bpf): Write user space code for your eBPF program in WebAssembly
 
 see [wasm-bpf](https://github.com/eunomia-bpf/wasm-bpf) project:
-
 
 A WebAssembly eBPF library, toolchain and runtime powered by [CO-RE](https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html)(Compile Once – Run Everywhere) [libbpf](https://github.com/libbpf/libbpf) and [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime).
 
@@ -179,7 +178,6 @@ A WebAssembly eBPF library, toolchain and runtime powered by [CO-RE](https://fac
 - **`High performance`**: No `serialization` overhead for complex data types, using `shared memory` to avoid copy overhead between host and Wasm.
 - **`Easy to use`**: provide a similar developing experience as the [libbpf-bootstrap](https://github.com/libbpf/libbpf-bootstrap), `auto generate` the Wasm-eBPF skeleton headers and type definitions for bindings.
 - **`Ultralightweight`**: the sample runtime has only `300+` lines of code, binary only `1.5 MB` in size. Compiled Wasm module would be only `~90K`. With the same toolchain, you can easily build your own Wasm-eBPF runtime in any languages and platforms!
-
 
 ## Project Architecture
 
@@ -231,7 +229,7 @@ see the compile toolchains [compiler](compiler) for details.
 
 you can also simply use the [ebpm-template](https://github.com/eunomia-bpf/ebpm-template) repo as a template in github, just push to it and github action can help you compile CO-RE ebpf code!
 
-### other related projects
+## other related projects
 
 - LMP eBPF Hub: [github.com/linuxkerneltravel/lmp](https://github.com/linuxkerneltravel/lmp)
 

@@ -33,11 +33,11 @@
 
 也可以通过 `下载编译后的文件` 查看编译好的程序，并在本地使用 `ecli` 直接运行：
 
-```console
-$ # 下载安装 ecli 二进制
-$ wget https://aka.pw/bpf-ecli -O ./ecli && chmod +x ./ecli
-$ # 运行 eBPF 程序（root shell）
-$ sudo ./ecli run package.json
+```shell
+# 下载安装 ecli 二进制
+wget https://aka.pw/bpf-ecli -O ./ecli && chmod +x ./ecli
+# 运行 eBPF 程序（root shell）
+sudo ./ecli run package.json
 ```
 
 ### 使用 Prometheus 在线获取可视化结果
