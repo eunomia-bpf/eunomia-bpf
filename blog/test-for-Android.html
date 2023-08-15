@@ -180,8 +180,8 @@
 <p>虽然如此，在 Android 平台上尝试 eBPF 也已经有了一些成功案例，除谷歌官方提供的修改 <code>Android.bp</code> 以将 eBPF 程序随整个系统一同构建并挂载的方案<sup class="footnote-reference"><a href="#Google">2</a></sup>，也有人提出基于 Android 内核构建 Linux 环境进而运行 eBPF 工具链的思路，并开发了相关工具。</p>
 <p>目前已有的资料，大多基于 adeb/eadb 在 Android 内核基础上构建 Linux 沙箱，并对 bcc 和 bpftrace 相关工具链进行测试，而对 CO-RE 方案的测试工作较少。在 Android 上使用 bcc 工具目前有较多参考资料，如：</p>
 <ul>
-<li>SeeFlowerX：https://blog.seeflower.dev/category/eBPF/</li>
-<li>evilpan：https://bbs.kanxue.com/thread-271043.htm</li>
+<li>SeeFlowerX：<a href="https://blog.seeflower.dev/category/eBPF/">https://blog.seeflower.dev/category/eBPF/</a></li>
+<li>evilpan：<a href="https://bbs.kanxue.com/thread-271043.htm">https://bbs.kanxue.com/thread-271043.htm</a></li>
 </ul>
 <p>其主要思路是利用 chroot 在 Android 内核上运行一个 Debian 镜像，并在其中构建整个 bcc 工具链，从而使用 eBPF 工具。如果想要使用 bpftrace，原理也是类似的。</p>
 <p>事实上，高版本的 Android 内核已支持 btf 选项，这意味着 eBPF 领域中新兴的 CO-RE 技术也应当能够运用到基于 Android 内核的 Linux 系统中。本文将基于此对 eunomia-bpf 在模拟器环境下进行测试运行。</p>
@@ -207,7 +207,7 @@
 <li>通过 adb 进入 Android shell 环境并获取 root 权限：
 <ul>
 <li><code>./adb shell</code></li>
-<li><code>su</code> </li>
+<li><code>su</code></li>
 </ul>
 </li>
 <li>在 Android shell 中构建并进入 debian 环境：
@@ -223,10 +223,12 @@
 </li>
 </ol>
 <p>至此，测试 eBPF 所需的 Linux 环境已经构建完毕。此外，在 Android shell 中（未进入 debian 时）可以通过 <code>zcat /proc/config.gz</code> 并配合 <code>grep</code> 查看内核编译选项。
-&gt;目前，eadb 打包的 debian 环境存在 libc 版本低，缺少的工具依赖较多等情况；并且由于内核编译选项不同，一些 eBPF 功能可能也无法使用。</p>
+&gt;目前，eadb 打包的 debian 环境存在 libc 版本低，缺少的工具依赖较多等情况；并且由于内核编译选项不同，一些 eBPF 功能可能也无法使用。
+&gt;</p>
 <h1 id="工具构建"><a class="header" href="#工具构建">工具构建</a></h1>
 <p>在 debian 环境中将 eunomia-bpf 仓库 clone 到本地，具体的构建过程，可以参考仓库的 <a href="https://github.com/eunomia-bpf/eunomia-bpf/blob/master/documents/build.md">build.md</a>。在本次测试中，笔者选用了 <code>ecc</code> 编译生成 <code>package.json</code> 的方式，该工具的构建和使用方式请参考<a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/compiler">仓库页面</a>。
-&gt;在构建过程中，可能需要自行安装包括但不限于 <code>curl</code>，<code>pkg-config</code>，<code>libssl-dev</code> 等工具。</p>
+&gt;在构建过程中，可能需要自行安装包括但不限于 <code>curl</code>，<code>pkg-config</code>，<code>libssl-dev</code> 等工具。
+&gt;</p>
 <h1 id="测试结果"><a class="header" href="#测试结果">测试结果</a></h1>
 <h2 id="成功案例"><a class="header" href="#成功案例">成功案例</a></h2>
 <h3 id="bootstrap"><a class="header" href="#bootstrap"><a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/bootstrap">bootstrap</a></a></h3>
@@ -339,9 +341,9 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 <p>Android 系统 eBPF 工具的发展需要官方新特性的加入，目前看来通过 Android APP 直接使用 eBPF 工具需要的工作量较大，同时由于 eBPF 工具需要 root 权限，普通 Android 用户的使用会面临较多困难。</p>
 <h1 id="参考"><a class="header" href="#参考">参考</a></h1>
 <div class="footnote-definition" id="Google"><sup class="footnote-definition-label">2</sup>
-<p>https://source.android.google.cn/docs/core/architecture/kernel/bpf
-<sup class="footnote-reference"><a href="#WeiShu">1</a></sup>:https://mp.weixin.qq.com/s/mul4n5D3nXThjxuHV7GpMA
-<sup class="footnote-reference"><a href="#SeeFlowerX">3</a></sup>:https://blog.seeflower.dev/archives/138/</p>
+<p><a href="https://source.android.google.cn/docs/core/architecture/kernel/bpf">https://source.android.google.cn/docs/core/architecture/kernel/bpf</a>
+<sup class="footnote-reference"><a href="#WeiShu">1</a></sup>:<a href="https://mp.weixin.qq.com/s/mul4n5D3nXThjxuHV7GpMA">https://mp.weixin.qq.com/s/mul4n5D3nXThjxuHV7GpMA</a>
+<sup class="footnote-reference"><a href="#SeeFlowerX">3</a></sup>:<a href="https://blog.seeflower.dev/archives/138/">https://blog.seeflower.dev/archives/138/</a></p>
 </div>
 
                     </main>

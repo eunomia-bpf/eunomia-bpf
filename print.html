@@ -488,90 +488,101 @@ docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest # compi
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="build"><a class="header" href="#build">build</a></h1>
 <p>If you want to run the cli, in most cases, you don't need to build your own.</p>
-<h1 id="building"><a class="header" href="#building">Building</a></h1>
-<p>libbpf-bootstrap supports multiple build systems that do the same thing.
-This serves as a cross reference for folks coming from different backgrounds.</p>
 <h2 id="install-dependencies"><a class="header" href="#install-dependencies">Install Dependencies</a></h2>
 <p>You will need <code>clang</code>, <code>libelf</code> and <code>zlib</code> to build the examples, package names may vary across distros.</p>
 <p>On Ubuntu/Debian, you need:</p>
-<pre><code class="language-shell">$ apt install clang libelf1 libelf-dev zlib1g-dev
+<pre><code class="language-shell">apt install clang libelf1 libelf-dev zlib1g-dev
 </code></pre>
 <p>On CentOS/Fedora, you need:</p>
-<pre><code class="language-shell">$ dnf install clang elfutils-libelf elfutils-libelf-devel zlib-devel
+<pre><code class="language-shell">dnf install clang elfutils-libelf elfutils-libelf-devel zlib-devel
 </code></pre>
 <p>install rust toolchain</p>
 <pre><code class="language-shell">curl https://sh.rustup.rs -sSf | sh -s
 </code></pre>
 <h2 id="build-bpf-loader-rs"><a class="header" href="#build-bpf-loader-rs">build bpf-loader-rs</a></h2>
 <p>bpf-loader is our core library written in C++17. It has no other dependencies except libbpf.</p>
-<pre><code class="language-shell">$ make bpf-loader-rs # build ebpf-loader-rs
+<pre><code class="language-shell">make bpf-loader-rs # build ebpf-loader-rs
 </code></pre>
 <p>The recommended compiler is gcc9 or later.</p>
-<h2 id="build-ecli"><a class="header" href="#build-ecli">build ecli:</a></h2>
+<h2 id="build-ecli"><a class="header" href="#build-ecli">build ecli</a></h2>
 <p>After compile the bpf-loader, you can build the cli tool in C++:</p>
-<pre><code class="language-shell">$ make ecli
+<pre><code class="language-shell">make ecli
 </code></pre>
-<p>reference: https://github.com/libbpf/libbpf-bootstrap</p>
+<p>reference: <a href="https://github.com/libbpf/libbpf-bootstrap">https://github.com/libbpf/libbpf-bootstrap</a></p>
 <h2 id="build-wasm-lib"><a class="header" href="#build-wasm-lib">build wasm lib</a></h2>
-<pre><code class="language-shell">$ make wasm-runtime
+<pre><code class="language-shell">make wasm-runtime
 </code></pre>
 <p>Please install WASI SDK, download the <a href="https://github.com/CraneStation/wasi-sdk/releases">wasi-sdk</a> release and extract the archive to default path /opt/wasi-sdk if you want to compile c code to wasm.</p>
 <h2 id="build-compiler"><a class="header" href="#build-compiler">build compiler</a></h2>
-<pre><code class="language-shell">$ make ecc
+<pre><code class="language-shell">make ecc
 </code></pre>
 <h2 id="more-details"><a class="header" href="#more-details">more details</a></h2>
 <ul>
 <li>You can check the Makefile at project root for more details: <a href="https://github.com/eunomia-bpf/eunomia-bpf/blob/master/compiler/Makefile">Makefile</a></li>
 <li>You may want to refer to our CI for more build info: <a href="https://github.com/eunomia-bpf/eunomia-bpf/blob/master/.github/workflows/ecc-binary.yml">ecc.yml</a></li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="build-on--android"><a class="header" href="#build-on--android">Build on  Android</a></h1>
-<p>Android上build需要先Installing Debian on Android in Termux </p>
-<p>在Android上构建时，需要先Installing Debian on Android in Termux </p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="build-on-android"><a class="header" href="#build-on-android">Build on Android</a></h1>
+<p>Android上build需要先Installing Debian on Android in Termux</p>
+<p>在Android上构建时，需要先Installing Debian on Android in Termux</p>
 <ol>
-<li>install termux</li>
-</ol>
-<p>https://github.com/termux/termux-app/releases/tag/v0.118.0</p>
-<ol start="2">
-<li>install proot-distro</li>
-</ol>
+<li>
+<p>install termux</p>
+<p><a href="https://github.com/termux/termux-app/releases/tag/v0.118.0">https://github.com/termux/termux-app/releases/tag/v0.118.0</a></p>
+</li>
+<li>
+<p>install proot-distro</p>
 <p>select debian distro</p>
 <pre><code class="language-sh">pkg install proot-distro
 proot-distro install debian
 proot-distro login debian
 </code></pre>
-<ol start="3">
-<li>install packages</li>
-</ol>
+</li>
+<li>
+<p>install packages</p>
 <p>remember <code>proot-distro login debian</code> first</p>
 <pre><code class="language-sh">apk update
 apt install clang cmake libelf1 libelf-dev zlib1g-dev
 </code></pre>
 <p>之后的步骤和在ARM上build上相同</p>
-<h1 id="build-on--arm"><a class="header" href="#build-on--arm">Build on  ARM</a></h1>
-<ol>
-<li>同步 eunomia-bpf 到本地</li>
+</li>
 </ol>
+<h2 id="build-on-arm"><a class="header" href="#build-on-arm">Build on ARM</a></h2>
+<ol>
+<li>
+<p>同步 eunomia-bpf 到本地</p>
 <pre><code class="language-sh">git clone https://github.com/eunomia-bpf/eunomia-bpf.git
 cd eunomia-bpf
 git submodule update --init --recursive --remote
 </code></pre>
-<p>2.配置环境变量</p>
+</li>
+<li>
+<p>配置环境变量</p>
 <pre><code class="language-sh">export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
 </code></pre>
-<p>3.安装依赖</p>
+</li>
+<li>
+<p>安装依赖</p>
 <pre><code class="language-sh">apt update
 apt install clang cmake libelf1 libelf-dev zlib1g-dev
 </code></pre>
-<p>4.修改wasm-runtime/CMakeLists.txt<code>中的</code>WAMR_BUILD_TARGET（may not required)</p>
+</li>
+<li>
+<p>修改wasm-runtime/CMakeLists.txt<code>中的</code>WAMR_BUILD_TARGET（may not required）</p>
 <p>change <code>set (WAMR_BUILD_TARGET &quot;X86_64&quot;)</code> to <code>set (WAMR_BUILD_TARGET &quot;AARCH64&quot;)</code></p>
-<p>5.编译</p>
+</li>
+<li>
+<p>编译</p>
 <pre><code class="language-sh">make bpf-loader
 make ecli
 </code></pre>
-<p>6.检查输出</p>
+</li>
+<li>
+<p>检查输出</p>
 <pre><code class="language-sh">root@localhost:~/eunomia-bpf# file ecli/build/bin/Release/ecli
 ecli: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, BuildID[sha1]=eab42b79be75951e3a573aa7c61136239d35c868, for GNU/Linux 3.7.0, with debug_info, not stripped
 </code></pre>
+</li>
+</ol>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="eunomia-cc-compile-and-package-ebpf-programs"><a class="header" href="#eunomia-cc-compile-and-package-ebpf-programs">eunomia-cc: compile and package ebpf programs</a></h1>
 <ul>
 <li>A toolchain to simplify <code>writing</code> eBPF programs:
@@ -817,7 +828,7 @@ env when you login to ghcr.io, either one can be logged into ghcr without enteri
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="ecli"><a class="header" href="#ecli">ecli</a></h1>
 <p>bpf 运行时需要有Linux内核相关支持，docker 中的内核共享的宿主机的内核，因此使用docker运行bpf程序时需要使用以下命令为容器赋予权限和相关内核支持。</p>
-<p>此处参考https://github.com/iovisor/bpftrace/blob/master/INSTALL.md#kernel-headers-install</p>
+<p>此处参考<a href="https://github.com/iovisor/bpftrace/blob/master/INSTALL.md#kernel-headers-install">https://github.com/iovisor/bpftrace/blob/master/INSTALL.md#kernel-headers-install</a></p>
 <pre><code class="language-shell">$ docker run -ti -v /usr/src:/usr/src:ro \
        -v /lib/modules/:/lib/modules:ro \
        -v /sys/kernel/debug/:/sys/kernel/debug:rw \
@@ -881,9 +892,9 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 </code></pre>
 <h3 id="参考文档"><a class="header" href="#参考文档">参考文档</a></h3>
 <p>bpftrace 官方说明（如何让bpf程序在docker中运行）</p>
-<p>https://github.com/iovisor/bpftrace/blob/master/INSTALL.md#kernel-headers-install</p>
+<p><a href="https://github.com/iovisor/bpftrace/blob/master/INSTALL.md#kernel-headers-install">https://github.com/iovisor/bpftrace/blob/master/INSTALL.md#kernel-headers-install</a></p>
 <p>如何在mac中运行带有bpf运行环境的docker</p>
-<p>https://petermalmgren.com/docker-mac-bpf-perf/</p>
+<p><a href="https://petermalmgren.com/docker-mac-bpf-perf/">https://petermalmgren.com/docker-mac-bpf-perf/</a></p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="eunomia-bpf-用户手册-让-ebpf-程序的开发和部署尽可能简单"><a class="header" href="#eunomia-bpf-用户手册-让-ebpf-程序的开发和部署尽可能简单">eunomia-bpf 用户手册: 让 eBPF 程序的开发和部署尽可能简单</a></h1>
 <!-- TOC -->
 <ul>
@@ -1630,10 +1641,10 @@ int path_rmdir(const struct path *dir, struct dentry *dentry) {
 <p>点击右侧的绿色运行按钮运行：</p>
 <p><img src="img/run-ebpf.png" alt="imgc" /></p>
 <p>也可以通过 <code>下载编译后的文件</code> 查看编译好的程序，并在本地使用 <code>ecli</code> 直接运行：</p>
-<pre><code class="language-console">$ # 下载安装 ecli 二进制
-$ wget https://aka.pw/bpf-ecli -O ./ecli &amp;&amp; chmod +x ./ecli
-$ # 运行 eBPF 程序（root shell）
-$ sudo ./ecli run package.json
+<pre><code class="language-shell"># 下载安装 ecli 二进制
+wget https://aka.pw/bpf-ecli -O ./ecli &amp;&amp; chmod +x ./ecli
+# 运行 eBPF 程序（root shell）
+sudo ./ecli run package.json
 </code></pre>
 <h3 id="使用-prometheus-在线获取可视化结果"><a class="header" href="#使用-prometheus-在线获取可视化结果">使用 Prometheus 在线获取可视化结果</a></h3>
 <p>点击 <code>运行可视化组件</code> 按钮，在弹出的窗口中配置 prometheus metrics 信息:</p>
@@ -2404,15 +2415,14 @@ ecli run https://ghcr.io/eunomia-bpf/sigsnoop:latest
 <li>ChatGPT：<a href="https://chat.openai.com/chat">https://chat.openai.com/chat</a></li>
 <li>GPTtrace：<a href="https://github.com/eunomia-bpf/GPTtrace">https://github.com/eunomia-bpf/GPTtrace</a></li>
 <li>ChatGPT Python API: <a href="https://github.com/mmabrouk/chatgpt-wrapper">https://github.com/mmabrouk/chatgpt-wrapper</a></li>
-<li>基于 CO-RE (一次编写，到处运行） libbpf 的 eBPF 开发者教程：通过 20 个小工具一步步学习 eBPF（尝试教会 ChatGPT 编写 eBPF 程序）：<a href="https://github.com/eunomia-bpf/bpf-developer-tutorial">https://github.com/eunomia-bpf/bpf-developer-tutorial</a></li>
+<li>基于 CO-RE （一次编写，到处运行） libbpf 的 eBPF 开发者教程：通过 20 个小工具一步步学习 eBPF（尝试教会 ChatGPT 编写 eBPF 程序）：<a href="https://github.com/eunomia-bpf/bpf-developer-tutorial">https://github.com/eunomia-bpf/bpf-developer-tutorial</a></li>
 <li>ChatGPT类工具如何实现「降维打击」| 聊天机器人闭门研讨观点总结：<a href="https://mp.weixin.qq.com/s/fB9rguy26ej-alm7l_i8iQ">https://mp.weixin.qq.com/s/fB9rguy26ej-alm7l_i8iQ</a></li>
 <li>eunomia-bpf 开源社区：<a href="https://github.com/eunomia-bpf">https://github.com/eunomia-bpf</a></li>
 </ul>
 <blockquote>
 <p>注：本文使用 ChatGPT 进行辅助写作完成。</p>
 </blockquote>
-<div style="break-before: page; page-break-before: always;"></div><p>#!<a href="https://zhuanlan.zhihu.com/p/573941739">https://zhuanlan.zhihu.com/p/573941739</a></p>
-<h1 id="当-wasm-遇见-ebpf-使用-webassembly-编写分发加载运行-ebpf-程序"><a class="header" href="#当-wasm-遇见-ebpf-使用-webassembly-编写分发加载运行-ebpf-程序">当 Wasm 遇见 eBPF ：使用 WebAssembly 编写、分发、加载运行 eBPF 程序</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="当-wasm-遇见-ebpf-使用-webassembly-编写分发加载运行-ebpf-程序"><a class="header" href="#当-wasm-遇见-ebpf-使用-webassembly-编写分发加载运行-ebpf-程序">当 Wasm 遇见 eBPF ：使用 WebAssembly 编写、分发、加载运行 eBPF 程序</a></h1>
 <p>当今云原生世界中两个最热门的轻量级代码执行沙箱/虚拟机是 eBPF 和 WebAssembly。它们都运行从 C、C++ 和 Rust 等语言编译的高性能字节码程序，并且都是跨平台、可移植的。二者最大的区别在于： eBPF 在 Linux 内核中运行，而 WebAssembly 在用户空间中运行。我们希望能做一些将二者相互融合的尝试：使用 Wasm 来编写通用的 eBPF 程序，然后可以将其分发到任意不同版本、不同架构的 Linux 内核中，无需重新编译即可运行。</p>
 <h2 id="webassembly-vs-ebpf"><a class="header" href="#webassembly-vs-ebpf">WebAssembly vs. eBPF</a></h2>
 <p>WebAssembly(缩写 Wasm)是基于堆栈虚拟机的二进制指令格式。Wasm 是为了一个可移植的目标而设计的，可作为 C/C+/RUST 等高级语言的编译目标，使客户端和服务器应用程序能够在 Web 上部署。Wasm 的运行时有多种实现，包括浏览器和独立的系统，它可以用于视频和音频编解码器、图形和 3D、多媒体和游戏、密码计算或便携式语言实现等应用。</p>
@@ -2662,8 +2672,7 @@ Usage: sigsnoop [-h] [-x] [-k] [-n] [-p PID] [-s SIGNAL]
 <li>Coolbpf 项目介绍：<a href="https://openanolis.cn/sig/ebpfresearch/doc/633529753894377555">https://openanolis.cn/sig/ebpfresearch/doc/633529753894377555</a></li>
 <li>LMP 项目介绍：<a href="https://openanolis.cn/sig/ebpfresearch/doc/633661297090877527">https://openanolis.cn/sig/ebpfresearch/doc/633661297090877527</a></li>
 </ol>
-<div style="break-before: page; page-break-before: always;"></div><p>#! https://zhuanlan.zhihu.com/p/589784489</p>
-<h1 id="如何在-linux-显微镜lmp项目中开启-ebpf-之旅"><a class="header" href="#如何在-linux-显微镜lmp项目中开启-ebpf-之旅">如何在 Linux 显微镜（LMP）项目中开启 eBPF 之旅？</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="如何在-linux-显微镜lmp项目中开启-ebpf-之旅"><a class="header" href="#如何在-linux-显微镜lmp项目中开启-ebpf-之旅">如何在 Linux 显微镜（LMP）项目中开启 eBPF 之旅？</a></h1>
 <p>eBPF 为 Linux 内核提供了可扩展性，使开发人员能够对 Linux 内核进行编程，以便根据他们的业务需求快速构建智能的或丰富的功能。</p>
 <p>我们的 <a href="https://github.com/linuxkerneltravel/lmp">LMP(Linux Microscope) 项目</a> 是为了充分挖掘 ebpf 的可能性而建立的，项目以构建 eBPF 学习社区、成为 eBPF 工具集散地、孵化 eBPF 想法和项目为目标，正在大力建设中。之前我们在 LMP 其中的 eBPF Supermarket 中包含了大量由个人开发者编写的 eBPF 工具，覆盖了网络、性能分析、安全等多种功能，我们正在尝试把其中的一些程序迁移到 eBPF Hub，一些规范化的 eBPF 程序库，可以随时下载运行，或嵌入大型应用程序中作为插件使用。</p>
 <p>我们尝试在 eBPF Hub 中，基于 eunomia-bpf 开发框架创建符合 OCI 标准的 Wasm 和 eBPF 程序，并利用 ORAS 简化扩展 LMP 的 eBPF 分发、加载、运行能力。</p>
@@ -2929,8 +2938,7 @@ struct event {
 <li><a href="https://webassembly.org/specs/">WebAssembly 中文网|Wasm 中文文档</a></li>
 <li><a href="https://bolipi.com/ebpf/home/online">eBPF 在线学习平台：bolipi.com/ebpf/home/online</a></li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><p>#! https://zhuanlan.zhihu.com/p/589784295</p>
-<h1 id="eunomia-bpf-030-发布只需编写内核态代码轻松构建打包发布完整的-ebpf-应用"><a class="header" href="#eunomia-bpf-030-发布只需编写内核态代码轻松构建打包发布完整的-ebpf-应用">eunomia-bpf 0.3.0 发布：只需编写内核态代码，轻松构建、打包、发布完整的 eBPF 应用</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="eunomia-bpf-030-发布只需编写内核态代码轻松构建打包发布完整的-ebpf-应用"><a class="header" href="#eunomia-bpf-030-发布只需编写内核态代码轻松构建打包发布完整的-ebpf-应用">eunomia-bpf 0.3.0 发布：只需编写内核态代码，轻松构建、打包、发布完整的 eBPF 应用</a></h1>
 <h2 id="eunomia-bpf-简介"><a class="header" href="#eunomia-bpf-简介">eunomia-bpf 简介</a></h2>
 <p>eBPF 源于 BPF，本质上是处于内核中的一个高效与灵活的虚拟机组件，以一种安全的方式在许多内核 hook 点执行字节码，开发者可基于 eBPF 开发性能分析工具、软件定义网络、安全等诸多场景。但是，目前对于开发和使用 eBPF 应用而言还可能存在一些不够方便的地方：</p>
 <ul>
@@ -3373,8 +3381,7 @@ Usage: ecc [OPTIONS] &lt;SOURCE_PATH&gt; [EXPORT_EVENT_HEADER]
 <li><a href="https://github.com/linuxkerneltravel/lmp">LMP 项目</a></li>
 </ol>
 <h2 id="我们的微信群"><a class="header" href="#我们的微信群">我们的微信群</a></h2>
-<div style="break-before: page; page-break-before: always;"></div><p>#! https://zhuanlan.zhihu.com/p/600638396</p>
-<h1 id="eunomia-bpf展望-2023让-ebpf-插上-wasm-的翅膀"><a class="header" href="#eunomia-bpf展望-2023让-ebpf-插上-wasm-的翅膀">eunomia-bpf：展望 2023，让 eBPF 插上 Wasm 的翅膀</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="eunomia-bpf展望-2023让-ebpf-插上-wasm-的翅膀"><a class="header" href="#eunomia-bpf展望-2023让-ebpf-插上-wasm-的翅膀">eunomia-bpf：展望 2023，让 eBPF 插上 Wasm 的翅膀</a></h1>
 <p>回望过去的 2022 年，有两项技术备受瞩目：eBPF 和 WebAssembly。</p>
 <h2 id="ebpf-全新的可能性"><a class="header" href="#ebpf-全新的可能性">eBPF: 全新的可能性</a></h2>
 <p>eBPF 是一项革命性的技术，起源于Linux内核，可以在操作系统的内核中运行沙盒程序。它被用来安全和有效地扩展内核的功能，而不需要改变内核的源代码或加载内核模块。</p>
@@ -3571,8 +3578,8 @@ void ring_buffer_user__submit(struct ring_buffer_user *rb, void *sample);
 <p>虽然如此，在 Android 平台上尝试 eBPF 也已经有了一些成功案例，除谷歌官方提供的修改 <code>Android.bp</code> 以将 eBPF 程序随整个系统一同构建并挂载的方案<sup class="footnote-reference"><a href="#Google">2</a></sup>，也有人提出基于 Android 内核构建 Linux 环境进而运行 eBPF 工具链的思路，并开发了相关工具。</p>
 <p>目前已有的资料，大多基于 adeb/eadb 在 Android 内核基础上构建 Linux 沙箱，并对 bcc 和 bpftrace 相关工具链进行测试，而对 CO-RE 方案的测试工作较少。在 Android 上使用 bcc 工具目前有较多参考资料，如：</p>
 <ul>
-<li>SeeFlowerX：https://blog.seeflower.dev/category/eBPF/</li>
-<li>evilpan：https://bbs.kanxue.com/thread-271043.htm</li>
+<li>SeeFlowerX：<a href="https://blog.seeflower.dev/category/eBPF/">https://blog.seeflower.dev/category/eBPF/</a></li>
+<li>evilpan：<a href="https://bbs.kanxue.com/thread-271043.htm">https://bbs.kanxue.com/thread-271043.htm</a></li>
 </ul>
 <p>其主要思路是利用 chroot 在 Android 内核上运行一个 Debian 镜像，并在其中构建整个 bcc 工具链，从而使用 eBPF 工具。如果想要使用 bpftrace，原理也是类似的。</p>
 <p>事实上，高版本的 Android 内核已支持 btf 选项，这意味着 eBPF 领域中新兴的 CO-RE 技术也应当能够运用到基于 Android 内核的 Linux 系统中。本文将基于此对 eunomia-bpf 在模拟器环境下进行测试运行。</p>
@@ -3598,7 +3605,7 @@ void ring_buffer_user__submit(struct ring_buffer_user *rb, void *sample);
 <li>通过 adb 进入 Android shell 环境并获取 root 权限：
 <ul>
 <li><code>./adb shell</code></li>
-<li><code>su</code> </li>
+<li><code>su</code></li>
 </ul>
 </li>
 <li>在 Android shell 中构建并进入 debian 环境：
@@ -3614,10 +3621,12 @@ void ring_buffer_user__submit(struct ring_buffer_user *rb, void *sample);
 </li>
 </ol>
 <p>至此，测试 eBPF 所需的 Linux 环境已经构建完毕。此外，在 Android shell 中（未进入 debian 时）可以通过 <code>zcat /proc/config.gz</code> 并配合 <code>grep</code> 查看内核编译选项。
-&gt;目前，eadb 打包的 debian 环境存在 libc 版本低，缺少的工具依赖较多等情况；并且由于内核编译选项不同，一些 eBPF 功能可能也无法使用。</p>
+&gt;目前，eadb 打包的 debian 环境存在 libc 版本低，缺少的工具依赖较多等情况；并且由于内核编译选项不同，一些 eBPF 功能可能也无法使用。
+&gt;</p>
 <h1 id="工具构建"><a class="header" href="#工具构建">工具构建</a></h1>
 <p>在 debian 环境中将 eunomia-bpf 仓库 clone 到本地，具体的构建过程，可以参考仓库的 <a href="https://github.com/eunomia-bpf/eunomia-bpf/blob/master/documents/build.md">build.md</a>。在本次测试中，笔者选用了 <code>ecc</code> 编译生成 <code>package.json</code> 的方式，该工具的构建和使用方式请参考<a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/compiler">仓库页面</a>。
-&gt;在构建过程中，可能需要自行安装包括但不限于 <code>curl</code>，<code>pkg-config</code>，<code>libssl-dev</code> 等工具。</p>
+&gt;在构建过程中，可能需要自行安装包括但不限于 <code>curl</code>，<code>pkg-config</code>，<code>libssl-dev</code> 等工具。
+&gt;</p>
 <h1 id="测试结果"><a class="header" href="#测试结果">测试结果</a></h1>
 <h2 id="成功案例"><a class="header" href="#成功案例">成功案例</a></h2>
 <h3 id="bootstrap-3"><a class="header" href="#bootstrap-3"><a href="https://github.com/eunomia-bpf/eunomia-bpf/tree/master/examples/bpftools/bootstrap">bootstrap</a></a></h3>
@@ -3730,9 +3739,9 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 <p>Android 系统 eBPF 工具的发展需要官方新特性的加入，目前看来通过 Android APP 直接使用 eBPF 工具需要的工作量较大，同时由于 eBPF 工具需要 root 权限，普通 Android 用户的使用会面临较多困难。</p>
 <h1 id="参考"><a class="header" href="#参考">参考</a></h1>
 <div class="footnote-definition" id="Google"><sup class="footnote-definition-label">2</sup>
-<p>https://source.android.google.cn/docs/core/architecture/kernel/bpf
-<sup class="footnote-reference"><a href="#WeiShu">1</a></sup>:https://mp.weixin.qq.com/s/mul4n5D3nXThjxuHV7GpMA
-<sup class="footnote-reference"><a href="#SeeFlowerX">3</a></sup>:https://blog.seeflower.dev/archives/138/</p>
+<p><a href="https://source.android.google.cn/docs/core/architecture/kernel/bpf">https://source.android.google.cn/docs/core/architecture/kernel/bpf</a>
+<sup class="footnote-reference"><a href="#WeiShu">1</a></sup>:<a href="https://mp.weixin.qq.com/s/mul4n5D3nXThjxuHV7GpMA">https://mp.weixin.qq.com/s/mul4n5D3nXThjxuHV7GpMA</a>
+<sup class="footnote-reference"><a href="#SeeFlowerX">3</a></sup>:<a href="https://blog.seeflower.dev/archives/138/">https://blog.seeflower.dev/archives/138/</a></p>
 </div>
 
                     </main>

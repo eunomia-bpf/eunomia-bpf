@@ -169,54 +169,68 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="build-on--android"><a class="header" href="#build-on--android">Build on  Android</a></h1>
-<p>Android上build需要先Installing Debian on Android in Termux </p>
-<p>在Android上构建时，需要先Installing Debian on Android in Termux </p>
+                        <h1 id="build-on-android"><a class="header" href="#build-on-android">Build on Android</a></h1>
+<p>Android上build需要先Installing Debian on Android in Termux</p>
+<p>在Android上构建时，需要先Installing Debian on Android in Termux</p>
 <ol>
-<li>install termux</li>
-</ol>
-<p>https://github.com/termux/termux-app/releases/tag/v0.118.0</p>
-<ol start="2">
-<li>install proot-distro</li>
-</ol>
+<li>
+<p>install termux</p>
+<p><a href="https://github.com/termux/termux-app/releases/tag/v0.118.0">https://github.com/termux/termux-app/releases/tag/v0.118.0</a></p>
+</li>
+<li>
+<p>install proot-distro</p>
 <p>select debian distro</p>
 <pre><code class="language-sh">pkg install proot-distro
 proot-distro install debian
 proot-distro login debian
 </code></pre>
-<ol start="3">
-<li>install packages</li>
-</ol>
+</li>
+<li>
+<p>install packages</p>
 <p>remember <code>proot-distro login debian</code> first</p>
 <pre><code class="language-sh">apk update
 apt install clang cmake libelf1 libelf-dev zlib1g-dev
 </code></pre>
 <p>之后的步骤和在ARM上build上相同</p>
-<h1 id="build-on--arm"><a class="header" href="#build-on--arm">Build on  ARM</a></h1>
-<ol>
-<li>同步 eunomia-bpf 到本地</li>
+</li>
 </ol>
+<h2 id="build-on-arm"><a class="header" href="#build-on-arm">Build on ARM</a></h2>
+<ol>
+<li>
+<p>同步 eunomia-bpf 到本地</p>
 <pre><code class="language-sh">git clone https://github.com/eunomia-bpf/eunomia-bpf.git
 cd eunomia-bpf
 git submodule update --init --recursive --remote
 </code></pre>
-<p>2.配置环境变量</p>
+</li>
+<li>
+<p>配置环境变量</p>
 <pre><code class="language-sh">export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
 </code></pre>
-<p>3.安装依赖</p>
+</li>
+<li>
+<p>安装依赖</p>
 <pre><code class="language-sh">apt update
 apt install clang cmake libelf1 libelf-dev zlib1g-dev
 </code></pre>
-<p>4.修改wasm-runtime/CMakeLists.txt<code>中的</code>WAMR_BUILD_TARGET（may not required)</p>
+</li>
+<li>
+<p>修改wasm-runtime/CMakeLists.txt<code>中的</code>WAMR_BUILD_TARGET（may not required）</p>
 <p>change <code>set (WAMR_BUILD_TARGET &quot;X86_64&quot;)</code> to <code>set (WAMR_BUILD_TARGET &quot;AARCH64&quot;)</code></p>
-<p>5.编译</p>
+</li>
+<li>
+<p>编译</p>
 <pre><code class="language-sh">make bpf-loader
 make ecli
 </code></pre>
-<p>6.检查输出</p>
+</li>
+<li>
+<p>检查输出</p>
 <pre><code class="language-sh">root@localhost:~/eunomia-bpf# file ecli/build/bin/Release/ecli
 ecli: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, BuildID[sha1]=eab42b79be75951e3a573aa7c61136239d35c868, for GNU/Linux 3.7.0, with debug_info, not stripped
 </code></pre>
+</li>
+</ol>
 
                     </main>
 
