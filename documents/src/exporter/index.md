@@ -1,3 +1,8 @@
+---
+title: exporter
+catagories: ['exporter']
+---
+
 # eunomia-exporter
 
 An prometheus and OpenTelemetry exporter for custom eBPF metrics, written in async rust: eunomia-exporter

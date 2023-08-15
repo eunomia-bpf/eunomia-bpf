@@ -1,3 +1,8 @@
+---
+title: manual
+catagories: ['misc']
+---
+
 # eunomia-bpf 用户手册: 让 eBPF 程序的开发和部署尽可能简单
 
 <!-- TOC -->
@@ -219,7 +224,7 @@ sudo ./ecli run https://eunomia-bpf.github.io/ebpm-template/package.json
 
 由于 eunomia-cc 编译出来的 ebpf 程序代码和附加信息很小（约数十 kb），且不需要同时传递任何的额外依赖，因此我们可以非常方便地通过网络 API 直接进行分发，也可以在很短的时间（大约 100ms）内实现热插拔和热更新。我们提供了一个简单的 client 和 server，请参考;
 
-[ecli-dockerfile-usage.md](ecli-dockerfile-usage.md)
+[ecli-dockerfile-usage.md](ecli/ecli-dockerfile-usage.md)
 
 之前也有一篇比赛项目的可行性验证的文章：
 
@@ -829,13 +834,13 @@ int path_rmdir(const struct path *dir, struct dentry *dentry) {
 
 `ecli` 是基于我们底层的 eunomia-bpf 库和运行时实现的一个简单的命令行工具。我们的项目架构如下图所示：
 
-![arch](img/eunomia-arch.png)
+![arch](../img/eunomia-arch.png)
 
 `ecli` 工具基于 `ewasm` 库实现，`ewasm` 库包含一个 WAMR(wasm-micro-runtime) 运行时，以及基于 libbpf 库构建的 eBPF 动态装载模块。大致来说，我们在 `Wasm` 运行时和用户态的 `libbpf` 中间多加了一层抽象层（`eunomia-bpf` 库），使得一次编译、到处运行的 eBPF 代码可以从 JSON 对象中动态加载。JSON 对象会在编译时被包含在 Wasm 模块中，因此在运行时，我们可以通过解析 JSON 对象来获取 eBPF 程序的信息，然后动态加载 eBPF 程序。
 
 使用 Wasm 或 JSON 编译分发 eBPF 程序的流程图大致如下：
 
-![flow](img/eunomia-bpf-flow.png)
+![flow](../img/eunomia-bpf-flow.png)
 
 大致来说，整个 eBPF 程序的编写和加载分为三个部分：
 
@@ -852,7 +857,7 @@ int path_rmdir(const struct path *dir, struct dentry *dentry) {
 
 `ecli` 是基于我们底层的 eunomia-bpf 库和运行时实现的一个简单的命令行工具。我们的项目架构如下图所示：
 
-![arch](img/eunomia-arch.png)
+![arch](../img/eunomia-arch.png)
 
 `ecli` 工具基于 `ewasm` 库实现，`ewasm` 库包含一个 WAMR(wasm-micro-runtime) 运行时，以及基于 libbpf 库构建的 eBPF 动态装载模块。大致来说，我们在 `Wasm` 运行时和用户态的 `libbpf` 中间多加了一层抽象层（`eunomia-bpf` 库），使得一次编译、到处运行的 eBPF 代码可以从 JSON 对象中动态加载。JSON 对象会在编译时被包含在 Wasm 模块中，因此在运行时，我们可以通过解析 JSON 对象来获取 eBPF 程序的信息，然后动态加载 eBPF 程序。
 

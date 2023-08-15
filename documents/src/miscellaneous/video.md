@@ -1,3 +1,8 @@
+---
+title: video
+catagories: ['misc']
+---
+
 # videos
 
 - [eunomia-bpf: 一个开源的 ebpf 动态加载运行时和开发工具链](https://www.bilibili.com/video/BV1DG4y1N76m/)

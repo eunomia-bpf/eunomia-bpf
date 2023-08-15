@@ -1,3 +1,8 @@
+---
+title: quickstart
+catagories: ['misc']
+---
+
 # Quick Start
 
 - Github Template：[eunomia-bpf/ebpm-template](https://github.com/eunomia-bpf/ebpm-template)

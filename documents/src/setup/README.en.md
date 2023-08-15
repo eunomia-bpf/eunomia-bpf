@@ -1,3 +1,8 @@
+---
+title: Install ecli and ecc
+catagories: ['installation']
+---
+
 # Install
 
 - Install the `ecli` tool for running eBPF program from the cloud:

@@ -1,3 +1,8 @@
+---
+title: common problems
+catagories: ['misc']
+---
+
 # common problem
 
 if you get a error like `/usr/lib/x86_64-linux-gnu/libstdc++.so.6: version GLIBCXX_3.4.29 not found` on old version kernels,

@@ -1,3 +1,8 @@
+---
+title: github template
+catagories: ['ecc']
+---
+
 # Github Action 模板
 
 ebpm-template：使用 Github Action 进行远程编译，本地一键运行；

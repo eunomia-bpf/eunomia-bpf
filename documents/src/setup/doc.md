@@ -1,3 +1,8 @@
+---
+title: eunomia-bpf readme
+catagories: ['introduction']
+---
+
 ![logo](../img/logo.png)
 
 # eunomia-bpf: simplify and enhance eBPF with CO-RE[^1] and WebAssembly[^2]

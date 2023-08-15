@@ -1,3 +1,8 @@
+---
+title: ecli server
+catagories: ['ecli']
+---
+
 # ecli server
 
 You can use server to manager and dynamically install eBPF programs.
