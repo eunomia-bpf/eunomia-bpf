@@ -3,7 +3,7 @@ title: build from source
 catagories: ['installation']
 ---
 
-# build
+# build eunomia-bpf project
 
 If you want to run the cli, in most cases, you don't need to build your own.
 

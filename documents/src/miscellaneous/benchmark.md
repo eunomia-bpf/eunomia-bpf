@@ -3,8 +3,6 @@ title: benchmark
 catagories: ['misc']
 ---
 
-
-
 # benchmark
 
 Most of the time, bpf-loader work as a library to load eBPF program. It will not affect eBPF program after the program has been loaded and attached.
