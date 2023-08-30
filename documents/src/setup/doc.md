@@ -36,4 +36,4 @@ With eunnomia-bpf, you can:
 For more information, see [next](introduction.md).
 
 [^1]: CO-RE: [Compile Once – Run Everywhere](https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html)
-[^2]: WebAssembly or Wasm: https://webassembly.org/
+[^2]: WebAssembly or Wasm: <https://webassembly.org/>
