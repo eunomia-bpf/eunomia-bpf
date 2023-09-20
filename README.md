@@ -144,7 +144,7 @@ For more information, see [documents/src/ecli/server.md](documents/src/ecli/serv
 
 - build the compiler, runtime library and tools:
 
-  see [build](documents/src/miscellaneous/build.md) for building details.
+  see [build](https://eunomia.dev/setup/build) for building details.
 
 ## Examples
 
