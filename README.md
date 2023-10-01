@@ -46,7 +46,7 @@ You can get pre-compiled eBPF programs running from the cloud to the kernel in `
 ```bash
 # download the release from https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli
 $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
-$ sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json # simply run a pre-compiled ebpf code from a url
+$ sudo ./ecli run https://eunomia.dev/example/sigsnoop/package.json # simply run a pre-compiled ebpf code from a url
 INFO [bpf_loader_lib::skeleton] Running ebpf program...
 TIME     PID    TPID   SIG    RET    COMM   
 01:54:49  77297 8042   0      0      node
