@@ -20,42 +20,34 @@
             license = licenses.mit;
             maintainers = with maintainers; [ undefined-moe ];
           };
-          pkgs = import nixpkgs
-            {
-              inherit system;
-              overlays = [
-                (
-                  final: prev: {
-                    # using patched bpftool
-                    bpftool =
-                      prev.stdenv.mkDerivation {
-                        pname = "bpftool";
-                        version = "eunomia-edition-20230311";
-                        src = prev.fetchFromGitHub {
-                          owner = "eunomia-bpf";
-                          repo = "bpftool";
-                          rev = "05940344f5db18d0cb1bc1c42e628f132bc93123";
-                          sha256 = "sha256-g2gjixfuGwVnFlqCMGLWVPbtKOSpQI+vZwIZciXFPTc=";
-                          fetchSubmodules = true;
-                        };
+          pkgs = import nixpkgs { inherit system; };
 
-                        buildInputs = with prev; [ llvmPackages_15.clang elfutils zlib llvmPackages_15.libllvm.dev ];
+          bpftool = (with pkgs;
+            stdenv.mkDerivation {
+              pname = "bpftool";
+              version = "eunomia-edition-20230311";
+              src = fetchFromGitHub {
+                owner = "eunomia-bpf";
+                repo = "bpftool";
+                rev = "05940344f5db18d0cb1bc1c42e628f132bc93123";
+                hash = "sha256-g2gjixfuGwVnFlqCMGLWVPbtKOSpQI+vZwIZciXFPTc=";
+                fetchSubmodules = true;
+              };
 
-                        buildPhase = ''
-                          make -C src
-                        '';
+              buildInputs = [ llvmPackages_15.clang elfutils zlib llvmPackages_15.libllvm.dev ];
 
-                        installPhase = ''
-                          mkdir -p $out/include/bpf
-                          cp libbpf/src/* $out/include/bpf
-                          mkdir -p $out/bin
-                          cp src/bpftool $out/bin
-                        '';
-                      };
-                  }
-                )
-              ];
-            };
+              buildPhase = ''
+                make -C src
+              '';
+
+              installPhase = ''
+                mkdir -p $out/include/bpf
+                cp libbpf/src/* $out/include/bpf
+                mkdir -p $out/bin
+                cp src/bpftool $out/bin
+              '';
+            });
+
           vmlinux =
             with pkgs;(stdenv.mkDerivation
               {
@@ -67,7 +59,7 @@
                     owner = "eunomia-bpf";
                     repo = "vmlinux";
                     rev = "933f83becb45f5586ed5fd089e60d382aeefb409";
-                    sha256 = "sha256-CVEmKkzdFNLKCbcbeSIoM5QjYVLQglpz6gy7+ZFPgCY=";
+                    hash = "sha256-CVEmKkzdFNLKCbcbeSIoM5QjYVLQglpz6gy7+ZFPgCY=";
                   };
 
                 installPhase = ''
@@ -168,6 +160,7 @@
 
               buildInputs = with pkgs;[
                 llvmPackages_latest.clang
+                llvmPackages_latest.bintools
                 elfutils
                 zlib
               ];
@@ -179,8 +172,8 @@
                 export OUT_DIR=$(pwd)
                 mkdir -p $OUT_DIR/workspace/{include,bin}
                 cp -r ${vmlinux} $OUT_DIR/workspace/include/vmlinux
-                cp ${pkgs.bpftool}/bin/bpftool $OUT_DIR/workspace/bin
-                cp -r ${pkgs.bpftool}/include $OUT_DIR/workspace
+                cp ${bpftool}/bin/bpftool $OUT_DIR/workspace/bin
+                cp -r ${bpftool}/include $OUT_DIR/workspace
                 cd ${cargoRoot}
                 cargo build --release
               '';
@@ -199,9 +192,7 @@
             default = eunomia-dev;
 
             eunomia-dev = pkgs.mkShell {
-              inputsFrom = with packages;
-                [ ecc ecli ] ++ (with pkgs;[ llvmPackages.bintools ]);
-
+              inputsFrom = with packages;[ ecc ecli ];
             };
 
             ebpf-dev = eunomia-dev // pkgs.mkShell {
