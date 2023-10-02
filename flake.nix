@@ -16,8 +16,7 @@
         let
           version = pkgs.lib.substring 0 8 self.lastModifiedDate or self.lastModified or "19700101";
           meta = with pkgs.lib; {
-            description = "A tool for push, pull and run pre-compiled eBPF programs as OCI images in Wasm module";
-            homepage = "https://eunomia.dev/";
+            homepage = "https://eunomia.dev";
             license = licenses.mit;
             maintainers = with maintainers; [ undefined-moe ];
           };
