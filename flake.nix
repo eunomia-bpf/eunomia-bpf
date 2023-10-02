@@ -133,19 +133,19 @@
               '';
               inherit meta;
             };
-            ecc = pkgs.stdenv.mkDerivation rec{
+            ecc = (with pkgs; llvmPackages_16.stdenv.mkDerivation rec {
               pname = "ecc";
-
               inherit version;
+
               src = self;
 
               cargoRoot = "compiler/cmd";
 
-              cargoDeps = pkgs.rustPlatform.importCargoLock {
+              cargoDeps = rustPlatform.importCargoLock {
                 lockFile = ./${cargoRoot}/Cargo.lock;
               };
 
-              nativeBuildInputs = with pkgs;[
+              nativeBuildInputs = [
                 cmake
                 pkg-config
               ]
@@ -156,11 +156,10 @@
                 bindgenHook
                 cargo
                 rustc
+                makeWrapper
               ]);
 
-              buildInputs = with pkgs;[
-                llvmPackages_latest.clang
-                llvmPackages_latest.bintools
+              buildInputs = [
                 elfutils
                 zlib
               ];
@@ -183,7 +182,14 @@
                 install -Dm 755 target/release/ecc-rs $out/bin/
               '';
 
-            };
+              postFixup = ''
+                wrapProgram $out/bin/ecc-rs --prefix LIBCLANG_PATH : ${llvmPackages_16.libclang.lib}/lib \
+                  --prefix PATH : ${lib.makeBinPath (with llvmPackages_16; [clang bintools-unwrapped])}
+              '';
+              inherit meta;
+            });
+
+
             bpftool = pkgs.bpftool;
           };
 
