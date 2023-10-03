@@ -22,61 +22,45 @@
           };
           pkgs = import nixpkgs { inherit system; };
 
-          bpftool = (with pkgs;
-            stdenv.mkDerivation {
-              pname = "bpftool";
-              version = "eunomia-edition-20230311";
-              src = fetchFromGitHub {
-                owner = "eunomia-bpf";
-                repo = "bpftool";
-                rev = "05940344f5db18d0cb1bc1c42e628f132bc93123";
-                hash = "sha256-g2gjixfuGwVnFlqCMGLWVPbtKOSpQI+vZwIZciXFPTc=";
-                fetchSubmodules = true;
-              };
+          bpftool = (with pkgs; stdenv.mkDerivation {
+            pname = "bpftool";
+            version = "eunomia-edition-20230311";
+            src = fetchFromGitHub {
+              owner = "eunomia-bpf";
+              repo = "bpftool";
+              rev = "05940344f5db18d0cb1bc1c42e628f132bc93123";
+              hash = "sha256-g2gjixfuGwVnFlqCMGLWVPbtKOSpQI+vZwIZciXFPTc=";
+              fetchSubmodules = true;
+            };
 
-              buildInputs = [ llvmPackages_15.clang elfutils zlib llvmPackages_15.libllvm.dev ];
+            buildInputs = [ llvmPackages_15.clang elfutils zlib llvmPackages_15.libllvm.dev ];
 
-              buildPhase = ''
-                make -C src
-              '';
+            buildPhase = ''
+              make -C src
+            '';
 
-              installPhase = ''
-                mkdir -p $out/include/bpf
-                cp libbpf/src/* $out/include/bpf
-                mkdir -p $out/bin
-                cp src/bpftool $out/bin
-              '';
-            });
+            installPhase = ''
+              # compatible with `build.rs` from upstream
+              mkdir -p $out/src/libbpf
+              cp -r src/libbpf/include $out/src/libbpf
+              cp src/bpftool $out/src
+            '';
+          });
 
-          vmlinux =
-            with pkgs;(stdenv.mkDerivation
-              {
-                pname = "vmlinux";
-                version = "eunomia-edition-20230514";
+          vmlinux = pkgs.fetchFromGitHub {
+            owner = "eunomia-bpf";
+            repo = "vmlinux";
+            rev = "933f83becb45f5586ed5fd089e60d382aeefb409";
+            hash = "sha256-CVEmKkzdFNLKCbcbeSIoM5QjYVLQglpz6gy7+ZFPgCY=";
+          };
 
-                src =
-                  pkgs.fetchFromGitHub {
-                    owner = "eunomia-bpf";
-                    repo = "vmlinux";
-                    rev = "933f83becb45f5586ed5fd089e60d382aeefb409";
-                    hash = "sha256-CVEmKkzdFNLKCbcbeSIoM5QjYVLQglpz6gy7+ZFPgCY=";
-                  };
-
-                installPhase = ''
-                  runHook preInstall
-                  cp -r $src $out
-                  runHook postInstall
-                '';
-
-              });
-
-          ecli = pkgs.stdenv.mkDerivation rec {
+          ecli = pkgs.stdenv.mkDerivation (finalAttrs: {
             name = "ecli";
             inherit version;
             src = self;
             cargoRoot = "ecli";
             cargoDeps = pkgs.rustPlatform.importCargoLock {
-              lockFile = ./${cargoRoot}/Cargo.lock;
+              lockFile = ./${finalAttrs.cargoRoot}/Cargo.lock;
             };
 
             nativeBuildInputs = with pkgs;[
@@ -99,7 +83,7 @@
             ];
 
             preBuild = ''
-              cd ${cargoRoot}
+              cd ${finalAttrs.cargoRoot}
             '';
 
             OPENSSL_NO_VENDOR = 1;
@@ -110,7 +94,7 @@
               install -Dm 755 target/release/ecli-server $out/bin/
             '';
             inherit meta;
-          };
+          });
         in
         rec {
           packages = {
@@ -133,7 +117,7 @@
               '';
               inherit meta;
             };
-            ecc = (with pkgs; llvmPackages_16.stdenv.mkDerivation rec {
+            ecc = (with pkgs; llvmPackages_16.stdenv.mkDerivation (finalAttrs: {
               pname = "ecc";
               inherit version;
 
@@ -142,11 +126,10 @@
               cargoRoot = "compiler/cmd";
 
               cargoDeps = rustPlatform.importCargoLock {
-                lockFile = ./${cargoRoot}/Cargo.lock;
+                lockFile = ./${finalAttrs.cargoRoot}/Cargo.lock;
               };
 
               nativeBuildInputs = [
-                cmake
                 pkg-config
               ]
               ++
@@ -164,16 +147,12 @@
                 zlib
               ];
 
-              dontUseCmakeConfigure = true;
-
               preBuild = ''
-                rm compiler/cmd/build.rs # requires network access
+                export SANDBOX=1
                 export OUT_DIR=$(pwd)
-                mkdir -p $OUT_DIR/workspace/{include,bin}
-                cp -r ${vmlinux} $OUT_DIR/workspace/include/vmlinux
-                cp ${bpftool}/bin/bpftool $OUT_DIR/workspace/bin
-                cp -r ${bpftool}/include $OUT_DIR/workspace
-                cd ${cargoRoot}
+                export VMLINUX_DIR=${vmlinux}
+                export BPFTOOL_DIR=${bpftool}
+                cd ${finalAttrs.cargoRoot}
                 cargo build --release
               '';
 
@@ -187,10 +166,9 @@
                   --prefix PATH : ${lib.makeBinPath (with llvmPackages_16; [clang bintools-unwrapped])}
               '';
               inherit meta;
-            });
+            }));
 
-
-            bpftool = pkgs.bpftool;
+            inherit bpftool;
           };
 
           devShells = rec {
