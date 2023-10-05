@@ -26,6 +26,10 @@ fn bpftool_repodir() -> PathBuf {
     PathBuf::from("bpftool")
 }
 
+fn sandboxed() -> bool {
+    !std::env::var("SANDBOX").unwrap_or_default().is_empty()
+}
+
 fn bpftool_repo() -> String {
     std::env::var("BPFTOOL_REPO").unwrap_or_else(|_| DEFAULT_BPFTOOL_REPO.to_string())
 }
@@ -76,8 +80,11 @@ fn fetch_git_repo(url: &str, git_ref: &str, local_dir: &Path) -> anyhow::Result<
     Ok(())
 }
 
-fn fetch_and_build_bpftool() -> anyhow::Result<()> {
-    fetch_git_repo(&bpftool_repo(), &bpftool_ref(), &bpftool_repodir())?;
+fn fetch_bpftool() -> anyhow::Result<()> {
+    fetch_git_repo(&bpftool_repo(), &bpftool_ref(), &bpftool_repodir())
+}
+
+fn build_bpftool() -> anyhow::Result<()> {
     if !Command::new("make")
         .arg("-j")
         .current_dir(workdir().join(bpftool_repodir()).join("src"))
@@ -112,34 +119,49 @@ fn main() -> anyhow::Result<()> {
         copy_dir(v, workspace_path).with_context(|| anyhow!("Failed to copy custom workspace"))?;
         return Ok(());
     }
-    fetch_and_build_bpftool()
-        .with_context(|| anyhow!("Failed to fetch or build the repo of bpftool"))?;
-    fetch_git_repo(&vmlinux_repo(), &vmlinux_ref(), &vmlinux_repodir())
-        .with_context(|| anyhow!("Failed to fetch vmlinux headers"))?;
+
+    // not to access network in isolated env
+    if !sandboxed() {
+        fetch_bpftool().with_context(|| anyhow!("Failed to fetch the repo of bpftool"))?;
+        build_bpftool().with_context(|| anyhow!("Failed to build the repo of bpftool"))?;
+        fetch_git_repo(&vmlinux_repo(), &vmlinux_ref(), &vmlinux_repodir())
+            .with_context(|| anyhow!("Failed to fetch vmlinux headers"))?;
+    }
 
     std::fs::create_dir_all(workspace_path.join("bin"))
         .with_context(|| anyhow!("Failed to create `bin` directory of workspace"))?;
     std::fs::create_dir_all(workspace_path.join("include"))
         .with_context(|| anyhow!("Failed to create `include` directory of workspace"))?;
-    let bpftool_repo_dir = workdir().join(bpftool_repodir());
+    let bpftool_dir = if let Ok(d) = std::env::var("BPFTOOL_DIR") {
+        PathBuf::from(d)
+    } else {
+        workdir().join(bpftool_repodir())
+    };
+
     std::fs::copy(
-        bpftool_repo_dir.join("src/bpftool"),
+        bpftool_dir.join("src/bpftool"),
         workspace_path.join("bin/bpftool"),
     )
     .with_context(|| anyhow!("Failed to copy bpftool binary"))?;
     copy_dir(
-        bpftool_repo_dir.join("src/libbpf/include/bpf"),
+        bpftool_dir.join("src/libbpf/include/bpf"),
         workspace_path.join("include/bpf"),
     )
     .with_context(|| anyhow!("Failed to copy libbpf headers"))?;
     // Avoid copying the .git folder
-    std::fs::remove_dir_all(workdir().join(vmlinux_repodir()).join(".git"))
-        .with_context(|| anyhow!("Failed to remove .git directory "))?;
-    CopyBuilder::new(
-        workdir().join(vmlinux_repodir()),
-        workspace_path.join("include/vmlinux"),
-    )
-    .run()
-    .with_context(|| anyhow!("Failed to copy vmlinux headers"))?;
+    if !sandboxed() {
+        std::fs::remove_dir_all(workdir().join(vmlinux_repodir()).join(".git"))
+            .with_context(|| anyhow!("Failed to remove .git directory "))?;
+    }
+
+    let vmlinux_dir = if let Ok(d) = std::env::var("VMLINUX_DIR") {
+        PathBuf::from(d)
+    } else {
+        workdir().join(vmlinux_repodir())
+    };
+
+    CopyBuilder::new(vmlinux_dir, workspace_path.join("include/vmlinux"))
+        .run()
+        .with_context(|| anyhow!("Failed to copy vmlinux headers"))?;
     Ok(())
 }
