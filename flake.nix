@@ -22,10 +22,13 @@
           };
           pkgs = import nixpkgs { inherit system; };
 
-          bpftool = (with pkgs; stdenv.mkDerivation {
+          bpftool = pkgs.llvmPackages.stdenv.mkDerivation {
             pname = "bpftool";
-            version = "eunomia-edition-20230311";
-            src = fetchFromGitHub {
+            version = "unstable-2023-03-11";
+
+            # this fork specialized for some functions
+            # and has eventually been embedded into the ecc binary
+            src = pkgs.fetchFromGitHub {
               owner = "eunomia-bpf";
               repo = "bpftool";
               rev = "05940344f5db18d0cb1bc1c42e628f132bc93123";
@@ -33,21 +36,27 @@
               fetchSubmodules = true;
             };
 
-            buildInputs = [ llvmPackages_15.clang elfutils zlib llvmPackages_15.libllvm.dev ];
+            buildInputs = with pkgs;[
+              llvmPackages.libllvm
+              elfutils
+              zlib
+            ];
 
             buildPhase = ''
               make -C src
             '';
 
             installPhase = ''
-              # compatible with `build.rs` from upstream
+              # We don't use the default `make install` because we are looking to create a
+              # directory structure compatible with `build.rs` of `ecc`.
               mkdir -p $out/src/libbpf
+              # some headers are required
               cp -r src/libbpf/include $out/src/libbpf
               cp src/bpftool $out/src
             '';
-          });
+          };
 
-          vmlinux = pkgs.fetchFromGitHub {
+          vmlinux-headers = pkgs.fetchFromGitHub {
             owner = "eunomia-bpf";
             repo = "vmlinux";
             rev = "933f83becb45f5586ed5fd089e60d382aeefb409";
@@ -117,56 +126,71 @@
               '';
               inherit meta;
             };
-            ecc = (with pkgs; llvmPackages_16.stdenv.mkDerivation (finalAttrs: {
+            ecc = (with pkgs;rustPlatform.buildRustPackage rec {
               pname = "ecc";
-              inherit version;
+              version = "1.0.11";
 
-              src = self;
-
-              cargoRoot = "compiler/cmd";
-
-              cargoDeps = rustPlatform.importCargoLock {
-                lockFile = ./${finalAttrs.cargoRoot}/Cargo.lock;
+              src = fetchFromGitHub {
+                owner = "eunomia-bpf";
+                repo = "eunomia-bpf";
+                rev = "v${version}";
+                hash = "sha256-UiwS+osyC3gtbQH0bWNsx1p3xYr993/FAZ5d5NKnaBM=";
               };
+
+              sourceRoot = "${src.name}/compiler/cmd";
+
+              cargoHash = "sha256-j2HPSmU/JARfw2mE1IiXFT/dcdxxnp+agC2DN0Kc5nw=";
 
               nativeBuildInputs = [
                 pkg-config
-              ]
-              ++
-              (with rustPlatform;
-              [
-                cargoSetupHook
-                bindgenHook
-                cargo
-                rustc
                 makeWrapper
-              ]);
+                rustPlatform.bindgenHook
+              ];
 
               buildInputs = [
                 elfutils
                 zlib
               ];
 
+              CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER = "gcc";
+
               preBuild = ''
+                # `SANDBOX` defined by upstream to disable build-time network access
                 export SANDBOX=1
-                export OUT_DIR=$(pwd)
-                export VMLINUX_DIR=${vmlinux}
+                # specify dependencies' location
+                export VMLINUX_DIR=${vmlinux-headers}
                 export BPFTOOL_DIR=${bpftool}
-                cd ${finalAttrs.cargoRoot}
-                cargo build --release
               '';
 
-              postInstall = ''
-                mkdir -p $out/bin
-                install -Dm 755 target/release/ecc-rs $out/bin/
+              preCheck = ''
+                export HOME=$NIX_BUILD_TOP
               '';
+
+              checkFlags = [
+                # requires network access
+                "--skip=bpf_compiler::tests::test_generate_custom_btf"
+
+                # FIXME: requires dynamic link `libclang` or clang binary which are not found in check env
+                "--skip=bpf_compiler::tests::test_compile_bpf"
+                "--skip=bpf_compiler::tests::test_export_multi_and_pack"
+                "--skip=document_parser::test::test_parse_empty"
+                "--skip=document_parser::test::test_parse_maps"
+                "--skip=document_parser::test::test_parse_progss"
+                "--skip=document_parser::test::test_parse_variables"
+              ];
+
+              passthru = {
+                inherit bpftool;
+              };
 
               postFixup = ''
-                wrapProgram $out/bin/ecc-rs --prefix LIBCLANG_PATH : ${llvmPackages_16.libclang.lib}/lib \
-                  --prefix PATH : ${lib.makeBinPath (with llvmPackages_16; [clang bintools-unwrapped])}
+                wrapProgram $out/bin/ecc-rs \
+                  --prefix LIBCLANG_PATH : ${llvmPackages.libclang.lib}/lib \
+                  --prefix PATH : ${lib.makeBinPath (with llvmPackages; [clang bintools-unwrapped])}
               '';
+
               inherit meta;
-            }));
+            });
 
             inherit bpftool;
           };
