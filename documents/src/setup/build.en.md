@@ -63,6 +63,32 @@ Please install WASI SDK, download the [wasi-sdk](https://github.com/CraneStation
 make ecc
 ```
 
+# install from package manager
+
+## nix
+
+On any distros with nix installed:
+
+### build ecc
+
+```shell
+nix build github:eunomia-bpf/eunomia-bpf#ecc # or ecli, see `nix flake show` for details # or ecli
+```
+
+Run application directly with:
+
+```shell
+nix run github:eunomia-bpf/eunomia-bpf#ecc -- -h
+```
+
+## openEuler
+
+```shell
+sudo dnf search eunomia-bpf
+# and install
+```
+
+
 ## more details
 
 - You can check the Makefile at project root for more details: [Makefile](https://github.com/eunomia-bpf/eunomia-bpf/blob/master/compiler/Makefile)
