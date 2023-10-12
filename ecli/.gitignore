@@ -4,4 +4,3 @@ app.wasm
 openapi-generator-cli.jar
 /server-codegen/examples/*.pem
 dump*
-Cargo.lock
