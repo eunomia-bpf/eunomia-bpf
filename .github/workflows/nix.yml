@@ -1,0 +1,30 @@
+name: "Nix build check"
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3.3.0
+    - uses: nixbuild/nix-quick-install-action@v22
+      with:
+        nix_conf: |
+          experimental-features = nix-command flakes
+          access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+    - name: Nix Flake Show
+      run: nix flake show --all-systems
+
+    - name: Build ecc
+      run: nix build .#ecc
+
+    - name: Build ecli-rs
+      run: nix build .#ecli-rs
+
+    - name: Build bpftool
+      run: nix build .#bpftool
+
+    - name: Build ecli-server
+      run: nix build .#ecli-server
