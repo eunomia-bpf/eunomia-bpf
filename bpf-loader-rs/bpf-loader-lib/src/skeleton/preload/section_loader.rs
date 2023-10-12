@@ -154,7 +154,7 @@ pub(crate) fn load_section_data_with_skel_value(
                 }
                 (Value::String(s), _) if btf.is_char_array(var_type_decl.type_id)? => {
                     let mut bytes = s.as_bytes().to_vec();
-                    // Traling zero
+                    // Trailing zero
                     bytes.push(0);
                     if bytes.len() > var.sz as usize {
                         bail!(

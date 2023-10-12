@@ -1,3 +1,8 @@
+---
+title: ecli
+catagories: ['ecli']
+---
+
 # ecli: run ebpf programs as json or wasm
 
 ## Usage

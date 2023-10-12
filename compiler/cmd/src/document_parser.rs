@@ -15,7 +15,12 @@ use crate::helper::get_target_arch;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
-use clang::{documentation::CommentChild, *};
+use clang::documentation::CommentChild;
+use clang::Clang;
+use clang::Entity;
+use clang::EntityKind;
+use clang::Index;
+use clang::TranslationUnit;
 use log::warn;
 use serde_json::{json, Value};
 
@@ -99,7 +104,7 @@ fn process_comment_child(child: CommentChild, value: &mut Value, default_cmd: &s
     }
 }
 
-/// reslove bpf global variables
+/// resolve bpf global variables
 fn resolve_section_data_entities(entities: &Vec<Entity>, data_sec: &mut Value) {
     for var in data_sec["variables"].as_array_mut().unwrap() {
         for e in entities {
@@ -124,7 +129,7 @@ fn resolve_section_data_entities(entities: &Vec<Entity>, data_sec: &mut Value) {
     }
 }
 
-/// reslove bpf maps comments
+/// resolve bpf maps comments
 fn resolve_map_entities(entities: &Vec<Entity>, map: &mut Value) {
     let mut last_var_entity = None;
     for e in entities {
@@ -163,7 +168,7 @@ fn resolve_map_entities(entities: &Vec<Entity>, map: &mut Value) {
     }
 }
 
-/// reslove bpf progs comments
+/// resolve bpf progs comments
 fn resolve_progs_entities(entities: &Vec<Entity>, progs: &mut Value) {
     for e in entities {
         if e.get_kind() != EntityKind::FunctionDecl {
@@ -271,7 +276,7 @@ pub fn parse_source_documents(
         })
         .collect::<Vec<_>>();
 
-    // reslove comments for section data and functions, maps
+    // resolve comments for section data and functions, maps
     // find the entity with the same name as the names in the json skeleton
     let new_skel_json = resolve_bpf_skel_entities(&entities, bpf_skel_json)?;
     Ok(new_skel_json)

@@ -17,13 +17,13 @@ const _EXPORT_C_TEMPLATE: &str = r#"
 
 "#;
 
-const REGEX_STRUCT_PATTREN: &str = r#"struct\s+(\w+)\s*\{"#;
+const REGEX_STRUCT_PATTERN: &str = r#"struct\s+(\w+)\s*\{"#;
 
 // find all structs in event header
 pub fn find_all_export_structs(args: &CompileArgs) -> Result<Vec<String>> {
     let mut export_structs: Vec<String> = Vec::new();
     let export_struct_header = fs::read_to_string(&args.export_event_header)?;
-    let re = Regex::new(REGEX_STRUCT_PATTREN).unwrap();
+    let re = Regex::new(REGEX_STRUCT_PATTERN).unwrap();
 
     for cap in re.captures_iter(&export_struct_header) {
         let struct_name = &cap[1];

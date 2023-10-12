@@ -156,6 +156,47 @@ impl Default for MapExportConfig {
     }
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Default)]
+/// Specify which field in the provided input struct will be mapped to the corresponding field
+pub struct StackTraceFieldMapping {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cpu_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comm: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kstack_sz: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ustack_sz: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kstack: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ustack: Option<String>,
+}
+
+/// Indicate how to inteprete the buffer value polled by the userspace program
+/// DefaultStruct - Inteprete the data to a map constructed using BTF
+/// StackTrace - Inteprete the data that received as StackTrace data. Will also use BTF, but the user is responsible to provide a function to translate the fields to the corresponding requiring fields
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+pub enum BufferValueInterpreter {
+    #[serde(rename = "default_struct")]
+    DefaultStruct,
+    #[serde(rename = "stack_trace")]
+    StackTrace {
+        #[serde(default)]
+        field_map: StackTraceFieldMapping,
+        #[serde(default = "default_helpers::default_bool::<true>")]
+        with_symbols: bool,
+    },
+}
+
+impl Default for BufferValueInterpreter {
+    fn default() -> Self {
+        Self::DefaultStruct
+    }
+}
+
 /// Describe a map
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct MapMeta {
@@ -172,6 +213,9 @@ pub struct MapMeta {
     /// The export config of this map
     #[serde(default)]
     pub export_config: MapExportConfig,
+    /// How to intepreter the buffer value of this map. Only applies if this map if a buffer value map (perf event or ringbuf)
+    #[serde(default)]
+    pub intepreter: BufferValueInterpreter,
 }
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 /// Describe the meta of a bpf program

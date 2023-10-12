@@ -1,3 +1,8 @@
+---
+title: ecc usage
+tags: [ecc, maunal]
+---
+
 ### Usage
 
 ```sh

@@ -1,0 +1,13 @@
+FROM ubuntu:22.04
+
+RUN apt-get update
+
+RUN apt-get install -y libclang1-12 libllvm12 clang llvm
+
+COPY ./ecc-rs /ecc
+
+COPY ./entry-aarch64.sh /
+
+WORKDIR /src
+
+ENTRYPOINT [ "/bin/sh", "/entry-aarch64.sh" ]

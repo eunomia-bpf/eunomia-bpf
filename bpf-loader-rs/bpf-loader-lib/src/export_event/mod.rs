@@ -35,14 +35,15 @@
 use crate::{
     btf_container::BtfContainer,
     export_event::checker::check_sample_types_btf,
-    meta::{ExportedTypesStructMeta, MapSampleMeta, SampleMapType},
+    meta::{BufferValueInterpreter, ExportedTypesStructMeta, MapSampleMeta, SampleMapType},
 };
 use anyhow::{anyhow, bail, Context, Result};
+use log::debug;
 use std::{any::Any, fmt::Display, sync::Arc};
 
 use self::{
     checker::check_export_types_btf,
-    event_handlers::{get_plain_text_checked_types_header, key_value, simple_value},
+    event_handlers::{buffer, get_plain_text_checked_types_header, sample_map},
     type_descriptor::{CheckedExportedMember, TypeDescriptor},
 };
 
@@ -113,9 +114,9 @@ pub trait EventHandler {
 }
 
 pub(crate) enum ExporterInternalImplementation {
-    RingBufProcessor {
+    BufferValueProcessor {
         /// internal handler to process export data to a given format
-        event_processor: Box<dyn InternalSimpleValueEventProcessor>,
+        event_processor: Box<dyn InternalBufferValueEventProcessor>,
         /// exported value types
         checked_types: Vec<CheckedExportedMember>,
     },
@@ -161,7 +162,7 @@ pub(crate) fn dump_data_to_user_callback_or_stdout(
         println!("{data}");
     }
 }
-pub(crate) trait InternalSimpleValueEventProcessor {
+pub(crate) trait InternalBufferValueEventProcessor {
     fn handle_event(&self, data: &[u8]) -> Result<()>;
 }
 
@@ -217,17 +218,38 @@ impl EventExporterBuilder {
         self,
         export_type: TypeDescriptor,
         btf_container: Arc<BtfContainer>,
+        intepreter: &BufferValueInterpreter,
     ) -> Result<Arc<EventExporter>> {
         let mut checked_exported_members =
             export_type.build_checked_exported_members(btf_container.borrow_btf())?;
-
+        if matches!(intepreter, BufferValueInterpreter::StackTrace { .. })
+            && !matches!(self.export_format, ExportFormatType::PlainText)
+        {
+            bail!("Intepreter `stack_trace` could only be paired with plaintext export format");
+        }
         Ok(Arc::new_cyclic(move |me| {
-            let internal_event_processor: Box<dyn InternalSimpleValueEventProcessor> =
-                match self.export_format {
-                    ExportFormatType::Json => Box::new(simple_value::JsonExportEventHandler {
-                        exporter: me.clone(),
-                    }),
-                    ExportFormatType::PlainText => {
+            let internal_event_processor: Box<dyn InternalBufferValueEventProcessor> =
+                match (self.export_format, intepreter) {
+                    (ExportFormatType::Json, BufferValueInterpreter::DefaultStruct) => {
+                        Box::new(buffer::JsonExportEventHandler {
+                            exporter: me.clone(),
+                        })
+                    }
+                    (
+                        ExportFormatType::PlainText,
+                        BufferValueInterpreter::StackTrace {
+                            field_map,
+                            with_symbols,
+                        },
+                    ) => {
+                        debug!("Using stack trace exporter");
+                        Box::new(buffer::PlainTextStackTraceExportEventHandler {
+                            exporter: me.clone(),
+                            field_mapping: field_map.clone(),
+                            with_symbols: *with_symbols,
+                        })
+                    }
+                    (ExportFormatType::PlainText, BufferValueInterpreter::DefaultStruct) => {
                         let header = get_plain_text_checked_types_header(
                             &mut checked_exported_members,
                             "TIME     ",
@@ -237,19 +259,23 @@ impl EventExporterBuilder {
                             self.user_ctx.clone(),
                             ReceivedEventData::PlainText(header.as_str()),
                         );
-                        Box::new(simple_value::PlainStringExportEventHandler {
+                        Box::new(buffer::PlainStringExportEventHandler {
                             exporter: me.clone(),
                         })
                     }
-                    ExportFormatType::RawEvent => Box::new(simple_value::RawExportEventHandler {
-                        exporter: me.clone(),
-                    }),
+
+                    (ExportFormatType::RawEvent, BufferValueInterpreter::DefaultStruct) => {
+                        Box::new(buffer::RawExportEventHandler {
+                            exporter: me.clone(),
+                        })
+                    }
+                    (_, _) => unreachable!("Unexpected exportformattype + intepreter"),
                 };
             EventExporter {
                 user_export_event_handler: self.export_event_handler,
                 user_ctx: self.user_ctx,
                 btf_container,
-                internal_impl: ExporterInternalImplementation::RingBufProcessor {
+                internal_impl: ExporterInternalImplementation::BufferValueProcessor {
                     event_processor: internal_event_processor,
                     checked_types: checked_exported_members,
                 },
@@ -263,12 +289,14 @@ impl EventExporterBuilder {
         self,
         export_type: &ExportedTypesStructMeta,
         btf_container: Arc<BtfContainer>,
+        intepreter: &BufferValueInterpreter,
     ) -> Result<Arc<EventExporter>> {
         let checked_members = check_export_types_btf(export_type, btf_container.borrow_btf())?;
         Self::build_for_single_value_with_type_descriptor(
             self,
             TypeDescriptor::CheckedMembers(checked_members),
             btf_container,
+            intepreter,
         )
     }
     /// Build an EventExporter, but use TypeDescriptor to indicate where to fetch the value type
@@ -294,7 +322,7 @@ impl EventExporterBuilder {
                 .export_format
             {
                 ExportFormatType::PlainText => match sample_config.ty {
-                    SampleMapType::Log2Hist => Box::new(key_value::Log2HistExportEventHandler {
+                    SampleMapType::Log2Hist => Box::new(sample_map::Log2HistExportEventHandler {
                         exporter: me.clone(),
                     }),
                     SampleMapType::DefaultKV => {
@@ -308,16 +336,16 @@ impl EventExporterBuilder {
                             self.user_ctx.clone(),
                             ReceivedEventData::PlainText(header.as_str()),
                         );
-                        Box::new(key_value::DefaultKVStringExportEventHandler {
+                        Box::new(sample_map::DefaultKVStringExportEventHandler {
                             exporter: me.clone(),
                         })
                     }
                     SampleMapType::LinearHist => unreachable!(),
                 },
-                ExportFormatType::Json => Box::new(key_value::JsonExportEventHandler {
+                ExportFormatType::Json => Box::new(sample_map::JsonExportEventHandler {
                     exporter: me.clone(),
                 }),
-                ExportFormatType::RawEvent => Box::new(key_value::RawExportEventHandler {
+                ExportFormatType::RawEvent => Box::new(sample_map::RawExportEventHandler {
                     exporter: me.clone(),
                 }),
             };

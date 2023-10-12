@@ -1,0 +1,106 @@
+name: Build and publish ecc docker image (aarch64)
+
+on:
+  workflow_dispatch: 
+  push:
+    branches: "master"
+env:
+  GITHUB_REPO_OWNER: ${{ github.repository_owner }}
+jobs:
+  # define job to build and publish docker image
+  build-and-push-ecc-image:
+    runs-on: ubuntu-latest
+    # run only when code is compiling and tests are passing
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+    # steps to perform in job
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+
+      # setup Docker buld action
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Install dependencies for cross building
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          ls /usr/lib/gcc-cross/aarch64-linux-gnu/
+          aarch64-linux-gnu-gcc --version
+      - name: downcase REPO
+        run: |
+          echo "REPO_OWNER=${GITHUB_REPO_OWNER,,}" >>${GITHUB_ENV}
+      - name: use REPO
+        run: |
+          echo "The value of REPO_OWNER is: ${REPO_OWNER}"
+      - name: Prepare bpftool and vmlinux repo for building workspace
+        # Move more steps outside of the virtual machine
+        run: |
+          mkdir workspace
+          mkdir assets
+          cd assets
+          git clone --recursive https://github.com/eunomia-bpf/vmlinux
+          cd vmlinux
+          git checkout 933f83b
+          # Avoid symlink issues
+          rm vmlinux.h
+          cd ..
+          git clone --recursive https://github.com/eunomia-bpf/bpftool
+          cd bpftool
+          git checkout 0594034
+      - name: Build workspace in aarch64 virtual machine
+        uses: uraimo/run-on-arch-action@v2
+        with: 
+          arch: aarch64
+          distro: ubuntu22.04
+          run: |
+            apt-get update
+            apt-get install -y zlib1g-dev libelf-dev gcc make
+            cd /workspace && mkdir bin
+            cd /assets/bpftool/src
+            CFLAGS="-static" make
+            cp bpftool /workspace/bin
+          dockerRunArgs: |
+            --volume "${PWD}/workspace:/workspace"
+            --volume "${PWD}/assets:/assets"
+      - name: Compose the ecc workspace
+        run: |
+          sudo chmod 777 workspace -R
+          sudo chown `whoami` workspace -R
+          cd workspace
+          mkdir include
+          cp -r ../assets/bpftool/src/libbpf/include/bpf include/
+          cp -r ../assets/vmlinux/ include/
+          cp ./include/vmlinux/arm64/vmlinux.h ./include/vmlinux
+      - name: Cross build ecc (aarch64)
+        run: |
+          rustup target add aarch64-unknown-linux-gnu
+          export ECC_CUSTOM_WORKSPACE_ROOT=$(pwd)/workspace
+          echo "Workspace dir: $ECC_CUSTOM_WORKSPACE_ROOT"
+          cd compiler/cmd
+          cargo build --release --target aarch64-unknown-linux-gnu
+      - name: Prepare docker build context
+        run: |
+          mkdir build-context
+          cd build-context
+          cp ../compiler/cmd/target/aarch64-unknown-linux-gnu/release/ecc-rs .
+          cp ../compiler/entry-aarch64.sh .
+      - name: Login to ghcr.io
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build the docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./build-context
+          file: ./compiler/dockerfile.aarch64
+          platforms: linux/arm64
+          tags: |
+            ghcr.io/${{ env.REPO_OWNER }}/ecc-aarch64:latest
+          push: true
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}

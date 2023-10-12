@@ -127,7 +127,7 @@ pub(crate) fn dump_int(btf_int: &BtfInt, range: &[u8]) -> Result<Value> {
         Ok(result)
     }
 }
-//For pointers, we just interprete them as integers
+//For pointers, we just interpret them as integers
 pub(crate) fn dump_pointer(range: &[u8]) -> Result<Value> {
     Ok(if range.len() == 4 {
         json!(u32::from_le_bytes(range[0..4].try_into()?))

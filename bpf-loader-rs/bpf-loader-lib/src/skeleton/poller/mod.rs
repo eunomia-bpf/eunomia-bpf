@@ -14,8 +14,8 @@ use std::{
 
 use crate::{
     export_event::{
-        EventExporter, ExporterInternalImplementation, InternalSampleMapProcessor,
-        InternalSimpleValueEventProcessor,
+        EventExporter, ExporterInternalImplementation, InternalBufferValueEventProcessor,
+        InternalSampleMapProcessor,
     },
     meta::MapSampleMeta,
 };
@@ -42,13 +42,14 @@ macro_rules! program_poll_loop {
             }
             $blk;
         }
+        info!("Program exited");
     }};
 }
 #[ouroboros::self_referencing]
 pub(crate) struct RingBufPollerContext {
     exporter: Arc<EventExporter>,
     #[borrows(exporter)]
-    event_processor: &'this dyn InternalSimpleValueEventProcessor,
+    event_processor: &'this dyn InternalBufferValueEventProcessor,
     #[borrows(event_processor)]
     #[covariant]
     ringbuf: RingBuffer<'this>,
@@ -59,7 +60,7 @@ pub(crate) struct RingBufPollerContext {
 pub(crate) struct PerfEventPollerContext {
     exporter: Arc<EventExporter>,
     #[borrows(exporter)]
-    event_processor: &'this dyn InternalSimpleValueEventProcessor,
+    event_processor: &'this dyn InternalBufferValueEventProcessor,
     error_flag: AtomicBool,
     #[borrows(event_processor, error_flag)]
     #[covariant]
@@ -152,8 +153,9 @@ impl BpfSkeleton {
             exporter,
             event_processor_builder: |v: &Arc<EventExporter>| {
                 let event_processor = match &v.internal_impl {
-                    ExporterInternalImplementation::RingBufProcessor {
-                        event_processor, ..
+                    ExporterInternalImplementation::BufferValueProcessor {
+                        event_processor,
+                        ..
                     } => &**event_processor,
                     _ => bail!("Expected the exporter uses ringbuf processor"),
                 };
@@ -164,7 +166,7 @@ impl BpfSkeleton {
                 builder
                     .add(map, |data: &[u8]| {
                         if let Err(e) = event_processor.handle_event(data) {
-                            error!("Failed to process event: {}", e);
+                            error!("Failed to process event: \n{:?}", e);
                             -1
                         } else {
                             0
@@ -194,8 +196,9 @@ impl BpfSkeleton {
             error_flag: AtomicBool::new(false),
             event_processor_builder: |v: &Arc<EventExporter>| {
                 let event_processor = match &v.internal_impl {
-                    ExporterInternalImplementation::RingBufProcessor {
-                        event_processor, ..
+                    ExporterInternalImplementation::BufferValueProcessor {
+                        event_processor,
+                        ..
                     } => &**event_processor,
                     _ => bail!("Expected the exporter uses ringbuf processor"),
                 };
@@ -205,7 +208,7 @@ impl BpfSkeleton {
                 let perf = PerfBufferBuilder::new(map)
                     .sample_cb(|_cpu: i32, data: &[u8]| {
                         if let Err(e) = processor.handle_event(data) {
-                            error!("Failed to handle event for perf array: {}", e);
+                            error!("Failed to handle event for perf array: \n{:?}", e);
                             error_flag.store(true, Ordering::Relaxed);
                         }
                     })

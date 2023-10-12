@@ -1,0 +1,418 @@
+name: Build and test and publish ecli binary (multiple platforms and archs)
+
+on:
+  workflow_dispatch: 
+  push:
+    branches: ["*"]
+    paths:
+      - "ecli/**"
+      - "compiler/**"  # Ensure ecc and ecli releasing at same time
+      - "wasm-rumtime/**"  # Release when dependencies updated
+      - "third_party/**"
+      - "bpf-loader-rs/**"
+      - "eunomia-sdk/**"
+      - ".github/**"
+
+  pull_request:
+    branches: ["*"]
+    paths:
+      - "ecli/**"
+      - "compiler/**"
+      - "wasm-rumtime/**"
+      - "third_party/**"
+      - "bpf-loader-rs/**"
+      - "eunomia-sdk/**"
+      - ".github/**"
+env:
+  BUILD_TYPE: Release
+  INSTALL_LOCATION: .local
+
+jobs:
+  create-release-version:
+    runs-on: ubuntu-latest
+    if:   github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/fix'))
+    outputs:
+      version: ${{steps.set_version.outputs.result}}
+    steps:
+      - name: Set latest release version
+        id: set_version
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const { data: tags } = await github.rest.repos.listTags({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            if (releases.length === 0) { return "v0.0.1"; }
+
+            function increase_v(version) {
+              const parts = version.split(".");
+              const last = parseInt(parts[2]) + 1;
+              const next_version = `${parts[0]}.${parts[1]}.${last.toString()}`;
+              return next_version;
+            }
+
+            const latest_release_tag = releases[0].tag_name;
+
+            const tag = tags.find(tag => tag.commit.sha === context.sha);
+
+            return tag ? tag.name : increase_v(latest_release_tag)
+  build-full-client:
+    needs: create-release-version
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+    strategy:
+      matrix:
+        target: [ x86_64-unknown-linux-gnu ]
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+    - name: install deps
+      run: |
+          sudo make -C ecli install-deps
+          sudo make -C bpf-loader-rs install-deps
+
+    - name: cache dependencies
+      uses: actions/cache@v3
+      id: cache
+      with:
+        path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
+        key: ${{ runner.os }}-dependencies
+
+    - name: cache rust
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: |
+          compiler/cmd
+          ecli
+          wasm-runtime/runtime/rust
+          eunomia-sdks/eunomia-rs
+    - name: Prepare cargo-appimage
+      uses: eunomia-bpf/prepare-cargo-appimage@v5
+    - name: Install libfuse
+      run: |
+        sudo apt-get install -y libfuse2
+    - name: Build full client
+      run:  |
+        cd ecli/client
+        CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecli cargo appimage
+    
+    - name: test ecli
+      run: |
+        cd ecli/ecli-lib
+        # Install rustup manually using user root
+        curl https://sh.rustup.rs -o rustup.sh
+        sudo bash -c "cat rustup.sh | sh -s -- -y ; /root/.cargo/bin/cargo test -- --skip test_pause_and_resume"
+    - name: Package ecli
+      run: |
+        mkdir -p release
+        cp ecli/client/ecli release/ecli
+        cd release
+        tar -czvf ecli-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz ecli
+    - name: Test CLI
+      run: |
+        mkdir cli-test
+        cd cli-test
+        cp ../.github/assets/package.json .
+        ../release/ecli -h
+        sudo timeout -s 2 3 ../release/ecli run ./package.json || if [ $? = 124 ]; then exit 0; else exit $?; fi
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with: 
+        name: "ecli-full-${{needs.create-release-version.outputs.version}}"
+        path: |
+          release/ecli-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz
+          release/ecli
+  build-http-only-client:
+    needs: create-release-version
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{matrix.os}}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Build http-only ecli (Non-AppImage)
+        if: "!contains(matrix.os, 'ubuntu')"
+        run: |
+          cd ecli/client
+          cargo build --release --no-default-features --features http
+      - name: Prepare cargo-appimage
+        if: "contains(matrix.os, 'ubuntu')"
+        uses: eunomia-bpf/prepare-cargo-appimage@v5
+      - name: Install libfuse
+        if: "contains(matrix.os, 'ubuntu')"
+        run: |
+          sudo apt-get install -y libfuse2
+      - name: Build http-only ecli (AppImage)
+        if: "contains(matrix.os, 'ubuntu')"
+        run: |
+          cd ecli/client
+          CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecli cargo appimage --no-default-features --features http
+          mkdir -p ../target/release
+          cp ecli ../target/release/ecli-rs
+    
+      - name: Copy `ecli-rs.exe` to `ecli.exe`
+        if: contains(matrix.os,'windows')
+        run:
+          cp ecli/target/release/ecli-rs.exe ecli.exe
+      - name: Package `ecli.exe`
+        if: contains(matrix.os,'windows')
+        uses: vimtor/action-zip@v1
+        with:
+          files: ecli.exe
+          dest: ecli.zip
+      - name: Copy `ecli-rs` to `ecli`
+        if: "!contains(matrix.os,'windows')"
+        run: |
+          mkdir ecli-package
+          cp ecli/target/release/ecli-rs ecli-package/ecli
+      - name: Package `ecli`
+        if: "!contains(matrix.os,'windows')"
+        uses: vimtor/action-zip@v1
+        with:
+          files: ecli-package/ecli
+          dest: ecli.zip
+      - name: Test CLI (Ubuntu only)
+        if: "contains(matrix.os, 'ubuntu')"
+        run: |
+          mkdir cli-test
+          cd cli-test
+          cp ../.github/assets/package.json .
+          ../ecli-package/ecli -h
+      - name: Rename `ecli.zip` to proper name
+        run: |
+          mv ecli.zip ecli-http-only-${{matrix.os}}-${{ needs.create-release-version.outputs.version }}.zip
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with: 
+          name: "ecli-http-only-${{matrix.os}}-${{needs.create-release-version.outputs.version}}"
+          path: |
+            ecli-http-only-${{matrix.os}}-${{ needs.create-release-version.outputs.version }}.zip
+  build-native-only-client:
+    needs: create-release-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Prepare cargo-appimage
+        uses: eunomia-bpf/prepare-cargo-appimage@v5
+      - name: Install libfuse
+        run: |
+          sudo apt-get install -y libfuse2
+      - name: Build native-only ecli
+        run: |
+          sudo make install-deps
+          cd ecli/client
+          CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecli cargo appimage --no-default-features --features native
+      - name: Copy `ecli-rs` to `ecli` and package it
+        run: |
+          mkdir package-ecli
+          cp ecli/client/ecli package-ecli/ecli
+          tar -czvf package-ecli/ecli.tar.gz package-ecli/ecli 
+      - name: Test CLI
+        run: |
+          mkdir cli-test
+          cd cli-test
+          cp ../.github/assets/package.json .
+          ../package-ecli/ecli -h
+          sudo timeout -s 2 3 ../package-ecli/ecli run ./package.json || if [ $? = 124 ]; then exit 0; else exit $?; fi
+      - name: Rename `ecli.tar.gz` to proper name
+        id: name
+        run: |
+          mv package-ecli/ecli.tar.gz ecli-native-only-ubuntu-latest.tar.gz
+          echo "zip_name=ecli-native-only-ubuntu-latest.tar.gz" >> "$GITHUB_OUTPUT"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with: 
+          name: "ecli-native-only-${{needs.create-release-version.outputs.version}}"
+          path: |
+            ${{steps.name.outputs.zip_name}}
+  build-ecli-server:
+    needs: create-release-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Prepare cargo-appimage
+        uses: eunomia-bpf/prepare-cargo-appimage@v5
+      - name: Install libfuse
+        run: |
+          sudo apt-get install -y libfuse2
+      - name: Build ecli-server
+        run: |
+          sudo make install-deps
+          cd ecli/server
+          CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecli-server cargo appimage
+      - name: Package ecli-server
+        run: |
+          cp ecli/server/ecli-server .
+          tar -czvf ecli-server.tar.gz ecli-server 
+      - name: Test CLI
+        run: |
+          mkdir cli-test
+          cd cli-test
+          ../ecli-server -h
+          sudo timeout -s 2 3 ../ecli-server || if [ $? = 124 ]; then exit 0; else exit $?; fi
+      - name: Rename `ecli-server.tar.gz` to proper name
+        id: name
+        run: |
+          mv ecli-server.tar.gz ecli-server-ubuntu-latest.tar.gz
+          echo "zip_name=ecli-server-ubuntu-latest.tar.gz" >> "$GITHUB_OUTPUT"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with: 
+          name: "ecli-server-${{needs.create-release-version.outputs.version}}"
+          path: |
+            ${{steps.name.outputs.zip_name}}
+  build-full-client-and-server-aarch64:
+    needs: create-release-version
+    strategy:
+      matrix:
+        run:
+          - title: ecli-client-full
+            src_directory: client
+            exe_name: ecli-rs
+            release_exe_name: ecli
+          - title: ecli-server
+            src_directory: server
+            exe_name: ecli-server
+            release_exe_name: ecli-server
+    runs-on: ubuntu-22.04
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+    - name: Install dependencies for cross-building
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y g++-aarch64-linux-gnu gcc-aarch64-linux-gnu
+    - name: Clone libbpf for building
+      run: |
+        git clone https://github.com/libbpf/libbpf
+
+    - name: Build libbpf in a qemu virtual machine, and copy libs out
+      uses: uraimo/run-on-arch-action@v2
+      with: 
+        arch: aarch64
+        distro: ubuntu22.04
+        run: |
+          apt-get update
+          apt-get install -y zlib1g-dev libelf-dev gcc make pkg-config
+          cd /libbpf/src
+          make
+          cp libbpf.so /libs
+          cp /usr/lib/aarch64-linux-gnu/libelf.so /libs
+          cp /usr/lib/aarch64-linux-gnu/libz.so /libs
+        dockerRunArgs: |
+          --volume "${PWD}/libbpf:/libbpf"
+          --volume "${PWD}/libs:/libs"
+    - name: cache rust build results
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: |
+          ecli
+    - name: Build ${{matrix.run.title}}
+      run: |
+        rustup target add aarch64-unknown-linux-gnu
+        # Install them, so that libbpf will find their headers
+        sudo apt-get install libelf-dev zlib1g-dev
+        cd ecli/${{matrix.run.src_directory}}
+        RUSTFLAGS="-L $(pwd)/../../libs" cargo build --release --target aarch64-unknown-linux-gnu
+        cd ../..
+        cp ./ecli/target/aarch64-unknown-linux-gnu/release/${{matrix.run.exe_name}} .
+        mkdir data
+        cp ${{matrix.run.exe_name}} data
+        cp .github/scripts/copy-libs.sh data
+    - name: Run ecli and see what libs were loaded by ld
+      uses: uraimo/run-on-arch-action@v2
+      with: 
+        arch: aarch64
+        distro: ubuntu22.04
+        run: |
+          apt-get update
+          apt-get install -y libelf-dev zlib1g-dev
+          echo "Installation done"
+          echo "Working directory $(pwd)"
+          chmod +x /data/${{matrix.run.exe_name}}
+          echo "Permission set done"
+          chmod +x /data/copy-libs.sh
+          /data/copy-libs.sh /data/${{matrix.run.exe_name}} --help
+        dockerRunArgs: |
+          --volume "${PWD}/data:/data"
+        shell: /bin/bash
+    - name: Show what libraries were copied
+      run: |
+        sudo chmod 777 ./data -R
+        sudo chown $(whoami) ./data -R
+        find ./data/libs -type f
+    - name: Prepare runtime file and cargo-appimage tool
+      uses: eunomia-bpf/prepare-cargo-appimage@v6
+      with: 
+        runtime-url: https://github.com/eunomia-bpf/prepare-cargo-appimage/raw/v6/runtime-aarch64
+    - name: Install libfuse for appimagetool
+      run: |
+        sudo apt-get update
+        sudo apt-get install libfuse2
+    - name: Clone and install cargo-appimage with aarch64 launcher
+      run: |
+        git clone https://github.com/eunomia-bpf/cargo-appimage
+        cd cargo-appimage
+        CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target aarch64-unknown-linux-gnu
+    - name: Compose files and pack them
+      run: |
+        mkdir appimage-root
+        cd appimage-root
+        cp -r ../data/libs/* .
+        mkdir -p usr/bin
+        cp ../${{matrix.run.exe_name}} usr/bin/bin
+        touch icon.png
+        cp ../cargo-appimage/target/aarch64-unknown-linux-gnu/release/cargo-appimage-runner AppRun
+        cp ../.github/scripts/cargo-appimage.desktop .
+        ../appimagetool --runtime-file ../runtime . ${{matrix.run.exe_name}}-aarch64
+        cd ..
+        cp ./appimage-root/${{matrix.run.exe_name}}-aarch64 ${{matrix.run.release_exe_name}}-aarch64
+    - uses: actions/upload-artifact@v3
+      name: Upload build result
+      with:
+        name: ${{matrix.run.exe_name}}-aarch64
+        path: ${{matrix.run.release_exe_name}}-aarch64            
+  publish-release:
+    runs-on: ubuntu-latest
+    needs: [create-release-version, build-full-client, build-http-only-client, build-native-only-client, build-ecli-server, build-full-client-and-server-aarch64]
+    steps:
+      - name: Download build results
+        uses: actions/download-artifact@v3
+        with:
+          path: results
+      - name: List files to release
+        id: list-files
+        run: |
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          FILES=`find ./results -type f`
+          echo "$FILES"
+          echo "upload_files<<$EOF" >> "$GITHUB_OUTPUT"
+          echo "$FILES" >> "$GITHUB_OUTPUT"
+          echo "$EOF" >> "$GITHUB_OUTPUT"
+      - name: Publish
+        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && ( github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong')
+        uses: softprops/action-gh-release@v1
+        with:
+            files: ${{steps.list-files.outputs.upload_files}}
+            prerelease: false
+            tag_name: ${{ needs.create-release-version.outputs.version }}
+            generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

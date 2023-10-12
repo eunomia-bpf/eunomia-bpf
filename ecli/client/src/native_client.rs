@@ -3,13 +3,12 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use std::time::Duration;
-use std::sync::atomic::Ordering;
 use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+use std::time::Duration;
 
 use ecli_lib::{
     config::ProgramType,
-    error::Result,
     runner::{
         client::{native::EcliNativeClient, AbstractClient},
         LogType,
@@ -25,7 +24,7 @@ pub(crate) async fn run_native(
     prog: String,
     args: &[String],
     user_prog_type: Option<ProgramType>,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let client = EcliNativeClient::default();
     let (buf, prog_type) = load_prog_buf_and_guess_type(&prog, user_prog_type).await?;
 
@@ -44,7 +43,7 @@ pub(crate) async fn run_native(
         let logs = client.fetch_logs(handle, last_poll, None).await?;
         for (cursor, log) in logs.into_iter() {
             if let LogType::Plain = log.log_type {
-                println!("<{}> <{}> {}", log.timestamp, log.log_type, log.log);
+                println!("{}", log.log);
             } else {
                 print!("{}", log.log);
             }

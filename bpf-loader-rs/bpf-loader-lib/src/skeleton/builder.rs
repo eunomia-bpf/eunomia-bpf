@@ -116,10 +116,10 @@ impl<'a> BpfSkeletonBuilder<'a> {
                 .unwrap()
                 .as_os_str()
                 .as_bytes()
-                .as_ptr() as *const i8;
+                .as_ptr() as *const _;
         } else if let Some(env_btf) = env_btf_file_path.as_ref() {
             // SAFETY: env_btf_file_path will live until this function returns
-            open_bpts.btf_custom_path = env_btf.as_bytes().as_ptr() as *const i8;
+            open_bpts.btf_custom_path = env_btf.as_bytes().as_ptr() as *const _;
         } else if !vmlinux_btf_exists {
             bail!("All ways tried to find vmlinux BTF, but not found. Please provide the vmlinux btf using env `BTF_FILE_PATH`. (Tried parameter `btf_archive_path`, {}, and {})",BTF_PATH_ENV_NAME,VMLINUX_BTF_PATH);
         };
@@ -138,7 +138,7 @@ impl<'a> BpfSkeletonBuilder<'a> {
             );
         }
 
-        // Retrive the btf archive from the loaded bpf_object
+        // Retrieve the btf archive from the loaded bpf_object
         let btf = {
             // SAFETY: This function will always succeed
             let btf = unsafe { bpf_object__btf(open_result) };
