@@ -8,11 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3.3.0
-    - uses: nixbuild/nix-quick-install-action@v22
-      with:
-        nix_conf: |
-          experimental-features = nix-command flakes
-          access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: DeterminateSystems/magic-nix-cache-action@main
 
     - name: Nix Flake Show
       run: nix flake show --all-systems
