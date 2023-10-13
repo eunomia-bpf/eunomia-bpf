@@ -139,7 +139,7 @@
               # slightly different with which in nixpkgs, for using local source
               src = ./compiler/cmd;
 
-              cargoHash = "sha256-+5N2aSx5XXgMj/C189Q3brkmGG/sM0uUmtqLVv9yozY=";
+              cargoHash = "sha256-kOy1LRNpit9q1cIFOqTMxzVDEuVbFfPSkE8e7CUNzDY=";
 
               nativeBuildInputs = [
                 pkg-config
