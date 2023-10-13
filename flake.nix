@@ -132,20 +132,14 @@
               '';
               inherit meta;
             };
-            ecc = (with pkgs;rustPlatform.buildRustPackage rec {
+            ecc = (with pkgs; rustPlatform.buildRustPackage {
               pname = "ecc";
-              version = "1.0.11";
+              inherit version;
 
-              src = fetchFromGitHub {
-                owner = "eunomia-bpf";
-                repo = "eunomia-bpf";
-                rev = "v${version}";
-                hash = "sha256-UiwS+osyC3gtbQH0bWNsx1p3xYr993/FAZ5d5NKnaBM=";
-              };
+              # slightly different with which in nixpkgs, for using local source
+              src = ./compiler/cmd;
 
-              sourceRoot = "${src.name}/compiler/cmd";
-
-              cargoHash = "sha256-j2HPSmU/JARfw2mE1IiXFT/dcdxxnp+agC2DN0Kc5nw=";
+              cargoHash = "sha256-kOy1LRNpit9q1cIFOqTMxzVDEuVbFfPSkE8e7CUNzDY=";
 
               nativeBuildInputs = [
                 pkg-config
