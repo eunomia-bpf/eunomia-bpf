@@ -1,0 +1,46 @@
+name: Deploy examples
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Deploy gh-pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v3.3.0
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: get submodule
+        run:  git submodule update --init --recursive --remote
+
+      - name: install deps
+        run: |
+             sudo make -C ecli install-deps
+
+      - name: install test deps
+        run:  |
+              make -C examples/tests install-deps
+              make -C examples/tests install-wasm-clang
+
+      - name: test build runners
+        run:  |
+              make -C examples
+
+      - name: test examples
+        run:  |
+              make -C examples/tests test
+
+      - uses: JamesIves/github-pages-deploy-action@v4.4.1
+        if: ${{ github.event_name == 'push' }}
+        with:
+          branch: gh-pages
+          folder: ./examples/bpftools/
