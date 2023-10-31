@@ -3,17 +3,19 @@
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "nixpkgs/nixos-unstable";
     wasm-bpf.url = "github:eunomia-bpf/wasm-bpf";
+    naersk.url = "github:nix-community/naersk";
     pre-commit-hooks = {
       url = "github:cachix/pre-commit-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, flake-utils, nixpkgs, pre-commit-hooks, wasm-bpf }:
+  outputs = { self, flake-utils, nixpkgs, pre-commit-hooks, wasm-bpf, naersk }:
     flake-utils.lib.eachSystem
       (with flake-utils.lib.system; [ x86_64-linux aarch64-linux ])
       (system:
         let
+          naersk' = pkgs.callPackage naersk { };
           version = pkgs.lib.substring 0 8 self.lastModifiedDate or self.lastModified or "19700101";
           meta = with pkgs.lib; {
             homepage = "https://eunomia.dev";
@@ -132,14 +134,12 @@
               '';
               inherit meta;
             };
-            ecc = (with pkgs; rustPlatform.buildRustPackage {
+            ecc = (with pkgs; naersk'.buildPackage {
               pname = "ecc";
               inherit version;
 
               # slightly different with which in nixpkgs, for using local source
               src = ./compiler/cmd;
-
-              cargoHash = "sha256-kOy1LRNpit9q1cIFOqTMxzVDEuVbFfPSkE8e7CUNzDY=";
 
               nativeBuildInputs = [
                 pkg-config
@@ -183,7 +183,7 @@
                 inherit bpftool;
               };
 
-              postFixup = ''
+              postInstall = ''
                 wrapProgram $out/bin/ecc-rs \
                   --prefix LIBCLANG_PATH : ${llvmPackages.libclang.lib}/lib \
                   --prefix PATH : ${lib.makeBinPath (with llvmPackages; [clang bintools-unwrapped])}
