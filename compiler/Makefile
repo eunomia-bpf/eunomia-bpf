@@ -69,9 +69,11 @@ $(ECC): $(BPFTOOL)
 	cd cmd && cp -r `cargo out-dir`/workspace ..
 	cp $(ECC) workspace/bin/ecc-rs
 
-install:
-	rm -rf ~/.eunomia && cp -r workspace ~/.eunomia
+XDG_DATA_HOME ?= ${HOME}/.local/share
+EUNOMIA_HOME := $(XDG_DATA_HOME)/eunomia
 
+install:
+	rm -rf $(EUNOMIA_HOME) && cp -r workspace $(EUNOMIA_HOME)
 .PHONY: test
 test:
 	cargo install clippy-sarif sarif-fmt grcov
@@ -97,7 +99,7 @@ test:
 
 .PHONY: build
 build-ebpf-program:
-	$(Q)~/.eunomia/bin/ecc-rs $(shell ls $(SOURCE_DIR)*.bpf.c) $(shell ls -h1 $(SOURCE_DIR)*.h | grep -v .*\.bpf\.h)
+	$(Q)$(EUNOMIA_HOME)/bin/ecc-rs $(shell ls $(SOURCE_DIR)*.bpf.c) $(shell ls -h1 $(SOURCE_DIR)*.h | grep -v .*\.bpf\.h)
 
 .PHONY: docker
 docker: wasi-sdk-16.0-linux.tar.gz
