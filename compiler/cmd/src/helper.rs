@@ -3,24 +3,50 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use std::path::PathBuf;
-
 use anyhow::{anyhow, Context, Result};
 use log::debug;
-/// Get the data directory of eunomia ($HOME/.eunomia)
+use std::env::var;
+use std::path::PathBuf;
+/// Search the data directory of eunomia from environment variables
+const EUNOMIA_HOME_ENV: &str = "EUNOMIA_HOME";
 pub fn get_eunomia_data_dir() -> Result<PathBuf> {
-    let dir = home::home_dir()
-        .ok_or_else(|| anyhow!("Unable to get home directory of the current user"))?
-        .join(".eunomia");
-    if !dir.exists() {
-        std::fs::create_dir_all(&dir).with_context(|| {
-            anyhow!(
-                "Unable to create data directory for eunomia: {}",
-                dir.to_string_lossy()
-            )
-        })?;
-    }
-    Ok(dir)
+    if let Ok(e) = var(EUNOMIA_HOME_ENV) {
+        return Ok(e.into());
+    };
+
+    // search from xdg standard directory
+    let eunomia_home_search_path: Vec<PathBuf> = if let Ok(e) = var("XDG_DATA_HOME") {
+        e.split(':')
+            .map(|s| PathBuf::from(format!("{s}/eunomia")))
+            .collect()
+    } else {
+        if let Ok(e) = var("HOME") {
+            let home_dir = PathBuf::from(e);
+            let eunomia_home = home_dir.join(".local/share/eunomia");
+
+            if home_dir.exists() {
+                if !eunomia_home.exists() {
+                    std::fs::create_dir_all(&eunomia_home).with_context(|| {
+                        anyhow!(
+                            "Unable to create data directory for eunomia: {}",
+                            eunomia_home.to_string_lossy()
+                        )
+                    });
+                }
+                return Ok(eunomia_home);
+            }
+        }
+        Vec::new()
+    };
+
+    debug!("Checking if {:?} exist", &eunomia_home_search_path);
+
+    return eunomia_home_search_path
+        .into_iter()
+        .find(|p| p.exists())
+        .ok_or(anyhow!(
+            "eunomia data home not found, try setting `EUNOMIA_HOME`"
+        ));
 }
 
 /// Get target arch: x86 or arm, etc

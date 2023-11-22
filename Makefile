@@ -52,9 +52,12 @@ eunomia-exporter: ## build the exporter for custom metric
 	make -C bpf-loader-rs
 	cd eunomia-exporter && cargo build --release
 
+XDG_DATA_HOME ?= ${HOME}/.local/share
+EUNOMIA_HOME := $(XDG_DATA_HOME)/eunomia
+
 release:
 	make -C ecli install
 	make -C compiler install
-	cp -R ~/.eunomia .eunomia
-	tar -czvf eunomia.tar.gz .eunomia
-	rm -rf .eunomia
+	cp -R $(EUNOMIA_HOME) eunomia
+	tar -czvf eunomia.tar.gz eunomia
+	rm -rf eunomia
