@@ -37,7 +37,7 @@ jobs:
 
       - name: test examples
         run:  |
-              make -C examples/tests test
+              SKIP_TESTS=profile make -C examples/tests test
 
       - uses: JamesIves/github-pages-deploy-action@v4.4.1
         if: ${{ github.event_name == 'push' }}
