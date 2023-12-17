@@ -73,7 +73,7 @@ XDG_DATA_HOME ?= ${HOME}/.local/share
 EUNOMIA_HOME := $(XDG_DATA_HOME)/eunomia
 
 install:
-	rm -rf $(EUNOMIA_HOME) && mkdir -p $(EUNOMIA_HOME) && cp -r workspace $(EUNOMIA_HOME)
+	rm -rf $(EUNOMIA_HOME) && mkdir -p $(EUNOMIA_HOME) && cp -r workspace/* $(EUNOMIA_HOME)
 .PHONY: test
 test:
 	cargo install clippy-sarif sarif-fmt grcov
