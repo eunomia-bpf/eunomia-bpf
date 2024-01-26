@@ -1,6 +1,6 @@
-# Contributing to eunomia-bpd
+# Contributing to eunomia-bpf
 
-The eunomia-bpd team encourages community feedback and contributions.
+The eunomia-bpf team encourages community feedback and contributions.
 Thank you for your interest in making eunomia-bpd better! There are several
 ways you can get involved.
 
@@ -9,11 +9,7 @@ If you are looking for a good way to contribute to the project, please:
 * have a look at the [available issue templates](https://github.com/eunomia-bpf/eunomia-bpf/issues/new/choose)
 and checkout the [examples of good first issues](https://github.com/eunomia-bpf/eunomia-bpf/contribute)
 (or [click here](https://github.com/eunomia-bpf/eunomia-bpf/labels/good%20first%20issue)).
-
 * look through the [issues that need help](https://github.com/eunomia-bpf/eunomia-bpf/labels/help%20wanted).
-
-* take a look at a [Pull Request template](PULL_REQUEST_TEMPLATE.md) to get yourself
-started.
 
 ## Reporting issues and suggesting new features
 
@@ -52,19 +48,13 @@ guidelines:
 ### DOs
 
 * **DO** create one pull request per Issue, and ensure that the Issue is linked
-in the pull request. You can follow the [Pull Request Template](PULL_REQUEST_TEMPLATE.md)
-for this.
-
+in the pull request.
 * **DO** follow our [Coding and Style](#style-guidelines) guidelines, and keep code
 changes as small as possible.
-
 * **DO** include corresponding tests whenever possible.
-
 * **DO** check for additional occurrences of the same problem in other parts of the
 codebase before submitting your PR.
-
 * **DO** link the issue you are addressing in the pull request.
-
 * **DO** write a good description for your pull request. More detail is better.
 Describe *why* the change is being made and *why* you have chosen a particular solution.
 Describe any manual testing you performed to validate your change.
@@ -86,8 +76,7 @@ To learn how to build the code and run tests, follow the instructions in the [RE
 
 The code in this project uses several different coding styles, depending on the
 age and history of the code. Please attempt to match the style of surrounding
-code as much as possible. In new components, prefer the patterns described in the
-[C++ core guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines).
+code as much as possible.
 
 ### Testing
 
@@ -134,28 +123,10 @@ git commit -m "my normal commit message [ci skip]"
 ## Review process
 
 After submitting a pull request, members of the team will review your code. We will
-assign the request to an appropriate reviewer (if applicable). Any member of the
-community may participate in the review, but at least one member of the project team
+assign the request to an appropriate reviewer (if applicable). Anyone can participate in the review, but at least one member of the project team
 will ultimately approve the request.
 
 Often, multiple iterations or discussions will be needed to responding to feedback
 from reviewers. Try looking at [past pull requests](https://github.com/eunomia-bpf/eunomia-bpf/pulls?q=is%3Apr+is%3Aclosed)
 to see what the experience might be like.
 
-## Contributor License Agreement
-
-Before we can review and accept a pull request from you, you'll need to sign a
-Contributor License Agreement (CLA). The CLA ensures that the community is free
-to use your contributions. Signing the CLA is a manual process, and you need to
-do it for each pull request made. This is done by checking the boxes in the
-[Pull Request Readiness Checklist of a Pull Request](PULL_REQUEST_TEMPLATE.md#Pull-Request-Readiness-Checklist).
-
-### IMPORTANT
-
-***Checking the aforementioned boxes means that you agree to provide your change
-and/or code FREE TO USE and SUBJECT TO CHANGES for the entire community!***
-
-You don't need to sign a CLA until you're ready to create a pull request. When your
-pull request is created, it is reviewed by a team member which, if the change is
-trivial (i.e. you just fixed a typo) will be labelled as `cla-not-required`.
-Otherwise, it's classified as `cla-required`, if not already signed.
