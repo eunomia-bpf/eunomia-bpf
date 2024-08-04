@@ -31,7 +31,7 @@ pub fn get_eunomia_data_dir() -> Result<PathBuf> {
                             "Unable to create data directory for eunomia: {}",
                             eunomia_home.to_string_lossy()
                         )
-                    });
+                    })?;
                 }
                 return Ok(eunomia_home);
             }
