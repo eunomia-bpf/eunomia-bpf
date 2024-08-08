@@ -33,8 +33,7 @@
             src = pkgs.fetchFromGitHub {
               owner = "eunomia-bpf";
               repo = "bpftool";
-              rev = "05940344f5db18d0cb1bc1c42e628f132bc93123";
-              hash = "sha256-g2gjixfuGwVnFlqCMGLWVPbtKOSpQI+vZwIZciXFPTc=";
+              rev = "faf683a61e83d615e51fc56f2cfd798c64888564";
               fetchSubmodules = true;
             };
 
