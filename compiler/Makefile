@@ -66,7 +66,8 @@ $(ECC): $(BPFTOOL)
 	cd cmd && cargo build --release
 	cargo install cargo-out-dir
 	cd cmd && cargo build # Run a debug build to create the workspace directory 
-	cd cmd && cp -r `cargo out-dir`/workspace ..
+	# cd cmd && cp -r `cargo-out-dir`/workspace ..
+	mkdir -p workspace/bin
 	cp $(ECC) workspace/bin/ecc-rs
 
 XDG_DATA_HOME ?= ${HOME}/.local/share

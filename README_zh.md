@@ -144,7 +144,7 @@ TIME     PID    TPID   SIG    RET    COMM
 
 - 构建编译器、运行库和工具：
 
-  有关构建详细信息，请参见[build](documents/build.md)。
+  有关构建详细信息，请参见[build](https://eunomia.dev/eunomia-bpf/setup/build/)。
 
 ## 示例
 

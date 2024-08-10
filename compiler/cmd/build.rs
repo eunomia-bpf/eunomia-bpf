@@ -14,7 +14,7 @@ use dircpy::copy_dir;
 use dircpy::CopyBuilder;
 
 const DEFAULT_BPFTOOL_REPO: &str = "https://github.com/eunomia-bpf/bpftool";
-const DEFAULT_BPFTOOL_REF: &str = "0594034";
+const DEFAULT_BPFTOOL_REF: &str = "8ae6b98";
 
 const DEFAULT_VMLINUX_REPO: &str = "https://github.com/eunomia-bpf/vmlinux";
 const DEFAULT_VMLINUX_REF: &str = "933f83b";
