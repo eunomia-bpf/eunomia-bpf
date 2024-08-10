@@ -49,7 +49,7 @@ jobs:
           cd ..
           git clone --recursive https://github.com/eunomia-bpf/bpftool
           cd bpftool
-          git checkout 0594034
+          # git checkout 0594034
       - name: Build workspace in aarch64 virtual machine
         uses: uraimo/run-on-arch-action@v2
         with: 
