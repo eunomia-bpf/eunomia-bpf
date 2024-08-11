@@ -396,6 +396,7 @@ pub struct BpfSkelDoc {
 pub struct BpfSkeletonMeta {
     /// Data sections in this elf
     pub data_sections: Vec<DataSectionMeta>,
+    #[serde_as(deserialize_as = "DefaultOnNull")]
     /// Maps this program will use
     pub maps: Vec<MapMeta>,
     #[serde_as(deserialize_as = "DefaultOnNull")]
