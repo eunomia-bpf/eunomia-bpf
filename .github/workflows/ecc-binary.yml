@@ -231,7 +231,7 @@ jobs:
           cp ../cargo-appimage/target/${{matrix.platform.rust_target}}/release/cargo-appimage-runner AppRun
           cp ../.github/scripts/cargo-appimage.desktop .
           ../appimagetool --runtime-file ../runtime . ../ecc-${{matrix.platform.name}}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4.1.7
         name: Upload build result
         with:
           name: ecc-${{matrix.platform.name}}
@@ -271,7 +271,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download build results
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           path: results
       - name: List build results

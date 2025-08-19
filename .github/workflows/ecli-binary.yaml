@@ -394,7 +394,7 @@ jobs:
     needs: [create-release-version, build-full-client, build-http-only-client, build-native-only-client, build-ecli-server, build-full-client-and-server-aarch64]
     steps:
       - name: Download build results
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           path: results
       - name: List files to release
