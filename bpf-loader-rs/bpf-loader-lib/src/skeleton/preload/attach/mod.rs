@@ -30,7 +30,7 @@ pub(crate) enum AttachLink {
 impl Drop for AttachLink {
     fn drop(&mut self) {
         match self {
-            AttachLink::BpfLink(_) => {}
+            AttachLink::BpfLink(_link) => {}
             AttachLink::TCAttach(hook) => {
                 let err = unsafe { bpf_tc_hook_destroy(&mut **hook) };
                 if err != 0 {
@@ -43,7 +43,7 @@ impl Drop for AttachLink {
                     error!("Failed to detach xdp: \n{:?}", err);
                 }
             }
-            AttachLink::PerfEventAttachWithFd(_, fd) => {
+            AttachLink::PerfEventAttachWithFd(_link, fd) => {
                 debug!("Closing pefd {}", fd);
                 // SAFETY: fds are created by us, they are gurateended to be correct
                 let _ = unsafe { fd::OwnedFd::from_raw_fd(*fd as _) };
