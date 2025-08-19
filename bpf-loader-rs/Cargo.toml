@@ -1,5 +1,5 @@
 [workspace]
-
+resolver = "2"
 members = [
     "bpf-loader-cli",
     "bpf-loader-lib",
