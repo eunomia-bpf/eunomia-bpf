@@ -38,6 +38,6 @@ jobs:
         llvm-ar q libeunomia.a *.o
 
     - name: Upload build result
-      uses: actions/upload-artifact@v2.3.1
+      uses: actions/upload-artifact@v4
       with:
         path: "libeunomia.a"

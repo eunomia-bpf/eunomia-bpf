@@ -9,35 +9,74 @@ jobs:
   build:
     name: Deploy gh-pages
     runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+      options: --privileged
     permissions:
       contents: write
       pull-requests: write
       id-token: write
     steps:
+      - name: Install git and basic tools
+        run: |
+          apt-get update
+          apt-get install -y git sudo
+
       - uses: actions/checkout@v3.3.0
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+      
+      - name: Fix git safe directory
+        run: |
+          git config --global --add safe.directory /__w/eunomia-bpf/eunomia-bpf
+          git config --global --add safe.directory '*'
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y \
+            curl \
+            build-essential \
+            linux-headers-generic \
+            linux-libc-dev \
+            clang \
+            llvm \
+            libelf-dev \
+            zlib1g-dev \
+            cmake \
+            pkg-config \
+            libssl-dev \
+            ca-certificates
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+          . $HOME/.cargo/env
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          rustc --version
+          cargo --version
 
       - name: get submodule
-        run:  git submodule update --init --recursive --remote
+        run: git submodule update --init --recursive --remote
 
       - name: install deps
         run: |
-             sudo make -C ecli install-deps
+          . $HOME/.cargo/env
+          make -C ecli install-deps
 
       - name: install test deps
-        run:  |
-              make -C examples/tests install-deps
-              make -C examples/tests install-wasm-clang
+        run: |
+          . $HOME/.cargo/env
+          make -C examples/tests install-deps
+          make -C examples/tests install-wasm-clang
 
       - name: test build runners
-        run:  |
-              make -C examples
+        run: |
+          . $HOME/.cargo/env
+          make -C examples
 
       - name: test examples
-        run:  |
-              SKIP_TESTS=profile make -C examples/tests test
+        run: |
+          . $HOME/.cargo/env
+          SKIP_TESTS=profile make -C examples/tests test
 
       - uses: JamesIves/github-pages-deploy-action@v4.4.1
         if: ${{ github.event_name == 'push' }}
