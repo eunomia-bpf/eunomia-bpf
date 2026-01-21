@@ -64,6 +64,7 @@ jobs:
             const tag = tags.find(tag => tag.commit.sha === context.sha);
 
             return tag ? tag.name : increase_v(latest_release_tag)
+
   build-full-client:
     needs: create-release-version
     runs-on: ubuntu-latest
@@ -131,6 +132,7 @@ jobs:
         path: |
           release/ecli-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz
           release/ecli
+
   build-http-only-client:
     needs: create-release-version
     strategy:
@@ -198,6 +200,7 @@ jobs:
           name: "ecli-http-only-${{matrix.os}}-${{needs.create-release-version.outputs.version}}"
           path: |
             ecli-http-only-${{matrix.os}}-${{ needs.create-release-version.outputs.version }}.zip
+
   build-native-only-client:
     needs: create-release-version
     runs-on: ubuntu-latest
@@ -238,6 +241,7 @@ jobs:
           name: "ecli-native-only-${{needs.create-release-version.outputs.version}}"
           path: |
             ${{steps.name.outputs.zip_name}}
+
   build-ecli-server:
     needs: create-release-version
     runs-on: ubuntu-latest
@@ -276,6 +280,7 @@ jobs:
           name: "ecli-server-${{needs.create-release-version.outputs.version}}"
           path: |
             ${{steps.name.outputs.zip_name}}
+
   build-full-client-and-server-aarch64:
     needs: create-release-version
     strategy:
@@ -302,6 +307,9 @@ jobs:
     - name: Clone libbpf for building
       run: |
         git clone https://github.com/libbpf/libbpf
+    - name: Create libs directory
+      run: |
+        mkdir -p libs
 
     - name: Build libbpf in a qemu virtual machine, and copy libs out
       uses: uraimo/run-on-arch-action@v2
@@ -309,16 +317,47 @@ jobs:
         arch: aarch64
         distro: ubuntu22.04
         run: |
+          set -e
+          
+          echo "========== 安装依赖 =========="
           apt-get update
           apt-get install -y zlib1g-dev libelf-dev gcc make pkg-config
+          
+          echo "========== 开始编译 libbpf =========="
           cd /libbpf/src
-          make
-          cp libbpf.so /libs
-          cp /usr/lib/aarch64-linux-gnu/libelf.so /libs
-          cp /usr/lib/aarch64-linux-gnu/libz.so /libs
+          
+          # QEMU 模拟环境下 GCC 可能不稳定，使用单线程编译并添加重试机制
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+          
+          until make -j1 V=1; do
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+              echo "编译失败，已重试 $MAX_RETRIES 次"
+              exit 1
+            fi
+            echo ""
+            echo "=========================================="
+            echo "编译失败，正在重试 ($RETRY_COUNT/$MAX_RETRIES)..."
+            echo "=========================================="
+            echo ""
+            sleep 3
+            # 清理失败的编译产物
+            make clean || true
+          done
+          
+          echo "========== 编译成功，复制库文件 =========="
+          cp libbpf.so /libs/
+          cp libbpf.a /libs/ || true
+          cp /usr/lib/aarch64-linux-gnu/libelf.so /libs/
+          cp /usr/lib/aarch64-linux-gnu/libz.so /libs/
+          
+          echo "========== 库文件列表 =========="
+          ls -la /libs/
         dockerRunArgs: |
           --volume "${PWD}/libbpf:/libbpf"
           --volume "${PWD}/libs:/libs"
+
     - name: cache rust build results
       uses: Swatinem/rust-cache@v2
       with:
@@ -389,6 +428,7 @@ jobs:
       with:
         name: ${{matrix.run.exe_name}}-aarch64
         path: ${{matrix.run.release_exe_name}}-aarch64            
+
   publish-release:
     runs-on: ubuntu-latest
     needs: [create-release-version, build-full-client, build-http-only-client, build-native-only-client, build-ecli-server, build-full-client-and-server-aarch64]
