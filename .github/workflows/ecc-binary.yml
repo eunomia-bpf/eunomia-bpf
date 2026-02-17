@@ -392,6 +392,7 @@ jobs:
             }
       - name: Publish
         if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf' && steps.check-release.outputs.result != 'true'
+        continue-on-error: true
         uses: softprops/action-gh-release@v1
         with:
             files: |

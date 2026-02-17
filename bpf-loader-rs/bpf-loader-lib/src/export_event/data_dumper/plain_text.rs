@@ -38,6 +38,15 @@ pub(crate) fn dump_to_string_with_checked_types(
                 member.field_name
             );
         }
+        if offset + member.size > data.len() {
+            bail!(
+                "Invalid offset or size for member {}: offset={}, size={}, data_len={}",
+                member.field_name,
+                offset,
+                member.size,
+                data.len()
+            );
+        }
         dump_to_string(
             btf,
             member.type_id,
