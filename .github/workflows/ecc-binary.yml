@@ -357,6 +357,9 @@ jobs:
   release:
     needs: [create-release-version, build-ecc-binary-x86, build-ecc-binary-aarch64]
     runs-on: ubuntu-latest
+    concurrency:
+      group: release-${{ needs.create-release-version.outputs.version }}
+      cancel-in-progress: false
     steps:
       - name: Download build results
         uses: actions/download-artifact@v4
@@ -368,30 +371,8 @@ jobs:
       - name: Copy ecc binary x86_64 to ecc
         run: |
           cp ./results/ecc-x86_64/ecc-x86_64 ./results/ecc-x86_64/ecc
-      - name: Check if release already exists
-        id: check-release
-        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
-        uses: actions/github-script@v6
-        with:
-          result-encoding: string
-          script: |
-            try {
-              const { data: release } = await github.rest.repos.getReleaseByTag({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag: '${{ needs.create-release-version.outputs.version }}'
-              });
-              console.log(`Release ${release.tag_name} already exists`);
-              return 'true';
-            } catch (error) {
-              if (error.status === 404) {
-                console.log('Release does not exist yet');
-                return 'false';
-              }
-              throw error;
-            }
       - name: Publish
-        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf' && steps.check-release.outputs.result != 'true'
+        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
         uses: softprops/action-gh-release@v1
         with:
             files: |
