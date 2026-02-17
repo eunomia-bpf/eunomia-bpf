@@ -38,19 +38,28 @@ pub(crate) fn dump_to_string_with_checked_types(
                 member.field_name
             );
         }
-        if offset + member.size > data.len() {
+        let end = offset.checked_add(member.size).ok_or_else(|| {
+            anyhow::anyhow!(
+                "Overflow when computing end offset for member {}: offset={}, size={}",
+                member.field_name,
+                offset,
+                member.size
+            )
+        })?;
+        if end > data.len() {
             bail!(
-                "Invalid offset or size for member {}: offset={}, size={}, data_len={}",
+                "Invalid offset or size for member {}: offset={}, size={}, end={}, data_len={}",
                 member.field_name,
                 offset,
                 member.size,
+                end,
                 data.len()
             );
         }
         dump_to_string(
             btf,
             member.type_id,
-            &data[offset..offset + member.size],
+            &data[offset..end],
             out,
         )?;
     }
