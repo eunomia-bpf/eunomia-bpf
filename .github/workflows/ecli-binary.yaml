@@ -446,31 +446,8 @@ jobs:
           echo "upload_files<<$EOF" >> "$GITHUB_OUTPUT"
           echo "$FILES" >> "$GITHUB_OUTPUT"
           echo "$EOF" >> "$GITHUB_OUTPUT"
-      - name: Check if release already exists
-        id: check-release
-        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && ( github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong')
-        uses: actions/github-script@v6
-        with:
-          result-encoding: string
-          script: |
-            try {
-              const { data: release } = await github.rest.repos.getReleaseByTag({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag: '${{ needs.create-release-version.outputs.version }}'
-              });
-              console.log(`Release ${release.tag_name} already exists`);
-              return 'true';
-            } catch (error) {
-              if (error.status === 404) {
-                console.log('Release does not exist yet');
-                return 'false';
-              }
-              throw error;
-            }
       - name: Publish
-        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && ( github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong') && steps.check-release.outputs.result != 'true'
-        continue-on-error: true
+        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && ( github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong')
         uses: softprops/action-gh-release@v1
         with:
             files: ${{steps.list-files.outputs.upload_files}}
