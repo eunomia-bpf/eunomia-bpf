@@ -357,6 +357,9 @@ jobs:
   release:
     needs: [create-release-version, build-ecc-binary-x86, build-ecc-binary-aarch64]
     runs-on: ubuntu-latest
+    concurrency:
+      group: release-${{ needs.create-release-version.outputs.version }}
+      cancel-in-progress: false
     steps:
       - name: Download build results
         uses: actions/download-artifact@v4
