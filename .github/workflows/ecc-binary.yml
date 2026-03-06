@@ -177,6 +177,7 @@ jobs:
           export PATH="$HOME/.cargo/bin:$PATH"
           git clone https://github.com/eunomia-bpf/cargo-appimage
           cd cargo-appimage
+          sed -i 's/std::env::var("OWD").unwrap()/std::env::var("OWD").unwrap_or_else(|_| ".".to_string())/' src/apprun.rs
           RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target x86_64-unknown-linux-gnu
       - name: Compose files and pack them
         run: |
@@ -344,6 +345,7 @@ jobs:
           export PATH="$HOME/.cargo/bin:$PATH"
           git clone https://github.com/eunomia-bpf/cargo-appimage
           cd cargo-appimage
+          sed -i 's/std::env::var("OWD").unwrap()/std::env::var("OWD").unwrap_or_else(|_| ".".to_string())/' src/apprun.rs
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target aarch64-unknown-linux-gnu
       - name: Compose files and pack them
         run: |
