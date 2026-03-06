@@ -21,8 +21,6 @@ use ecli_lib::{
 
 #[derive(Parser)]
 struct Args {
-    #[arg(short, long)]
-    config: Option<String>,
     #[clap(short, long, help = "Port to bind", default_value = "8527")]
     port: u16,
     #[arg(short, long, default_value = "127.0.0.1", help = "Address to bind")]
