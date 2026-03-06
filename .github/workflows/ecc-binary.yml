@@ -42,30 +42,48 @@ jobs:
         with:
           result-encoding: string
           script: |
-            const { data: releases } = await github.rest.repos.listReleases({
+            const versionPattern = /^v(\d+)\.(\d+)\.(\d+)$/;
+
+            function parseVersion(version) {
+              const match = versionPattern.exec(version);
+              if (!match) {
+                return null;
+              }
+              return match.slice(1).map(Number);
+            }
+
+            function compareVersions(a, b) {
+              for (let i = 0; i < a.length; i += 1) {
+                if (a[i] !== b[i]) {
+                  return a[i] - b[i];
+                }
+              }
+              return 0;
+            }
+
+            const releases = await github.paginate(github.rest.repos.listReleases, {
               owner: context.repo.owner,
               repo: context.repo.repo,
+              per_page: 100,
             });
-            
-            const { data: tags } = await github.rest.repos.listTags({
+
+            const tags = await github.paginate(github.rest.repos.listTags, {
               owner: context.repo.owner,
-              repo: context.repo.repo
+              repo: context.repo.repo,
+              per_page: 100,
             });
-            
-            if (releases.length === 0) { return "v0.0.1"; }
-            
-            function increase_v(version) {
-              const parts = version.split(".");
-              const last = parseInt(parts[2]) + 1;
-              const next_version = `${parts[0]}.${parts[1]}.${last.toString()}`;
-              return next_version;
+
+            const versions = [...releases.map(release => release.tag_name), ...tags.map(tag => tag.name)]
+              .map(parseVersion)
+              .filter(Boolean)
+              .sort(compareVersions);
+
+            if (versions.length === 0) {
+              return "v0.0.1";
             }
-            
-            const latest_release_tag = releases[0].tag_name;
-            
-            const tag = tags.find(tag => tag.commit.sha === context.sha);
-            
-            return tag ? tag.name : increase_v(latest_release_tag)
+
+            const [major, minor, patch] = versions[versions.length - 1];
+            return `v${major}.${minor}.${patch + 1}`;
             
   build-ecc-binary-x86:
     name: Build ecc on x86_64
