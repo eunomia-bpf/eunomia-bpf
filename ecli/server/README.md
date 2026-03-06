@@ -1,19 +1,17 @@
-# eserver
+# ecli-server
 
 ## Start
 ```console
-$ sudo ./eserver
+$ sudo ./ecli-server
 Server start at 127.0.0.1:8527
 ```
 
 ```console
-$ ./eserver --help
-Usage: eserver [OPTIONS]
+$ ./ecli-server --help
+Usage: ecli-server [OPTIONS]
 
 Options:
-  -c, --config <CONFIG>  
-  -s, --secure           
-  -p, --port <PORT>      server port [default: 8527]
-  -a, --addr <ADDR>      [default: 127.0.0.1]
+  -p, --port <PORT>      Port to bind [default: 8527]
+  -a, --addr <ADDR>      Address to bind [default: 127.0.0.1]
   -h, --help             Print help
 ```
