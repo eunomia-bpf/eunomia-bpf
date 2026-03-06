@@ -219,7 +219,7 @@ jobs:
           apt-get update
           apt-get install -y clang llvm
           chmod +x ./ecc-x86_64
-          ./ecc-x86_64 -l llvm-strip .github/assets/simple.bpf.c
+          APPIMAGE_EXTRACT_AND_RUN=1 ./ecc-x86_64 -l llvm-strip .github/assets/simple.bpf.c
       - uses: actions/upload-artifact@v4
         name: Upload build result
         with:
