@@ -188,8 +188,7 @@ jobs:
           cp ../data/ecc usr/bin/bin
           # Copy libraries if they exist
           if [ -d ../data/libs ]; then
-            mkdir -p usr/lib
-            cp -r ../data/libs/* usr/lib/
+            cp -r ../data/libs/* ./
           fi
           touch icon.png
           cp ../cargo-appimage/target/x86_64-unknown-linux-gnu/release/cargo-appimage-runner AppRun
@@ -350,11 +349,10 @@ jobs:
       - name: Compose files and pack them
         run: |
           mkdir -p appimage-root/usr/bin
-          mkdir -p appimage-root/usr/lib
           cp ./data/ecc appimage-root/usr/bin/bin
           # Copy libraries if they exist
           if [ -d ./data/libs ]; then
-            cp -r ./data/libs/* appimage-root/usr/lib/
+            cp -r ./data/libs/* appimage-root/
           fi
           touch appimage-root/icon.png
           cp ./cargo-appimage/target/aarch64-unknown-linux-gnu/release/cargo-appimage-runner appimage-root/AppRun
