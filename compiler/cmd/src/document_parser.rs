@@ -28,12 +28,13 @@ fn parse_source_files<'a>(
     index: &'a Index<'a>,
     args: &'a Options,
     source_path: &'a Path,
+    include_base_source_path: &'a Path,
 ) -> Result<TranslationUnit<'a>> {
     let bpf_sys_include = get_bpf_sys_include_args(&args.compile_opts)?;
     let target_arch = get_target_arch();
     let target_arch = format!("-D__TARGET_ARCH_{target_arch}");
     let eunomia_include = get_eunomia_include_args(args)?;
-    let base_dir_include = get_base_dir_include_args(source_path)?;
+    let base_dir_include = get_base_dir_include_args(include_base_source_path)?;
     let mut compile_args = vec![
         "-g".to_string(),
         "-O2".to_string(),
@@ -241,9 +242,10 @@ fn resolve_bpf_skel_entities(entities: &Vec<Entity>, bpf_skel_json: Value) -> Re
 }
 
 /// Get documentations from source file
-pub fn parse_source_documents(
+pub(crate) fn parse_source_documents_with_include_base(
     args: &Options,
     source_path: &str,
+    include_base_source_path: &str,
     bpf_skel_json: Value,
 ) -> Result<Value> {
     // Acquire an instance of `Clang`
@@ -256,8 +258,15 @@ pub fn parse_source_documents(
     // Create a new `Index`
     let index = Index::new(&clang, false, true);
     let _source_path = Path::new(source_path);
+    let include_base_source_path = Path::new(include_base_source_path);
     let canonic_source_path = _source_path.canonicalize().unwrap();
-    let tu = parse_source_files(&index, args, &canonic_source_path)?;
+    let canonic_include_base_source_path = include_base_source_path.canonicalize().unwrap();
+    let tu = parse_source_files(
+        &index,
+        args,
+        &canonic_source_path,
+        &canonic_include_base_source_path,
+    )?;
 
     // Get the entities in this translation unit
     let entities = tu
@@ -280,6 +289,15 @@ pub fn parse_source_documents(
     // find the entity with the same name as the names in the json skeleton
     let new_skel_json = resolve_bpf_skel_entities(&entities, bpf_skel_json)?;
     Ok(new_skel_json)
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+pub fn parse_source_documents(
+    args: &Options,
+    source_path: &str,
+    bpf_skel_json: Value,
+) -> Result<Value> {
+    parse_source_documents_with_include_base(args, source_path, source_path, bpf_skel_json)
 }
 
 #[cfg(test)]
