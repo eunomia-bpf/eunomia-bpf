@@ -1,4 +1,4 @@
-![logo](documents/src/img/logo.png)
+![logo](https://eunomia.dev/assets/logo.png)
 
 # eunomia-bpf：简化并增强eBPF，支持CO-RE[^1]和WebAssembly[^2]
 
@@ -14,21 +14,23 @@
 
 `eunomia-bpf`是一个动态加载库/运行时以及一个编译工具链框架，旨在帮助您更容易地构建和分发eBPF程序。
 
+项目文档现在统一维护在 [eunomia.dev](https://eunomia.dev/zh/eunomia-bpf/) ，文档源码位于 [eunomia-bpf/eunomia.dev](https://github.com/eunomia-bpf/eunomia.dev)。
+
 有了eunnomia-bpf，您可以：
 
 - 简化 `编写` eBPF 程序的库：
-  - 简化构建 CO-RE [^1] `libbpf` eBPF应用程序：[仅编写 eBPF 内核代码](documents/introduction.md#simplify-building-co-re-libbpf-ebpf-applications)，并通过 `perf event`或 `ring buffer` 自动暴露您的数据从内核。
-  - [自动采样数据](documents/introduction.md#automatically-sample-the-data-and-print-hists-in-userspace) 从哈希映射并在用户空间打印直方图。
-  - [自动生成](documents/introduction.md#automatically-generate-and-config-command-line-arguments) 并配置 eBPF 程序的`命令行参数`。
+  - 简化构建 CO-RE [^1] `libbpf` eBPF应用程序：[仅编写 eBPF 内核代码](https://eunomia.dev/zh/eunomia-bpf/introduction/) ，并通过 `perf event`或 `ring buffer` 自动暴露您的数据从内核。
+  - [自动采样数据](https://eunomia.dev/zh/eunomia-bpf/introduction/) 从哈希映射并在用户空间打印直方图。
+  - [自动生成](https://eunomia.dev/zh/eunomia-bpf/introduction/) 并配置 eBPF 程序的`命令行参数`。
   - 您可以同时以 `BCC` 或 `libbpf` 的方式编写内核部分。
 - 使用 `Wasm`[^2] 构建eBPF程序：参见 [`Wasm-bpf`](https://github.com/eunomia-bpf/wasm-bpf) 项目
   - 运行时，库和工具链可以用 C/C++、Rust、Go 等[以 Wasm 编写 eBPF](https://github.com/eunomia-bpf/wasm-bpf)，涵盖从`跟踪`、`网络`、`安全`的使用场景。
 - 简化eBPF程序的`分发`：
   - 一个[工具](ecli/)用于推送、拉取和运行预编译的eBPF程序作为Wasm模块的`OCI`镜像。
-  - 以[`1`行 bash](documents/introduction.md#dynamic-load-and-run-co-re-ebpf-kernel-code-from-the-cloud-with-url-or-oci-image)从 `云端` 或 `URL` 运行eBPF程序，无需重新编译，独立于内核版本和架构。
+  - 以[`1`行 bash](https://eunomia.dev/zh/eunomia-bpf/introduction/) 从 `云端` 或 `URL` 运行eBPF程序，无需重新编译，独立于内核版本和架构。
   - 使用 `JSON` 配置文件或 `Wasm` 模块[动态加载](bpf-loader-rs) eBPF 程序。
 
-更多信息，请参见[documents/introduction.md](documents/introduction.md)。
+更多信息，请参见 [eunomia-bpf 文档站](https://eunomia.dev/zh/eunomia-bpf/)。
 
 [^1]: CO-RE: [编译一次 – 在任何地方运行](https://facebookmicrosites.github.io/bpf/blog/2020/02/19/bpf-portability-and-co-re.html)
 [^2]: WebAssembly 或 Wasm: <https://webassembly.org/>
@@ -94,7 +96,7 @@ TIME     PID    TPID   SIG    RET    COMM
 02:05:59  79731 79730  17     0      which
 ```
 
-有关更多信息，请参见[documents/src/ecli/server.md](documents/src/ecli/server.md)。
+有关更多信息，请参见 [ecli server 文档](https://eunomia.dev/zh/eunomia-bpf/ecli/server/)。
 
 ## 安装项目
 

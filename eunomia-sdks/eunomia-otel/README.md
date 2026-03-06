@@ -54,7 +54,7 @@ Different from the bcc ebpf_exporter, the only thing you need to run on the depl
 
 The result is:
 
-![img](../documents/images/opensnoop_prometheus.png)
+![img](https://eunomia.dev/blog/img/opensnoop_prometheus.png)
 
 ## manage eBPF tracing program via API
 
@@ -84,7 +84,7 @@ $ curl -X POST http://127.0.0.1:8526/stop -H "Content-Type: application/json" -d
 
 ## build
 
-Notice: You must compile `bpf-loader` before build `eunomia-exporter`. Details in [build.md](../documents/build.md)
+Notice: You must compile `bpf-loader` before build `eunomia-exporter`. Details in [the build documentation](https://eunomia.dev/eunomia-bpf/setup/build/).
 
 This component was written by rust,Please install `rust` before build.
 
