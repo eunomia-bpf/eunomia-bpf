@@ -473,6 +473,7 @@ jobs:
         if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && ( github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.create-release-version.outputs.version }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
@@ -485,6 +486,7 @@ jobs:
         if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && ( github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.create-release-version.outputs.version }}
         shell: bash
         run: |
@@ -498,6 +500,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.create-release-version.outputs.version }}
         shell: bash
         run: |
@@ -521,6 +524,7 @@ jobs:
         if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && ( github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.create-release-version.outputs.version }}
         run: |
           gh release edit "$RELEASE_TAG" --draft=false
