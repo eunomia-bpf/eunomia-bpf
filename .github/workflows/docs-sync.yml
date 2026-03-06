@@ -55,8 +55,16 @@ jobs:
 
       - name: Install dependents
         run: |
-          pip install mkdocs-material=="9.*" mkdocs-static-i18n=="0.53"
-          pip install "mkdocs-material[imaging]"
+          # Keep this dependency set aligned with eunomia.dev/Makefile.
+          python -m pip install \
+            mkdocs-material=="9.*" \
+            mkdocs-static-i18n=="0.53" \
+            "mkdocs-material[imaging]" \
+            mkdocs-git-revision-date-localized-plugin \
+            mkdocs-git-authors-plugin \
+            mkdocs-awesome-pages-plugin \
+            mkdocs-exclude \
+            mkdocs-rss-plugin
 
       - name: Test page build
         if: github.event_name == 'pull_request'
@@ -70,4 +78,3 @@ jobs:
           token: ${{ secrets.PAT }}
           repository: ${{ github.repository_owner }}/eunomia.dev
           event-type: trigger-document-sync
-

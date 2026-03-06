@@ -55,7 +55,7 @@ jobs:
           cargo --version
 
       - name: get submodule
-        run: git submodule update --init --recursive --remote
+        run: git submodule update --init --recursive
 
       - name: install deps
         run: |
