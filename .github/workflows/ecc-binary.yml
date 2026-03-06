@@ -156,7 +156,7 @@ jobs:
           chmod +x ./data/ecc
           echo "Permission set done"
           chmod +x ./data/copy-libs.sh
-          ./data/copy-libs.sh ./data/ecc
+          ./data/copy-libs.sh ./data/ecc -h
       - name: Show what libraries were copied
         run: |
           find ./data -type f
@@ -199,11 +199,6 @@ jobs:
           ./appimagetool --appimage-extract
           # Use extracted appimagetool
           ARCH=x86_64 ./squashfs-root/AppRun --no-appstream --runtime-file ./runtime appimage-root ecc-x86_64
-      - uses: actions/upload-artifact@v4
-        name: Upload build result
-        with:
-          name: ecc-x86_64
-          path: ecc-x86_64
       - name: Test the binary with bundled libraries
         run: |
           apt-get update
@@ -219,6 +214,17 @@ jobs:
             echo "No bundled libraries found, testing raw binary..."
             ./data/ecc -l llvm-strip .github/assets/simple.bpf.c
           fi
+      - name: Test the packaged x86_64 release artifact
+        run: |
+          apt-get update
+          apt-get install -y clang llvm
+          chmod +x ./ecc-x86_64
+          ./ecc-x86_64 -l llvm-strip .github/assets/simple.bpf.c
+      - uses: actions/upload-artifact@v4
+        name: Upload build result
+        with:
+          name: ecc-x86_64
+          path: ecc-x86_64
 
   build-ecc-binary-aarch64:
     name: Build ecc on aarch64
@@ -321,7 +327,7 @@ jobs:
             chmod +x /data/ecc
             chmod +x /data/copy-libs.sh
             cd /data
-            ./copy-libs.sh ./ecc
+            ./copy-libs.sh ./ecc -h
       - name: Show what libraries were copied
         run: |
           find ./data -type f
