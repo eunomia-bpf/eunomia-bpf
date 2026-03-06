@@ -43,25 +43,12 @@
 
 ### 作为 CLI 工具或服务运行
 
-您可以通过以下方式从云中运行预编译的eBPF程序到内核，只需`1`行bash命令：
+您可以通过以下方式从 OCI 仓库运行预编译的 eBPF 程序到内核，只需`1`行 bash 命令：
 
 ```bash
-# 从https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli 下载发布版本
-$ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
-$ sudo ./ecli run https://eunomia-bpf.github.io/eunomia-bpf/sigsnoop/package.json # 从URL简单地运行一个预编译的ebpf代码
-INFO [bpf_loader_lib::skeleton] Running ebpf program...
-TIME     PID    TPID   SIG    RET    COMM   
-01:54:49  77297 8042   0      0      node
-01:54:50  77297 8042   0      0      node
-01:54:50  78788 78787  17     0      which
-01:54:50  78787 8084   17     0      sh
-01:54:50  78790 78789  17     0      ps
-01:54:50  78789 8084   17     0      sh
-01:54:50  78793 78792  17     0      sed
-01:54:50  78794 78792  17     0      cat
-01:54:50  78795 78792  17     0      cat
-
-$ sudo ./ecli run ghcr.io/eunomia-bpf/execve:latest # 使用一个名称运行并从我们的仓库下载最新版本的bpf工具
+# 从 GitHub Releases 下载最新发布版本
+$ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli -O ecli && chmod +x ./ecli
+$ sudo ./ecli run ghcr.io/eunomia-bpf/execve:latest # 从 OCI 仓库运行一个预编译的 ebpf 工具
 [79130] node -> /bin/sh -c which ps 
 [79131] sh -> which ps 
 [79132] node -> /bin/sh -c /usr/bin/ps -ax -o pid=,ppid=,pcpu=,pmem=,c 
@@ -103,24 +90,21 @@ TIME     PID    TPID   SIG    RET    COMM
 - 安装`ecli`工具以从云端运行eBPF程序：
 
     ```console
-    $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
+    $ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecli -O ecli && chmod +x ./ecli
     $ ./ecli -h
-    ecli子命令，包括run、push、pull、login、logout
+    ecli 子命令，包括 run、push、pull
 
-    用法: ecli-rs [PROG] [EXTRA_ARGS]... [COMMAND]
+    用法: ecli [COMMAND_LINE]... [COMMAND]
 
     命令:
       run     运行ebpf程序
       client  客户端操作
-      push    
-      pull    从注册表中提取oci图像
-      login   登录到oci注册表
-      logout  从注册表登出
+      push    将镜像推送到注册表
+      pull    从注册表拉取镜像
       help    打印此消息或给定子命令的帮助
 
     参数:
-      [PROG]           不推荐使用。只为了与旧版本兼容。Ebpf程序URL或本地路径，设置为`-`可以从stdin读取程序
-      [EXTRA_ARGS]...  不推荐使用。只为了与旧版本兼容。额外的程序参数；对于wasm程序，将直接传递给它；对于JSON程序，将传递给生成的参数解析器
+      [COMMAND_LINE]...  不推荐使用。仅用于兼容旧版本。要运行的命令行；可执行对象可以是本地路径、URL 或 `-`（从 stdin 读取）。后续参数会原样传递给程序
 
     选项:
       -h, --help  打印帮助
