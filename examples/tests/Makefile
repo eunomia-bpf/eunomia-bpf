@@ -29,8 +29,12 @@ $(TEST_CASES_DIRS):install-deps
 	sudo timeout --preserve-status -s 2 $(TEST_TIME) ./ecli run $(TEST_EXAMPLE_DIR)$@/package.json
 
 install-wasm-clang: ## install clang for wasm
-	wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-16/wasi-sdk-16.0-linux.tar.gz
-	tar -zxf wasi-sdk-16.0-linux.tar.gz && mkdir /opt/wasi-sdk/ && mv wasi-sdk-16.0/* /opt/wasi-sdk/
+	if command -v wget >/dev/null 2>&1; then \
+		wget -O wasi-sdk-16.0-linux.tar.gz https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-16/wasi-sdk-16.0-linux.tar.gz; \
+	else \
+		curl -fsSL -o wasi-sdk-16.0-linux.tar.gz https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-16/wasi-sdk-16.0-linux.tar.gz; \
+	fi
+	tar -zxf wasi-sdk-16.0-linux.tar.gz && mkdir -p /opt/wasi-sdk/ && mv wasi-sdk-16.0/* /opt/wasi-sdk/
 
 clean:
 	

@@ -55,12 +55,31 @@ jobs:
         with: 
           arch: aarch64
           distro: ubuntu22.04
+          githubToken: ${{ github.token }}
           run: |
+            set -e
+
             apt-get update
-            apt-get install -y zlib1g-dev libelf-dev gcc make
-            cd /workspace && mkdir bin
+            apt-get install -y zlib1g-dev libelf-dev gcc make pkg-config
+
+            mkdir -p /workspace/bin
             cd /assets/bpftool/src
-            CFLAGS="-static" make
+
+            MAX_RETRIES=5
+            RETRY_COUNT=0
+
+            until CFLAGS="-static" make -j1 V=1; do
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
+                echo "bpftool build failed after $MAX_RETRIES attempts"
+                exit 1
+              fi
+
+              echo "bpftool build failed under QEMU, retrying ($RETRY_COUNT/$MAX_RETRIES)..."
+              make clean || true
+              sleep 3
+            done
+
             cp bpftool /workspace/bin
           dockerRunArgs: |
             --volume "${PWD}/workspace:/workspace"
