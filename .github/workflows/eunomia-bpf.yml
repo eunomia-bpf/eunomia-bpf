@@ -2,7 +2,8 @@ name: Build and test bpf-loader-rs on Ubuntu
 
 on:
   push:
-    branches: "*"
+    branches:
+      - master
   pull_request:
     branches: "*"
 env:
@@ -44,4 +45,3 @@ jobs:
 
     - name: Code coverage using Codecov
       run: bash <(curl -s https://codecov.io/bash)
-

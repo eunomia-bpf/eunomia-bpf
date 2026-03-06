@@ -3,7 +3,9 @@ name: Build and test and publish ecli binary (multiple platforms and archs)
 on:
   workflow_dispatch: 
   push:
-    branches: ["*"]
+    branches:
+      - master
+      - "fix*"
     paths:
       - "ecli/**"
       - "compiler/**"  # Ensure ecc and ecli releasing at same time
