@@ -392,7 +392,7 @@ jobs:
     needs: [create-release-version, build-ecc-binary-x86, build-ecc-binary-aarch64]
     runs-on: ubuntu-latest
     concurrency:
-      group: release-${{ needs.create-release-version.outputs.version }}
+      group: ${{ github.workflow }}-${{ needs.create-release-version.outputs.version }}-${{ github.ref_name }}
       cancel-in-progress: false
     steps:
       - name: Download build results
@@ -405,16 +405,30 @@ jobs:
       - name: Copy ecc binary x86_64 to ecc
         run: |
           cp ./results/ecc-x86_64/ecc-x86_64 ./results/ecc-x86_64/ecc
-      - name: Publish
-        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
-        uses: softprops/action-gh-release@v1
-        with:
-            files: |
-              ./results/ecc-x86_64/ecc
-              ./results/ecc-x86_64/ecc-x86_64
-              ./results/ecc-aarch64/ecc-aarch64
-            prerelease: false
-            tag_name: ${{ needs.create-release-version.outputs.version }}
-            generate_release_notes: true
+      - name: Ensure draft release exists
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.create-release-version.outputs.version }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists"
+          elif ! gh release create "$RELEASE_TAG" --draft --generate-notes --target "$GITHUB_SHA"; then
+            echo "Release creation raced with another workflow, re-checking state"
+            gh release view "$RELEASE_TAG" >/dev/null
+          fi
+      - name: Upload ecc assets to draft release
+        if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.create-release-version.outputs.version }}
+        run: |
+          if [ "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" != "true" ]; then
+            echo "Release $RELEASE_TAG is already published and cannot accept new assets"
+            exit 1
+          fi
+          gh release upload "$RELEASE_TAG" \
+            ./results/ecc-x86_64/ecc \
+            ./results/ecc-x86_64/ecc-x86_64 \
+            ./results/ecc-aarch64/ecc-aarch64 \
+            --clobber
