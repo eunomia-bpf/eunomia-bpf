@@ -262,10 +262,25 @@ jobs:
             --volume "${PWD}/workspace:/workspace"
           install: |
             apt-get update
-            apt-get install -y zlib1g-dev libelf-dev gcc make
+            apt-get install -y zlib1g-dev libelf-dev gcc make pkg-config
           run: |
             cd /assets/bpftool/src
-            CFLAGS="-static" make -j$(nproc)
+
+            MAX_RETRIES=5
+            RETRY_COUNT=0
+
+            until CFLAGS="-static" make -j1 V=1; do
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
+                echo "bpftool build failed after $MAX_RETRIES attempts"
+                exit 1
+              fi
+
+              echo "bpftool build failed under QEMU, retrying ($RETRY_COUNT/$MAX_RETRIES)..."
+              make clean || true
+              sleep 3
+            done
+
             cp bpftool /workspace/bin/
             ls -lah /workspace/bin/
       - name: Compose the ecc workspace
