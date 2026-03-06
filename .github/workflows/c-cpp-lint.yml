@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Check SPDX headers use ASCII spaces
+      run: ./.github/scripts/check-spdx-header-space.sh
     - uses: DoozyX/clang-format-lint-action@v0.14
       with:
         source: 'examples'
