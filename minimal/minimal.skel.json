@@ -1,1 +1,0 @@
-{"bpf_skel":{"data_sections":[{"name":".rodata","variables":[{"name":"pid_filter","type":"pid_t"}]}],"maps":[{"ident":"rodata","mmaped":true,"name":"minimal_.rodata"},{"ident":"rodata_str1_1","name":".rodata.str1.1"}],"obj_name":"minimal_bpf","progs":[{"attach":"tp/syscalls/sys_enter_write","link":true,"name":"handle_tp"}]},"eunomia_version":"0.3.4"}
