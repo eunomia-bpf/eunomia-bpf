@@ -15,6 +15,7 @@
       (with flake-utils.lib.system; [ x86_64-linux aarch64-linux ])
       (system:
         let
+          pkgs = import nixpkgs { inherit system; };
           naersk' = pkgs.callPackage naersk { };
           version = pkgs.lib.substring 0 8 self.lastModifiedDate or self.lastModified or "19700101";
           meta = with pkgs.lib; {
@@ -22,7 +23,39 @@
             license = licenses.mit;
             maintainers = with maintainers; [ undefined-moe ];
           };
-          pkgs = import nixpkgs { inherit system; };
+          ecliRustTriple = if system == "x86_64-linux" then "x86_64-unknown-linux-gnu" else "aarch64-unknown-linux-gnu";
+          ecliRustHash = if system == "x86_64-linux" then "sha256-v/iXTy0+5sDmrJJrUz9lu902l9LCuSW9rl9Fue7RCmc=" else "sha256-WfGIP83S1yQ9L9HtGfIuBSGSUSJ6us+j1lauv7zF6Dg=";
+          ecliRustToolchain = pkgs.stdenvNoCC.mkDerivation {
+            pname = "rust-toolchain";
+            version = "1.90.0";
+            src = pkgs.fetchurl {
+              url = "https://static.rust-lang.org/dist/rust-1.90.0-${ecliRustTriple}.tar.xz";
+              hash = ecliRustHash;
+            };
+            nativeBuildInputs = [ pkgs.patchelf ];
+            dontConfigure = true;
+            dontBuild = true;
+            installPhase = ''
+              runHook preInstall
+              patchShebangs .
+              ./install.sh --prefix=$out --disable-ldconfig
+
+              dynamicLinker="$(cat ${pkgs.stdenv.cc}/nix-support/dynamic-linker)"
+              toolchainRpath="${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.zlib}/lib:$out/lib"
+              find $out -type f | while read -r path; do
+                if patchelf --print-interpreter "$path" >/dev/null 2>&1; then
+                  patchelf --set-interpreter "$dynamicLinker" --set-rpath "$toolchainRpath" "$path"
+                elif patchelf --print-rpath "$path" >/dev/null 2>&1; then
+                  patchelf --set-rpath "$toolchainRpath" "$path"
+                fi
+              done
+              runHook postInstall
+            '';
+          };
+          ecliRustPlatform = pkgs.makeRustPlatform {
+            cargo = ecliRustToolchain;
+            rustc = ecliRustToolchain;
+          };
 
           bpftool = pkgs.llvmPackages.stdenv.mkDerivation {
             pname = "bpftool";
@@ -74,7 +107,7 @@
             inherit version;
             src = self;
             cargoRoot = "ecli";
-            cargoDeps = pkgs.rustPlatform.importCargoLock {
+            cargoDeps = ecliRustPlatform.importCargoLock {
               lockFile = ./${finalAttrs.cargoRoot}/Cargo.lock;
             };
 
@@ -82,7 +115,7 @@
               pkg-config
             ]
             ++
-            (with rustPlatform;
+            (with ecliRustPlatform;
             [
               cargoSetupHook
               cargo
@@ -101,13 +134,18 @@
               cd ${finalAttrs.cargoRoot}
             '';
 
+            buildPhase = ''
+              runHook preBuild
+              RUSTC=${ecliRustToolchain}/bin/rustc ${ecliRustToolchain}/bin/cargo build --release
+              runHook postBuild
+            '';
+
             OPENSSL_NO_VENDOR = 1;
 
             installPhase = ''
               runHook preInstall
               mkdir -p $out/bin
               install -Dm 755 target/release/ecli-rs $out/bin/
-              install -Dm 755 target/release/ecli-server $out/bin/
               runHook postInstall
             '';
             inherit meta;
@@ -122,15 +160,6 @@
               src = ecli;
               installPhase = ''
                 install -Dm 755 $src/bin/ecli-rs $out/bin/ecli-rs
-              '';
-              inherit meta;
-            };
-            ecli-server = pkgs.stdenv.mkDerivation {
-              name = "ecli-server";
-              inherit version;
-              src = ecli;
-              installPhase = ''
-                install -Dm 755 $src/bin/ecli-server $out/bin/ecli-server
               '';
               inherit meta;
             };
@@ -205,7 +234,7 @@
 
             ebpf-dev = eunomia-dev // pkgs.mkShell {
               buildInputs = (with pkgs; [ libbpf ])
-              ++ [ packages.ecli packages.ecc packages.ecli-server ]
+              ++ [ packages.ecli packages.ecc ]
               ++ [ wasm-bpf.packages.${system}.default ];
 
             };
@@ -219,10 +248,6 @@
             ecli-rs = {
               type = "app";
               program = "${self.packages.${system}.ecli}/bin/ecli-rs";
-            };
-            ecli-server = {
-              type = "app";
-              program = "${self.packages.${system}.ecli}/bin/ecli-server";
             };
 
           };

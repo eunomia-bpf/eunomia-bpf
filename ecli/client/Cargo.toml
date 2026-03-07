@@ -16,10 +16,8 @@ log = "0.4.19"
 anyhow = "1.0.71"
 
 [features]
-http = ["ecli-lib/http-client"]
 native = ["ecli-lib/native-client", "dep:ctrlc"]
-default = ["http", "native"]
-all = ["http", "native"]
+default = ["native"]
 
 [package.metadata.appimage]
 auto_link = true

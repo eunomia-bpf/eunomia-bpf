@@ -49,7 +49,3 @@ jobs:
       - name: test examples
         run:  |
               SKIP_TESTS=profile make -C examples/tests test
-
-      - name: test ecli server api
-        run:  |
-              python ecli/tests/api-test.py

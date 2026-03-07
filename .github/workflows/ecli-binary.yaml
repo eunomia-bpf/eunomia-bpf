@@ -153,167 +153,8 @@ jobs:
           release/ecli-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz
           release/ecli
 
-  build-http-only-client:
+  build-full-client-aarch64:
     needs: create-release-version
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{matrix.os}}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: 'recursive'
-      - name: Build http-only ecli (Non-AppImage)
-        if: "!contains(matrix.os, 'ubuntu')"
-        run: |
-          cd ecli/client
-          cargo build --release --no-default-features --features http
-      - name: Prepare cargo-appimage
-        if: "contains(matrix.os, 'ubuntu')"
-        uses: eunomia-bpf/prepare-cargo-appimage@v5
-      - name: Install libfuse
-        if: "contains(matrix.os, 'ubuntu')"
-        run: |
-          sudo apt-get install -y libfuse2
-      - name: Build http-only ecli (AppImage)
-        if: "contains(matrix.os, 'ubuntu')"
-        run: |
-          cd ecli/client
-          CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecli cargo appimage --no-default-features --features http
-          mkdir -p ../target/release
-          cp ecli ../target/release/ecli-rs
-    
-      - name: Copy `ecli-rs.exe` to `ecli.exe`
-        if: contains(matrix.os,'windows')
-        run:
-          cp ecli/target/release/ecli-rs.exe ecli.exe
-      - name: Package `ecli.exe`
-        if: contains(matrix.os,'windows')
-        uses: vimtor/action-zip@v1
-        with:
-          files: ecli.exe
-          dest: ecli.zip
-      - name: Copy `ecli-rs` to `ecli`
-        if: "!contains(matrix.os,'windows')"
-        run: |
-          mkdir ecli-package
-          cp ecli/target/release/ecli-rs ecli-package/ecli
-      - name: Package `ecli`
-        if: "!contains(matrix.os,'windows')"
-        uses: vimtor/action-zip@v1
-        with:
-          files: ecli-package/ecli
-          dest: ecli.zip
-      - name: Test CLI (Ubuntu only)
-        if: "contains(matrix.os, 'ubuntu')"
-        run: |
-          mkdir cli-test
-          cd cli-test
-          cp ../.github/assets/package.json .
-          ../ecli-package/ecli -h
-      - name: Rename `ecli.zip` to proper name
-        run: |
-          mv ecli.zip ecli-http-only-${{matrix.os}}-${{ needs.create-release-version.outputs.version }}.zip
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with: 
-          name: "ecli-http-only-${{matrix.os}}-${{needs.create-release-version.outputs.version}}"
-          path: |
-            ecli-http-only-${{matrix.os}}-${{ needs.create-release-version.outputs.version }}.zip
-
-  build-native-only-client:
-    needs: create-release-version
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: 'recursive'
-      - name: Prepare cargo-appimage
-        uses: eunomia-bpf/prepare-cargo-appimage@v5
-      - name: Install libfuse
-        run: |
-          sudo apt-get install -y libfuse2
-      - name: Build native-only ecli
-        run: |
-          sudo make install-deps
-          cd ecli/client
-          CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecli cargo appimage --no-default-features --features native
-      - name: Copy `ecli-rs` to `ecli` and package it
-        run: |
-          mkdir package-ecli
-          cp ecli/client/ecli package-ecli/ecli
-          tar -czvf package-ecli/ecli.tar.gz package-ecli/ecli 
-      - name: Test CLI
-        run: |
-          mkdir cli-test
-          cd cli-test
-          cp ../.github/assets/package.json .
-          ../package-ecli/ecli -h
-          sudo timeout -s 2 3 ../package-ecli/ecli run ./package.json || if [ $? = 124 ]; then exit 0; else exit $?; fi
-      - name: Rename `ecli.tar.gz` to proper name
-        id: name
-        run: |
-          mv package-ecli/ecli.tar.gz ecli-native-only-ubuntu-latest.tar.gz
-          echo "zip_name=ecli-native-only-ubuntu-latest.tar.gz" >> "$GITHUB_OUTPUT"
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with: 
-          name: "ecli-native-only-${{needs.create-release-version.outputs.version}}"
-          path: |
-            ${{steps.name.outputs.zip_name}}
-
-  build-ecli-server:
-    needs: create-release-version
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: 'recursive'
-      - name: Prepare cargo-appimage
-        uses: eunomia-bpf/prepare-cargo-appimage@v5
-      - name: Install libfuse
-        run: |
-          sudo apt-get install -y libfuse2
-      - name: Build ecli-server
-        run: |
-          sudo make install-deps
-          cd ecli/server
-          CARGO_APPIMAGE_TOOL_BIN=../../appimagetool CARGO_APPIMAGE_RUNTIME_FILE=../../runtime CARGO_APPIMAGE_OUT_FILE=ecli-server cargo appimage
-      - name: Package ecli-server
-        run: |
-          cp ecli/server/ecli-server .
-          tar -czvf ecli-server.tar.gz ecli-server 
-      - name: Test CLI
-        run: |
-          mkdir cli-test
-          cd cli-test
-          ../ecli-server -h
-          sudo timeout -s 2 3 ../ecli-server || if [ $? = 124 ]; then exit 0; else exit $?; fi
-      - name: Rename `ecli-server.tar.gz` to proper name
-        id: name
-        run: |
-          mv ecli-server.tar.gz ecli-server-ubuntu-latest.tar.gz
-          echo "zip_name=ecli-server-ubuntu-latest.tar.gz" >> "$GITHUB_OUTPUT"
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with: 
-          name: "ecli-server-${{needs.create-release-version.outputs.version}}"
-          path: |
-            ${{steps.name.outputs.zip_name}}
-
-  build-full-client-and-server-aarch64:
-    needs: create-release-version
-    strategy:
-      matrix:
-        run:
-          - title: ecli-client-full
-            src_directory: client
-            exe_name: ecli-rs
-            release_exe_name: ecli
-          - title: ecli-server
-            src_directory: server
-            exe_name: ecli-server
-            release_exe_name: ecli-server
     runs-on: ubuntu-22.04
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
     steps:
@@ -383,17 +224,17 @@ jobs:
       with:
         workspaces: |
           ecli
-    - name: Build ${{matrix.run.title}}
+    - name: Build ecli-client-full
       run: |
         rustup target add aarch64-unknown-linux-gnu
         # Install them, so that libbpf will find their headers
         sudo apt-get install libelf-dev zlib1g-dev
-        cd ecli/${{matrix.run.src_directory}}
+        cd ecli/client
         RUSTFLAGS="-L $(pwd)/../../libs" cargo build --release --target aarch64-unknown-linux-gnu
         cd ../..
-        cp ./ecli/target/aarch64-unknown-linux-gnu/release/${{matrix.run.exe_name}} .
+        cp ./ecli/target/aarch64-unknown-linux-gnu/release/ecli-rs .
         mkdir data
-        cp ${{matrix.run.exe_name}} data
+        cp ecli-rs data
         cp .github/scripts/copy-libs.sh data
     - name: Run ecli and see what libs were loaded by ld
       uses: uraimo/run-on-arch-action@v2
@@ -405,10 +246,10 @@ jobs:
           apt-get install -y libelf-dev zlib1g-dev
           echo "Installation done"
           echo "Working directory $(pwd)"
-          chmod +x /data/${{matrix.run.exe_name}}
+          chmod +x /data/ecli-rs
           echo "Permission set done"
           chmod +x /data/copy-libs.sh
-          /data/copy-libs.sh /data/${{matrix.run.exe_name}} --help
+          /data/copy-libs.sh /data/ecli-rs --help
         dockerRunArgs: |
           --volume "${PWD}/data:/data"
         shell: /bin/bash
@@ -436,22 +277,22 @@ jobs:
         cd appimage-root
         cp -r ../data/libs/* .
         mkdir -p usr/bin
-        cp ../${{matrix.run.exe_name}} usr/bin/bin
+        cp ../ecli-rs usr/bin/bin
         touch icon.png
         cp ../cargo-appimage/target/aarch64-unknown-linux-gnu/release/cargo-appimage-runner AppRun
         cp ../.github/scripts/cargo-appimage.desktop .
-        ../appimagetool --runtime-file ../runtime . ${{matrix.run.exe_name}}-aarch64
+        ../appimagetool --runtime-file ../runtime . ecli-rs-aarch64
         cd ..
-        cp ./appimage-root/${{matrix.run.exe_name}}-aarch64 ${{matrix.run.release_exe_name}}-aarch64
+        cp ./appimage-root/ecli-rs-aarch64 ecli-aarch64
     - uses: actions/upload-artifact@v4
       name: Upload build result
       with:
-        name: ${{matrix.run.exe_name}}-aarch64
-        path: ${{matrix.run.release_exe_name}}-aarch64            
+        name: ecli-rs-aarch64
+        path: ecli-aarch64
 
   publish-release:
     runs-on: ubuntu-latest
-    needs: [create-release-version, build-full-client, build-http-only-client, build-native-only-client, build-ecli-server, build-full-client-and-server-aarch64]
+    needs: [create-release-version, build-full-client, build-full-client-aarch64]
     concurrency:
       group: ${{ github.workflow }}-${{ needs.create-release-version.outputs.version }}-${{ github.ref_name }}
       cancel-in-progress: false

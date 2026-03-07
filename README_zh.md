@@ -41,7 +41,7 @@
 - 示例bpf程序：[examples/bpftools](examples/bpftools/)
 - 教程：[eunomia-bpf/bpf-developer-tutorial](https://github.com/eunomia-bpf/bpf-developer-tutorial)
 
-### 作为 CLI 工具或服务运行
+### 作为 CLI 工具运行
 
 您可以通过以下方式从 OCI 仓库运行预编译的 eBPF 程序到内核，只需`1`行 bash 命令：
 
@@ -58,32 +58,7 @@ $ sudo ./ecli run ghcr.io/eunomia-bpf/execve:latest # 从 OCI 仓库运行一个
 [79136] cpuUsage.sh -> sed -n s/^cpu\s//p /proc/stat
 ```
 
-您还可以使用服务器来管理和动态安装eBPF程序。
-
-启动服务器：
-
-```console
-$ sudo ./ecli-server
-[2023-08-08 02:02:03.864009 +08:00] INFO [server/src/main.rs:95] Serving at 127.0.0.1:8527
-```
-
-使用ecli来控制远程服务器并管理多个eBPF程序：
-
-```console
-$ ./ecli client start sigsnoop.json # 开始程序
-1
-$ ./ecli client log 1 # 获取程序日志
-TIME     PID    TPID   SIG    RET    COMM   
-02:05:58  79725 78132  17     0      bash
-02:05:59  77325 77297  0      0      node
-02:05:59  77297 8042   0      0      node
-02:05:59  77297 8042   0      0      node
-02:05:59  79727 79726  17     0      which
-02:05:59  79726 8084   17     0      sh
-02:05:59  79731 79730  17     0      which
-```
-
-有关更多信息，请参见 [ecli server 文档](https://eunomia.dev/zh/eunomia-bpf/ecli/server/)。
+为了降低维护复杂度，主分支已经移除了旧的远程 HTTP 模式（`ecli client` / `ecli-server`）。最后一版实现保留在 `archive/ecli-remote-http` 分支中。
 
 ## 安装项目
 
@@ -98,7 +73,6 @@ TIME     PID    TPID   SIG    RET    COMM
 
     命令:
       run     运行ebpf程序
-      client  客户端操作
       push    将镜像推送到注册表
       pull    从注册表拉取镜像
       help    打印此消息或给定子命令的帮助
