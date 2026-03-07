@@ -5,13 +5,12 @@
 //!
 use crate::bpf_compiler::standalone::build_standalone_executable;
 use crate::config::{
-    fetch_btfhub_repo, generate_tailored_btf, get_base_dir_include_args, get_bpf_sys_include_args,
-    get_bpftool_path, get_eunomia_include_args, package_btfhub_tar, Options,
+    fetch_btfhub_repo, generate_tailored_btf, get_bpf_compile_args, get_bpftool_path,
+    package_btfhub_tar, Options,
 };
 use crate::document_parser::parse_source_documents;
 use crate::export_types::{add_unused_ptr_for_structs, find_all_export_structs};
 use crate::handle_std_command_with_log;
-use crate::helper::get_target_arch;
 use crate::wasm::pack_object_in_wasm_header;
 use anyhow::{anyhow, bail, Context, Result};
 use flate2::write::ZlibEncoder;
@@ -36,17 +35,11 @@ fn compile_bpf_object(
         "Compiling bpf object: output: {:?}, source: {:?}",
         output_path, source_path
     );
-    let bpf_sys_include = get_bpf_sys_include_args(&args.compile_opts)?;
-    debug!("Sys include: {:?}", bpf_sys_include);
-    let target_arch = get_target_arch();
+    let clang_compile_args = get_bpf_compile_args(args, &args.compile_opts.source_path)?;
+    debug!("Clang args: {:?}", clang_compile_args);
 
     let mut cmd = std::process::Command::new(&args.compile_opts.parameters.clang_bin);
-    cmd.args(["-g", "-O2", "-target", "bpf", "-Wno-unknown-attributes"])
-        .arg(format!("-D__TARGET_ARCH_{}", target_arch))
-        .args(bpf_sys_include)
-        .args(get_eunomia_include_args(args)?)
-        .args(&args.compile_opts.parameters.additional_cflags)
-        .args(get_base_dir_include_args(source_path)?)
+    cmd.args(clang_compile_args)
         .arg("-c")
         .arg(source_path)
         .arg("-o")
