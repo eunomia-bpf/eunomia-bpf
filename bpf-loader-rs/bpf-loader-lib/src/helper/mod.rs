@@ -5,4 +5,5 @@
 //!
 
 pub(crate) mod btf;
+pub(crate) mod libbpf_log;
 pub(crate) mod log2_hist;

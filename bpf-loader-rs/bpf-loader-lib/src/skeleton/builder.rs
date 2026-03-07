@@ -18,7 +18,7 @@ use std::{
 use crate::{
     btf_container::BtfContainer,
     elf_container::ElfContainer,
-    helper::btf::create_elf_with_btf_section,
+    helper::{btf::create_elf_with_btf_section, libbpf_log::init_libbpf_logging},
     meta::{ComposedObject, EunomiaObjectMeta, RunnerConfig},
     skeleton::{BTF_PATH_ENV_NAME, VMLINUX_BTF_PATH},
 };
@@ -78,6 +78,7 @@ impl<'a> BpfSkeletonBuilder<'a> {
     }
     /// Build (open) the skeleton
     pub fn build(self) -> Result<PreLoadBpfSkeleton> {
+        init_libbpf_logging();
         let mut open_bpts = ObjectBuilder::default()
             .opts(self.object_meta.bpf_skel.obj_name.as_bytes().as_ptr() as *const c_char);
         // Why we put path_holder here? to keep its iveness until this function returns, so that we can safely use the pointers to the underlying data in bpf_object_openopts
