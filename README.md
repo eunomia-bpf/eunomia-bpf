@@ -41,7 +41,7 @@ For more information, see the [eunomia-bpf documentation](https://eunomia.dev/eu
 - example bpf programs: [examples/bpftools](examples/bpftools/)
 - tutorial: [eunomia-bpf/bpf-developer-tutorial](https://github.com/eunomia-bpf/bpf-developer-tutorial)
 
-### run as cli tool or server
+### run as a CLI tool
 
 You can get pre-compiled eBPF programs running from an OCI registry to the kernel in `1` line of bash:
 
@@ -58,32 +58,7 @@ $ sudo ./ecli run ghcr.io/eunomia-bpf/execve:latest # run a pre-compiled ebpf to
 [79136] cpuUsage.sh -> sed -n s/^cpu\s//p /proc/stat
 ```
 
-You can also use a server to manage and dynamically install eBPF programs.
-
-Start the server:
-
-```console
-$ sudo ./ecli-server
-[2023-08-08 02:02:03.864009 +08:00] INFO [server/src/main.rs:95] Serving at 127.0.0.1:8527
-```
-
-Use the ecli to control the remote server and manage multiple eBPF programs:
-
-```console
-$ ./ecli client start sigsnoop.json # start the program
-1
-$ ./ecli client log 1 # get the log of the program
-TIME     PID    TPID   SIG    RET    COMM   
-02:05:58  79725 78132  17     0      bash
-02:05:59  77325 77297  0      0      node
-02:05:59  77297 8042   0      0      node
-02:05:59  77297 8042   0      0      node
-02:05:59  79727 79726  17     0      which
-02:05:59  79726 8084   17     0      sh
-02:05:59  79731 79730  17     0      which
-```
-
-For more information, see [the ecli server documentation](https://eunomia.dev/eunomia-bpf/ecli/server/).
+The legacy remote HTTP mode (`ecli client` / `ecli-server`) has been removed from the main branch to reduce maintenance overhead. The last implementation is preserved on the `archive/ecli-remote-http` branch.
 
 ## Install the project
 
@@ -98,7 +73,6 @@ For more information, see [the ecli server documentation](https://eunomia.dev/eu
 
     Commands:
       run     run ebpf program
-      client  Client operations
       push    Operations about pushing image to registry
       pull    Operations about pulling image from registry
       help    Print this message or the help of the given subcommand(s)

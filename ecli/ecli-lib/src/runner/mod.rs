@@ -9,9 +9,6 @@ use std::fmt::Display;
 pub mod client;
 /// Some helper functions
 pub mod helper;
-/// APIs for http server
-#[cfg(feature = "http-server")]
-pub mod server_http;
 /// A helper to manage tasks running on this machine
 #[cfg(feature = "native-client")]
 pub mod task_manager;

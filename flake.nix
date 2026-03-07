@@ -107,7 +107,6 @@
               runHook preInstall
               mkdir -p $out/bin
               install -Dm 755 target/release/ecli-rs $out/bin/
-              install -Dm 755 target/release/ecli-server $out/bin/
               runHook postInstall
             '';
             inherit meta;
@@ -122,15 +121,6 @@
               src = ecli;
               installPhase = ''
                 install -Dm 755 $src/bin/ecli-rs $out/bin/ecli-rs
-              '';
-              inherit meta;
-            };
-            ecli-server = pkgs.stdenv.mkDerivation {
-              name = "ecli-server";
-              inherit version;
-              src = ecli;
-              installPhase = ''
-                install -Dm 755 $src/bin/ecli-server $out/bin/ecli-server
               '';
               inherit meta;
             };
@@ -205,7 +195,7 @@
 
             ebpf-dev = eunomia-dev // pkgs.mkShell {
               buildInputs = (with pkgs; [ libbpf ])
-              ++ [ packages.ecli packages.ecc packages.ecli-server ]
+              ++ [ packages.ecli packages.ecc ]
               ++ [ wasm-bpf.packages.${system}.default ];
 
             };
@@ -219,10 +209,6 @@
             ecli-rs = {
               type = "app";
               program = "${self.packages.${system}.ecli}/bin/ecli-rs";
-            };
-            ecli-server = {
-              type = "app";
-              program = "${self.packages.${system}.ecli}/bin/ecli-server";
             };
 
           };

@@ -4,9 +4,6 @@
 //! All rights reserved.
 //!
 
-/// The HTTP client
-#[cfg(feature = "http-client")]
-pub mod http;
 /// The native client
 #[cfg(feature = "native-client")]
 pub mod native;

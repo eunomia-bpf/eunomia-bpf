@@ -9,8 +9,6 @@ use bpf_oci::{
 use ecli_lib::error::{Error, Result};
 use log::warn;
 
-#[cfg(feature = "http")]
-mod http_client;
 #[cfg(feature = "native")]
 mod native_client;
 
@@ -144,9 +142,6 @@ pub enum Action {
         command_line: Vec<String>,
     },
 
-    #[cfg(feature = "http")]
-    #[clap(name = "client", about = "Client operations")]
-    Client(http_client::ClientCmd),
     #[clap(about = "Operations about pushing image to registry", after_help = AUTH_HELP)]
     Push {
         /// wasm module path
@@ -254,10 +249,6 @@ async fn main() -> anyhow::Result<()> {
                 .with_context(|| anyhow!("Failed to write module binary to local"))?;
             Ok(())
         }
-        #[cfg(feature = "http")]
-        Some(Action::Client(cmd)) => http_client::handle_client_command(cmd)
-            .await
-            .with_context(|| anyhow!("Failed to process client command")),
         None => CliArgs::command()
             .error(
                 ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,

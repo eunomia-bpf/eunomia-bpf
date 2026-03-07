@@ -2,14 +2,11 @@
 resolver = "2"
 members = [
     "ecli-lib",
-    "client",
-    "server",
-    "server-codegen"
+    "client"
 ]
 
 default-members = [
     "client",
-    "server",
     "ecli-lib"
 ]
 

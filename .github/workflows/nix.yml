@@ -24,6 +24,3 @@ jobs:
 
     - name: Build bpftool
       run: nix build .#bpftool
-
-    - name: Build ecli-server
-      run: nix build .#ecli-server
