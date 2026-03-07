@@ -68,6 +68,11 @@ jobs:
           make -C examples/tests install-deps
           make -C examples/tests install-wasm-clang
 
+      - name: Build GitHub Pages assets
+        run: |
+          . $HOME/.cargo/env
+          ./.github/scripts/build-gh-pages-assets.sh
+
       - name: test build runners
         run: |
           . $HOME/.cargo/env
