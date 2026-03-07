@@ -12,6 +12,7 @@ jobs:
     - uses: actions/checkout@v3.3.0
     - uses: DeterminateSystems/nix-installer-action@main
     - uses: DeterminateSystems/magic-nix-cache-action@main
+      if: github.event_name != 'pull_request'
 
     - name: Nix Flake Show
       run: nix flake show --all-systems
