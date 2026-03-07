@@ -36,9 +36,8 @@
             dontBuild = true;
             installPhase = ''
               runHook preInstall
-              mkdir -p rust
-              tar -xf $src -C rust --strip-components=1
-              ./rust/install.sh --prefix=$out --disable-ldconfig
+              patchShebangs .
+              ./install.sh --prefix=$out --disable-ldconfig
               runHook postInstall
             '';
           };
