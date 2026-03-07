@@ -113,6 +113,12 @@
               cd ${finalAttrs.cargoRoot}
             '';
 
+            buildPhase = ''
+              runHook preBuild
+              RUSTC=${ecliRustToolchain}/bin/rustc ${ecliRustToolchain}/bin/cargo build --release
+              runHook postBuild
+            '';
+
             OPENSSL_NO_VENDOR = 1;
 
             installPhase = ''
