@@ -4,25 +4,18 @@
     nixpkgs.url = "nixpkgs/nixos-unstable";
     wasm-bpf.url = "github:eunomia-bpf/wasm-bpf";
     naersk.url = "github:nix-community/naersk";
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     pre-commit-hooks = {
       url = "github:cachix/pre-commit-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, flake-utils, nixpkgs, pre-commit-hooks, wasm-bpf, naersk, rust-overlay }:
+  outputs = { self, flake-utils, nixpkgs, pre-commit-hooks, wasm-bpf, naersk }:
     flake-utils.lib.eachSystem
       (with flake-utils.lib.system; [ x86_64-linux aarch64-linux ])
       (system:
         let
-          pkgs = import nixpkgs {
-            inherit system;
-            overlays = [ rust-overlay.overlays.default ];
-          };
+          pkgs = import nixpkgs { inherit system; };
           naersk' = pkgs.callPackage naersk { };
           version = pkgs.lib.substring 0 8 self.lastModifiedDate or self.lastModified or "19700101";
           meta = with pkgs.lib; {
@@ -30,7 +23,25 @@
             license = licenses.mit;
             maintainers = with maintainers; [ undefined-moe ];
           };
-          ecliRustToolchain = pkgs.rust-bin.stable."1.90.0".minimal;
+          ecliRustTriple = if system == "x86_64-linux" then "x86_64-unknown-linux-gnu" else "aarch64-unknown-linux-gnu";
+          ecliRustHash = if system == "x86_64-linux" then "sha256-v/iXTy0+5sDmrJJrUz9lu902l9LCuSW9rl9Fue7RCmc=" else "sha256-WfGIP83S1yQ9L9HtGfIuBSGSUSJ6us+j1lauv7zF6Dg=";
+          ecliRustToolchain = pkgs.stdenvNoCC.mkDerivation {
+            pname = "rust-toolchain";
+            version = "1.90.0";
+            src = pkgs.fetchurl {
+              url = "https://static.rust-lang.org/dist/rust-1.90.0-${ecliRustTriple}.tar.xz";
+              hash = ecliRustHash;
+            };
+            dontConfigure = true;
+            dontBuild = true;
+            installPhase = ''
+              runHook preInstall
+              mkdir -p rust
+              tar -xf $src -C rust --strip-components=1
+              ./rust/install.sh --prefix=$out --disable-ldconfig
+              runHook postInstall
+            '';
+          };
           ecliRustPlatform = pkgs.makeRustPlatform {
             cargo = ecliRustToolchain;
             rustc = ecliRustToolchain;
