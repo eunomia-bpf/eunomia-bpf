@@ -39,8 +39,6 @@ get_example_source() {
 
 get_example_header() {
   local source="$1"
-  local stem
-  stem="$(basename "${source}" .bpf.c)"
   printf '%s\n' "${source%.bpf.c}.h"
 }
 
