@@ -291,6 +291,7 @@ jobs:
         path: ecli-aarch64
 
   publish-release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && ( github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong')
     runs-on: ubuntu-latest
     needs: [create-release-version, build-full-client, build-full-client-aarch64]
     concurrency:
