@@ -227,6 +227,29 @@ pub fn get_bpf_sys_include_args(args: &CompileArgs) -> Result<Vec<String>> {
         .collect())
 }
 
+/// Get shared clang arguments for compiling or parsing a bpf source file.
+pub fn get_bpf_compile_args(
+    args: &Options,
+    include_base_path: impl AsRef<Path>,
+) -> Result<Vec<String>> {
+    let bpf_sys_include = get_bpf_sys_include_args(&args.compile_opts)?;
+    let target_arch = get_target_arch();
+
+    let mut compile_args = vec![
+        "-g".to_string(),
+        "-O2".to_string(),
+        "-target".to_string(),
+        "bpf".to_string(),
+        "-Wno-unknown-attributes".to_string(),
+        format!("-D__TARGET_ARCH_{target_arch}"),
+    ];
+    compile_args.extend(bpf_sys_include);
+    compile_args.extend(get_eunomia_include_args(args)?);
+    compile_args.extend(args.compile_opts.parameters.additional_cflags.clone());
+    compile_args.extend(get_base_dir_include_args(include_base_path)?);
+    Ok(compile_args)
+}
+
 /// Get eunomia home include dirs
 pub fn get_eunomia_include_args(args: &Options) -> Result<Vec<String>> {
     let eunomia_tmp_workspace = args.tmpdir.path();
