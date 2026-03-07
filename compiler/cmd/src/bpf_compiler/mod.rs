@@ -215,8 +215,6 @@ enum SourceParseState {
     Char,
 }
 
-const BPF_PROG_MACRO: &str = "BPF_PROG";
-
 fn rewrite_bpf_prog_macros(source: &str) -> Option<String> {
     let mut rewritten = String::with_capacity(source.len());
     let bytes = source.as_bytes();
@@ -227,41 +225,50 @@ fn rewrite_bpf_prog_macros(source: &str) -> Option<String> {
     while i < bytes.len() {
         match state {
             SourceParseState::Code => {
-                if let Some(next_i) = advance_code_state(bytes, i, &mut state) {
-                    rewritten.push_str(&source[i..next_i]);
-                    i = next_i;
-                } else if is_identifier_start(bytes[i]) {
-                    let ident_start = i;
-                    i = consume_identifier(bytes, i);
-                    let ident = &source[ident_start..i];
-                    if ident == BPF_PROG_MACRO {
-                        if let Some(open_pos) = find_macro_open_paren(bytes, i) {
-                            if let Some(close_pos) = find_matching_paren(source, open_pos) {
-                                let args = &source[open_pos + 1..close_pos];
-                                if let Some(rewritten_args) = rewrite_bpf_prog_arguments(args) {
-                                    rewritten.push_str("BPF_PROG2(");
-                                    rewritten.push_str(&rewritten_args);
-                                    rewritten.push(')');
-                                    changed = true;
-                                } else {
-                                    rewritten.push_str(&source[ident_start..=close_pos]);
-                                }
-                                i = close_pos + 1;
-                                continue;
-                            }
+                if bytes[i..].starts_with(b"//") {
+                    rewritten.push_str("//");
+                    i += 2;
+                    state = SourceParseState::LineComment;
+                } else if bytes[i..].starts_with(b"/*") {
+                    rewritten.push_str("/*");
+                    i += 2;
+                    state = SourceParseState::BlockComment;
+                } else if bytes[i] == b'"' {
+                    rewritten.push('"');
+                    i += 1;
+                    state = SourceParseState::String;
+                } else if bytes[i] == b'\'' {
+                    rewritten.push('\'');
+                    i += 1;
+                    state = SourceParseState::Char;
+                } else if source[i..].starts_with("BPF_PROG(") {
+                    let open_pos = i + "BPF_PROG".len();
+                    if let Some(close_pos) = find_matching_paren(source, open_pos) {
+                        let args = &source[open_pos + 1..close_pos];
+                        if let Some(rewritten_args) = rewrite_bpf_prog_arguments(args) {
+                            rewritten.push_str("BPF_PROG2(");
+                            rewritten.push_str(&rewritten_args);
+                            rewritten.push(')');
+                            changed = true;
+                        } else {
+                            rewritten.push_str(&source[i..=close_pos]);
                         }
+                        i = close_pos + 1;
+                    } else {
+                        rewritten.push(bytes[i] as char);
+                        i += 1;
                     }
-                    rewritten.push_str(ident);
                 } else {
-                    i = push_current_char(source, &mut rewritten, i);
+                    rewritten.push(bytes[i] as char);
+                    i += 1;
                 }
             }
             SourceParseState::LineComment => {
-                let current = bytes[i];
-                i = push_current_char(source, &mut rewritten, i);
-                if current == b'\n' {
+                rewritten.push(bytes[i] as char);
+                if bytes[i] == b'\n' {
                     state = SourceParseState::Code;
                 }
+                i += 1;
             }
             SourceParseState::BlockComment => {
                 if bytes[i..].starts_with(b"*/") {
@@ -269,87 +276,38 @@ fn rewrite_bpf_prog_macros(source: &str) -> Option<String> {
                     i += 2;
                     state = SourceParseState::Code;
                 } else {
-                    i = push_current_char(source, &mut rewritten, i);
+                    rewritten.push(bytes[i] as char);
+                    i += 1;
                 }
             }
             SourceParseState::String => {
+                rewritten.push(bytes[i] as char);
                 if bytes[i] == b'\\' && i + 1 < bytes.len() {
-                    rewritten.push_str(&source[i..i + 2]);
+                    rewritten.push(bytes[i + 1] as char);
                     i += 2;
                 } else {
-                    let current = bytes[i];
-                    i = push_current_char(source, &mut rewritten, i);
-                    if current == b'"' {
+                    if bytes[i] == b'"' {
                         state = SourceParseState::Code;
                     }
+                    i += 1;
                 }
             }
             SourceParseState::Char => {
+                rewritten.push(bytes[i] as char);
                 if bytes[i] == b'\\' && i + 1 < bytes.len() {
-                    rewritten.push_str(&source[i..i + 2]);
+                    rewritten.push(bytes[i + 1] as char);
                     i += 2;
                 } else {
-                    let current = bytes[i];
-                    i = push_current_char(source, &mut rewritten, i);
-                    if current == b'\'' {
+                    if bytes[i] == b'\'' {
                         state = SourceParseState::Code;
                     }
+                    i += 1;
                 }
             }
         }
     }
 
     changed.then_some(rewritten)
-}
-
-fn push_current_char(source: &str, rewritten: &mut String, i: usize) -> usize {
-    let ch = source[i..]
-        .chars()
-        .next()
-        .expect("source index must remain on a char boundary");
-    rewritten.push(ch);
-    i + ch.len_utf8()
-}
-
-fn is_identifier_start(byte: u8) -> bool {
-    byte.is_ascii_alphabetic() || byte == b'_'
-}
-
-fn is_identifier_continue(byte: u8) -> bool {
-    byte.is_ascii_alphanumeric() || byte == b'_'
-}
-
-fn consume_identifier(bytes: &[u8], start: usize) -> usize {
-    let mut i = start + 1;
-    while i < bytes.len() && is_identifier_continue(bytes[i]) {
-        i += 1;
-    }
-    i
-}
-
-fn find_macro_open_paren(bytes: &[u8], start: usize) -> Option<usize> {
-    let mut i = start;
-    while i < bytes.len() {
-        if bytes[i].is_ascii_whitespace() {
-            i += 1;
-        } else if bytes[i..].starts_with(b"//") {
-            i += 2;
-            while i < bytes.len() && bytes[i] != b'\n' {
-                i += 1;
-            }
-        } else if bytes[i..].starts_with(b"/*") {
-            i += 2;
-            while i < bytes.len() && !bytes[i..].starts_with(b"*/") {
-                i += 1;
-            }
-            if i < bytes.len() {
-                i += 2;
-            }
-        } else {
-            return (bytes[i] == b'(').then_some(i);
-        }
-    }
-    None
 }
 
 fn find_matching_paren(source: &str, open_pos: usize) -> Option<usize> {
