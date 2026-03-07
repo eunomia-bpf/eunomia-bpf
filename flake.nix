@@ -4,17 +4,25 @@
     nixpkgs.url = "nixpkgs/nixos-unstable";
     wasm-bpf.url = "github:eunomia-bpf/wasm-bpf";
     naersk.url = "github:nix-community/naersk";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     pre-commit-hooks = {
       url = "github:cachix/pre-commit-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, flake-utils, nixpkgs, pre-commit-hooks, wasm-bpf, naersk }:
+  outputs = { self, flake-utils, nixpkgs, pre-commit-hooks, wasm-bpf, naersk, rust-overlay }:
     flake-utils.lib.eachSystem
       (with flake-utils.lib.system; [ x86_64-linux aarch64-linux ])
       (system:
         let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ rust-overlay.overlays.default ];
+          };
           naersk' = pkgs.callPackage naersk { };
           version = pkgs.lib.substring 0 8 self.lastModifiedDate or self.lastModified or "19700101";
           meta = with pkgs.lib; {
@@ -22,7 +30,11 @@
             license = licenses.mit;
             maintainers = with maintainers; [ undefined-moe ];
           };
-          pkgs = import nixpkgs { inherit system; };
+          ecliRustToolchain = pkgs.rust-bin.stable."1.90.0".minimal;
+          ecliRustPlatform = pkgs.makeRustPlatform {
+            cargo = ecliRustToolchain;
+            rustc = ecliRustToolchain;
+          };
 
           bpftool = pkgs.llvmPackages.stdenv.mkDerivation {
             pname = "bpftool";
@@ -74,7 +86,7 @@
             inherit version;
             src = self;
             cargoRoot = "ecli";
-            cargoDeps = pkgs.rustPlatform.importCargoLock {
+            cargoDeps = ecliRustPlatform.importCargoLock {
               lockFile = ./${finalAttrs.cargoRoot}/Cargo.lock;
             };
 
@@ -82,7 +94,7 @@
               pkg-config
             ]
             ++
-            (with rustPlatform;
+            (with ecliRustPlatform;
             [
               cargoSetupHook
               cargo
