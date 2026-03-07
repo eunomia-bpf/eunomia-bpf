@@ -2,6 +2,8 @@
 package.json
 eunomia-exporter
 ecli
+*.wasm
 *.bpf.o
 *.skel.json
 *.skel.yaml
+ewasm-skel.h
