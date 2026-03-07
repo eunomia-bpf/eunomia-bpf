@@ -18,7 +18,6 @@ anyhow = "1.0.71"
 [features]
 native = ["ecli-lib/native-client", "dep:ctrlc"]
 default = ["native"]
-all = ["native"]
 
 [package.metadata.appimage]
 auto_link = true

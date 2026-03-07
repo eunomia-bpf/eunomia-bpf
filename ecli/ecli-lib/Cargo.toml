@@ -40,4 +40,3 @@ native-client = [
     "dep:wasm-bpf-rs",
     "dep:bpf-compatible-rs",
 ]
-default = []

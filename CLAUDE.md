@@ -66,12 +66,11 @@ sudo ./ecli run package.json
 # Run from URL
 sudo ./ecli run https://example.com/package.json
 
-# Start server mode
-sudo ./ecli-server
+# Pull from OCI registry
+./ecli pull ghcr.io/eunomia-bpf/execve:latest
 
-# Client operations
-./ecli client start program.json
-./ecli client log 1
+# Push a packaged module to OCI registry
+./ecli push --module app.wasm ghcr.io/yourorg/mytool:v1.0
 ```
 
 ## High-Level Architecture
@@ -101,8 +100,8 @@ Compiles C/C++ eBPF source code and generates distributable packages:
 ### 3. CLI Tool (`ecli/`)
 Provides user interface and program management:
 - Run eBPF programs from local files, URLs, or OCI images
-- Client-server architecture for remote management
-- Task manager for handling multiple running programs
+- Push and pull OCI-packaged Wasm modules
+- Native task manager for handling multiple running programs
 
 ## Data Flow
 
