@@ -32,12 +32,23 @@
               url = "https://static.rust-lang.org/dist/rust-1.90.0-${ecliRustTriple}.tar.xz";
               hash = ecliRustHash;
             };
+            nativeBuildInputs = [ pkgs.patchelf ];
             dontConfigure = true;
             dontBuild = true;
             installPhase = ''
               runHook preInstall
               patchShebangs .
               ./install.sh --prefix=$out --disable-ldconfig
+
+              dynamicLinker="$(cat ${pkgs.stdenv.cc}/nix-support/dynamic-linker)"
+              toolchainRpath="${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.zlib}/lib:$out/lib"
+              find $out -type f | while read -r path; do
+                if patchelf --print-interpreter "$path" >/dev/null 2>&1; then
+                  patchelf --set-interpreter "$dynamicLinker" --set-rpath "$toolchainRpath" "$path"
+                elif patchelf --print-rpath "$path" >/dev/null 2>&1; then
+                  patchelf --set-rpath "$toolchainRpath" "$path"
+                fi
+              done
               runHook postInstall
             '';
           };
