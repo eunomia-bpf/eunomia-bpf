@@ -50,6 +50,30 @@ fn setup_tests(test_name: &str) -> (String, String, PathBuf) {
     (test_bpf, test_event, tmp_dir)
 }
 
+fn compile_inline_source(test_name: &str, file_name: &str, source: &str) -> (PathBuf, PathBuf) {
+    ensure_libclang_loaded();
+    let tmp_dir = path::Path::new(TEMP_EUNOMIA_DIR).join(test_name);
+    fs::create_dir_all(&tmp_dir).unwrap();
+
+    let source_path = tmp_dir.join(file_name);
+    fs::write(&source_path, source).unwrap();
+
+    let tmp_workspace = TempDir::new().unwrap();
+    init_eunomia_workspace(&tmp_workspace).unwrap();
+    let cp_args = CompileArgs::try_parse_from([
+        "ecc",
+        source_path.to_str().unwrap(),
+        "--output-path",
+        tmp_dir.to_str().unwrap(),
+    ])
+    .unwrap();
+    let args = Options::init(cp_args, tmp_workspace).unwrap();
+    let output_object_path = args.get_output_object_path();
+
+    compile_bpf(&args).unwrap();
+    (tmp_dir, output_object_path)
+}
+
 #[test]
 fn test_get_attr() {
     let tmp_workspace = TempDir::new().unwrap();
@@ -200,14 +224,43 @@ int BPF_PROG(forbid_chown,
 }
 
 #[test]
-fn test_compile_lsm_path_chown_bpf_prog() {
-    ensure_libclang_loaded();
-    let tmp_dir = path::Path::new(TEMP_EUNOMIA_DIR).join("test_compile_lsm_path_chown_bpf_prog");
-    fs::create_dir_all(&tmp_dir).unwrap();
+fn test_rewrite_bpf_prog_with_whitespace_before_paren() {
+    let source = r#"
+SEC("lsm/path_chown")
+int BPF_PROG (forbid_chown,
+              const struct path *path,
+              kuid_t uid,
+              kgid_t gid)
+{
+    return 0;
+}
+"#;
 
-    let source_path = tmp_dir.join("lsm-path_chown.bpf.c");
-    fs::write(
-        &source_path,
+    let rewritten = rewrite_bpf_prog_macros(source).unwrap();
+    assert!(rewritten
+        .contains("BPF_PROG2(forbid_chown, const struct path *, path, kuid_t, uid, kgid_t, gid)"));
+}
+
+#[test]
+fn test_rewrite_bpf_prog_ignores_alias_macro() {
+    let source = r#"
+#define MY_BPF_PROG BPF_PROG
+
+SEC("fentry/do_unlinkat")
+int MY_BPF_PROG(do_unlinkat, int dfd, struct filename *name)
+{
+    return 0;
+}
+"#;
+
+    assert!(rewrite_bpf_prog_macros(source).is_none());
+}
+
+#[test]
+fn test_compile_lsm_path_chown_bpf_prog() {
+    let (tmp_dir, output_object_path) = compile_inline_source(
+        "test_compile_lsm_path_chown_bpf_prog",
+        "lsm-path_chown.bpf.c",
         r#"#include "vmlinux.h"
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_helpers.h>
@@ -221,22 +274,58 @@ int BPF_PROG(forbid_chown, const struct path *path, kuid_t uid, kgid_t gid)
 
 char _license[] SEC("license") = "GPL";
 "#,
-    )
-    .unwrap();
+    );
+    assert!(output_object_path.exists());
 
-    let tmp_workspace = TempDir::new().unwrap();
-    init_eunomia_workspace(&tmp_workspace).unwrap();
-    let cp_args = CompileArgs::try_parse_from([
-        "ecc",
-        source_path.to_str().unwrap(),
-        "--output-path",
-        tmp_dir.to_str().unwrap(),
-    ])
-    .unwrap();
-    let args = Options::init(cp_args, tmp_workspace).unwrap();
+    fs::remove_dir_all(tmp_dir).unwrap();
+}
 
-    compile_bpf(&args).unwrap();
-    assert!(tmp_dir.join("lsm-path_chown.bpf.o").exists());
+#[test]
+fn test_compile_lsm_path_chown_bpf_prog_with_whitespace_before_paren() {
+    let (tmp_dir, output_object_path) = compile_inline_source(
+        "test_compile_lsm_path_chown_bpf_prog_with_whitespace_before_paren",
+        "lsm-path_chown-space.bpf.c",
+        r#"#include "vmlinux.h"
+#include <bpf/bpf_core_read.h>
+#include <bpf/bpf_helpers.h>
+#include <bpf/bpf_tracing.h>
+
+SEC("lsm/path_chown")
+int BPF_PROG (forbid_chown, const struct path *path, kuid_t uid, kgid_t gid)
+{
+    return 0;
+}
+
+char _license[] SEC("license") = "GPL";
+"#,
+    );
+    assert!(output_object_path.exists());
+
+    fs::remove_dir_all(tmp_dir).unwrap();
+}
+
+#[test]
+fn test_compile_bpf_prog_alias_macro() {
+    let (tmp_dir, output_object_path) = compile_inline_source(
+        "test_compile_bpf_prog_alias_macro",
+        "fentry-alias.bpf.c",
+        r#"#include "vmlinux.h"
+#include <bpf/bpf_core_read.h>
+#include <bpf/bpf_helpers.h>
+#include <bpf/bpf_tracing.h>
+
+#define MY_BPF_PROG BPF_PROG
+
+SEC("fentry/do_unlinkat")
+int MY_BPF_PROG(do_unlinkat, int dfd, struct filename *name)
+{
+    return 0;
+}
+
+char _license[] SEC("license") = "GPL";
+"#,
+    );
+    assert!(output_object_path.exists());
 
     fs::remove_dir_all(tmp_dir).unwrap();
 }
