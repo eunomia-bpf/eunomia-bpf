@@ -8,7 +8,7 @@ use crate::config::{
     fetch_btfhub_repo, generate_tailored_btf, get_base_dir_include_args, get_bpf_sys_include_args,
     get_bpftool_path, get_eunomia_include_args, package_btfhub_tar, Options,
 };
-use crate::document_parser::parse_source_documents_with_include_base;
+use crate::document_parser::parse_source_documents;
 use crate::export_types::{add_unused_ptr_for_structs, find_all_export_structs};
 use crate::handle_std_command_with_log;
 use crate::helper::get_target_arch;
@@ -28,12 +28,10 @@ pub(crate) mod standalone;
 fn compile_bpf_object(
     args: &Options,
     source_path: impl AsRef<Path>,
-    include_base_source_path: impl AsRef<Path>,
     output_path: impl AsRef<Path>,
 ) -> Result<()> {
     let output_path = output_path.as_ref();
     let source_path = source_path.as_ref();
-    let include_base_source_path = include_base_source_path.as_ref();
     debug!(
         "Compiling bpf object: output: {:?}, source: {:?}",
         output_path, source_path
@@ -48,7 +46,7 @@ fn compile_bpf_object(
         .args(bpf_sys_include)
         .args(get_eunomia_include_args(args)?)
         .args(&args.compile_opts.parameters.additional_cflags)
-        .args(get_base_dir_include_args(include_base_source_path)?)
+        .args(get_base_dir_include_args(source_path)?)
         .arg("-c")
         .arg(source_path)
         .arg("-o")
@@ -111,31 +109,22 @@ fn do_compile(args: &Options, temp_source_file: impl AsRef<Path>) -> Result<()> 
 
     // compile bpf object
     info!("Compiling bpf object...");
-    compile_bpf_object(
-        args,
-        &temp_source_file,
-        &args.compile_opts.source_path,
-        &output_bpf_object_path,
-    )?;
+    compile_bpf_object(args, temp_source_file, &output_bpf_object_path)?;
     let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_path, args)?;
     let bpf_skel = serde_json::from_str::<Value>(&bpf_skel_json)
         .with_context(|| anyhow!("Failed to parse json skeleton"))?;
-    let bpf_skel_with_doc = match parse_source_documents_with_include_base(
-        args,
-        temp_source_file.as_ref().to_str().unwrap(),
-        &args.compile_opts.source_path,
-        bpf_skel.clone(),
-    ) {
-        Ok(v) => v,
-        Err(e) => {
-            if e.to_string()
-                != "Failed to create Clang instance: an instance of `Clang` already exists"
-            {
-                panic!("failed to parse source documents: {}", e);
-            };
-            bpf_skel
-        }
-    };
+    let bpf_skel_with_doc =
+        match parse_source_documents(args, &args.compile_opts.source_path, bpf_skel.clone()) {
+            Ok(v) => v,
+            Err(e) => {
+                if e.to_string()
+                    != "Failed to create Clang instance: an instance of `Clang` already exists"
+                {
+                    panic!("failed to parse source documents: {}", e);
+                };
+                bpf_skel
+            }
+        };
     meta_json["bpf_skel"] = bpf_skel_with_doc;
 
     // compile export types
@@ -165,24 +154,15 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
     // backup old files
     let source_file_content = fs::read_to_string(&args.compile_opts.source_path)?;
     let mut temp_source_file = PathBuf::from(&args.compile_opts.source_path);
-    let rewritten_source = rewrite_bpf_prog_macros(&source_file_content);
 
-    let uses_temp_source =
-        !args.compile_opts.export_event_header.is_empty() || rewritten_source.is_some();
-
-    if uses_temp_source {
+    if !args.compile_opts.export_event_header.is_empty() {
         temp_source_file = args.get_source_file_temp_path();
         // create temp source file
-        fs::write(
-            &temp_source_file,
-            rewritten_source.as_deref().unwrap_or(&source_file_content),
-        )?;
-        if !args.compile_opts.export_event_header.is_empty() {
-            add_unused_ptr_for_structs(&args.compile_opts, &temp_source_file)?;
-        }
+        fs::write(&temp_source_file, source_file_content)?;
+        add_unused_ptr_for_structs(&args.compile_opts, &temp_source_file)?;
     }
     do_compile(args, &temp_source_file).with_context(|| anyhow!("Failed to compile"))?;
-    if uses_temp_source {
+    if !args.compile_opts.export_event_header.is_empty() {
         fs::remove_file(temp_source_file)?;
     }
     if !args.compile_opts.parameters.no_generate_package_json {
@@ -204,369 +184,6 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
         package_btfhub_tar(args).with_context(|| anyhow!("Failed to package btfhub tar"))?;
     }
     Ok(())
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum SourceParseState {
-    Code,
-    LineComment,
-    BlockComment,
-    String,
-    Char,
-}
-
-fn rewrite_bpf_prog_macros(source: &str) -> Option<String> {
-    let mut rewritten = String::with_capacity(source.len());
-    let bytes = source.as_bytes();
-    let mut state = SourceParseState::Code;
-    let mut changed = false;
-    let mut i = 0;
-
-    while i < bytes.len() {
-        match state {
-            SourceParseState::Code => {
-                if bytes[i..].starts_with(b"//") {
-                    rewritten.push_str("//");
-                    i += 2;
-                    state = SourceParseState::LineComment;
-                } else if bytes[i..].starts_with(b"/*") {
-                    rewritten.push_str("/*");
-                    i += 2;
-                    state = SourceParseState::BlockComment;
-                } else if bytes[i] == b'"' {
-                    rewritten.push('"');
-                    i += 1;
-                    state = SourceParseState::String;
-                } else if bytes[i] == b'\'' {
-                    rewritten.push('\'');
-                    i += 1;
-                    state = SourceParseState::Char;
-                } else if source[i..].starts_with("BPF_PROG(") {
-                    let open_pos = i + "BPF_PROG".len();
-                    if let Some(close_pos) = find_matching_paren(source, open_pos) {
-                        let args = &source[open_pos + 1..close_pos];
-                        if let Some(rewritten_args) = rewrite_bpf_prog_arguments(args) {
-                            rewritten.push_str("BPF_PROG2(");
-                            rewritten.push_str(&rewritten_args);
-                            rewritten.push(')');
-                            changed = true;
-                        } else {
-                            rewritten.push_str(&source[i..=close_pos]);
-                        }
-                        i = close_pos + 1;
-                    } else {
-                        rewritten.push(bytes[i] as char);
-                        i += 1;
-                    }
-                } else {
-                    rewritten.push(bytes[i] as char);
-                    i += 1;
-                }
-            }
-            SourceParseState::LineComment => {
-                rewritten.push(bytes[i] as char);
-                if bytes[i] == b'\n' {
-                    state = SourceParseState::Code;
-                }
-                i += 1;
-            }
-            SourceParseState::BlockComment => {
-                if bytes[i..].starts_with(b"*/") {
-                    rewritten.push_str("*/");
-                    i += 2;
-                    state = SourceParseState::Code;
-                } else {
-                    rewritten.push(bytes[i] as char);
-                    i += 1;
-                }
-            }
-            SourceParseState::String => {
-                rewritten.push(bytes[i] as char);
-                if bytes[i] == b'\\' && i + 1 < bytes.len() {
-                    rewritten.push(bytes[i + 1] as char);
-                    i += 2;
-                } else {
-                    if bytes[i] == b'"' {
-                        state = SourceParseState::Code;
-                    }
-                    i += 1;
-                }
-            }
-            SourceParseState::Char => {
-                rewritten.push(bytes[i] as char);
-                if bytes[i] == b'\\' && i + 1 < bytes.len() {
-                    rewritten.push(bytes[i + 1] as char);
-                    i += 2;
-                } else {
-                    if bytes[i] == b'\'' {
-                        state = SourceParseState::Code;
-                    }
-                    i += 1;
-                }
-            }
-        }
-    }
-
-    changed.then_some(rewritten)
-}
-
-fn find_matching_paren(source: &str, open_pos: usize) -> Option<usize> {
-    let bytes = source.as_bytes();
-    let mut state = SourceParseState::Code;
-    let mut depth = 1usize;
-    let mut i = open_pos + 1;
-
-    while i < bytes.len() {
-        match state {
-            SourceParseState::Code => {
-                if bytes[i..].starts_with(b"//") {
-                    state = SourceParseState::LineComment;
-                    i += 2;
-                } else if bytes[i..].starts_with(b"/*") {
-                    state = SourceParseState::BlockComment;
-                    i += 2;
-                } else {
-                    match bytes[i] {
-                        b'"' => {
-                            state = SourceParseState::String;
-                            i += 1;
-                        }
-                        b'\'' => {
-                            state = SourceParseState::Char;
-                            i += 1;
-                        }
-                        b'(' => {
-                            depth += 1;
-                            i += 1;
-                        }
-                        b')' => {
-                            depth -= 1;
-                            if depth == 0 {
-                                return Some(i);
-                            }
-                            i += 1;
-                        }
-                        _ => i += 1,
-                    }
-                }
-            }
-            SourceParseState::LineComment => {
-                if bytes[i] == b'\n' {
-                    state = SourceParseState::Code;
-                }
-                i += 1;
-            }
-            SourceParseState::BlockComment => {
-                if bytes[i..].starts_with(b"*/") {
-                    state = SourceParseState::Code;
-                    i += 2;
-                } else {
-                    i += 1;
-                }
-            }
-            SourceParseState::String => {
-                if bytes[i] == b'\\' && i + 1 < bytes.len() {
-                    i += 2;
-                } else {
-                    if bytes[i] == b'"' {
-                        state = SourceParseState::Code;
-                    }
-                    i += 1;
-                }
-            }
-            SourceParseState::Char => {
-                if bytes[i] == b'\\' && i + 1 < bytes.len() {
-                    i += 2;
-                } else {
-                    if bytes[i] == b'\'' {
-                        state = SourceParseState::Code;
-                    }
-                    i += 1;
-                }
-            }
-        }
-    }
-
-    None
-}
-
-fn split_top_level_args(input: &str) -> Vec<&str> {
-    let bytes = input.as_bytes();
-    let mut state = SourceParseState::Code;
-    let mut depths = DelimiterDepths::default();
-    let mut start = 0usize;
-    let mut parts = Vec::new();
-    let mut i = 0usize;
-
-    while i < bytes.len() {
-        match state {
-            SourceParseState::Code => {
-                i = advance_split_top_level_args_code_state(
-                    input,
-                    bytes,
-                    i,
-                    &mut state,
-                    &mut depths,
-                    &mut start,
-                    &mut parts,
-                );
-            }
-            SourceParseState::LineComment => {
-                if bytes[i] == b'\n' {
-                    state = SourceParseState::Code;
-                }
-                i += 1;
-            }
-            SourceParseState::BlockComment => {
-                if bytes[i..].starts_with(b"*/") {
-                    state = SourceParseState::Code;
-                    i += 2;
-                } else {
-                    i += 1;
-                }
-            }
-            SourceParseState::String => {
-                if bytes[i] == b'\\' && i + 1 < bytes.len() {
-                    i += 2;
-                } else {
-                    if bytes[i] == b'"' {
-                        state = SourceParseState::Code;
-                    }
-                    i += 1;
-                }
-            }
-            SourceParseState::Char => {
-                if bytes[i] == b'\\' && i + 1 < bytes.len() {
-                    i += 2;
-                } else {
-                    if bytes[i] == b'\'' {
-                        state = SourceParseState::Code;
-                    }
-                    i += 1;
-                }
-            }
-        }
-    }
-
-    parts.push(input[start..].trim());
-    parts
-}
-
-#[derive(Default)]
-struct DelimiterDepths {
-    paren: usize,
-    brace: usize,
-    bracket: usize,
-}
-
-impl DelimiterDepths {
-    fn is_top_level(&self) -> bool {
-        self.paren == 0 && self.brace == 0 && self.bracket == 0
-    }
-
-    fn update(&mut self, byte: u8) {
-        match byte {
-            b'(' => self.paren += 1,
-            b')' => self.paren = self.paren.saturating_sub(1),
-            b'{' => self.brace += 1,
-            b'}' => self.brace = self.brace.saturating_sub(1),
-            b'[' => self.bracket += 1,
-            b']' => self.bracket = self.bracket.saturating_sub(1),
-            _ => {}
-        }
-    }
-}
-
-fn advance_split_top_level_args_code_state<'a>(
-    input: &'a str,
-    bytes: &[u8],
-    i: usize,
-    state: &mut SourceParseState,
-    depths: &mut DelimiterDepths,
-    start: &mut usize,
-    parts: &mut Vec<&'a str>,
-) -> usize {
-    if let Some(next_i) = advance_code_state(bytes, i, state) {
-        return next_i;
-    }
-
-    if bytes[i] == b',' && depths.is_top_level() {
-        parts.push(input[*start..i].trim());
-        *start = i + 1;
-        return i + 1;
-    }
-
-    depths.update(bytes[i]);
-    i + 1
-}
-
-fn advance_code_state(bytes: &[u8], i: usize, state: &mut SourceParseState) -> Option<usize> {
-    if bytes[i..].starts_with(b"//") {
-        *state = SourceParseState::LineComment;
-        return Some(i + 2);
-    }
-
-    if bytes[i..].starts_with(b"/*") {
-        *state = SourceParseState::BlockComment;
-        return Some(i + 2);
-    }
-
-    match bytes[i] {
-        b'"' => {
-            *state = SourceParseState::String;
-            Some(i + 1)
-        }
-        b'\'' => {
-            *state = SourceParseState::Char;
-            Some(i + 1)
-        }
-        _ => None,
-    }
-}
-
-fn rewrite_bpf_prog_arguments(args: &str) -> Option<String> {
-    let parts = split_top_level_args(args);
-    let (name, declarations) = parts.split_first()?;
-
-    if declarations.is_empty() {
-        return None;
-    }
-
-    let mut rewritten = vec![name.trim().to_string()];
-    for declaration in declarations {
-        let (arg_type, arg_name) = split_c_declaration(declaration)?;
-        rewritten.push(arg_type);
-        rewritten.push(arg_name);
-    }
-    Some(rewritten.join(", "))
-}
-
-fn split_c_declaration(declaration: &str) -> Option<(String, String)> {
-    let declaration = declaration.trim();
-    let bytes = declaration.as_bytes();
-    let mut end = bytes.len();
-    while end > 0 && bytes[end - 1].is_ascii_whitespace() {
-        end -= 1;
-    }
-    if end == 0 {
-        return None;
-    }
-
-    let mut start = end;
-    while start > 0 && (bytes[start - 1].is_ascii_alphanumeric() || bytes[start - 1] == b'_') {
-        start -= 1;
-    }
-    if start == end || !bytes[start].is_ascii_alphabetic() && bytes[start] != b'_' {
-        return None;
-    }
-
-    let arg_name = declaration[start..end].trim().to_string();
-    let arg_type = declaration[..start].trim_end().to_string();
-    if arg_type.is_empty() {
-        return None;
-    }
-
-    Some((arg_type, arg_name))
 }
 
 /// pack the object file into a package.json

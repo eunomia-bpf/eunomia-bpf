@@ -8,7 +8,6 @@ const TEMP_EUNOMIA_DIR: &str = "/tmp/eunomia";
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
-use std::sync::Once;
 use std::{fs, path};
 
 use clap::Parser;
@@ -25,15 +24,7 @@ use crate::config::{
 use crate::helper::get_target_arch;
 use crate::tests::get_test_assets_dir;
 
-use super::{pack_object_in_config, rewrite_bpf_prog_macros};
-
-static LIBCLANG_INIT: Once = Once::new();
-
-fn ensure_libclang_loaded() {
-    LIBCLANG_INIT.call_once(|| {
-        clang_sys::load().expect("failed to load libclang for compiler tests");
-    });
-}
+use super::pack_object_in_config;
 
 fn setup_tests(test_name: &str) -> (String, String, PathBuf) {
     let assets_dir = get_test_assets_dir();
@@ -70,7 +61,6 @@ fn test_get_attr() {
 
 #[test]
 fn test_generate_custom_btf() {
-    ensure_libclang_loaded();
     let (test_bpf, test_event, tmp_dir) = setup_tests("_test_generate_custom_btf");
     println!("Working directory: {:?}", tmp_dir);
     let source_path = tmp_dir.join("client.bpf.c");
@@ -113,7 +103,6 @@ fn test_generate_custom_btf() {
 
 #[test]
 fn test_compile_bpf() {
-    ensure_libclang_loaded();
     let (test_bpf, test_event, tmp_dir) = setup_tests("test_compile_bpf");
 
     let source_path = tmp_dir.join("client.bpf.c");
@@ -144,7 +133,6 @@ fn test_compile_bpf() {
 
 #[test]
 fn test_export_multi_and_pack() {
-    ensure_libclang_loaded();
     let (test_bpf, test_event, tmp_dir) = setup_tests("test_export_multi_and_pack");
 
     let source_path = tmp_dir.join("export_multi_struct.bpf.c");
@@ -179,64 +167,4 @@ fn test_compress_and_pack() {
     e.write_all(&bpf_object).unwrap();
     let compressed_bytes = e.finish().unwrap();
     let _ = base64::encode(&compressed_bytes);
-}
-
-#[test]
-fn test_rewrite_bpf_prog_to_bpf_prog2() {
-    let source = r#"
-SEC("lsm/path_chown")
-int BPF_PROG(forbid_chown,
-             const struct path *path,
-             kuid_t uid,
-             kgid_t gid)
-{
-    return 0;
-}
-"#;
-
-    let rewritten = rewrite_bpf_prog_macros(source).unwrap();
-    assert!(rewritten
-        .contains("BPF_PROG2(forbid_chown, const struct path *, path, kuid_t, uid, kgid_t, gid)"));
-}
-
-#[test]
-fn test_compile_lsm_path_chown_bpf_prog() {
-    ensure_libclang_loaded();
-    let tmp_dir = path::Path::new(TEMP_EUNOMIA_DIR).join("test_compile_lsm_path_chown_bpf_prog");
-    fs::create_dir_all(&tmp_dir).unwrap();
-
-    let source_path = tmp_dir.join("lsm-path_chown.bpf.c");
-    fs::write(
-        &source_path,
-        r#"#include "vmlinux.h"
-#include <bpf/bpf_core_read.h>
-#include <bpf/bpf_helpers.h>
-#include <bpf/bpf_tracing.h>
-
-SEC("lsm/path_chown")
-int BPF_PROG(forbid_chown, const struct path *path, kuid_t uid, kgid_t gid)
-{
-    return 0;
-}
-
-char _license[] SEC("license") = "GPL";
-"#,
-    )
-    .unwrap();
-
-    let tmp_workspace = TempDir::new().unwrap();
-    init_eunomia_workspace(&tmp_workspace).unwrap();
-    let cp_args = CompileArgs::try_parse_from([
-        "ecc",
-        source_path.to_str().unwrap(),
-        "--output-path",
-        tmp_dir.to_str().unwrap(),
-    ])
-    .unwrap();
-    let args = Options::init(cp_args, tmp_workspace).unwrap();
-
-    compile_bpf(&args).unwrap();
-    assert!(tmp_dir.join("lsm-path_chown.bpf.o").exists());
-
-    fs::remove_dir_all(tmp_dir).unwrap();
 }
