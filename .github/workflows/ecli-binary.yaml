@@ -32,7 +32,6 @@ env:
 jobs:
   create-release-version:
     runs-on: ubuntu-latest
-    if:   github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/fix'))
     outputs:
       version: ${{steps.set_version.outputs.result}}
     steps:
@@ -42,6 +41,14 @@ jobs:
         with:
           result-encoding: string
           script: |
+            const isReleasePush =
+              context.eventName === 'push' &&
+              (context.ref === 'refs/heads/master' || context.ref.startsWith('refs/heads/fix'));
+
+            if (!isReleasePush) {
+              return `ci-${context.sha.slice(0, 7)}`;
+            }
+
             const versionPattern = /^v(\d+)\.(\d+)\.(\d+)$/;
 
             function parseVersion(version) {

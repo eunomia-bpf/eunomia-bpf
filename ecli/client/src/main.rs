@@ -110,6 +110,8 @@ const MISSING_SUBCOMMAND_MESSAGE: &str = "Use a subcommand such as `push` or `pu
 #[cfg(feature = "native")]
 const LEGACY_RUN_MIGRATION_MESSAGE: &str =
     "The top-level positional run mode has been removed. If you intended to run a program, use `ecli run <program>` instead, for example `ecli run prog` or `ecli run alpine`.";
+#[cfg(feature = "native")]
+const TOP_LEVEL_SUBCOMMANDS: &[&str] = &["run", "push", "pull", "help"];
 
 #[derive(Subcommand)]
 pub enum Action {
@@ -172,10 +174,84 @@ fn should_suggest_run_migration(raw_args: &[OsString]) -> bool {
     if first_arg.starts_with('-') && first_arg != "-" {
         return false;
     }
-    if matches!(first_arg, "run" | "push" | "pull" | "help") {
+    if TOP_LEVEL_SUBCOMMANDS
+        .iter()
+        .any(|subcommand| is_likely_subcommand_typo(first_arg, subcommand))
+    {
         return false;
     }
     true
+}
+
+#[cfg(feature = "native")]
+fn is_likely_subcommand_typo(input: &str, subcommand: &str) -> bool {
+    is_within_one_edit(input, subcommand) || is_single_transposition(input, subcommand)
+}
+
+#[cfg(feature = "native")]
+fn is_within_one_edit(lhs: &str, rhs: &str) -> bool {
+    if lhs == rhs {
+        return true;
+    }
+
+    let lhs = lhs.as_bytes();
+    let rhs = rhs.as_bytes();
+    if lhs.len().abs_diff(rhs.len()) > 1 {
+        return false;
+    }
+
+    let (mut i, mut j, mut edits) = (0usize, 0usize, 0usize);
+    while i < lhs.len() && j < rhs.len() {
+        if lhs[i] == rhs[j] {
+            i += 1;
+            j += 1;
+            continue;
+        }
+
+        edits += 1;
+        if edits > 1 {
+            return false;
+        }
+
+        match lhs.len().cmp(&rhs.len()) {
+            std::cmp::Ordering::Less => j += 1,
+            std::cmp::Ordering::Equal => {
+                i += 1;
+                j += 1;
+            }
+            std::cmp::Ordering::Greater => i += 1,
+        }
+    }
+
+    if i < lhs.len() || j < rhs.len() {
+        edits += 1;
+    }
+
+    edits <= 1
+}
+
+#[cfg(feature = "native")]
+fn is_single_transposition(lhs: &str, rhs: &str) -> bool {
+    if lhs.len() != rhs.len() {
+        return false;
+    }
+
+    let lhs = lhs.as_bytes();
+    let rhs = rhs.as_bytes();
+    let mismatches = lhs
+        .iter()
+        .zip(rhs.iter())
+        .enumerate()
+        .filter_map(|(idx, (left, right))| (left != right).then_some(idx))
+        .collect::<Vec<_>>();
+
+    matches!(
+        mismatches.as_slice(),
+        [first, second]
+            if second == &(first + 1)
+                && lhs[*first] == rhs[*second]
+                && lhs[*second] == rhs[*first]
+    )
 }
 
 #[cfg(not(feature = "native"))]
@@ -348,6 +424,17 @@ mod tests {
             "ecli".into(),
             "--help".into()
         ]));
+    }
+
+    #[cfg(feature = "native")]
+    #[test]
+    fn do_not_suggest_run_migration_for_subcommand_typos() {
+        for typo in ["pus", "pll", "runn", "psuh"] {
+            assert!(!super::should_suggest_run_migration(&[
+                "ecli".into(),
+                typo.into()
+            ]));
+        }
     }
 
     #[cfg(not(feature = "native"))]
