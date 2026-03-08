@@ -25,6 +25,7 @@ EOF
 	printf '%s\n' 'old-release' >"$workspace/eunomia/release-id"
 	printf '%s\n' 'legacy-runtime' >"$workspace/eunomia/legacy.txt"
 	printf '%s\n' 'old-ecli' >"$workspace/eunomia/bin/ecli"
+	tar -czf "$workspace/eunomia.tar.gz" -C "$workspace" eunomia
 
 	printf '%s\n' "$workspace"
 }
@@ -43,9 +44,24 @@ assert_no_temp_roots() {
 	local workspace=$1
 
 	if find "$workspace" -maxdepth 1 \( -name '.eunomia.release.*' -o -name '.eunomia.previous.*' \) | grep -q .; then
-		printf 'expected no leftover temporary release roots in %s\n' "$workspace" >&2
+		printf 'expected no leftover temporary release artifacts in %s\n' "$workspace" >&2
 		return 1
 	fi
+}
+
+assert_tarball_matches_runtime() {
+	local workspace=$1
+	local extract_root
+
+	extract_root="$(mktemp -d)"
+	tar -xzf "$workspace/eunomia.tar.gz" -C "$extract_root"
+	if ! diff -qr "$workspace/eunomia" "$extract_root/eunomia" >/dev/null; then
+		diff -qr "$workspace/eunomia" "$extract_root/eunomia" >&2 || true
+		rm -rf "$extract_root"
+		printf 'expected %s/eunomia.tar.gz to match %s/eunomia\n' "$workspace" "$workspace" >&2
+		return 1
+	fi
+	rm -rf "$extract_root"
 }
 
 test_release_success() {
@@ -60,6 +76,7 @@ test_release_success() {
 	assert_file_content "$workspace/eunomia/bin/ecc" "new-ecc"
 	test -f "$workspace/eunomia.tar.gz"
 	test ! -e "$workspace/eunomia/legacy.txt"
+	assert_tarball_matches_runtime "$workspace"
 	assert_no_temp_roots "$workspace"
 }
 
@@ -94,6 +111,62 @@ EOF
 	chmod +x "$wrapper_dir/rm"
 }
 
+make_failing_mv() {
+	local wrapper_dir=$1
+
+	mkdir -p "$wrapper_dir"
+	cat >"$wrapper_dir/mv" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+marker=${MV_FAIL_MARKER:?}
+args=("$@")
+
+if [ "${#args[@]}" -ge 2 ]; then
+	src="${args[$((${#args[@]} - 2))]}"
+	dest="${args[$((${#args[@]} - 1))]}"
+
+	if [ ! -e "$marker" ] && [[ "$src" == */.eunomia.release.*/eunomia ]] && [ "$dest" = "eunomia" ]; then
+		touch "$marker"
+		printf '%s\n' "simulated runtime promotion failure for $src -> $dest" >&2
+		exit 1
+	fi
+fi
+
+exec /bin/mv "$@"
+EOF
+	chmod +x "$wrapper_dir/mv"
+}
+
+test_release_restores_old_surface_when_runtime_swap_fails() {
+	local workspace status
+	workspace="$(make_fixture)"
+	trap 'rm -rf "$workspace"' RETURN
+
+	make_failing_mv "$workspace/bin"
+
+	if PATH="$workspace/bin:$PATH" MV_FAIL_MARKER="$workspace/mv.failed" \
+		make -s -C "$workspace" -f "$repo_root/Makefile" release; then
+		status=0
+	else
+		status=$?
+	fi
+
+	if [ "$status" -eq 0 ]; then
+		printf 'expected release to fail when runtime promotion fails\n' >&2
+		return 1
+	fi
+
+	assert_file_content "$workspace/eunomia/release-id" "old-release"
+	assert_file_content "$workspace/eunomia/bin/ecli" "old-ecli"
+	test -f "$workspace/eunomia/legacy.txt"
+	test ! -e "$workspace/eunomia/bin/ecc"
+	test -f "$workspace/eunomia.tar.gz"
+	assert_tarball_matches_runtime "$workspace"
+	test -f "$workspace/mv.failed"
+	assert_no_temp_roots "$workspace"
+}
+
 test_release_preserves_new_runtime_when_backup_cleanup_fails() {
 	local workspace status backup_root
 	workspace="$(make_fixture)"
@@ -118,6 +191,7 @@ test_release_preserves_new_runtime_when_backup_cleanup_fails() {
 	assert_file_content "$workspace/eunomia/bin/ecc" "new-ecc"
 	test -f "$workspace/eunomia.tar.gz"
 	test ! -e "$workspace/eunomia/legacy.txt"
+	assert_tarball_matches_runtime "$workspace"
 	test -f "$workspace/rm.failed"
 
 	backup_root="$(find "$workspace" -maxdepth 1 -type d -name '.eunomia.previous.*' -print -quit)"
@@ -126,11 +200,12 @@ test_release_preserves_new_runtime_when_backup_cleanup_fails() {
 		return 1
 	fi
 
-	if find "$workspace" -maxdepth 1 -type d -name '.eunomia.release.*' | grep -q .; then
-		printf 'expected release staging roots to be cleaned up after failure\n' >&2
+	if find "$workspace" -maxdepth 1 \( -name '.eunomia.release.*' -o -name '.eunomia.previous.tar.gz.*' \) | grep -q .; then
+		printf 'expected release staging roots and archive backups to be cleaned up after failure\n' >&2
 		return 1
 	fi
 }
 
 test_release_success
+test_release_restores_old_surface_when_runtime_swap_fails
 test_release_preserves_new_runtime_when_backup_cleanup_fails

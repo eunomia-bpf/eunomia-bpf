@@ -60,18 +60,34 @@ release:
 	staging_root="$$(mktemp -d)"; \
 	release_root="$$(mktemp -d ./.eunomia.release.XXXXXX)"; \
 	previous_root=""; \
+	previous_archive=""; \
+	runtime_promoted=0; \
 	release_live=0; \
 	cleanup() { \
 		status=$$?; \
 		set +e; \
-		if [ $$status -ne 0 ] && [ "$$release_live" -eq 0 ] && [ -n "$$previous_root" ] && [ -e "$$previous_root" ]; then \
-			rm -rf eunomia; \
-			mv "$$previous_root" eunomia; \
-			previous_root=""; \
+		if [ $$status -ne 0 ] && [ "$$release_live" -eq 0 ]; then \
+			if [ "$$runtime_promoted" -eq 1 ] && [ -e eunomia ]; then \
+				rm -rf eunomia; \
+			fi; \
+			if [ -n "$$previous_root" ] && [ -e "$$previous_root" ]; then \
+				mv "$$previous_root" eunomia; \
+				previous_root=""; \
+			fi; \
+			if [ -e eunomia.tar.gz ] && [ -n "$$previous_archive" ] && [ -e "$$previous_archive" ]; then \
+				rm -f eunomia.tar.gz; \
+			fi; \
+			if [ -n "$$previous_archive" ] && [ -e "$$previous_archive" ]; then \
+				mv "$$previous_archive" eunomia.tar.gz; \
+				previous_archive=""; \
+			fi; \
 		fi; \
 		rm -rf "$$staging_root" "$$release_root"; \
-		if [ $$status -ne 0 ] && [ "$$release_live" -eq 1 ] && [ -n "$$previous_root" ] && [ -e "$$previous_root" ]; then \
-			printf '%s\n' "release installed, but backup cleanup failed; inspect $$previous_root" >&2; \
+		if [ $$status -ne 0 ] && [ "$$release_live" -eq 1 ] && [ -n "$$previous_archive" ] && [ -e "$$previous_archive" ]; then \
+			if rm -f "$$previous_archive"; then previous_archive=""; fi; \
+		fi; \
+		if [ $$status -ne 0 ] && [ "$$release_live" -eq 1 ] && { [ -n "$$previous_root" ] || [ -n "$$previous_archive" ]; }; then \
+			printf '%s\n' "release installed, but backup cleanup failed; inspect lingering .eunomia.previous* artifacts" >&2; \
 		fi; \
 		exit $$status; \
 	}; \
@@ -81,8 +97,11 @@ release:
 	$(MAKE) -C compiler install EUNOMIA_HOME="$$stage_home"; \
 	cp -R "$$stage_home" "$$release_root/eunomia"; \
 	tar -czvf "$$release_root/eunomia.tar.gz" -C "$$release_root" eunomia; \
-	mv "$$release_root/eunomia.tar.gz" eunomia.tar.gz; \
 	if [ -e eunomia ]; then previous_root="$$(mktemp -d ./.eunomia.previous.XXXXXX)"; rmdir "$$previous_root"; mv eunomia "$$previous_root"; fi; \
 	mv "$$release_root/eunomia" eunomia; \
+	runtime_promoted=1; \
+	if [ -e eunomia.tar.gz ]; then previous_archive="$$(mktemp ./.eunomia.previous.tar.gz.XXXXXX)"; mv eunomia.tar.gz "$$previous_archive"; fi; \
+	mv "$$release_root/eunomia.tar.gz" eunomia.tar.gz; \
 	release_live=1; \
-	if [ -n "$$previous_root" ]; then rm -rf "$$previous_root"; previous_root=""; fi
+	if [ -n "$$previous_root" ]; then rm -rf "$$previous_root"; previous_root=""; fi; \
+	if [ -n "$$previous_archive" ]; then rm -f "$$previous_archive"; previous_archive=""; fi
