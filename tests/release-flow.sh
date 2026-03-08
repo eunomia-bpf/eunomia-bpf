@@ -120,16 +120,25 @@ make_failing_mv() {
 set -euo pipefail
 
 marker=${MV_FAIL_MARKER:?}
+mode=${MV_FAIL_MODE:-runtime-promotion}
 args=("$@")
 
 if [ "${#args[@]}" -ge 2 ]; then
 	src="${args[$((${#args[@]} - 2))]}"
 	dest="${args[$((${#args[@]} - 1))]}"
 
-	if [ ! -e "$marker" ] && [[ "$src" == */.eunomia.release.*/eunomia ]] && [ "$dest" = "eunomia" ]; then
-		touch "$marker"
-		printf '%s\n' "simulated runtime promotion failure for $src -> $dest" >&2
-		exit 1
+	if [ ! -e "$marker" ]; then
+		if [ "$mode" = "runtime-promotion" ] && [[ "$src" == */.eunomia.release.*/eunomia ]] && [ "$dest" = "eunomia" ]; then
+			touch "$marker"
+			printf '%s\n' "simulated runtime promotion failure for $src -> $dest" >&2
+			exit 1
+		fi
+
+		if [ "$mode" = "archive-backup" ] && [ "$src" = "eunomia.tar.gz" ] && [[ "$dest" == ./.eunomia.previous.tar.gz.* ]]; then
+			touch "$marker"
+			printf '%s\n' "simulated archive backup failure for $src -> $dest" >&2
+			exit 1
+		fi
 	fi
 fi
 
@@ -145,7 +154,7 @@ test_release_restores_old_surface_when_runtime_swap_fails() {
 
 	make_failing_mv "$workspace/bin"
 
-	if PATH="$workspace/bin:$PATH" MV_FAIL_MARKER="$workspace/mv.failed" \
+	if PATH="$workspace/bin:$PATH" MV_FAIL_MARKER="$workspace/mv.failed" MV_FAIL_MODE=runtime-promotion \
 		make -s -C "$workspace" -f "$repo_root/Makefile" release; then
 		status=0
 	else
@@ -206,6 +215,36 @@ test_release_preserves_new_runtime_when_backup_cleanup_fails() {
 	fi
 }
 
+test_release_restores_old_surfaces_when_archive_backup_fails() {
+	local workspace status
+	workspace="$(make_fixture)"
+	trap 'rm -rf "$workspace"' RETURN
+
+	make_failing_mv "$workspace/bin"
+
+	if PATH="$workspace/bin:$PATH" MV_FAIL_MARKER="$workspace/mv-archive.failed" MV_FAIL_MODE=archive-backup \
+		make -s -C "$workspace" -f "$repo_root/Makefile" release; then
+		status=0
+	else
+		status=$?
+	fi
+
+	if [ "$status" -eq 0 ]; then
+		printf 'expected release to fail when archive backup fails\n' >&2
+		return 1
+	fi
+
+	assert_file_content "$workspace/eunomia/release-id" "old-release"
+	assert_file_content "$workspace/eunomia/bin/ecli" "old-ecli"
+	test -f "$workspace/eunomia/legacy.txt"
+	test ! -e "$workspace/eunomia/bin/ecc"
+	test -f "$workspace/eunomia.tar.gz"
+	assert_tarball_matches_runtime "$workspace"
+	test -f "$workspace/mv-archive.failed"
+	assert_no_temp_roots "$workspace"
+}
+
 test_release_success
 test_release_restores_old_surface_when_runtime_swap_fails
 test_release_preserves_new_runtime_when_backup_cleanup_fails
+test_release_restores_old_surfaces_when_archive_backup_fails

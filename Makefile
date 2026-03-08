@@ -100,7 +100,7 @@ release:
 	if [ -e eunomia ]; then previous_root="$$(mktemp -d ./.eunomia.previous.XXXXXX)"; rmdir "$$previous_root"; mv eunomia "$$previous_root"; fi; \
 	mv "$$release_root/eunomia" eunomia; \
 	runtime_promoted=1; \
-	if [ -e eunomia.tar.gz ]; then previous_archive="$$(mktemp ./.eunomia.previous.tar.gz.XXXXXX)"; mv eunomia.tar.gz "$$previous_archive"; fi; \
+	if [ -e eunomia.tar.gz ]; then archive_backup_path="$$(mktemp ./.eunomia.previous.tar.gz.XXXXXX)"; rm -f "$$archive_backup_path"; mv eunomia.tar.gz "$$archive_backup_path"; previous_archive="$$archive_backup_path"; fi; \
 	mv "$$release_root/eunomia.tar.gz" eunomia.tar.gz; \
 	release_live=1; \
 	if [ -n "$$previous_root" ]; then rm -rf "$$previous_root"; previous_root=""; fi; \
