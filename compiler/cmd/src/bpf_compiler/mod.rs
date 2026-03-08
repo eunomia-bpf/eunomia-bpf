@@ -106,18 +106,8 @@ fn do_compile(args: &Options, temp_source_file: impl AsRef<Path>) -> Result<()> 
     let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_path, args)?;
     let bpf_skel = serde_json::from_str::<Value>(&bpf_skel_json)
         .with_context(|| anyhow!("Failed to parse json skeleton"))?;
-    let bpf_skel_with_doc =
-        match parse_source_documents(args, &args.compile_opts.source_path, bpf_skel.clone()) {
-            Ok(v) => v,
-            Err(e) => {
-                if e.to_string()
-                    != "Failed to create Clang instance: an instance of `Clang` already exists"
-                {
-                    panic!("failed to parse source documents: {}", e);
-                };
-                bpf_skel
-            }
-        };
+    let bpf_skel_with_doc = parse_source_documents(args, &args.compile_opts.source_path, bpf_skel)
+        .with_context(|| anyhow!("Failed to parse source documents"))?;
     meta_json["bpf_skel"] = bpf_skel_with_doc;
 
     // compile export types
