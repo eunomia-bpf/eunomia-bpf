@@ -24,7 +24,10 @@ use crate::config::{
 use crate::helper::get_target_arch;
 use crate::tests::get_test_assets_dir;
 
-use super::pack_object_in_config;
+use super::{
+    ensure_output_artifact_can_be_written, pack_object_in_config,
+    write_output_artifact_owner_marker,
+};
 
 fn setup_tests(test_name: &str) -> (String, String, PathBuf) {
     let assets_dir = get_test_assets_dir();
@@ -178,10 +181,11 @@ fn write_test_meta_config(args: &Options) {
     fs::write(args.get_output_config_path(), meta).unwrap();
 }
 
-fn create_pack_test_args(output_dir: &TempDir, source_name: &str, yaml: bool) -> Options {
-    let source_path = output_dir.path().join(source_name);
-    fs::write(&source_path, "int x;").unwrap();
-
+fn create_pack_test_args_from_source_path(
+    output_dir: &TempDir,
+    source_path: &path::Path,
+    yaml: bool,
+) -> Options {
     let mut compile_opts = CompileArgs::try_parse_from([
         "ecc",
         source_path.to_str().unwrap(),
@@ -194,8 +198,21 @@ fn create_pack_test_args(output_dir: &TempDir, source_name: &str, yaml: bool) ->
     Options {
         tmpdir: TempDir::new().unwrap(),
         compile_opts,
-        object_name: source_name.split('.').next().unwrap().to_string(),
+        object_name: source_path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .split('.')
+            .next()
+            .unwrap()
+            .to_string(),
     }
+}
+
+fn create_pack_test_args(output_dir: &TempDir, source_name: &str, yaml: bool) -> Options {
+    let source_path = output_dir.path().join(source_name);
+    fs::write(&source_path, "int x;").unwrap();
+    create_pack_test_args_from_source_path(output_dir, &source_path, yaml)
 }
 
 #[test]
@@ -247,4 +264,45 @@ fn test_pack_object_in_config_keeps_other_program_sibling_package() {
     assert!(output_dir.path().join("package.yaml").exists());
     assert!(json_args.get_output_package_marker_path().exists());
     assert!(yaml_args.get_output_package_marker_path().exists());
+}
+
+#[test]
+fn test_pack_object_in_config_rejects_other_program_same_format_package() {
+    let output_dir = TempDir::new().unwrap();
+
+    let json_args = create_pack_test_args(&output_dir, "first.bpf.c", false);
+    fs::write(json_args.get_output_object_path(), b"first").unwrap();
+    write_test_meta_config(&json_args);
+    pack_object_in_config(&json_args).unwrap();
+
+    let other_json_args = create_pack_test_args(&output_dir, "second.bpf.c", false);
+    fs::write(other_json_args.get_output_object_path(), b"second").unwrap();
+    write_test_meta_config(&other_json_args);
+    let err = pack_object_in_config(&other_json_args).err().unwrap();
+
+    assert!(err.to_string().contains("belongs to a different source"));
+}
+
+#[test]
+fn test_output_artifact_guard_rejects_other_source_same_basename_btfgen_stage() {
+    let output_dir = TempDir::new().unwrap();
+    let source_dir_a = TempDir::new().unwrap();
+    let source_dir_b = TempDir::new().unwrap();
+    let source_path_a = source_dir_a.path().join("shared.bpf.c");
+    let source_path_b = source_dir_b.path().join("shared.bpf.c");
+    fs::write(&source_path_a, "int x;").unwrap();
+    fs::write(&source_path_b, "int x;").unwrap();
+
+    let args_a = create_pack_test_args_from_source_path(&output_dir, &source_path_a, false);
+    let args_b = create_pack_test_args_from_source_path(&output_dir, &source_path_b, false);
+
+    fs::create_dir_all(args_a.get_output_btf_archive_directory()).unwrap();
+    write_output_artifact_owner_marker(&args_a, args_a.get_output_btf_archive_directory()).unwrap();
+
+    let err =
+        ensure_output_artifact_can_be_written(&args_b, args_b.get_output_btf_archive_directory())
+            .err()
+            .unwrap();
+
+    assert!(err.to_string().contains("belongs to a different source"));
 }

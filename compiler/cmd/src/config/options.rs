@@ -119,8 +119,9 @@ impl Options {
     }
 
     pub fn get_output_package_marker_path_for(&self, package_format: PackageFormat) -> PathBuf {
-        self.get_output_directory()
-            .join(format!(".{}.ecc-owner.json", package_format.file_name()))
+        self.get_output_artifact_marker_path(
+            self.get_output_package_config_path_for(package_format),
+        )
     }
 
     pub fn get_output_package_marker_path(&self) -> PathBuf {
@@ -129,6 +130,20 @@ impl Options {
 
     pub fn get_output_sibling_package_marker_path(&self) -> PathBuf {
         self.get_output_package_marker_path_for(self.package_format().sibling())
+    }
+
+    pub fn get_output_artifact_marker_path(&self, artifact_path: impl AsRef<Path>) -> PathBuf {
+        let artifact_path = artifact_path.as_ref();
+        artifact_path
+            .parent()
+            .expect("Output artifacts are expected to have a parent directory")
+            .join(format!(
+                ".{}.ecc-owner.json",
+                artifact_path
+                    .file_name()
+                    .expect("Output artifacts are expected to have a file name")
+                    .to_string_lossy()
+            ))
     }
 
     pub fn get_wasm_header_path(&self) -> PathBuf {
