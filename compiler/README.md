@@ -34,6 +34,8 @@ make install
 EUNOMIA_HOME=/tmp/custom make install
 ```
 
+When `EUNOMIA_HOME` is set, `ecc --standalone` checks that runtime root before packaged sidecars or checkout-local fallbacks.
+
 Or use Docker:
 ```bash
 # For x86_64
@@ -140,7 +142,9 @@ ecc program.bpf.c --standalone -o dist
 
 Produces a self-contained executable with embedded eBPF program and runner.
 
-`--standalone` now links against the normal `bpf-loader-c-wrapper` static archive plus its native link flags. A compiler install created with `make install` stages `libeunomia.a` and `libeunomia.a.linkflags` automatically, and the Nix package installs the same sidecar into `$out/lib`. If you run `ecc` directly from a checkout, it will build that archive from `bpf-loader-rs/` on first use when needed.
+`--standalone` now links against the normal `bpf-loader-c-wrapper` static archive plus its native link flags. A compiler install created with `make install` stages `libeunomia.a` and `libeunomia.a.linkflags` automatically, and the Nix package installs the same sidecar into `$out/lib`. Runtime lookup checks `EUNOMIA_STANDALONE_LIB` first, then `EUNOMIA_HOME` when set. If neither override resolves a sidecar, `ecc` falls back to its packaged or checkout-local runtime discovery.
+
+On Linux source installs, keep the native static link dependencies for those flags available too: `libzstd-dev` and `liblzma-dev` on Debian/Ubuntu, or `libzstd-devel` and `xz-devel` on Fedora.
 
 ### WebAssembly Header
 ```bash
@@ -303,13 +307,13 @@ fs::write("package.json", serde_json::to_string(&package)?)?;
 
 **Ubuntu/Debian:**
 ```bash
-apt install clang libelf1 libelf-dev zlib1g-dev llvm
+apt install clang libelf1 libelf-dev zlib1g-dev libzstd-dev liblzma-dev llvm
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
 **CentOS/Fedora:**
 ```bash
-dnf install clang elfutils-libelf elfutils-libelf-devel zlib-devel
+dnf install clang elfutils-libelf elfutils-libelf-devel zlib-devel libzstd-devel xz-devel
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 

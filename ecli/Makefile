@@ -8,9 +8,8 @@ build:
 install:
 	rm -rf target/
 	cargo build --release
-	rm -rf $(EUNOMIA_HOME)
 	mkdir -p $(EUNOMIA_HOME)/bin
-	cp ./target/release/ecli-rs $(EUNOMIA_HOME)/bin/ecli
+	install -m 755 ./target/release/ecli-rs $(EUNOMIA_HOME)/bin/ecli
 
 install-deps:
 	sudo apt install libssl-dev

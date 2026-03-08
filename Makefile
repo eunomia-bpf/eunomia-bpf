@@ -33,7 +33,7 @@ help:
 
 install-deps: ## install deps
 	apt update
-	apt-get install libcurl4-openssl-dev libelf-dev clang llvm cmake zlib1g-dev
+	apt-get install libcurl4-openssl-dev libelf-dev clang llvm cmake zlib1g-dev libzstd-dev liblzma-dev
 
 ecli: ## build the command line tool for eunomia-bpf
 	make -C ecli build

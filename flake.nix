@@ -122,6 +122,8 @@
               elfutils
               zlib
               zlib.static
+              zstd
+              xz
             ];
 
             preBuild = ''
@@ -175,6 +177,8 @@
               zlib.static
               elfutils
               zlib
+              zstd
+              xz
               openssl.dev
               llvmPackages.bintools
             ];
@@ -268,7 +272,7 @@
                 wrapProgram $out/bin/ecc-rs \
                   --prefix LIBCLANG_PATH : ${llvmPackages.libclang.lib}/lib \
                   --prefix PATH : ${lib.makeBinPath (with llvmPackages; [clang bintools-unwrapped])} \
-                  --prefix LIBRARY_PATH : ${lib.makeLibraryPath [ elfutils zlib.static ]}
+                  --prefix LIBRARY_PATH : ${lib.makeLibraryPath [ elfutils zlib.static zstd xz ]}
               '';
 
               inherit meta;

@@ -15,6 +15,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use log::{debug, info};
 
 const STANDALONE_RUNTIME_ENV: &str = "EUNOMIA_STANDALONE_LIB";
+const EUNOMIA_HOME_ENV: &str = "EUNOMIA_HOME";
 const CHECKOUT_RUNTIME_TARGET_DIR: &str = "bpf-loader-rs/target/eunomia-standalone-runtime";
 const DEFAULT_NATIVE_LINK_ARGS: &[&str] = &[
     "-lelf",
@@ -216,6 +217,17 @@ fn installed_runtime_candidates() -> Vec<PathBuf> {
     candidates
 }
 
+fn eunomia_home_runtime_candidates() -> Option<Vec<PathBuf>> {
+    let eunomia_home = env::var_os(EUNOMIA_HOME_ENV)?;
+    let mut candidates = Vec::new();
+    add_install_layout_candidates(&mut candidates, Path::new(&eunomia_home));
+    debug!(
+        "EUNOMIA_HOME standalone runtime search paths: {:?}",
+        candidates
+    );
+    Some(candidates)
+}
+
 fn checkout_runtime_build_dir(checkout_root: &Path) -> PathBuf {
     checkout_root.join(CHECKOUT_RUNTIME_TARGET_DIR)
 }
@@ -293,6 +305,15 @@ fn resolve_standalone_runtime() -> Result<StandaloneRuntime> {
         return standalone_runtime_from_library_path(explicit_path);
     }
 
+    if let Some(eunomia_home_candidates) = eunomia_home_runtime_candidates() {
+        if let Some(path) = eunomia_home_candidates
+            .into_iter()
+            .find(|path| path.exists())
+        {
+            return standalone_runtime_from_library_path(path);
+        }
+    }
+
     let mut build_error = None;
     for checkout_root in checkout_roots() {
         match build_runtime_from_checkout(&checkout_root) {
@@ -367,9 +388,64 @@ mod tests {
     use super::{
         checkout_runtime_build_dir, find_checkout_root, link_flags_path_for,
         merge_native_link_args, normalize_native_link_args, parse_native_link_args,
+        resolve_standalone_runtime, EUNOMIA_HOME_ENV, STANDALONE_RUNTIME_ENV,
     };
-    use std::{fs, path::Path};
+    use std::{
+        ffi::OsString,
+        fs,
+        path::{Path, PathBuf},
+        sync::{Mutex, OnceLock},
+    };
     use tempfile::TempDir;
+
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    struct EnvGuard {
+        saved: Vec<(&'static str, Option<OsString>)>,
+    }
+
+    impl EnvGuard {
+        fn capture(keys: &[&'static str]) -> Self {
+            Self {
+                saved: keys
+                    .iter()
+                    .map(|key| (*key, std::env::var_os(key)))
+                    .collect(),
+            }
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            for (key, value) in &self.saved {
+                match value {
+                    Some(value) => std::env::set_var(key, value),
+                    None => std::env::remove_var(key),
+                }
+            }
+        }
+    }
+
+    struct CwdGuard {
+        saved: PathBuf,
+    }
+
+    impl CwdGuard {
+        fn capture() -> Self {
+            Self {
+                saved: std::env::current_dir().unwrap(),
+            }
+        }
+    }
+
+    impl Drop for CwdGuard {
+        fn drop(&mut self) {
+            std::env::set_current_dir(&self.saved).unwrap();
+        }
+    }
 
     #[test]
     fn test_parse_native_link_args() {
@@ -437,5 +513,44 @@ mod tests {
     fn test_link_flags_path_for() {
         let path = link_flags_path_for(Path::new("/tmp/libeunomia.a"));
         assert_eq!(path, Path::new("/tmp/libeunomia.a.linkflags"));
+    }
+
+    #[test]
+    fn test_resolve_standalone_runtime_prefers_eunomia_home_over_checkout_builds() {
+        let _lock = env_lock().lock().unwrap();
+        let _env = EnvGuard::capture(&[
+            EUNOMIA_HOME_ENV,
+            STANDALONE_RUNTIME_ENV,
+            "XDG_DATA_HOME",
+            "HOME",
+        ]);
+        let _cwd = CwdGuard::capture();
+        let temp_dir = TempDir::new().unwrap();
+        let eunomia_home = temp_dir.path().join("custom-eunomia-home");
+        let library_path = eunomia_home.join("libeunomia.a");
+        let repo_root = temp_dir.path().join("repo-root");
+        let checkout_dir = repo_root.join("compiler/cmd/src");
+
+        fs::create_dir_all(&eunomia_home).unwrap();
+        fs::write(&library_path, "").unwrap();
+        fs::write(link_flags_path_for(&library_path), "-lelf").unwrap();
+
+        fs::create_dir_all(repo_root.join("bpf-loader-rs")).unwrap();
+        fs::create_dir_all(&checkout_dir).unwrap();
+        fs::write(repo_root.join("bpf-loader-rs/Cargo.toml"), "[workspace]\n").unwrap();
+        fs::write(
+            repo_root.join("compiler/cmd/Cargo.toml"),
+            "[package]\nname = \"dummy\"\nversion = \"0.0.0\"\n",
+        )
+        .unwrap();
+
+        std::env::set_var(EUNOMIA_HOME_ENV, &eunomia_home);
+        std::env::remove_var(STANDALONE_RUNTIME_ENV);
+        std::env::remove_var("XDG_DATA_HOME");
+        std::env::remove_var("HOME");
+        std::env::set_current_dir(&checkout_dir).unwrap();
+
+        let runtime = resolve_standalone_runtime().unwrap();
+        assert_eq!(runtime.library_path, library_path);
     }
 }
