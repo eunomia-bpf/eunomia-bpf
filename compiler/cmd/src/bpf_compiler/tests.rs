@@ -8,6 +8,8 @@ const TEMP_EUNOMIA_DIR: &str = "/tmp/eunomia";
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::{Arc, Barrier};
+use std::thread;
 use std::{fs, path};
 
 use clap::Parser;
@@ -25,7 +27,8 @@ use crate::helper::get_target_arch;
 use crate::tests::get_test_assets_dir;
 
 use super::{
-    claim_output_artifact, ensure_output_artifact_can_be_written, pack_object_in_config,
+    claim_output_artifact, claim_requested_output_artifacts, ensure_output_artifact_can_be_written,
+    pack_object_in_config, set_output_artifact_marker_publish_barrier,
     write_output_artifact_owner_marker,
 };
 
@@ -337,4 +340,77 @@ fn test_claim_output_artifact_reserves_fresh_path_for_first_source() {
         .unwrap();
 
     assert!(err.to_string().contains("belongs to a different source"));
+}
+
+#[test]
+fn test_claim_requested_output_artifacts_rolls_back_earlier_claims_on_later_collision() {
+    let output_dir = TempDir::new().unwrap();
+    let source_dir_a = TempDir::new().unwrap();
+    let source_dir_b = TempDir::new().unwrap();
+    let source_path_a = source_dir_a.path().join("shared.bpf.c");
+    let source_path_b = source_dir_b.path().join("shared.bpf.c");
+    fs::write(&source_path_a, "int x;").unwrap();
+    fs::write(&source_path_b, "int x;").unwrap();
+
+    let owner_args = create_pack_test_args_from_source_path(&output_dir, &source_path_a, false);
+    let mut blocked_args =
+        create_pack_test_args_from_source_path(&output_dir, &source_path_b, false);
+    blocked_args.compile_opts.parameters.standalone = true;
+
+    claim_output_artifact(&owner_args, owner_args.get_standalone_executable_path()).unwrap();
+
+    let err = claim_requested_output_artifacts(&blocked_args)
+        .err()
+        .unwrap();
+
+    assert!(err.to_string().contains("belongs to a different source"));
+    assert!(!blocked_args
+        .get_output_artifact_marker_path(blocked_args.get_output_object_path())
+        .exists());
+    assert!(!blocked_args
+        .get_output_artifact_marker_path(blocked_args.get_output_config_path())
+        .exists());
+    assert!(!blocked_args.get_output_package_marker_path().exists());
+    assert!(!blocked_args
+        .get_output_artifact_marker_path(blocked_args.get_standalone_source_file_path())
+        .exists());
+    assert!(owner_args
+        .get_output_artifact_marker_path(owner_args.get_standalone_executable_path())
+        .exists());
+}
+
+#[test]
+fn test_claim_output_artifact_concurrent_fresh_claims_publish_complete_markers() {
+    let output_dir = TempDir::new().unwrap();
+
+    let first_args = create_pack_test_args(&output_dir, "first.bpf.c", false);
+    let second_args = create_pack_test_args(&output_dir, "second.bpf.c", false);
+    let artifact_path = first_args.get_output_package_config_path();
+    let marker_path = first_args.get_output_artifact_marker_path(&artifact_path);
+
+    set_output_artifact_marker_publish_barrier(Some((
+        marker_path.clone(),
+        Arc::new(Barrier::new(2)),
+    )));
+
+    let first_artifact_path = artifact_path.clone();
+    let first_handle =
+        thread::spawn(move || claim_output_artifact(&first_args, &first_artifact_path));
+    let second_handle = thread::spawn(move || claim_output_artifact(&second_args, &artifact_path));
+
+    let first_result = first_handle.join().unwrap();
+    let second_result = second_handle.join().unwrap();
+    set_output_artifact_marker_publish_barrier(None);
+
+    let success_count = [first_result.as_ref(), second_result.as_ref()]
+        .iter()
+        .filter(|result| result.is_ok())
+        .count();
+    assert_eq!(success_count, 1);
+    let err = [first_result, second_result]
+        .into_iter()
+        .find_map(Result::err)
+        .unwrap();
+    assert!(err.to_string().contains("belongs to a different source"));
+    serde_json::from_str::<serde_json::Value>(&fs::read_to_string(marker_path).unwrap()).unwrap();
 }
