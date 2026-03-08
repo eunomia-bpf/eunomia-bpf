@@ -18,8 +18,11 @@ use flate2::Compression;
 use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::io::prelude::*;
+use std::io::BufReader;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::{fs, path::Path};
@@ -35,7 +38,15 @@ struct OutputArtifactOwner {
     object_name: String,
     source_path: String,
     #[serde(default)]
+    source_snapshot: OutputArtifactSourceSnapshot,
+    #[serde(default)]
     build_signature: OutputArtifactBuildSignature,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
+struct OutputArtifactSourceSnapshot {
+    #[serde(default)]
+    digest: String,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -54,12 +65,23 @@ struct OutputArtifactBuildSignature {
 }
 
 impl OutputArtifactOwner {
-    fn matches_package_lineage(&self, other: &Self) -> bool {
+    fn matches_revision(&self, other: &Self) -> bool {
         self.object_name == other.object_name
             && self.source_path == other.source_path
+            && self.source_snapshot.matches(&other.source_snapshot)
             && self
                 .build_signature
                 .matches_package_lineage(&other.build_signature)
+    }
+
+    fn matches_package_lineage(&self, other: &Self) -> bool {
+        self.matches_revision(other)
+    }
+}
+
+impl OutputArtifactSourceSnapshot {
+    fn matches(&self, other: &Self) -> bool {
+        self.digest.is_empty() || other.digest.is_empty() || self.digest == other.digest
     }
 }
 
@@ -86,10 +108,40 @@ struct OutputArtifactMarker {
     finalized_at_unix_nanos: Option<u64>,
 }
 
-#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Deserialize, Eq, PartialEq, Serialize)]
 struct OutputArtifactClaim {
     owner: OutputArtifactOwner,
     invocation_id: String,
+    #[serde(default)]
+    started_at_unix_nanos: u64,
+}
+
+#[derive(Debug, Clone)]
+struct OutputArtifactInvocation {
+    started_at_unix_nanos: u64,
+    claim: OutputArtifactClaim,
+}
+
+impl OutputArtifactInvocation {
+    fn start(args: &Options) -> Result<Self> {
+        let owner = build_output_artifact_owner(args)?;
+        let invocation_id = build_output_artifact_invocation_id(args);
+        let started_at_unix_nanos =
+            find_existing_output_artifact_invocation_started_at(args, &invocation_id, &owner)?
+                .unwrap_or_else(current_unix_time_nanos);
+        Ok(Self {
+            started_at_unix_nanos,
+            claim: OutputArtifactClaim {
+                owner,
+                invocation_id,
+                started_at_unix_nanos,
+            },
+        })
+    }
+
+    fn owner(&self) -> &OutputArtifactOwner {
+        &self.claim.owner
+    }
 }
 
 #[must_use = "output artifact claims must be explicitly released to surface cleanup errors"]
@@ -99,10 +151,10 @@ struct OutputArtifactClaimsGuard {
 }
 
 impl OutputArtifactClaimsGuard {
-    fn new(args: &Options) -> Self {
+    fn new(invocation: &OutputArtifactInvocation) -> Self {
         Self {
             artifact_paths: Vec::new(),
-            claim: build_output_artifact_claim(args),
+            claim: invocation.claim.clone(),
         }
     }
 
@@ -284,7 +336,8 @@ fn create_output_artifact_tempdir(output_artifact_path: impl AsRef<Path>) -> Res
         .map_err(Into::into)
 }
 
-fn publish_output_file_artifact(
+fn publish_output_file_artifact_for_invocation(
+    invocation: &OutputArtifactInvocation,
     args: &Options,
     output_artifact_file: NamedTempFile,
     output_artifact_path: impl AsRef<Path>,
@@ -294,11 +347,19 @@ fn publish_output_file_artifact(
     wait_for_output_object_publish(output_artifact_path);
     match output_artifact_file.persist_noclobber(output_artifact_path) {
         Ok(_) => {
-            record_output_artifact_finalization(args, output_artifact_path)?;
+            record_output_artifact_finalization_for_invocation(
+                invocation,
+                args,
+                output_artifact_path,
+            )?;
             Ok(true)
         }
         Err(err) if err.error.kind() == ErrorKind::AlreadyExists => {
-            ensure_output_artifact_can_be_written(args, output_artifact_path)?;
+            ensure_output_artifact_can_be_written_for_invocation(
+                invocation,
+                args,
+                output_artifact_path,
+            )?;
             Ok(false)
         }
         Err(err) => Err(err.error.into()),
@@ -310,10 +371,45 @@ fn publish_output_object_artifact(
     output_object_file: NamedTempFile,
     output_artifact_path: impl AsRef<Path>,
 ) -> Result<bool> {
-    publish_output_file_artifact(args, output_object_file, output_artifact_path)
+    let invocation = OutputArtifactInvocation::start(args)?;
+    publish_output_object_artifact_for_invocation(
+        &invocation,
+        args,
+        output_object_file,
+        output_artifact_path,
+    )
 }
 
-fn publish_output_directory_artifact(
+fn publish_output_object_artifact_for_invocation(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+    output_object_file: NamedTempFile,
+    output_artifact_path: impl AsRef<Path>,
+) -> Result<bool> {
+    publish_output_file_artifact_for_invocation(
+        invocation,
+        args,
+        output_object_file,
+        output_artifact_path,
+    )
+}
+
+fn publish_output_file_artifact(
+    args: &Options,
+    output_artifact_file: NamedTempFile,
+    output_artifact_path: impl AsRef<Path>,
+) -> Result<bool> {
+    let invocation = OutputArtifactInvocation::start(args)?;
+    publish_output_file_artifact_for_invocation(
+        &invocation,
+        args,
+        output_artifact_file,
+        output_artifact_path,
+    )
+}
+
+fn publish_output_directory_artifact_for_invocation(
+    invocation: &OutputArtifactInvocation,
     args: &Options,
     output_artifact_dir: TempDir,
     output_artifact_path: impl AsRef<Path>,
@@ -322,7 +418,11 @@ fn publish_output_directory_artifact(
     let temp_artifact_path = output_artifact_dir.into_path();
     match fs::rename(&temp_artifact_path, output_artifact_path) {
         Ok(_) => {
-            record_output_artifact_finalization(args, output_artifact_path)?;
+            record_output_artifact_finalization_for_invocation(
+                invocation,
+                args,
+                output_artifact_path,
+            )?;
             Ok(true)
         }
         Err(err)
@@ -336,7 +436,11 @@ fn publish_output_directory_artifact(
                 Err(cleanup_err) if cleanup_err.kind() == ErrorKind::NotFound => Ok(()),
                 Err(cleanup_err) => Err(cleanup_err),
             };
-            ensure_output_artifact_can_be_written(args, output_artifact_path)?;
+            ensure_output_artifact_can_be_written_for_invocation(
+                invocation,
+                args,
+                output_artifact_path,
+            )?;
             cleanup_result?;
             Ok(false)
         }
@@ -355,6 +459,20 @@ fn publish_output_directory_artifact(
             Err(err.into())
         }
     }
+}
+
+fn publish_output_directory_artifact(
+    args: &Options,
+    output_artifact_dir: TempDir,
+    output_artifact_path: impl AsRef<Path>,
+) -> Result<bool> {
+    let invocation = OutputArtifactInvocation::start(args)?;
+    publish_output_directory_artifact_for_invocation(
+        &invocation,
+        args,
+        output_artifact_dir,
+        output_artifact_path,
+    )
 }
 
 /// get the skel as json object
@@ -399,7 +517,11 @@ fn get_export_types_json(
 }
 
 /// do actual work for compiling
-fn do_compile(args: &Options, temp_source_file: impl AsRef<Path>) -> Result<()> {
+fn do_compile(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+    temp_source_file: impl AsRef<Path>,
+) -> Result<()> {
     let output_bpf_object_path = args.get_output_object_path();
     let output_json_path = args.get_output_config_path();
     // Build the shared object via an invocation-local temp file so overlapping
@@ -410,7 +532,7 @@ fn do_compile(args: &Options, temp_source_file: impl AsRef<Path>) -> Result<()> 
 
     // compile bpf object
     info!("Compiling bpf object...");
-    claim_output_artifact(args, &output_bpf_object_path)?;
+    claim_output_artifact_for_invocation(invocation, args, &output_bpf_object_path)?;
     compile_bpf_object(args, temp_source_file, &output_bpf_object_temp_path)?;
     let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_temp_path, args)?;
     let bpf_skel = serde_json::from_str::<Value>(&bpf_skel_json)
@@ -446,25 +568,37 @@ fn do_compile(args: &Options, temp_source_file: impl AsRef<Path>) -> Result<()> 
     } else {
         serde_json::to_string(&meta_json)?
     };
-    claim_output_artifact(args, &output_json_path)?;
+    claim_output_artifact_for_invocation(invocation, args, &output_json_path)?;
     let mut output_json_file = create_output_artifact_tempfile(&output_json_path)?;
     output_json_file
         .as_file_mut()
         .write_all(meta_config_str.as_bytes())?;
     output_json_file.as_file_mut().sync_all()?;
-    publish_output_file_artifact(args, output_json_file, &output_json_path)?;
-    publish_output_object_artifact(args, output_bpf_object_file, &output_bpf_object_path)?;
+    publish_output_file_artifact_for_invocation(
+        invocation,
+        args,
+        output_json_file,
+        &output_json_path,
+    )?;
+    publish_output_object_artifact_for_invocation(
+        invocation,
+        args,
+        output_bpf_object_file,
+        &output_bpf_object_path,
+    )?;
     Ok(())
 }
 
 /// compile JSON file
 pub fn compile_bpf(args: &Options) -> Result<()> {
     debug!("Compiling..");
+    let invocation = OutputArtifactInvocation::start(args)?;
     // backup old files
     let source_file_content = fs::read_to_string(&args.compile_opts.source_path)?;
     let mut temp_source_file = PathBuf::from(&args.compile_opts.source_path);
 
-    let claimed_output_artifacts = claim_requested_output_artifacts(args)?;
+    let claimed_output_artifacts =
+        claim_requested_output_artifacts_for_invocation(&invocation, args)?;
     let compile_result = (|| -> Result<()> {
         if !args.compile_opts.export_event_header.is_empty() {
             temp_source_file = args.get_source_file_temp_path();
@@ -472,23 +606,32 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
             fs::write(&temp_source_file, source_file_content)?;
             add_unused_ptr_for_structs(&args.compile_opts, &temp_source_file)?;
         }
-        do_compile(args, &temp_source_file).with_context(|| anyhow!("Failed to compile"))?;
+        do_compile(&invocation, args, &temp_source_file)
+            .with_context(|| anyhow!("Failed to compile"))?;
         if !args.compile_opts.export_event_header.is_empty() {
             fs::remove_file(temp_source_file)?;
         }
         if !args.compile_opts.parameters.no_generate_package_json {
-            pack_object_in_config(args)
+            pack_object_in_config_for_invocation(&invocation, args)
                 .with_context(|| anyhow!("Failed to generate package artifact"))?;
         }
         // If we want a standalone executable..?
         if args.compile_opts.parameters.standalone {
-            claim_output_artifact(args, args.get_standalone_source_file_path())?;
-            claim_output_artifact(args, args.get_standalone_executable_path())?;
+            claim_output_artifact_for_invocation(
+                &invocation,
+                args,
+                args.get_standalone_source_file_path(),
+            )?;
+            claim_output_artifact_for_invocation(
+                &invocation,
+                args,
+                args.get_standalone_executable_path(),
+            )?;
             build_standalone_executable(args)
                 .with_context(|| anyhow!("Failed to build standalone executable"))?;
         }
         if args.compile_opts.wasm_header {
-            claim_output_artifact(args, args.get_wasm_header_path())?;
+            claim_output_artifact_for_invocation(&invocation, args, args.get_wasm_header_path())?;
             pack_object_in_wasm_header(args)
                 .with_context(|| anyhow!("Failed to generate wasm header"))?;
         }
@@ -499,7 +642,8 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
                 .with_context(|| anyhow!("Failed to fetch btfhub repo"))?;
             generate_tailored_btf(args, output_btf_archive_dir.path())
                 .with_context(|| anyhow!("Failed to generate tailored btf"))?;
-            publish_output_directory_artifact(
+            publish_output_directory_artifact_for_invocation(
+                &invocation,
                 args,
                 output_btf_archive_dir,
                 &output_btf_archive_path,
@@ -514,7 +658,12 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
             )
             .with_context(|| anyhow!("Failed to package btfhub tar"))?;
             output_tar_file.as_file_mut().sync_all()?;
-            publish_output_file_artifact(args, output_tar_file, &output_tar_path)?;
+            publish_output_file_artifact_for_invocation(
+                &invocation,
+                args,
+                output_tar_file,
+                &output_tar_path,
+            )?;
         }
         Ok(())
     })();
@@ -532,6 +681,14 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
 
 /// Pack the object file into a generated package artifact.
 fn pack_object_in_config(args: &Options) -> Result<()> {
+    let invocation = OutputArtifactInvocation::start(args)?;
+    pack_object_in_config_for_invocation(&invocation, args)
+}
+
+fn pack_object_in_config_for_invocation(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+) -> Result<()> {
     info!("Generating package artifact..");
     let output_bpf_object_path = args.get_output_object_path();
     let bpf_object = fs::read(output_bpf_object_path)?;
@@ -557,8 +714,9 @@ fn pack_object_in_config(args: &Options) -> Result<()> {
         "Packing ebpf object and config into {}...",
         output_package_config_path.display()
     );
-    let claim = build_output_artifact_claim(args);
-    let release_package_claim = claim_output_artifact(args, &output_package_config_path)?;
+    let claim = invocation.claim.clone();
+    let release_package_claim =
+        claim_output_artifact_for_invocation(invocation, args, &output_package_config_path)?;
     let package_config_str = if args.compile_opts.yaml {
         serde_yaml::to_string(&package_config).unwrap()
     } else {
@@ -570,8 +728,13 @@ fn pack_object_in_config(args: &Options) -> Result<()> {
             .as_file_mut()
             .write_all(package_config_str.as_bytes())?;
         output_package_file.as_file_mut().sync_all()?;
-        publish_output_file_artifact(args, output_package_file, &output_package_config_path)?;
-        remove_matching_sibling_package_artifact(args)?;
+        publish_output_file_artifact_for_invocation(
+            invocation,
+            args,
+            output_package_file,
+            &output_package_config_path,
+        )?;
+        remove_matching_sibling_package_artifact_for_invocation(invocation, args)?;
         Ok(())
     })();
 
@@ -590,13 +753,14 @@ fn pack_object_in_config(args: &Options) -> Result<()> {
     pack_result
 }
 
-fn build_output_artifact_owner(args: &Options) -> OutputArtifactOwner {
+fn build_output_artifact_owner(args: &Options) -> Result<OutputArtifactOwner> {
     let source_path = normalize_output_artifact_identity_path(&args.compile_opts.source_path);
-    OutputArtifactOwner {
+    Ok(OutputArtifactOwner {
         object_name: args.object_name.clone(),
         source_path,
+        source_snapshot: build_output_artifact_source_snapshot(args)?,
         build_signature: build_output_artifact_build_signature(args),
-    }
+    })
 }
 
 fn normalize_output_artifact_identity_path(path: impl AsRef<Path>) -> String {
@@ -649,6 +813,149 @@ fn normalize_output_artifact_tool_identity_path_with_path_env(
     normalize_output_artifact_identity_path(path)
 }
 
+fn build_output_artifact_source_snapshot(args: &Options) -> Result<OutputArtifactSourceSnapshot> {
+    let dependency_paths = collect_output_artifact_source_dependency_paths(args)?;
+    let mut hasher = Sha256::new();
+    hasher.update(b"output-artifact-source-snapshot-v1\0");
+
+    for dependency_path in dependency_paths {
+        hasher.update(dependency_path.as_bytes());
+        hasher.update(b"\0");
+        hash_output_artifact_source_input(&mut hasher, &dependency_path)?;
+        hasher.update(b"\0");
+    }
+
+    Ok(OutputArtifactSourceSnapshot {
+        digest: format!("{:x}", hasher.finalize()),
+    })
+}
+
+fn collect_output_artifact_source_dependency_paths(args: &Options) -> Result<Vec<String>> {
+    let source_path = Path::new(&args.compile_opts.source_path);
+    let compile_args = get_bpf_compile_args(args, source_path)?;
+    let dependency_file = NamedTempFile::new_in(args.get_workspace_directory())?;
+    let mut command = std::process::Command::new(&args.compile_opts.parameters.clang_bin);
+    command
+        .args(&compile_args)
+        .arg("-M")
+        .arg("-MF")
+        .arg(dependency_file.path())
+        .arg("-MT")
+        .arg("output-artifact-source-snapshot")
+        .arg(source_path);
+    handle_std_command_with_log!(
+        command,
+        "Failed to capture output artifact source dependencies"
+    );
+
+    let dependency_file_contents = fs::read_to_string(dependency_file.path())?;
+    let mut dependency_paths = BTreeSet::new();
+    for dependency_path in parse_output_artifact_dependency_file(&dependency_file_contents)? {
+        dependency_paths.insert(normalize_output_artifact_identity_path(dependency_path));
+    }
+    dependency_paths.insert(normalize_output_artifact_identity_path(source_path));
+
+    if let Some(export_event_header) =
+        normalize_optional_output_artifact_identity_path(&args.compile_opts.export_event_header)
+    {
+        dependency_paths.insert(export_event_header);
+    }
+
+    Ok(dependency_paths.into_iter().collect())
+}
+
+fn parse_output_artifact_dependency_file(dependency_file_contents: &str) -> Result<Vec<String>> {
+    let mut dependency_section = String::new();
+    let mut separator_found = false;
+    let mut escaped = false;
+
+    for ch in dependency_file_contents.chars() {
+        if !separator_found {
+            if escaped {
+                escaped = false;
+                continue;
+            }
+            match ch {
+                '\\' => escaped = true,
+                ':' => separator_found = true,
+                _ => {}
+            }
+            continue;
+        }
+        dependency_section.push(ch);
+    }
+
+    if !separator_found {
+        bail!("Failed to parse output artifact dependency file");
+    }
+
+    let mut flattened_dependencies = String::new();
+    let mut chars = dependency_section.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            match chars.peek() {
+                Some('\n') => {
+                    chars.next();
+                    continue;
+                }
+                Some('\r') => {
+                    chars.next();
+                    if matches!(chars.peek(), Some('\n')) {
+                        chars.next();
+                    }
+                    continue;
+                }
+                _ => {}
+            }
+        }
+        flattened_dependencies.push(ch);
+    }
+
+    let mut dependencies = Vec::new();
+    let mut current = String::new();
+    let mut escape_next = false;
+    for ch in flattened_dependencies.chars() {
+        if escape_next {
+            current.push(ch);
+            escape_next = false;
+            continue;
+        }
+
+        match ch {
+            '\\' => escape_next = true,
+            ch if ch.is_whitespace() => {
+                if !current.is_empty() {
+                    dependencies.push(current);
+                    current = String::new();
+                }
+            }
+            _ => current.push(ch),
+        }
+    }
+
+    if escape_next {
+        current.push('\\');
+    }
+    if !current.is_empty() {
+        dependencies.push(current);
+    }
+
+    Ok(dependencies)
+}
+
+fn hash_output_artifact_source_input(hasher: &mut Sha256, path: &str) -> Result<()> {
+    let mut reader = BufReader::new(fs::File::open(path)?);
+    let mut buffer = [0_u8; 8192];
+    loop {
+        let bytes_read = reader.read(&mut buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
+    Ok(())
+}
+
 fn build_output_artifact_build_signature(args: &Options) -> OutputArtifactBuildSignature {
     OutputArtifactBuildSignature {
         header_only: args.compile_opts.header_only,
@@ -680,15 +987,69 @@ fn build_output_artifact_build_signature(args: &Options) -> OutputArtifactBuildS
     }
 }
 
-fn build_output_artifact_claim(args: &Options) -> OutputArtifactClaim {
-    let invocation_id = fs::canonicalize(args.get_workspace_directory())
+fn build_output_artifact_invocation_id(args: &Options) -> String {
+    fs::canonicalize(args.get_workspace_directory())
         .unwrap_or_else(|_| args.get_workspace_directory().to_path_buf())
         .to_string_lossy()
-        .to_string();
-    OutputArtifactClaim {
-        owner: build_output_artifact_owner(args),
-        invocation_id,
+        .to_string()
+}
+
+fn build_output_artifact_claim(args: &Options) -> Result<OutputArtifactClaim> {
+    Ok(OutputArtifactInvocation::start(args)?.claim)
+}
+
+fn find_existing_output_artifact_invocation_started_at(
+    args: &Options,
+    invocation_id: &str,
+    owner: &OutputArtifactOwner,
+) -> Result<Option<u64>> {
+    let encoded_invocation_id = base64::encode_config(invocation_id, base64::URL_SAFE_NO_PAD);
+    let claim_file_name = format!("{encoded_invocation_id}.json");
+    let mut started_at_unix_nanos = None;
+    let entries = match fs::read_dir(args.get_output_directory()) {
+        Ok(entries) => entries,
+        Err(err) if err.kind() == ErrorKind::NotFound => return Ok(None),
+        Err(err) => return Err(err.into()),
+    };
+
+    for entry in entries {
+        let entry = entry?;
+        if !entry.file_type()?.is_dir() {
+            continue;
+        }
+
+        let claim_directory_name = entry.file_name();
+        let Some(claim_directory_name) = claim_directory_name.to_str() else {
+            continue;
+        };
+        if !claim_directory_name.ends_with(".ecc-owner.claims") {
+            continue;
+        }
+
+        let claim_path = entry.path().join(&claim_file_name);
+        if !claim_path.exists() {
+            continue;
+        }
+
+        let claim = serde_json::from_str::<OutputArtifactClaim>(&fs::read_to_string(&claim_path)?)
+            .with_context(|| {
+                anyhow!(
+                    "Failed to parse output artifact claim marker {}",
+                    claim_path.display()
+                )
+            })?;
+        if !claim.owner.matches_revision(owner) || claim.started_at_unix_nanos == 0 {
+            continue;
+        }
+
+        started_at_unix_nanos = Some(
+            started_at_unix_nanos.map_or(claim.started_at_unix_nanos, |current: u64| {
+                current.min(claim.started_at_unix_nanos)
+            }),
+        );
     }
+
+    Ok(started_at_unix_nanos)
 }
 
 fn get_output_artifact_marker_path_from_artifact(artifact_path: impl AsRef<Path>) -> PathBuf {
@@ -722,16 +1083,18 @@ fn get_output_artifact_claim_path_for_invocation(
 }
 
 fn get_output_artifact_claim_path(args: &Options, artifact_path: impl AsRef<Path>) -> PathBuf {
-    let claim = build_output_artifact_claim(args);
-    get_output_artifact_claim_path_for_invocation(&claim.invocation_id, artifact_path)
+    get_output_artifact_claim_path_for_invocation(
+        &build_output_artifact_invocation_id(args),
+        artifact_path,
+    )
 }
 
 fn build_output_artifact_marker(
-    args: &Options,
+    owner: &OutputArtifactOwner,
     finalized_at_unix_nanos: Option<u64>,
 ) -> OutputArtifactMarker {
     OutputArtifactMarker {
-        owner: build_output_artifact_owner(args),
+        owner: owner.clone(),
         finalized_at_unix_nanos,
     }
 }
@@ -764,17 +1127,18 @@ fn create_output_artifact_marker_tempfile(
     Ok(marker_file)
 }
 
-fn record_output_artifact_finalization(
+fn record_output_artifact_finalization_for_invocation(
+    invocation: &OutputArtifactInvocation,
     args: &Options,
     artifact_path: impl AsRef<Path>,
 ) -> Result<()> {
     let artifact_path = artifact_path.as_ref();
     let marker_path = args.get_output_artifact_marker_path(artifact_path);
-    let expected_owner = build_output_artifact_owner(args);
+    let expected_owner = invocation.owner();
 
     if marker_path.exists() {
         let marker = read_output_artifact_marker(&marker_path)?;
-        if marker.owner != expected_owner && artifact_path.exists() {
+        if !marker.owner.matches_revision(expected_owner) && artifact_path.exists() {
             bail!(
                 "Refusing to finalize output artifact {} because it belongs to a different source or build",
                 artifact_path.display()
@@ -784,7 +1148,7 @@ fn record_output_artifact_finalization(
 
     create_output_artifact_marker_tempfile(
         &marker_path,
-        &build_output_artifact_marker(args, Some(current_unix_time_nanos())),
+        &build_output_artifact_marker(invocation.owner(), Some(current_unix_time_nanos())),
     )?
     .persist(&marker_path)
     .map_err(|err| err.error)?;
@@ -983,7 +1347,7 @@ fn remove_output_artifact_owner_marker_if_unclaimed(
         }
 
         let marker = read_output_artifact_owner_marker(&marker_path)?;
-        if marker == *owner {
+        if marker.matches_revision(owner) {
             fs::remove_file(marker_path)?;
         }
         Ok(())
@@ -1000,20 +1364,25 @@ fn remove_output_artifact_owner_marker_if_unclaimed(
     }
 }
 
-fn publish_output_artifact_owner_marker(
+fn publish_output_artifact_owner_marker_for_invocation(
+    invocation: &OutputArtifactInvocation,
     args: &Options,
     artifact_path: impl AsRef<Path>,
 ) -> Result<()> {
     let artifact_path = artifact_path.as_ref();
-    let owner = build_output_artifact_owner(args);
+    let owner = invocation.owner();
     let marker_path = args.get_output_artifact_marker_path(artifact_path);
     if marker_path.exists() {
         let marker = read_output_artifact_marker(&marker_path)?;
-        if marker.owner == owner {
+        if marker.owner.matches_revision(owner) {
             return Ok(());
         }
         let claims = read_output_artifact_claims(artifact_path)?;
-        if artifact_path.exists() || claims.iter().any(|claim| claim.owner != owner) {
+        if artifact_path.exists()
+            || claims
+                .iter()
+                .any(|claim| !claim.owner.matches_revision(owner))
+        {
             bail!(
                 "Refusing to claim output artifact {} because it belongs to a different source or build",
                 artifact_path.display()
@@ -1021,7 +1390,7 @@ fn publish_output_artifact_owner_marker(
         }
         create_output_artifact_marker_tempfile(
             &marker_path,
-            &build_output_artifact_marker(args, None),
+            &build_output_artifact_marker(owner, None),
         )?
         .persist(&marker_path)
         .map_err(|err| err.error)?;
@@ -1030,7 +1399,7 @@ fn publish_output_artifact_owner_marker(
 
     let marker_file = create_output_artifact_marker_tempfile(
         &marker_path,
-        &build_output_artifact_marker(args, None),
+        &build_output_artifact_marker(owner, None),
     )?;
     #[cfg(test)]
     wait_for_output_artifact_marker_publish(&marker_path);
@@ -1039,18 +1408,21 @@ fn publish_output_artifact_owner_marker(
         Err(err) if err.error.kind() == ErrorKind::AlreadyExists => {
             let marker = read_output_artifact_marker(&marker_path)?;
             let claims = read_output_artifact_claims(artifact_path)?;
-            if marker.owner != owner
-                && (artifact_path.exists() || claims.iter().any(|claim| claim.owner != owner))
+            if !marker.owner.matches_revision(owner)
+                && (artifact_path.exists()
+                    || claims
+                        .iter()
+                        .any(|claim| !claim.owner.matches_revision(owner)))
             {
                 bail!(
                     "Refusing to claim output artifact {} because it belongs to a different source or build",
                     artifact_path.display()
                 );
             }
-            if marker.owner != owner {
+            if !marker.owner.matches_revision(owner) {
                 create_output_artifact_marker_tempfile(
                     &marker_path,
-                    &build_output_artifact_marker(args, marker.finalized_at_unix_nanos),
+                    &build_output_artifact_marker(owner, marker.finalized_at_unix_nanos),
                 )?
                 .persist(&marker_path)
                 .map_err(|persist_err| persist_err.error)?;
@@ -1059,6 +1431,14 @@ fn publish_output_artifact_owner_marker(
         }
         Err(err) => Err(err.error.into()),
     }
+}
+
+fn publish_output_artifact_owner_marker(
+    args: &Options,
+    artifact_path: impl AsRef<Path>,
+) -> Result<()> {
+    let invocation = OutputArtifactInvocation::start(args)?;
+    publish_output_artifact_owner_marker_for_invocation(&invocation, args, artifact_path)
 }
 
 fn release_output_artifact_claim(
@@ -1235,8 +1615,17 @@ pub(crate) fn ensure_output_artifact_can_be_written(
     args: &Options,
     artifact_path: impl AsRef<Path>,
 ) -> Result<()> {
+    let invocation = OutputArtifactInvocation::start(args)?;
+    ensure_output_artifact_can_be_written_for_invocation(&invocation, args, artifact_path)
+}
+
+fn ensure_output_artifact_can_be_written_for_invocation(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+    artifact_path: impl AsRef<Path>,
+) -> Result<()> {
     let artifact_path = artifact_path.as_ref();
-    let expected_owner = build_output_artifact_owner(args);
+    let expected_owner = invocation.owner();
     let action = if artifact_path.exists() {
         "overwrite existing output artifact"
     } else {
@@ -1245,7 +1634,10 @@ pub(crate) fn ensure_output_artifact_can_be_written(
     ensure_output_artifact_is_not_being_cleaned_up(artifact_path, action)?;
     let marker_path = args.get_output_artifact_marker_path(artifact_path);
     let claims = read_output_artifact_claims(artifact_path)?;
-    if claims.iter().any(|claim| claim.owner != expected_owner) {
+    if claims
+        .iter()
+        .any(|claim| !claim.owner.matches_revision(expected_owner))
+    {
         bail!(
             "Refusing to {} {} because it belongs to a different source or build",
             action,
@@ -1270,7 +1662,7 @@ pub(crate) fn ensure_output_artifact_can_be_written(
     }
 
     let marker = read_output_artifact_owner_marker(&marker_path)?;
-    if marker != expected_owner && artifact_path.exists() {
+    if !marker.matches_revision(expected_owner) && artifact_path.exists() {
         bail!(
             "Refusing to {} {} because it belongs to a different source or build",
             action,
@@ -1289,9 +1681,18 @@ pub(crate) fn write_output_artifact_owner_marker(
 }
 
 fn claim_output_artifact(args: &Options, artifact_path: impl AsRef<Path>) -> Result<bool> {
+    let invocation = OutputArtifactInvocation::start(args)?;
+    claim_output_artifact_for_invocation(&invocation, args, artifact_path)
+}
+
+fn claim_output_artifact_for_invocation(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+    artifact_path: impl AsRef<Path>,
+) -> Result<bool> {
     let artifact_path = artifact_path.as_ref();
-    ensure_output_artifact_can_be_written(args, artifact_path)?;
-    let claim = build_output_artifact_claim(args);
+    ensure_output_artifact_can_be_written_for_invocation(invocation, args, artifact_path)?;
+    let claim = invocation.claim.clone();
     let claim_path = get_output_artifact_claim_path(args, artifact_path);
     if claim_path.exists() {
         return Ok(false);
@@ -1303,7 +1704,7 @@ fn claim_output_artifact(args: &Options, artifact_path: impl AsRef<Path>) -> Res
     match claim_file.persist_noclobber(&claim_path) {
         Ok(_) => {}
         Err(err) if err.error.kind() == ErrorKind::AlreadyExists => {
-            ensure_output_artifact_can_be_written(args, artifact_path)?;
+            ensure_output_artifact_can_be_written_for_invocation(invocation, args, artifact_path)?;
             return Ok(false);
         }
         Err(err) => return Err(err.error.into()),
@@ -1323,7 +1724,9 @@ fn claim_output_artifact(args: &Options, artifact_path: impl AsRef<Path>) -> Res
         return Err(err);
     }
 
-    if let Err(err) = publish_output_artifact_owner_marker(args, artifact_path) {
+    if let Err(err) =
+        publish_output_artifact_owner_marker_for_invocation(invocation, args, artifact_path)
+    {
         if let Err(release_err) = release_output_artifact_claim(&claim, artifact_path) {
             return Err(err.context(format!(
                 "Failed to release output artifact claim after publish failure: {release_err}"
@@ -1335,13 +1738,16 @@ fn claim_output_artifact(args: &Options, artifact_path: impl AsRef<Path>) -> Res
     Ok(true)
 }
 
-fn should_preserve_active_sibling_package_artifact(args: &Options) -> Result<bool> {
+fn should_preserve_active_sibling_package_artifact(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+) -> Result<bool> {
     if args.compile_opts.parameters.no_generate_package_json {
         return Ok(false);
     }
 
     let sibling_package_config_path = args.get_output_sibling_package_config_path();
-    let expected_owner = build_output_artifact_owner(args);
+    let expected_owner = invocation.owner();
     let sibling_claims = read_output_artifact_claims(&sibling_package_config_path)?;
     if sibling_claims
         .iter()
@@ -1364,12 +1770,15 @@ fn should_preserve_active_sibling_package_artifact(args: &Options) -> Result<boo
         .matches_package_lineage(&expected_owner))
 }
 
-fn collect_requested_output_artifacts(args: &Options) -> Result<Vec<PathBuf>> {
+fn collect_requested_output_artifacts(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+) -> Result<Vec<PathBuf>> {
     let mut artifact_paths = vec![args.get_output_object_path(), args.get_output_config_path()];
 
     if !args.compile_opts.parameters.no_generate_package_json {
         artifact_paths.push(args.get_output_package_config_path());
-        if should_preserve_active_sibling_package_artifact(args)? {
+        if should_preserve_active_sibling_package_artifact(invocation, args)? {
             artifact_paths.push(args.get_output_sibling_package_config_path());
         }
     }
@@ -1389,14 +1798,22 @@ fn collect_requested_output_artifacts(args: &Options) -> Result<Vec<PathBuf>> {
 }
 
 fn claim_requested_output_artifacts(args: &Options) -> Result<OutputArtifactClaimsGuard> {
-    let artifact_paths = collect_requested_output_artifacts(args)?;
+    let invocation = OutputArtifactInvocation::start(args)?;
+    claim_requested_output_artifacts_for_invocation(&invocation, args)
+}
+
+fn claim_requested_output_artifacts_for_invocation(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+) -> Result<OutputArtifactClaimsGuard> {
+    let artifact_paths = collect_requested_output_artifacts(invocation, args)?;
     for artifact_path in &artifact_paths {
-        ensure_output_artifact_can_be_written(args, artifact_path)?;
+        ensure_output_artifact_can_be_written_for_invocation(invocation, args, artifact_path)?;
     }
 
-    let mut claims = OutputArtifactClaimsGuard::new(args);
+    let mut claims = OutputArtifactClaimsGuard::new(invocation);
     for artifact_path in artifact_paths {
-        if let Err(err) = claim_output_artifact(args, &artifact_path) {
+        if let Err(err) = claim_output_artifact_for_invocation(invocation, args, &artifact_path) {
             let rollback_err = claims.release_tracked_claims();
             return match rollback_err {
                 Ok(()) => Err(err),
@@ -1411,7 +1828,10 @@ fn claim_requested_output_artifacts(args: &Options) -> Result<OutputArtifactClai
     Ok(claims)
 }
 
-fn remove_matching_sibling_package_artifact(args: &Options) -> Result<()> {
+fn remove_matching_sibling_package_artifact_for_invocation(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+) -> Result<()> {
     let sibling_package_config_path = args.get_output_sibling_package_config_path();
     let Some(cleanup_reservation) =
         try_reserve_output_artifact_cleanup(&sibling_package_config_path)?
@@ -1437,7 +1857,7 @@ fn remove_matching_sibling_package_artifact(args: &Options) -> Result<()> {
         }
 
         let sibling_marker = read_output_artifact_marker(&sibling_marker_path)?;
-        let expected_owner = build_output_artifact_owner(args);
+        let expected_owner = invocation.owner();
         if !sibling_marker
             .owner
             .matches_package_lineage(&expected_owner)
@@ -1467,7 +1887,7 @@ fn remove_matching_sibling_package_artifact(args: &Options) -> Result<()> {
 
         if sibling_marker
             .finalized_at_unix_nanos
-            .is_some_and(|finalized_at| finalized_at >= args.invocation_started_at_unix_nanos)
+            .is_some_and(|finalized_at| finalized_at >= invocation.started_at_unix_nanos)
         {
             info!(
                 "Leaving sibling package artifact {} in place because it was finalized by an overlapping build",
