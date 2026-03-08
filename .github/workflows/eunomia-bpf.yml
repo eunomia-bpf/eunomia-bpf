@@ -45,3 +45,34 @@ jobs:
 
     - name: Code coverage using Codecov
       run: bash <(curl -s https://codecov.io/bash)
+
+  build-arm64:
+
+    runs-on: ubuntu-24.04-arm
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+
+    - name: install deps
+      run: |
+          sudo make -C bpf-loader-rs install-deps
+
+    - name: cache dependencies
+      uses: actions/cache@v3
+      id: cache
+      with:
+        path: ${{ github.workspace }}/${{ env.INSTALL_LOCATION }}
+        key: ${{ runner.os }}-arm64-dependencies
+
+    - name: run unit tests
+      run: |
+        cd bpf-loader-rs/
+        # Install rustup manually using user root
+        curl https://sh.rustup.rs -o rustup.sh
+        sudo bash -c "cat rustup.sh | sh -s -- -y ; /root/.cargo/bin/cargo test && /root/.cargo/bin/cargo clean"
+
+    - name: make bpf-loader-rs with release profile
+      run: make bpf-loader-rs

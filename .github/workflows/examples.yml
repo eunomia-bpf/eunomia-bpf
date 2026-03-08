@@ -49,3 +49,33 @@ jobs:
       - name: test examples
         run:  |
               SKIP_TESTS=profile make -C examples/tests test
+
+  examples-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+
+      - name: install deps
+        run: |
+             sudo make -C bpf-loader-rs install-deps
+
+      - name: install test deps
+        run:  |
+              make -C examples/tests install-deps
+              make -C examples/tests install-wasm-clang
+
+      - name: Set up python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: test build runners
+        run:  |
+              make -C examples
+
+      - name: test examples
+        run:  |
+              SKIP_TESTS=profile make -C examples/tests test
