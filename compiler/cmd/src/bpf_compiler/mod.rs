@@ -212,7 +212,17 @@ fn pack_object_in_config(args: &Options) -> Result<()> {
     } else {
         serde_json::to_string(&package_config).unwrap()
     };
-    fs::write(output_package_config_path, package_config_str)?;
+    fs::write(&output_package_config_path, package_config_str)?;
+
+    let sibling_package_config_path = args.get_output_sibling_package_config_path();
+    if sibling_package_config_path.exists() {
+        info!(
+            "Removing stale package artifact {}...",
+            sibling_package_config_path.display()
+        );
+        fs::remove_file(sibling_package_config_path)?;
+    }
+
     Ok(())
 }
 

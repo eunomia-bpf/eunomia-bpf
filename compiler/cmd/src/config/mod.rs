@@ -160,7 +160,7 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
     let btf_archive_path = Path::new(&args.compile_opts.btfhub_archive);
     let btf_tmp = args.tmpdir.path();
 
-    let custom_archive_path = args.get_output_directory().join("custom-archive");
+    let custom_archive_path = args.get_output_btf_archive_directory();
     let command = format!(
         r#"
         cp -r {} {}/btfhub-archive
@@ -188,7 +188,7 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
 
 pub fn package_btfhub_tar(args: &Options) -> Result<()> {
     let tar_path = args.get_output_tar_path();
-    let btf_path = args.get_output_directory().join("custom-archive");
+    let btf_path = args.get_output_btf_archive_directory();
     let package =
         fs::File::create(tar_path).with_context(|| anyhow!("Failed to create the tar"))?;
 

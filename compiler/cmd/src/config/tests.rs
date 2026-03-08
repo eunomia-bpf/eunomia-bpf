@@ -138,6 +138,21 @@ fn test_output_package_path_tracks_selected_format() {
         yaml_args.get_output_package_config_path(),
         source_path.parent().unwrap().join("package.yaml")
     );
+    assert_eq!(
+        yaml_args.get_output_sibling_package_config_path(),
+        source_path.parent().unwrap().join("package.json")
+    );
+}
+
+#[test]
+fn test_output_btf_archive_directory_is_object_scoped() {
+    let (_tmp_source_dir, source_path) = create_source_file();
+
+    let args = create_initialized_options(source_path.to_str().unwrap());
+    assert_eq!(
+        args.get_output_btf_archive_directory(),
+        source_path.parent().unwrap().join("test.custom-archive")
+    );
 }
 
 #[test]
