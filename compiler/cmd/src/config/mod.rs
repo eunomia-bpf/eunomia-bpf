@@ -8,6 +8,7 @@ use clap::{ArgAction, Parser};
 use fs_extra::dir::CopyOptions;
 use log::debug;
 use rust_embed::RustEmbed;
+use std::io::{Seek, SeekFrom};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::result::Result::Ok;
@@ -122,7 +123,7 @@ pub struct CompileExtraArgs {
         short,
         long,
         default_value_t = false,
-        help = "Don't generate a `package.json` containing the binary of the ELF file of the ebpf program"
+        help = "Don't generate the packaged output artifact (`package.json` or `package.yaml`) containing the binary of the ELF file of the ebpf program"
     )]
     pub no_generate_package_json: bool,
 
@@ -130,7 +131,7 @@ pub struct CompileExtraArgs {
         long,
         short = 's',
         default_value_t = false,
-        help = "Produce standalone executable; Can only be used when `no_generate_package_json` is disabled",
+        help = "Produce standalone executable; currently requires generated JSON package output",
         conflicts_with = "no_generate_package_json"
     )]
     pub standalone: bool,
@@ -153,16 +154,20 @@ pub fn fetch_btfhub_repo(args: &CompileArgs) -> Result<String> {
     }
 }
 
-pub fn generate_tailored_btf(args: &Options) -> Result<String> {
+pub fn generate_tailored_btf(
+    args: &Options,
+    custom_archive_path: impl AsRef<Path>,
+) -> Result<String> {
     let bpftool_path =
         get_bpftool_path(&args.tmpdir).with_context(|| anyhow!("Failed to load bpftool"))?;
 
     let btf_archive_path = Path::new(&args.compile_opts.btfhub_archive);
     let btf_tmp = args.tmpdir.path();
 
-    let custom_archive_path = args.get_output_directory().join("custom-archive");
+    let custom_archive_path = custom_archive_path.as_ref();
     let command = format!(
         r#"
+        rm -rf {}/btfhub-archive {}
         cp -r {} {}/btfhub-archive
         find {} -name "*.tar.xz" | \
         xargs -P 8 -I fileName sh -c 'tar xvfJ "fileName" -C "$(dirname "fileName")" && rm "fileName"'
@@ -170,6 +175,8 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
         xargs -P 8 -I fileName sh -c '{} gen min_core_btf "fileName" "fileName" {}'
         mkdir -p {} && cp -r {}/btfhub-archive {}
         "#,
+        btf_tmp.to_string_lossy(),
+        custom_archive_path.to_string_lossy(),
         btf_archive_path.to_string_lossy(),
         btf_tmp.to_string_lossy(),
         btf_tmp.to_string_lossy(),
@@ -186,17 +193,24 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
     Ok(output)
 }
 
-pub fn package_btfhub_tar(args: &Options) -> Result<()> {
-    let tar_path = args.get_output_tar_path();
-    let btf_path = args.get_output_directory().join("custom-archive");
-    let package =
-        fs::File::create(tar_path).with_context(|| anyhow!("Failed to create the tar"))?;
+pub fn package_btfhub_tar(
+    args: &Options,
+    btf_path: impl AsRef<Path>,
+    tar_file: &mut fs::File,
+) -> Result<()> {
+    let btf_path = btf_path.as_ref();
+    tar_file
+        .set_len(0)
+        .with_context(|| anyhow!("Failed to reset the tar output file"))?;
+    tar_file
+        .seek(SeekFrom::Start(0))
+        .with_context(|| anyhow!("Failed to rewind the tar output file"))?;
 
-    let mut tar = Builder::new(package);
+    let mut tar = Builder::new(tar_file);
     let mut object = fs::File::open(args.get_output_object_path())
         .with_context(|| anyhow!("Failed to open the object file for putting in the tar"))?;
     let mut json = fs::File::open(args.get_output_package_config_path())
-        .with_context(|| anyhow!("Failed to open the package json to put in the tar"))?;
+        .with_context(|| anyhow!("Failed to open the generated package file to put in the tar"))?;
 
     tar.append_dir_all(".", btf_path)
         .with_context(|| anyhow!("Failed to add btf archives into tar"))?;

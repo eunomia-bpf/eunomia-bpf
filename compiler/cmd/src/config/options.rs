@@ -3,11 +3,36 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use super::CompileArgs;
 use anyhow::{anyhow, Result};
 use tempfile::TempDir;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PackageFormat {
+    Json,
+    Yaml,
+}
+
+impl PackageFormat {
+    pub fn file_name(self) -> &'static str {
+        match self {
+            Self::Json => "package.json",
+            Self::Yaml => "package.yaml",
+        }
+    }
+
+    pub fn sibling(self) -> Self {
+        match self {
+            Self::Json => Self::Yaml,
+            Self::Yaml => Self::Json,
+        }
+    }
+}
 
 pub struct Options {
     pub tmpdir: TempDir,
@@ -71,15 +96,65 @@ impl Options {
             .join(format!("{}.tar", self.object_name))
     }
 
+    pub fn get_output_btf_archive_directory(&self) -> PathBuf {
+        self.get_output_directory()
+            .join(format!("{}.custom-archive", self.object_name))
+    }
+
+    pub fn package_format(&self) -> PackageFormat {
+        if self.compile_opts.yaml {
+            PackageFormat::Yaml
+        } else {
+            PackageFormat::Json
+        }
+    }
+
+    pub fn get_output_package_config_path_for(&self, package_format: PackageFormat) -> PathBuf {
+        self.get_output_directory().join(package_format.file_name())
+    }
+
     pub fn get_output_package_config_path(&self) -> PathBuf {
-        self.get_output_directory().join("package.json")
+        self.get_output_package_config_path_for(self.package_format())
+    }
+
+    pub fn get_output_sibling_package_config_path(&self) -> PathBuf {
+        self.get_output_package_config_path_for(self.package_format().sibling())
+    }
+
+    pub fn get_output_package_marker_path_for(&self, package_format: PackageFormat) -> PathBuf {
+        self.get_output_artifact_marker_path(
+            self.get_output_package_config_path_for(package_format),
+        )
+    }
+
+    pub fn get_output_package_marker_path(&self) -> PathBuf {
+        self.get_output_package_marker_path_for(self.package_format())
+    }
+
+    pub fn get_output_sibling_package_marker_path(&self) -> PathBuf {
+        self.get_output_package_marker_path_for(self.package_format().sibling())
+    }
+
+    pub fn get_output_artifact_marker_path(&self, artifact_path: impl AsRef<Path>) -> PathBuf {
+        let artifact_path = artifact_path.as_ref();
+        artifact_path
+            .parent()
+            .expect("Output artifacts are expected to have a parent directory")
+            .join(format!(
+                ".{}.ecc-owner.json",
+                artifact_path
+                    .file_name()
+                    .expect("Output artifacts are expected to have a file name")
+                    .to_string_lossy()
+            ))
     }
 
     pub fn get_wasm_header_path(&self) -> PathBuf {
         self.get_output_directory().join("ewasm-skel.h")
     }
     pub fn get_source_file_temp_path(&self) -> PathBuf {
-        self.get_output_directory().join("temp.c")
+        self.get_workspace_directory()
+            .join(format!("{}.temp.c", self.object_name))
     }
     pub fn get_standalone_executable_path(&self) -> PathBuf {
         self.get_output_directory()
@@ -91,10 +166,50 @@ impl Options {
     }
 }
 
+pub(crate) fn current_unix_time_nanos() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("System time should be after the Unix epoch")
+        .as_nanos() as u64
+}
+
 fn check_compile_opts(opts: &mut CompileArgs) -> Result<()> {
+    validate_output_mode_combinations(opts)?;
     if opts.header_only {
         // treat header as a source file
         opts.export_event_header.clone_from(&opts.source_path);
     }
+    Ok(())
+}
+
+fn validate_output_mode_combinations(opts: &CompileArgs) -> Result<()> {
+    if opts.yaml {
+        for (enabled, flag) in [
+            (opts.wasm_header, "--wasm-header"),
+            (opts.parameters.standalone, "--standalone"),
+            (opts.btfgen, "--btfgen"),
+        ] {
+            if enabled {
+                return Err(anyhow!(
+                    "{flag} currently requires JSON package output and cannot be combined with --yaml"
+                ));
+            }
+        }
+    }
+
+    if opts.parameters.no_generate_package_json {
+        for (enabled, flag) in [
+            (opts.parameters.standalone, "--standalone"),
+            (opts.wasm_header, "--wasm-header"),
+            (opts.btfgen, "--btfgen"),
+        ] {
+            if enabled {
+                return Err(anyhow!(
+                    "{flag} requires a generated package artifact and cannot be combined with --no-generate-package-json"
+                ));
+            }
+        }
+    }
+
     Ok(())
 }
