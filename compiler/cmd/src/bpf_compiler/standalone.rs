@@ -5,6 +5,7 @@
 //!
 use std::{
     env, fs,
+    io::ErrorKind,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -83,6 +84,56 @@ fn normalize_native_link_args(flags: Vec<String>) -> Vec<String> {
     normalized
 }
 
+fn merge_native_link_args(base: Vec<String>, extra: Vec<String>) -> Vec<String> {
+    let mut merged = base;
+    for flag in extra {
+        if !merged.iter().any(|existing| existing == &flag) {
+            merged.push(flag);
+        }
+    }
+    merged
+}
+
+fn pkg_config_static_link_args() -> Result<Option<Vec<String>>> {
+    let output = match Command::new("pkg-config")
+        .arg("--static")
+        .arg("--libs")
+        .args(["libelf", "zlib"])
+        .output()
+    {
+        Ok(output) => output,
+        Err(err) if err.kind() == ErrorKind::NotFound => return Ok(None),
+        Err(err) => {
+            return Err(err)
+                .with_context(|| anyhow!("Failed to invoke pkg-config for standalone runtime"))
+        }
+    };
+    if !output.status.success() {
+        debug!(
+            "pkg-config --static --libs libelf zlib failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        return Ok(None);
+    }
+
+    let link_args = String::from_utf8_lossy(&output.stdout)
+        .split_whitespace()
+        .map(|flag| flag.trim().to_string())
+        .collect::<Vec<_>>();
+    Ok(Some(normalize_native_link_args(link_args)))
+}
+
+fn finalize_native_link_args(flags: Vec<String>) -> Result<Vec<String>> {
+    let mut finalized = normalize_native_link_args(flags);
+    if let Some(pkg_config_args) = pkg_config_static_link_args()? {
+        finalized = merge_native_link_args(finalized, pkg_config_args);
+    }
+    if finalized.is_empty() {
+        bail!("No standalone runtime link flags were resolved");
+    }
+    Ok(finalized)
+}
+
 fn read_link_flags_file(library_path: &Path) -> Result<Option<Vec<String>>> {
     let link_flags_path = link_flags_path_for(library_path);
     if !link_flags_path.exists() {
@@ -98,26 +149,23 @@ fn read_link_flags_file(library_path: &Path) -> Result<Option<Vec<String>>> {
         .split_whitespace()
         .map(|flag| flag.trim().to_string())
         .collect::<Vec<_>>();
-    let flags = normalize_native_link_args(flags);
-    if flags.is_empty() {
-        bail!(
-            "Standalone runtime link flags file {:?} is empty",
-            link_flags_path
-        );
-    }
-    Ok(Some(flags))
+    Ok(Some(finalize_native_link_args(flags)?))
 }
 
-fn default_native_link_args() -> Vec<String> {
-    DEFAULT_NATIVE_LINK_ARGS
-        .iter()
-        .map(|flag| flag.to_string())
-        .collect()
+fn default_native_link_args() -> Result<Vec<String>> {
+    finalize_native_link_args(
+        DEFAULT_NATIVE_LINK_ARGS
+            .iter()
+            .map(|flag| flag.to_string())
+            .collect(),
+    )
 }
 
 fn standalone_runtime_from_library_path(library_path: PathBuf) -> Result<StandaloneRuntime> {
-    let native_link_args =
-        read_link_flags_file(&library_path)?.unwrap_or_else(default_native_link_args);
+    let native_link_args = match read_link_flags_file(&library_path)? {
+        Some(link_args) => link_args,
+        None => default_native_link_args()?,
+    };
     Ok(StandaloneRuntime {
         library_path,
         native_link_args,
@@ -171,7 +219,7 @@ fn add_checkout_runtime_candidates(candidates: &mut Vec<PathBuf>, checkout_root:
     }
 }
 
-fn bundled_runtime_candidates() -> Vec<PathBuf> {
+fn installed_runtime_candidates() -> Vec<PathBuf> {
     let mut candidates = Vec::new();
 
     if let Ok(current_exe) = env::current_exe() {
@@ -186,11 +234,22 @@ fn bundled_runtime_candidates() -> Vec<PathBuf> {
         add_install_layout_candidates(&mut candidates, &eunomia_home);
     }
 
+    debug!(
+        "Installed standalone runtime search paths: {:?}",
+        candidates
+    );
+
+    candidates
+}
+
+fn checkout_runtime_candidates() -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+
     for checkout_root in checkout_roots() {
         add_checkout_runtime_candidates(&mut candidates, &checkout_root);
     }
 
-    debug!("Standalone runtime search paths: {:?}", candidates);
+    debug!("Checkout standalone runtime search paths: {:?}", candidates);
 
     candidates
 }
@@ -228,7 +287,7 @@ fn build_runtime_from_checkout(checkout_root: &Path) -> Result<StandaloneRuntime
 
     let combined_output = format!("{stdout}\n{stderr}");
     let native_link_args =
-        parse_native_link_args(&combined_output).unwrap_or_else(default_native_link_args);
+        finalize_native_link_args(parse_native_link_args(&combined_output).unwrap_or_default())?;
 
     let library_path = checkout_root.join("bpf-loader-rs/target/release/libeunomia.a");
     if !library_path.exists() {
@@ -265,8 +324,8 @@ fn resolve_standalone_runtime() -> Result<StandaloneRuntime> {
         return standalone_runtime_from_library_path(explicit_path);
     }
 
-    let candidates = bundled_runtime_candidates();
-    if let Some(path) = candidates.into_iter().find(|path| path.exists()) {
+    let checkout_candidates = checkout_runtime_candidates();
+    if let Some(path) = checkout_candidates.into_iter().find(|path| path.exists()) {
         return standalone_runtime_from_library_path(path);
     }
 
@@ -279,6 +338,11 @@ fn resolve_standalone_runtime() -> Result<StandaloneRuntime> {
     }
     if let Some(err) = build_error {
         return Err(err);
+    }
+
+    let installed_candidates = installed_runtime_candidates();
+    if let Some(path) = installed_candidates.into_iter().find(|path| path.exists()) {
+        return standalone_runtime_from_library_path(path);
     }
 
     bail!(
@@ -330,7 +394,7 @@ pub(crate) fn build_standalone_executable(opts: &Options) -> Result<()> {
 mod tests {
     use super::{
         add_checkout_runtime_candidates, find_checkout_root, link_flags_path_for,
-        parse_native_link_args,
+        merge_native_link_args, normalize_native_link_args, parse_native_link_args,
     };
     use std::{fs, path::Path};
     use tempfile::TempDir;
@@ -343,6 +407,34 @@ mod tests {
         assert_eq!(
             parsed,
             vec!["-lelf", "-lz", "-lpthread", "-lm", "-ldl", "-lc"]
+        );
+    }
+
+    #[test]
+    fn test_normalize_native_link_args_filters_gcc_s() {
+        assert_eq!(
+            normalize_native_link_args(vec![
+                "-lelf".to_string(),
+                "-lgcc_s".to_string(),
+                "-lz".to_string(),
+                "-lelf".to_string(),
+            ]),
+            vec!["-lelf", "-lz"]
+        );
+    }
+
+    #[test]
+    fn test_merge_native_link_args_appends_missing_flags() {
+        assert_eq!(
+            merge_native_link_args(
+                vec!["-lelf".to_string(), "-lz".to_string()],
+                vec![
+                    "-lz".to_string(),
+                    "-lzstd".to_string(),
+                    "-llzma".to_string()
+                ],
+            ),
+            vec!["-lelf", "-lz", "-lzstd", "-llzma"]
         );
     }
 

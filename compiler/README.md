@@ -25,10 +25,10 @@ sudo mv ecc /usr/local/bin/
 
 The raw GitHub release binary currently does **not** bundle the `libeunomia.a` standalone sidecar, so `--standalone` is not supported from that install path yet.
 
-Install from source with the standalone runtime staged into `EUNOMIA_HOME`:
+Install from source with the standalone runtime staged into your user `EUNOMIA_HOME` / `XDG_DATA_HOME`:
 ```bash
 cd compiler
-sudo make install
+make install
 ```
 
 Or use Docker:
@@ -128,10 +128,11 @@ Same content as JSON but in YAML format.
 
 ### Standalone Executable
 ```bash
-ecc program.bpf.c --standalone -o mytool
-# → mytool (single executable)
+mkdir -p dist
+ecc program.bpf.c --standalone -o dist
+# → dist/program.out
 
-./mytool  # Run directly
+./dist/program.out  # Run directly
 ```
 
 Produces a self-contained executable with embedded eBPF program and runner.

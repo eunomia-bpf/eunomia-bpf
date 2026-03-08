@@ -130,8 +130,9 @@
 
             buildPhase = ''
               runHook preBuild
-              cargo rustc -p bpf-loader-c-wrapper --release -- --print=native-static-libs 2>&1 \
-                | awk -F 'native-static-libs: ' '/native-static-libs:/ { print $2 }' \
+              ( cargo rustc -p bpf-loader-c-wrapper --release -- --print=native-static-libs 2>&1 \
+                | awk -F 'native-static-libs: ' '/native-static-libs:/ { print $2 }'; \
+                pkg-config --static --libs libelf zlib 2>/dev/null || true ) \
                 | awk 'BEGIN { first = 1 } { for (i = 1; i <= NF; i++) { if ($i != "-lgcc_s") { printf "%s%s", first ? "" : " ", $i; first = 0 } } } END { print "" }' \
                 > libeunomia.a.linkflags
               test -s libeunomia.a.linkflags
