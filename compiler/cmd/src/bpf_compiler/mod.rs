@@ -19,8 +19,13 @@ use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::io::prelude::*;
+use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::{fs, path::Path};
+use tempfile::NamedTempFile;
+
+#[cfg(test)]
+use std::sync::{Arc, Barrier, Mutex, OnceLock};
 
 pub(crate) mod standalone;
 
@@ -29,6 +34,18 @@ struct OutputArtifactOwner {
     object_name: String,
     source_path: String,
 }
+
+#[cfg(test)]
+#[derive(Clone)]
+struct OutputArtifactMarkerPublishBarrier {
+    marker_path: PathBuf,
+    barrier: Arc<Barrier>,
+}
+
+#[cfg(test)]
+static OUTPUT_ARTIFACT_MARKER_PUBLISH_BARRIER: OnceLock<
+    Mutex<Option<OutputArtifactMarkerPublishBarrier>>,
+> = OnceLock::new();
 
 /// compile bpf object
 fn compile_bpf_object(
@@ -247,6 +264,57 @@ fn build_output_artifact_owner(args: &Options) -> OutputArtifactOwner {
     }
 }
 
+fn read_output_artifact_owner_marker(marker_path: impl AsRef<Path>) -> Result<OutputArtifactOwner> {
+    let marker_path = marker_path.as_ref();
+    serde_json::from_str(&fs::read_to_string(marker_path)?).with_context(|| {
+        anyhow!(
+            "Failed to parse output artifact owner marker {}",
+            marker_path.display()
+        )
+    })
+}
+
+fn create_output_artifact_owner_marker_tempfile(
+    marker_path: impl AsRef<Path>,
+    marker: &OutputArtifactOwner,
+) -> Result<NamedTempFile> {
+    let marker_path = marker_path.as_ref();
+    let marker_dir = marker_path
+        .parent()
+        .expect("Output artifact markers are expected to have a parent directory");
+    let mut marker_file = NamedTempFile::new_in(marker_dir)?;
+    serde_json::to_writer(marker_file.as_file_mut(), marker)?;
+    marker_file.as_file_mut().sync_all()?;
+    Ok(marker_file)
+}
+
+#[cfg(test)]
+fn wait_for_output_artifact_marker_publish(marker_path: &Path) {
+    let barrier = OUTPUT_ARTIFACT_MARKER_PUBLISH_BARRIER
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap()
+        .clone();
+    if let Some(barrier) = barrier.filter(|barrier| barrier.marker_path == marker_path) {
+        barrier.barrier.wait();
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn set_output_artifact_marker_publish_barrier(
+    marker_path: Option<(PathBuf, Arc<Barrier>)>,
+) {
+    *OUTPUT_ARTIFACT_MARKER_PUBLISH_BARRIER
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap() = marker_path.map(
+        |(marker_path, barrier)| OutputArtifactMarkerPublishBarrier {
+            marker_path,
+            barrier,
+        },
+    );
+}
+
 pub(crate) fn ensure_output_artifact_can_be_written(
     args: &Options,
     artifact_path: impl AsRef<Path>,
@@ -270,7 +338,7 @@ pub(crate) fn ensure_output_artifact_can_be_written(
         );
     }
 
-    let marker: OutputArtifactOwner = serde_json::from_str(&fs::read_to_string(&marker_path)?)?;
+    let marker = read_output_artifact_owner_marker(&marker_path)?;
     if marker != build_output_artifact_owner(args) {
         bail!(
             "Refusing to {} {} because it belongs to a different source",
@@ -288,53 +356,99 @@ pub(crate) fn write_output_artifact_owner_marker(
 ) -> Result<()> {
     let marker = build_output_artifact_owner(args);
     let marker_path = args.get_output_artifact_marker_path(artifact_path);
-    fs::write(marker_path, serde_json::to_string(&marker)?)?;
+    create_output_artifact_owner_marker_tempfile(&marker_path, &marker)?
+        .persist(&marker_path)
+        .map_err(|err| err.error)?;
     Ok(())
 }
 
-fn claim_output_artifact(args: &Options, artifact_path: impl AsRef<Path>) -> Result<()> {
+fn claim_output_artifact(args: &Options, artifact_path: impl AsRef<Path>) -> Result<bool> {
     let artifact_path = artifact_path.as_ref();
     ensure_output_artifact_can_be_written(args, artifact_path)?;
     let marker_path = args.get_output_artifact_marker_path(artifact_path);
     if marker_path.exists() {
-        write_output_artifact_owner_marker(args, artifact_path)?;
-        return Ok(());
+        return Ok(false);
     }
 
-    let marker = serde_json::to_string(&build_output_artifact_owner(args))?;
-    match fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&marker_path)
-    {
-        Ok(mut marker_file) => {
-            marker_file.write_all(marker.as_bytes())?;
-        }
-        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+    let marker = build_output_artifact_owner(args);
+    let marker_file = create_output_artifact_owner_marker_tempfile(&marker_path, &marker)?;
+    #[cfg(test)]
+    wait_for_output_artifact_marker_publish(&marker_path);
+    match marker_file.persist_noclobber(&marker_path) {
+        Ok(_) => Ok(true),
+        Err(err) if err.error.kind() == ErrorKind::AlreadyExists => {
             ensure_output_artifact_can_be_written(args, artifact_path)?;
+            Ok(false)
         }
-        Err(e) => return Err(e.into()),
+        Err(err) => Err(err.error.into()),
+    }
+}
+
+fn collect_requested_output_artifacts(args: &Options) -> Vec<PathBuf> {
+    let mut artifact_paths = vec![args.get_output_object_path(), args.get_output_config_path()];
+
+    if !args.compile_opts.parameters.no_generate_package_json {
+        artifact_paths.push(args.get_output_package_config_path());
+    }
+    if args.compile_opts.parameters.standalone {
+        artifact_paths.push(args.get_standalone_source_file_path());
+        artifact_paths.push(args.get_standalone_executable_path());
+    }
+    if args.compile_opts.wasm_header {
+        artifact_paths.push(args.get_wasm_header_path());
+    }
+    if args.compile_opts.btfgen {
+        artifact_paths.push(args.get_output_btf_archive_directory());
+        artifact_paths.push(args.get_output_tar_path());
+    }
+
+    artifact_paths
+}
+
+fn rollback_output_artifact_claims(args: &Options, artifact_paths: &[PathBuf]) -> Result<()> {
+    let expected_owner = build_output_artifact_owner(args);
+    for artifact_path in artifact_paths.iter().rev() {
+        let marker_path = args.get_output_artifact_marker_path(artifact_path);
+        if !marker_path.exists() {
+            continue;
+        }
+
+        let marker = read_output_artifact_owner_marker(&marker_path)?;
+        if marker != expected_owner {
+            continue;
+        }
+
+        if artifact_path.exists() {
+            continue;
+        }
+
+        fs::remove_file(&marker_path)?;
     }
     Ok(())
 }
 
 fn claim_requested_output_artifacts(args: &Options) -> Result<()> {
-    claim_output_artifact(args, args.get_output_object_path())?;
-    claim_output_artifact(args, args.get_output_config_path())?;
+    let artifact_paths = collect_requested_output_artifacts(args);
+    for artifact_path in &artifact_paths {
+        ensure_output_artifact_can_be_written(args, artifact_path)?;
+    }
 
-    if !args.compile_opts.parameters.no_generate_package_json {
-        claim_output_artifact(args, args.get_output_package_config_path())?;
-    }
-    if args.compile_opts.parameters.standalone {
-        claim_output_artifact(args, args.get_standalone_source_file_path())?;
-        claim_output_artifact(args, args.get_standalone_executable_path())?;
-    }
-    if args.compile_opts.wasm_header {
-        claim_output_artifact(args, args.get_wasm_header_path())?;
-    }
-    if args.compile_opts.btfgen {
-        claim_output_artifact(args, args.get_output_btf_archive_directory())?;
-        claim_output_artifact(args, args.get_output_tar_path())?;
+    let mut claimed_artifact_paths = Vec::new();
+    for artifact_path in artifact_paths {
+        match claim_output_artifact(args, &artifact_path) {
+            Ok(true) => claimed_artifact_paths.push(artifact_path),
+            Ok(false) => {}
+            Err(err) => {
+                if let Err(rollback_err) =
+                    rollback_output_artifact_claims(args, &claimed_artifact_paths)
+                {
+                    return Err(err.context(format!(
+                        "Failed to roll back claimed output markers: {rollback_err}"
+                    )));
+                }
+                return Err(err);
+            }
+        }
     }
 
     Ok(())
@@ -355,8 +469,7 @@ fn remove_matching_sibling_package_artifact(args: &Options) -> Result<()> {
         return Ok(());
     }
 
-    let sibling_marker: OutputArtifactOwner =
-        serde_json::from_str(&fs::read_to_string(&sibling_marker_path)?)?;
+    let sibling_marker = read_output_artifact_owner_marker(&sibling_marker_path)?;
     if sibling_marker != build_output_artifact_owner(args) {
         info!(
             "Leaving sibling package artifact {} in place because it belongs to a different source",
