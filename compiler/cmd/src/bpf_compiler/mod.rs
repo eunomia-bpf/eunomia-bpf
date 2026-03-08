@@ -29,10 +29,47 @@ use std::sync::{Arc, Barrier, Mutex, OnceLock};
 
 pub(crate) mod standalone;
 
-#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Deserialize, Eq, PartialEq, Serialize)]
 struct OutputArtifactOwner {
     object_name: String,
     source_path: String,
+}
+
+#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+struct OutputArtifactClaim {
+    owner: OutputArtifactOwner,
+    invocation_id: String,
+}
+
+struct OutputArtifactClaimsGuard {
+    artifact_paths: Vec<PathBuf>,
+    claim: OutputArtifactClaim,
+}
+
+impl OutputArtifactClaimsGuard {
+    fn new(args: &Options) -> Self {
+        Self {
+            artifact_paths: Vec::new(),
+            claim: build_output_artifact_claim(args),
+        }
+    }
+
+    fn track(&mut self, artifact_path: PathBuf) {
+        self.artifact_paths.push(artifact_path);
+    }
+}
+
+impl Drop for OutputArtifactClaimsGuard {
+    fn drop(&mut self) {
+        for artifact_path in self.artifact_paths.iter().rev() {
+            if let Err(err) = release_output_artifact_claim(&self.claim, artifact_path) {
+                debug!(
+                    "Failed to release output artifact claim {}: {err}",
+                    artifact_path.display()
+                );
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -174,7 +211,7 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
     let source_file_content = fs::read_to_string(&args.compile_opts.source_path)?;
     let mut temp_source_file = PathBuf::from(&args.compile_opts.source_path);
 
-    claim_requested_output_artifacts(args)?;
+    let _claimed_output_artifacts = claim_requested_output_artifacts(args)?;
 
     if !args.compile_opts.export_event_header.is_empty() {
         temp_source_file = args.get_source_file_temp_path();
@@ -240,17 +277,32 @@ fn pack_object_in_config(args: &Options) -> Result<()> {
         "Packing ebpf object and config into {}...",
         output_package_config_path.display()
     );
-    claim_output_artifact(args, &output_package_config_path)?;
+    let claim = build_output_artifact_claim(args);
+    let release_package_claim = claim_output_artifact(args, &output_package_config_path)?;
     let package_config_str = if args.compile_opts.yaml {
         serde_yaml::to_string(&package_config).unwrap()
     } else {
         serde_json::to_string(&package_config).unwrap()
     };
-    fs::write(&output_package_config_path, package_config_str)?;
+    let pack_result = (|| -> Result<()> {
+        fs::write(&output_package_config_path, package_config_str)?;
+        remove_matching_sibling_package_artifact(args)?;
+        Ok(())
+    })();
 
-    remove_matching_sibling_package_artifact(args)?;
+    if release_package_claim {
+        if let Err(release_err) = release_output_artifact_claim(&claim, &output_package_config_path)
+        {
+            return match pack_result {
+                Ok(()) => Err(release_err),
+                Err(err) => Err(err.context(format!(
+                    "Failed to release output artifact claim: {release_err}"
+                ))),
+            };
+        }
+    }
 
-    Ok(())
+    pack_result
 }
 
 fn build_output_artifact_owner(args: &Options) -> OutputArtifactOwner {
@@ -262,6 +314,48 @@ fn build_output_artifact_owner(args: &Options) -> OutputArtifactOwner {
         object_name: args.object_name.clone(),
         source_path,
     }
+}
+
+fn build_output_artifact_claim(args: &Options) -> OutputArtifactClaim {
+    let invocation_id = fs::canonicalize(args.get_workspace_directory())
+        .unwrap_or_else(|_| args.get_workspace_directory().to_path_buf())
+        .to_string_lossy()
+        .to_string();
+    OutputArtifactClaim {
+        owner: build_output_artifact_owner(args),
+        invocation_id,
+    }
+}
+
+fn get_output_artifact_marker_path_from_artifact(artifact_path: impl AsRef<Path>) -> PathBuf {
+    let artifact_path = artifact_path.as_ref();
+    artifact_path
+        .parent()
+        .expect("Output artifacts are expected to have a parent directory")
+        .join(format!(
+            ".{}.ecc-owner.json",
+            artifact_path
+                .file_name()
+                .expect("Output artifacts are expected to have a file name")
+                .to_string_lossy()
+        ))
+}
+
+fn get_output_artifact_claim_directory(artifact_path: impl AsRef<Path>) -> PathBuf {
+    get_output_artifact_marker_path_from_artifact(artifact_path).with_extension("claims")
+}
+
+fn get_output_artifact_claim_path_for_invocation(
+    invocation_id: &str,
+    artifact_path: impl AsRef<Path>,
+) -> PathBuf {
+    let encoded_invocation_id = base64::encode_config(invocation_id, base64::URL_SAFE_NO_PAD);
+    get_output_artifact_claim_directory(artifact_path).join(format!("{encoded_invocation_id}.json"))
+}
+
+fn get_output_artifact_claim_path(args: &Options, artifact_path: impl AsRef<Path>) -> PathBuf {
+    let claim = build_output_artifact_claim(args);
+    get_output_artifact_claim_path_for_invocation(&claim.invocation_id, artifact_path)
 }
 
 fn read_output_artifact_owner_marker(marker_path: impl AsRef<Path>) -> Result<OutputArtifactOwner> {
@@ -286,6 +380,153 @@ fn create_output_artifact_owner_marker_tempfile(
     serde_json::to_writer(marker_file.as_file_mut(), marker)?;
     marker_file.as_file_mut().sync_all()?;
     Ok(marker_file)
+}
+
+fn read_output_artifact_claims(
+    artifact_path: impl AsRef<Path>,
+) -> Result<Vec<OutputArtifactClaim>> {
+    let claim_dir = get_output_artifact_claim_directory(artifact_path);
+    let mut entries = match fs::read_dir(&claim_dir) {
+        Ok(entries) => entries.collect::<std::io::Result<Vec<_>>>()?,
+        Err(err) if err.kind() == ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(err) => return Err(err.into()),
+    };
+    entries.sort_by_key(|entry| entry.file_name());
+
+    let mut claims = Vec::new();
+    for entry in entries {
+        if !entry.file_type()?.is_file() {
+            continue;
+        }
+        let claim_path = entry.path();
+        let claim = serde_json::from_str(&fs::read_to_string(&claim_path)?).with_context(|| {
+            anyhow!(
+                "Failed to parse output artifact claim marker {}",
+                claim_path.display()
+            )
+        })?;
+        claims.push(claim);
+    }
+    Ok(claims)
+}
+
+fn create_output_artifact_claim_marker_tempfile(
+    claim_path: impl AsRef<Path>,
+    claim: &OutputArtifactClaim,
+) -> Result<NamedTempFile> {
+    let claim_path = claim_path.as_ref();
+    let claim_dir = claim_path
+        .parent()
+        .expect("Output artifact claim markers are expected to have a parent directory");
+    fs::create_dir_all(claim_dir)?;
+    let temp_dir = claim_dir
+        .parent()
+        .expect("Output artifact claim directories are expected to have a parent directory");
+    let mut claim_file = NamedTempFile::new_in(temp_dir)?;
+    serde_json::to_writer(claim_file.as_file_mut(), claim)?;
+    claim_file.as_file_mut().sync_all()?;
+    Ok(claim_file)
+}
+
+fn remove_output_artifact_owner_marker_if_unclaimed(
+    owner: &OutputArtifactOwner,
+    artifact_path: impl AsRef<Path>,
+) -> Result<()> {
+    let artifact_path = artifact_path.as_ref();
+    if artifact_path.exists() || !read_output_artifact_claims(artifact_path)?.is_empty() {
+        return Ok(());
+    }
+
+    let marker_path = get_output_artifact_marker_path_from_artifact(artifact_path);
+    if !marker_path.exists() {
+        return Ok(());
+    }
+
+    let marker = read_output_artifact_owner_marker(&marker_path)?;
+    if marker == *owner {
+        fs::remove_file(marker_path)?;
+    }
+    Ok(())
+}
+
+fn publish_output_artifact_owner_marker(
+    args: &Options,
+    artifact_path: impl AsRef<Path>,
+) -> Result<()> {
+    let artifact_path = artifact_path.as_ref();
+    let owner = build_output_artifact_owner(args);
+    let marker_path = args.get_output_artifact_marker_path(artifact_path);
+    if marker_path.exists() {
+        let marker = read_output_artifact_owner_marker(&marker_path)?;
+        if marker == owner {
+            return Ok(());
+        }
+        let claims = read_output_artifact_claims(artifact_path)?;
+        if artifact_path.exists() || claims.iter().any(|claim| claim.owner != owner) {
+            bail!(
+                "Refusing to claim output artifact {} because it belongs to a different source",
+                artifact_path.display()
+            );
+        }
+        create_output_artifact_owner_marker_tempfile(&marker_path, &owner)?
+            .persist(&marker_path)
+            .map_err(|err| err.error)?;
+        return Ok(());
+    }
+
+    let marker_file = create_output_artifact_owner_marker_tempfile(&marker_path, &owner)?;
+    #[cfg(test)]
+    wait_for_output_artifact_marker_publish(&marker_path);
+    match marker_file.persist_noclobber(&marker_path) {
+        Ok(_) => Ok(()),
+        Err(err) if err.error.kind() == ErrorKind::AlreadyExists => {
+            let marker = read_output_artifact_owner_marker(&marker_path)?;
+            let claims = read_output_artifact_claims(artifact_path)?;
+            if marker != owner
+                && (artifact_path.exists() || claims.iter().any(|claim| claim.owner != owner))
+            {
+                bail!(
+                    "Refusing to claim output artifact {} because it belongs to a different source",
+                    artifact_path.display()
+                );
+            }
+            if marker != owner {
+                create_output_artifact_owner_marker_tempfile(&marker_path, &owner)?
+                    .persist(&marker_path)
+                    .map_err(|persist_err| persist_err.error)?;
+            }
+            Ok(())
+        }
+        Err(err) => Err(err.error.into()),
+    }
+}
+
+fn release_output_artifact_claim(
+    claim: &OutputArtifactClaim,
+    artifact_path: impl AsRef<Path>,
+) -> Result<()> {
+    let artifact_path = artifact_path.as_ref();
+    let claim_path =
+        get_output_artifact_claim_path_for_invocation(&claim.invocation_id, artifact_path);
+    match fs::remove_file(&claim_path) {
+        Ok(_) => {}
+        Err(err) if err.kind() == ErrorKind::NotFound => {}
+        Err(err) => return Err(err.into()),
+    }
+
+    let claim_dir = get_output_artifact_claim_directory(artifact_path);
+    let remaining_claims = read_output_artifact_claims(artifact_path)?;
+    if remaining_claims.is_empty() {
+        remove_output_artifact_owner_marker_if_unclaimed(&claim.owner, artifact_path)?;
+        match fs::remove_dir(&claim_dir) {
+            Ok(_) => {}
+            Err(err) if err.kind() == ErrorKind::NotFound => {}
+            Err(err) if err.kind() == ErrorKind::DirectoryNotEmpty => {}
+            Err(err) => return Err(err.into()),
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -320,17 +561,27 @@ pub(crate) fn ensure_output_artifact_can_be_written(
     artifact_path: impl AsRef<Path>,
 ) -> Result<()> {
     let artifact_path = artifact_path.as_ref();
+    let expected_owner = build_output_artifact_owner(args);
     let action = if artifact_path.exists() {
         "overwrite existing output artifact"
     } else {
         "claim output artifact"
     };
     let marker_path = args.get_output_artifact_marker_path(artifact_path);
-    if !artifact_path.exists() && !marker_path.exists() {
+    let claims = read_output_artifact_claims(artifact_path)?;
+    if claims.iter().any(|claim| claim.owner != expected_owner) {
+        bail!(
+            "Refusing to {} {} because it belongs to a different source",
+            action,
+            artifact_path.display()
+        );
+    }
+
+    if !artifact_path.exists() && !marker_path.exists() && claims.is_empty() {
         return Ok(());
     }
 
-    if !marker_path.exists() {
+    if artifact_path.exists() && !marker_path.exists() {
         bail!(
             "Refusing to {} {} because it is unclaimed; use a dedicated output directory or remove it first",
             action,
@@ -338,8 +589,12 @@ pub(crate) fn ensure_output_artifact_can_be_written(
         );
     }
 
+    if !marker_path.exists() {
+        return Ok(());
+    }
+
     let marker = read_output_artifact_owner_marker(&marker_path)?;
-    if marker != build_output_artifact_owner(args) {
+    if marker != expected_owner && artifact_path.exists() {
         bail!(
             "Refusing to {} {} because it belongs to a different source",
             action,
@@ -354,34 +609,38 @@ pub(crate) fn write_output_artifact_owner_marker(
     args: &Options,
     artifact_path: impl AsRef<Path>,
 ) -> Result<()> {
-    let marker = build_output_artifact_owner(args);
-    let marker_path = args.get_output_artifact_marker_path(artifact_path);
-    create_output_artifact_owner_marker_tempfile(&marker_path, &marker)?
-        .persist(&marker_path)
-        .map_err(|err| err.error)?;
-    Ok(())
+    publish_output_artifact_owner_marker(args, artifact_path)
 }
 
 fn claim_output_artifact(args: &Options, artifact_path: impl AsRef<Path>) -> Result<bool> {
     let artifact_path = artifact_path.as_ref();
     ensure_output_artifact_can_be_written(args, artifact_path)?;
-    let marker_path = args.get_output_artifact_marker_path(artifact_path);
-    if marker_path.exists() {
+    let claim = build_output_artifact_claim(args);
+    let claim_path = get_output_artifact_claim_path(args, artifact_path);
+    if claim_path.exists() {
         return Ok(false);
     }
 
-    let marker = build_output_artifact_owner(args);
-    let marker_file = create_output_artifact_owner_marker_tempfile(&marker_path, &marker)?;
-    #[cfg(test)]
-    wait_for_output_artifact_marker_publish(&marker_path);
-    match marker_file.persist_noclobber(&marker_path) {
-        Ok(_) => Ok(true),
+    let claim_file = create_output_artifact_claim_marker_tempfile(&claim_path, &claim)?;
+    match claim_file.persist_noclobber(&claim_path) {
+        Ok(_) => {}
         Err(err) if err.error.kind() == ErrorKind::AlreadyExists => {
             ensure_output_artifact_can_be_written(args, artifact_path)?;
-            Ok(false)
+            return Ok(false);
         }
-        Err(err) => Err(err.error.into()),
+        Err(err) => return Err(err.error.into()),
     }
+
+    if let Err(err) = publish_output_artifact_owner_marker(args, artifact_path) {
+        if let Err(release_err) = release_output_artifact_claim(&claim, artifact_path) {
+            return Err(err.context(format!(
+                "Failed to release output artifact claim after publish failure: {release_err}"
+            )));
+        }
+        return Err(err);
+    }
+
+    Ok(true)
 }
 
 fn collect_requested_output_artifacts(args: &Options) -> Vec<PathBuf> {
@@ -405,53 +664,19 @@ fn collect_requested_output_artifacts(args: &Options) -> Vec<PathBuf> {
     artifact_paths
 }
 
-fn rollback_output_artifact_claims(args: &Options, artifact_paths: &[PathBuf]) -> Result<()> {
-    let expected_owner = build_output_artifact_owner(args);
-    for artifact_path in artifact_paths.iter().rev() {
-        let marker_path = args.get_output_artifact_marker_path(artifact_path);
-        if !marker_path.exists() {
-            continue;
-        }
-
-        let marker = read_output_artifact_owner_marker(&marker_path)?;
-        if marker != expected_owner {
-            continue;
-        }
-
-        if artifact_path.exists() {
-            continue;
-        }
-
-        fs::remove_file(&marker_path)?;
-    }
-    Ok(())
-}
-
-fn claim_requested_output_artifacts(args: &Options) -> Result<()> {
+fn claim_requested_output_artifacts(args: &Options) -> Result<OutputArtifactClaimsGuard> {
     let artifact_paths = collect_requested_output_artifacts(args);
     for artifact_path in &artifact_paths {
         ensure_output_artifact_can_be_written(args, artifact_path)?;
     }
 
-    let mut claimed_artifact_paths = Vec::new();
+    let mut claims = OutputArtifactClaimsGuard::new(args);
     for artifact_path in artifact_paths {
-        match claim_output_artifact(args, &artifact_path) {
-            Ok(true) => claimed_artifact_paths.push(artifact_path),
-            Ok(false) => {}
-            Err(err) => {
-                if let Err(rollback_err) =
-                    rollback_output_artifact_claims(args, &claimed_artifact_paths)
-                {
-                    return Err(err.context(format!(
-                        "Failed to roll back claimed output markers: {rollback_err}"
-                    )));
-                }
-                return Err(err);
-            }
-        }
+        claim_output_artifact(args, &artifact_path)?;
+        claims.track(artifact_path);
     }
 
-    Ok(())
+    Ok(claims)
 }
 
 fn remove_matching_sibling_package_artifact(args: &Options) -> Result<()> {
@@ -478,12 +703,28 @@ fn remove_matching_sibling_package_artifact(args: &Options) -> Result<()> {
         return Ok(());
     }
 
+    if !read_output_artifact_claims(&sibling_package_config_path)?.is_empty() {
+        info!(
+            "Leaving sibling package artifact {} in place because it is still actively claimed",
+            sibling_package_config_path.display()
+        );
+        return Ok(());
+    }
+
     info!(
         "Removing stale package artifact {}...",
         sibling_package_config_path.display()
     );
     fs::remove_file(sibling_package_config_path)?;
     fs::remove_file(sibling_marker_path)?;
+    match fs::remove_dir(get_output_artifact_claim_directory(
+        args.get_output_sibling_package_config_path(),
+    )) {
+        Ok(_) => {}
+        Err(err) if err.kind() == ErrorKind::NotFound => {}
+        Err(err) if err.kind() == ErrorKind::DirectoryNotEmpty => {}
+        Err(err) => return Err(err.into()),
+    }
     Ok(())
 }
 

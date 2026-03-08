@@ -27,8 +27,9 @@ use crate::helper::get_target_arch;
 use crate::tests::get_test_assets_dir;
 
 use super::{
-    claim_output_artifact, claim_requested_output_artifacts, ensure_output_artifact_can_be_written,
-    pack_object_in_config, set_output_artifact_marker_publish_barrier,
+    build_output_artifact_claim, claim_output_artifact, claim_requested_output_artifacts,
+    ensure_output_artifact_can_be_written, get_output_artifact_claim_path, pack_object_in_config,
+    release_output_artifact_claim, set_output_artifact_marker_publish_barrier,
     write_output_artifact_owner_marker,
 };
 
@@ -270,6 +271,36 @@ fn test_pack_object_in_config_keeps_other_program_sibling_package() {
 }
 
 #[test]
+fn test_pack_object_in_config_keeps_concurrent_same_source_sibling_package() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("shared.bpf.c");
+    fs::write(&source_path, "int x;").unwrap();
+
+    let json_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let yaml_args = create_pack_test_args_from_source_path(&output_dir, &source_path, true);
+
+    fs::write(json_args.get_output_object_path(), b"json").unwrap();
+    write_test_meta_config(&json_args);
+    assert!(claim_output_artifact(&json_args, json_args.get_output_package_config_path()).unwrap());
+    fs::write(
+        json_args.get_output_package_config_path(),
+        "{\"active\":true}",
+    )
+    .unwrap();
+
+    fs::write(yaml_args.get_output_object_path(), b"yaml").unwrap();
+    write_test_meta_config(&yaml_args);
+    pack_object_in_config(&yaml_args).unwrap();
+
+    assert!(output_dir.path().join("package.json").exists());
+    assert!(output_dir.path().join("package.yaml").exists());
+    assert!(
+        get_output_artifact_claim_path(&json_args, json_args.get_output_package_config_path())
+            .exists()
+    );
+}
+
+#[test]
 fn test_pack_object_in_config_rejects_other_program_same_format_package() {
     let output_dir = TempDir::new().unwrap();
 
@@ -343,6 +374,48 @@ fn test_claim_output_artifact_reserves_fresh_path_for_first_source() {
 }
 
 #[test]
+fn test_same_source_claims_keep_distinct_rollback_coverage() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("shared.bpf.c");
+    fs::write(&source_path, "int x;").unwrap();
+
+    let blocked_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let active_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let shared_artifact_path = blocked_args.get_output_package_config_path();
+
+    assert!(claim_output_artifact(&blocked_args, &shared_artifact_path).unwrap());
+    assert!(claim_output_artifact(&active_args, &shared_artifact_path).unwrap());
+    assert!(get_output_artifact_claim_path(&blocked_args, &shared_artifact_path).exists());
+    assert!(get_output_artifact_claim_path(&active_args, &shared_artifact_path).exists());
+
+    let other_source_dir = TempDir::new().unwrap();
+    let other_source_path = other_source_dir.path().join("shared.bpf.c");
+    fs::write(&other_source_path, "int x;").unwrap();
+    let blocking_owner =
+        create_pack_test_args_from_source_path(&output_dir, &other_source_path, false);
+    let blocked_later_artifact = blocked_args.get_standalone_executable_path();
+    claim_output_artifact(&blocking_owner, &blocked_later_artifact).unwrap();
+
+    let err = claim_output_artifact(&blocked_args, &blocked_later_artifact)
+        .err()
+        .unwrap();
+    assert!(err.to_string().contains("belongs to a different source"));
+
+    release_output_artifact_claim(
+        &build_output_artifact_claim(&blocked_args),
+        &shared_artifact_path,
+    )
+    .unwrap();
+
+    assert!(!get_output_artifact_claim_path(&blocked_args, &shared_artifact_path).exists());
+    assert!(get_output_artifact_claim_path(&active_args, &shared_artifact_path).exists());
+    assert!(blocked_args
+        .get_output_artifact_marker_path(&shared_artifact_path)
+        .exists());
+    ensure_output_artifact_can_be_written(&active_args, &shared_artifact_path).unwrap();
+}
+
+#[test]
 fn test_claim_requested_output_artifacts_rolls_back_earlier_claims_on_later_collision() {
     let output_dir = TempDir::new().unwrap();
     let source_dir_a = TempDir::new().unwrap();
@@ -380,11 +453,13 @@ fn test_claim_requested_output_artifacts_rolls_back_earlier_claims_on_later_coll
 }
 
 #[test]
-fn test_claim_output_artifact_concurrent_fresh_claims_publish_complete_markers() {
+fn test_claim_output_artifact_concurrent_same_source_claims_publish_complete_markers() {
     let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("shared.bpf.c");
+    fs::write(&source_path, "int x;").unwrap();
 
-    let first_args = create_pack_test_args(&output_dir, "first.bpf.c", false);
-    let second_args = create_pack_test_args(&output_dir, "second.bpf.c", false);
+    let first_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let second_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
     let artifact_path = first_args.get_output_package_config_path();
     let marker_path = first_args.get_output_artifact_marker_path(&artifact_path);
 
@@ -401,6 +476,42 @@ fn test_claim_output_artifact_concurrent_fresh_claims_publish_complete_markers()
     let first_result = first_handle.join().unwrap();
     let second_result = second_handle.join().unwrap();
     set_output_artifact_marker_publish_barrier(None);
+
+    let success_count = [first_result.as_ref(), second_result.as_ref()]
+        .iter()
+        .filter(|result| result.is_ok())
+        .count();
+    assert_eq!(success_count, 2);
+    serde_json::from_str::<serde_json::Value>(&fs::read_to_string(marker_path).unwrap()).unwrap();
+}
+
+#[test]
+fn test_claim_output_artifact_concurrent_fresh_claims_reject_other_source() {
+    let output_dir = TempDir::new().unwrap();
+
+    let first_args = create_pack_test_args(&output_dir, "first.bpf.c", false);
+    let second_args = create_pack_test_args(&output_dir, "second.bpf.c", false);
+    let artifact_path = first_args.get_output_package_config_path();
+    let marker_path = first_args.get_output_artifact_marker_path(&artifact_path);
+    let start_barrier = Arc::new(Barrier::new(3));
+
+    let first_artifact_path = artifact_path.clone();
+    let first_start_barrier = start_barrier.clone();
+    let first_handle = thread::spawn(move || {
+        first_start_barrier.wait();
+        claim_output_artifact(&first_args, &first_artifact_path)
+    });
+
+    let second_start_barrier = start_barrier.clone();
+    let second_handle = thread::spawn(move || {
+        second_start_barrier.wait();
+        claim_output_artifact(&second_args, &artifact_path)
+    });
+
+    start_barrier.wait();
+
+    let first_result = first_handle.join().unwrap();
+    let second_result = second_handle.join().unwrap();
 
     let success_count = [first_result.as_ref(), second_result.as_ref()]
         .iter()
