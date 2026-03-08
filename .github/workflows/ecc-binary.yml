@@ -128,7 +128,7 @@ jobs:
         run: |
           cd workspace
           mkdir -p include
-          cp -r ../third_party/bpftool/src/.output/libbpf/include/bpf include/
+          cp -r ../third_party/bpftool/src/libbpf/include/bpf include/
           cp -r ../third_party/vmlinux/ include/
           rm -f ./include/vmlinux/vmlinux.h
           cp ./include/vmlinux/x86/vmlinux.h ./include/vmlinux
@@ -288,7 +288,7 @@ jobs:
         run: |
           cd workspace
           mkdir -p include
-          cp -r ../third_party/bpftool/src/.output/libbpf/include/bpf include/
+          cp -r ../third_party/bpftool/src/libbpf/include/bpf include/
           cp -r ../third_party/vmlinux/ include/
           rm -f ./include/vmlinux/vmlinux.h
           cp ./include/vmlinux/arm64/vmlinux.h ./include/vmlinux

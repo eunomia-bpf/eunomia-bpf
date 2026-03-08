@@ -52,11 +52,10 @@ eunomia-exporter: ## build the exporter for custom metric
 	make -C bpf-loader-rs
 	cd eunomia-sdks/eunomia-otel && cargo build --release
 
-release: ecli ecc ## package ecli and ecc into eunomia.tar.gz
+release: ecli ecc ## package ecli and ecc binaries into eunomia.tar.gz
 	rm -rf eunomia
-	mkdir -p eunomia
-	cp -R compiler/workspace/. eunomia/
 	mkdir -p eunomia/bin
 	cp ecli/target/release/ecli-rs eunomia/bin/ecli
+	cp compiler/cmd/target/release/ecc-rs eunomia/bin/ecc-rs
 	tar -czvf eunomia.tar.gz eunomia
 	rm -rf eunomia
