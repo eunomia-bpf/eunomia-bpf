@@ -5,16 +5,10 @@
 //!
 use std::fmt::Display;
 
-/// APIs for client
-pub mod client;
 /// Some helper functions
 pub mod helper;
-/// A helper to manage tasks running on this machine
 #[cfg(feature = "native-client")]
-pub mod task_manager;
-
-/// The handle type of a program
-pub type ProgramHandle = u64;
+pub mod native;
 
 /// A log entry
 #[derive(Debug, Clone)]
