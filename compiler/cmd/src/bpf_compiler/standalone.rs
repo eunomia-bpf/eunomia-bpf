@@ -15,6 +15,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use log::{debug, info};
 
 const STANDALONE_RUNTIME_ENV: &str = "EUNOMIA_STANDALONE_LIB";
+const CHECKOUT_RUNTIME_TARGET_DIR: &str = "bpf-loader-rs/target/eunomia-standalone-runtime";
 const DEFAULT_NATIVE_LINK_ARGS: &[&str] = &[
     "-lelf",
     "-lz",
@@ -72,25 +73,15 @@ fn parse_native_link_args(raw: &str) -> Option<Vec<String>> {
 }
 
 fn normalize_native_link_args(flags: Vec<String>) -> Vec<String> {
-    let mut normalized = Vec::new();
-    for flag in flags {
-        if flag.is_empty() || flag == "-lgcc_s" {
-            continue;
-        }
-        if !normalized.iter().any(|existing| existing == &flag) {
-            normalized.push(flag);
-        }
-    }
-    normalized
+    flags
+        .into_iter()
+        .filter(|flag| !flag.is_empty() && flag != "-lgcc_s")
+        .collect()
 }
 
 fn merge_native_link_args(base: Vec<String>, extra: Vec<String>) -> Vec<String> {
     let mut merged = base;
-    for flag in extra {
-        if !merged.iter().any(|existing| existing == &flag) {
-            merged.push(flag);
-        }
-    }
+    merged.extend(extra);
     merged
 }
 
@@ -187,7 +178,6 @@ fn checkout_roots() -> Vec<PathBuf> {
     let mut roots = Vec::new();
 
     for start in [
-        Some(PathBuf::from(env!("CARGO_MANIFEST_DIR"))),
         env::current_dir().ok(),
         env::current_exe()
             .ok()
@@ -201,22 +191,6 @@ fn checkout_roots() -> Vec<PathBuf> {
         }
     }
     roots
-}
-
-fn add_checkout_runtime_candidates(candidates: &mut Vec<PathBuf>, checkout_root: &Path) {
-    let target_dir = checkout_root.join("bpf-loader-rs/target");
-    push_candidate(candidates, target_dir.join("release/libeunomia.a"));
-    push_candidate(candidates, target_dir.join("debug/libeunomia.a"));
-
-    if let Ok(entries) = fs::read_dir(&target_dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                push_candidate(candidates, path.join("release/libeunomia.a"));
-                push_candidate(candidates, path.join("debug/libeunomia.a"));
-            }
-        }
-    }
 }
 
 fn installed_runtime_candidates() -> Vec<PathBuf> {
@@ -242,20 +216,13 @@ fn installed_runtime_candidates() -> Vec<PathBuf> {
     candidates
 }
 
-fn checkout_runtime_candidates() -> Vec<PathBuf> {
-    let mut candidates = Vec::new();
-
-    for checkout_root in checkout_roots() {
-        add_checkout_runtime_candidates(&mut candidates, &checkout_root);
-    }
-
-    debug!("Checkout standalone runtime search paths: {:?}", candidates);
-
-    candidates
+fn checkout_runtime_build_dir(checkout_root: &Path) -> PathBuf {
+    checkout_root.join(CHECKOUT_RUNTIME_TARGET_DIR)
 }
 
 fn build_runtime_from_checkout(checkout_root: &Path) -> Result<StandaloneRuntime> {
     let manifest_path = checkout_root.join("bpf-loader-rs/Cargo.toml");
+    let target_dir = checkout_runtime_build_dir(checkout_root);
     info!(
         "Building standalone runtime from {}",
         manifest_path.display()
@@ -267,6 +234,8 @@ fn build_runtime_from_checkout(checkout_root: &Path) -> Result<StandaloneRuntime
         .arg(&manifest_path)
         .arg("-p")
         .arg("bpf-loader-c-wrapper")
+        .arg("--target-dir")
+        .arg(&target_dir)
         .arg("--release")
         .arg("--")
         .arg("--print=native-static-libs")
@@ -289,7 +258,7 @@ fn build_runtime_from_checkout(checkout_root: &Path) -> Result<StandaloneRuntime
     let native_link_args =
         finalize_native_link_args(parse_native_link_args(&combined_output).unwrap_or_default())?;
 
-    let library_path = checkout_root.join("bpf-loader-rs/target/release/libeunomia.a");
+    let library_path = target_dir.join("release/libeunomia.a");
     if !library_path.exists() {
         bail!(
             "Built standalone runtime but `{}` was not produced",
@@ -324,25 +293,28 @@ fn resolve_standalone_runtime() -> Result<StandaloneRuntime> {
         return standalone_runtime_from_library_path(explicit_path);
     }
 
-    let checkout_candidates = checkout_runtime_candidates();
-    if let Some(path) = checkout_candidates.into_iter().find(|path| path.exists()) {
-        return standalone_runtime_from_library_path(path);
-    }
-
     let mut build_error = None;
     for checkout_root in checkout_roots() {
         match build_runtime_from_checkout(&checkout_root) {
             Ok(runtime) => return Ok(runtime),
-            Err(err) => build_error = Some(err),
+            Err(err) => {
+                debug!(
+                    "Failed to build checkout standalone runtime from {}: {}",
+                    checkout_root.display(),
+                    err
+                );
+                build_error = Some(err);
+            }
         }
-    }
-    if let Some(err) = build_error {
-        return Err(err);
     }
 
     let installed_candidates = installed_runtime_candidates();
     if let Some(path) = installed_candidates.into_iter().find(|path| path.exists()) {
         return standalone_runtime_from_library_path(path);
+    }
+
+    if let Some(err) = build_error {
+        return Err(err);
     }
 
     bail!(
@@ -393,7 +365,7 @@ pub(crate) fn build_standalone_executable(opts: &Options) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        add_checkout_runtime_candidates, find_checkout_root, link_flags_path_for,
+        checkout_runtime_build_dir, find_checkout_root, link_flags_path_for,
         merge_native_link_args, normalize_native_link_args, parse_native_link_args,
     };
     use std::{fs, path::Path};
@@ -419,7 +391,7 @@ mod tests {
                 "-lz".to_string(),
                 "-lelf".to_string(),
             ]),
-            vec!["-lelf", "-lz"]
+            vec!["-lelf", "-lz", "-lelf"]
         );
     }
 
@@ -434,7 +406,7 @@ mod tests {
                     "-llzma".to_string()
                 ],
             ),
-            vec!["-lelf", "-lz", "-lzstd", "-llzma"]
+            vec!["-lelf", "-lz", "-lz", "-lzstd", "-llzma"]
         );
     }
 
@@ -452,23 +424,13 @@ mod tests {
     }
 
     #[test]
-    fn test_add_checkout_runtime_candidates() {
+    fn test_checkout_runtime_build_dir() {
         let temp_dir = TempDir::new().unwrap();
         let repo_root = temp_dir.path();
-        let target_dir = repo_root.join("bpf-loader-rs/target/x86_64-unknown-linux-gnu");
-        fs::create_dir_all(target_dir.join("release")).unwrap();
-
-        let mut candidates = Vec::new();
-        add_checkout_runtime_candidates(&mut candidates, repo_root);
-
-        assert!(candidates.iter().any(|candidate| {
-            candidate == &repo_root.join("bpf-loader-rs/target/release/libeunomia.a")
-        }));
-        assert!(candidates.iter().any(|candidate| {
-            candidate
-                == &repo_root
-                    .join("bpf-loader-rs/target/x86_64-unknown-linux-gnu/release/libeunomia.a")
-        }));
+        assert_eq!(
+            checkout_runtime_build_dir(repo_root),
+            repo_root.join("bpf-loader-rs/target/eunomia-standalone-runtime")
+        );
     }
 
     #[test]

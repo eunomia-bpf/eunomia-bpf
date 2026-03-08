@@ -25,7 +25,7 @@ sudo mv ecc /usr/local/bin/
 
 The raw GitHub release binary currently does **not** bundle the `libeunomia.a` standalone sidecar, so `--standalone` is not supported from that install path yet.
 
-Install from source with the standalone runtime staged into your user `EUNOMIA_HOME` / `XDG_DATA_HOME`:
+Install from source with the standalone runtime staged into the same user data directory that `ecc` looks up at runtime (`$EUNOMIA_HOME`, or `$XDG_DATA_HOME/eunomia`, or `$HOME/.local/share/eunomia`):
 ```bash
 cd compiler
 make install

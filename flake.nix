@@ -130,20 +130,21 @@
 
             buildPhase = ''
               runHook preBuild
-              ( cargo rustc -p bpf-loader-c-wrapper --release -- --print=native-static-libs 2>&1 \
+              mkdir -p target/eunomia-standalone-runtime/release
+              ( cargo rustc -p bpf-loader-c-wrapper --target-dir target/eunomia-standalone-runtime --release -- --print=native-static-libs 2>&1 \
                 | awk -F 'native-static-libs: ' '/native-static-libs:/ { print $2 }'; \
                 pkg-config --static --libs libelf zlib 2>/dev/null || true ) \
-                | awk 'BEGIN { first = 1 } { for (i = 1; i <= NF; i++) { if ($i != "-lgcc_s") { printf "%s%s", first ? "" : " ", $i; first = 0 } } } END { print "" }' \
-                > libeunomia.a.linkflags
-              test -s libeunomia.a.linkflags
-              test -f target/release/libeunomia.a
+                | awk '{ for (i = 1; i <= NF; i++) { if ($i != "-lgcc_s") { printf "%s ", $i } } } END { print "" }' \
+                > target/eunomia-standalone-runtime/release/libeunomia.a.linkflags
+              test -s target/eunomia-standalone-runtime/release/libeunomia.a.linkflags
+              test -f target/eunomia-standalone-runtime/release/libeunomia.a
               runHook postBuild
             '';
 
             installPhase = ''
               runHook preInstall
-              install -Dm 644 target/release/libeunomia.a $out/lib/libeunomia.a
-              install -Dm 644 libeunomia.a.linkflags $out/lib/libeunomia.a.linkflags
+              install -Dm 644 target/eunomia-standalone-runtime/release/libeunomia.a $out/lib/libeunomia.a
+              install -Dm 644 target/eunomia-standalone-runtime/release/libeunomia.a.linkflags $out/lib/libeunomia.a.linkflags
               runHook postInstall
             '';
 

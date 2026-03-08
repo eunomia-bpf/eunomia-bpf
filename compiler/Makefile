@@ -6,12 +6,13 @@ LLVM_STRIP ?= llvm-strip
 BPFTOOL_SRC := $(abspath ../third_party/bpftool)
 BPFTOOL := $(BPFTOOL_SRC)/src/bpftool
 ECC := cmd/target/release/ecc-rs
-LIBEUNOMIA := ../bpf-loader-rs/target/release/libeunomia.a
-LIBEUNOMIA_LINKFLAGS := ../bpf-loader-rs/target/release/libeunomia.a.linkflags
+LIBEUNOMIA_TARGET_DIR := ../bpf-loader-rs/target/eunomia-standalone-runtime
+LIBEUNOMIA := $(LIBEUNOMIA_TARGET_DIR)/release/libeunomia.a
+LIBEUNOMIA_LINKFLAGS := $(LIBEUNOMIA_TARGET_DIR)/release/libeunomia.a.linkflags
 WORKSPACE_ECC := workspace/bin/ecc-rs
 WORKSPACE_LIBEUNOMIA := workspace/libeunomia.a
 WORKSPACE_LIBEUNOMIA_LINKFLAGS := workspace/libeunomia.a.linkflags
-STANDALONE_RUNTIME_SOURCES := $(shell find ../bpf-loader-rs/bpf-loader-c-wrapper ../bpf-loader-rs/bpf-loader-lib -type f) ../bpf-loader-rs/Cargo.toml ../bpf-loader-rs/Cargo.lock
+STANDALONE_RUNTIME_SOURCES := $(shell find ../bpf-loader-rs/bpf-loader-c-wrapper/src ../bpf-loader-rs/bpf-loader-lib/src -type f -name '*.rs') ../bpf-loader-rs/bpf-loader-c-wrapper/Cargo.toml ../bpf-loader-rs/bpf-loader-lib/Cargo.toml ../bpf-loader-rs/Cargo.toml ../bpf-loader-rs/Cargo.lock
 ARCH := $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/' | sed 's/riscv64/riscv/')
 VMLINUX := ../third_party/vmlinux/$(ARCH)/vmlinux.h
 # Use our own libbpf API headers and Linux UAPI headers distributed with
@@ -69,7 +70,8 @@ $(BPFTOOL):
 	$(MAKE) -C $(BPFTOOL_SRC)/src
 
 $(WORKSPACE_LIBEUNOMIA) $(WORKSPACE_LIBEUNOMIA_LINKFLAGS): $(STANDALONE_RUNTIME_SOURCES)
-	( cargo rustc --manifest-path ../bpf-loader-rs/Cargo.toml -p bpf-loader-c-wrapper --release -- --print=native-static-libs 2>&1 | awk -F 'native-static-libs: ' '/native-static-libs:/ { print $$2 }'; pkg-config --static --libs libelf zlib 2>/dev/null || true ) | awk 'BEGIN { first = 1 } { for (i = 1; i <= NF; i++) { if ($$i != "-lgcc_s" && !seen[$$i]++) { printf "%s%s", first ? "" : " ", $$i; first = 0 } } } END { print "" }' > $(LIBEUNOMIA_LINKFLAGS)
+	mkdir -p $(LIBEUNOMIA_TARGET_DIR)/release
+	( cargo rustc --manifest-path ../bpf-loader-rs/Cargo.toml -p bpf-loader-c-wrapper --target-dir $(LIBEUNOMIA_TARGET_DIR) --release -- --print=native-static-libs 2>&1 | awk -F 'native-static-libs: ' '/native-static-libs:/ { print $$2 }'; pkg-config --static --libs libelf zlib 2>/dev/null || true ) | awk '{ for (i = 1; i <= NF; i++) { if ($$i != "-lgcc_s") { printf "%s ", $$i } } } END { print "" }' > $(LIBEUNOMIA_LINKFLAGS)
 	test -s $(LIBEUNOMIA_LINKFLAGS)
 	test -f $(LIBEUNOMIA)
 	mkdir -p workspace
