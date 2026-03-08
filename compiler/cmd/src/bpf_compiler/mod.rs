@@ -190,6 +190,18 @@ static OUTPUT_ARTIFACT_CLEANUP_RESERVATION_BARRIER: OnceLock<
     Mutex<Option<OutputArtifactCleanupReservationBarrier>>,
 > = OnceLock::new();
 
+#[cfg(test)]
+#[derive(Clone)]
+struct OutputObjectPublishBarrier {
+    artifact_path: PathBuf,
+    entered: Arc<Barrier>,
+    release: Arc<Barrier>,
+}
+
+#[cfg(test)]
+static OUTPUT_OBJECT_PUBLISH_BARRIER: OnceLock<Mutex<Option<OutputObjectPublishBarrier>>> =
+    OnceLock::new();
+
 /// compile bpf object
 fn compile_bpf_object(
     args: &Options,
@@ -218,6 +230,44 @@ fn compile_bpf_object(
 
     handle_std_command_with_log!(cmd, "Failed to run llvm-strip");
     Ok(())
+}
+
+fn create_output_object_tempfile(output_artifact_path: impl AsRef<Path>) -> Result<NamedTempFile> {
+    let output_artifact_path = output_artifact_path.as_ref();
+    let output_dir = output_artifact_path
+        .parent()
+        .expect("Output artifacts are expected to have a parent directory");
+    let temp_prefix = format!(
+        ".tmp-output-object-{}-",
+        output_artifact_path
+            .file_name()
+            .expect("Output artifacts are expected to have a file name")
+            .to_string_lossy()
+    );
+
+    Builder::new()
+        .prefix(&temp_prefix)
+        .suffix(".tmp")
+        .tempfile_in(output_dir)
+        .map_err(Into::into)
+}
+
+fn publish_output_object_artifact(
+    args: &Options,
+    output_object_file: NamedTempFile,
+    output_artifact_path: impl AsRef<Path>,
+) -> Result<bool> {
+    let output_artifact_path = output_artifact_path.as_ref();
+    #[cfg(test)]
+    wait_for_output_object_publish(output_artifact_path);
+    match output_object_file.persist_noclobber(output_artifact_path) {
+        Ok(_) => Ok(true),
+        Err(err) if err.error.kind() == ErrorKind::AlreadyExists => {
+            ensure_output_artifact_can_be_written(args, output_artifact_path)?;
+            Ok(false)
+        }
+        Err(err) => Err(err.error.into()),
+    }
 }
 
 /// get the skel as json object
@@ -265,13 +315,17 @@ fn get_export_types_json(
 fn do_compile(args: &Options, temp_source_file: impl AsRef<Path>) -> Result<()> {
     let output_bpf_object_path = args.get_output_object_path();
     let output_json_path = args.get_output_config_path();
+    // Build the shared object via an invocation-local temp file so overlapping
+    // same-source builds never write the final `.bpf.o` in place.
+    let output_bpf_object_file = create_output_object_tempfile(&output_bpf_object_path)?;
+    let output_bpf_object_temp_path = output_bpf_object_file.path().to_path_buf();
     let mut meta_json = json!({});
 
     // compile bpf object
     info!("Compiling bpf object...");
     claim_output_artifact(args, &output_bpf_object_path)?;
-    compile_bpf_object(args, temp_source_file, &output_bpf_object_path)?;
-    let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_path, args)?;
+    compile_bpf_object(args, temp_source_file, &output_bpf_object_temp_path)?;
+    let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_temp_path, args)?;
     let bpf_skel = serde_json::from_str::<Value>(&bpf_skel_json)
         .with_context(|| anyhow!("Failed to parse json skeleton"))?;
     let bpf_skel_with_doc =
@@ -291,7 +345,7 @@ fn do_compile(args: &Options, temp_source_file: impl AsRef<Path>) -> Result<()> 
     // compile export types
     if !args.compile_opts.export_event_header.is_empty() {
         info!("Generating export types...");
-        let export_types_json = get_export_types_json(args, &output_bpf_object_path)?;
+        let export_types_json = get_export_types_json(args, &output_bpf_object_temp_path)?;
         let export_types_json: Value = serde_json::from_str(&export_types_json)
             .with_context(|| anyhow!("Failed to parse export type json"))?;
         meta_json["export_types"] = export_types_json;
@@ -307,6 +361,7 @@ fn do_compile(args: &Options, temp_source_file: impl AsRef<Path>) -> Result<()> 
     };
     claim_output_artifact(args, &output_json_path)?;
     fs::write(&output_json_path, meta_config_str)?;
+    publish_output_object_artifact(args, output_bpf_object_file, &output_bpf_object_path)?;
     Ok(())
 }
 
@@ -982,6 +1037,36 @@ pub(crate) fn set_output_artifact_cleanup_reservation_barrier(
             release,
         }
     });
+}
+
+#[cfg(test)]
+fn wait_for_output_object_publish(artifact_path: &Path) {
+    let barrier = OUTPUT_OBJECT_PUBLISH_BARRIER
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap()
+        .clone();
+    if let Some(barrier) = barrier.filter(|barrier| barrier.artifact_path == artifact_path) {
+        barrier.entered.wait();
+        barrier.release.wait();
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn set_output_object_publish_barrier(
+    artifact_path: Option<(PathBuf, Arc<Barrier>, Arc<Barrier>)>,
+) {
+    *OUTPUT_OBJECT_PUBLISH_BARRIER
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap() =
+        artifact_path.map(
+            |(artifact_path, entered, release)| OutputObjectPublishBarrier {
+                artifact_path,
+                entered,
+                release,
+            },
+        );
 }
 
 pub(crate) fn ensure_output_artifact_can_be_written(
