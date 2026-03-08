@@ -6,11 +6,10 @@
 use std::{
     io::{Cursor, Write},
     sync::{
-        atomic::{AtomicBool, AtomicUsize, Ordering},
-        Arc, RwLock,
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex, RwLock,
     },
     thread::JoinHandle,
-    time::Duration,
 };
 
 use bpf_compatible_rs::{tempfile::TempDir, unpack_tar};
@@ -88,6 +87,10 @@ impl RunningProgram {
         self.task.has_exited()
     }
 
+    pub fn set_pause(&mut self, pause: bool) -> Result<()> {
+        self.task.set_pause(pause)
+    }
+
     pub fn terminate(self) -> Result<()> {
         self.task.terminate()
     }
@@ -96,6 +99,7 @@ impl RunningProgram {
 struct Task {
     inner_impl: TaskImpl,
     log_buffer: Arc<RwLock<Vec<(usize, LogEntry)>>>,
+    log_cursor: Arc<AtomicUsize>,
 }
 
 impl Task {
@@ -198,54 +202,14 @@ impl Task {
                 }
             }
             ProgramType::WasmModule => {
-                let log_buffer_inner = Arc::clone(&log_buffer);
-                let log_cursor_inner = Arc::clone(&log_cursor);
-                let should_exit = Arc::new(AtomicBool::new(false));
                 let stdout = ReadableWritePipe::new_vec_buf();
                 let stderr = ReadableWritePipe::new_vec_buf();
-                {
-                    let should_exit = Arc::clone(&should_exit);
-                    let stdout = stdout.clone();
-                    let stderr = stderr.clone();
-
-                    std::thread::spawn(move || {
-                        let mut stdout = StepFetcher::new(stdout);
-                        let mut stderr = StepFetcher::new(stderr);
-                        while !should_exit.load(Ordering::Relaxed) {
-                            let mut log_entries = Vec::new();
-                            if let Some(stderr_log) = stderr.fetch() {
-                                log_entries.push(LogEntry {
-                                    log: String::from_utf8(stderr_log).unwrap(),
-                                    timestamp: chrono::Local::now().timestamp() as _,
-                                    log_type: LogType::Stderr,
-                                });
-                            }
-                            if let Some(stdout_log) = stdout.fetch() {
-                                log_entries.push(LogEntry {
-                                    log: String::from_utf8(stdout_log).unwrap(),
-                                    timestamp: chrono::Local::now().timestamp() as _,
-                                    log_type: LogType::Stdout,
-                                });
-                            }
-                            let start_id =
-                                log_cursor_inner.fetch_add(log_entries.len(), Ordering::Relaxed);
-
-                            log_buffer_inner.write().unwrap().extend(
-                                log_entries
-                                    .into_iter()
-                                    .enumerate()
-                                    .map(|(offset, entry)| (offset + start_id, entry)),
-                            );
-                            std::thread::sleep(Duration::from_millis(500));
-                        }
-                    });
-                }
                 let (prog_handle, join_handle) = run_wasm_bpf_module_async(
                     &buf,
                     args,
                     Config {
-                        stderr: Box::new(stderr),
-                        stdout: Box::new(stdout),
+                        stderr: Box::new(stderr.clone()),
+                        stdout: Box::new(stdout.clone()),
                         ..Default::default()
                     },
                 )
@@ -254,7 +218,10 @@ impl Task {
                 TaskImpl::Wasm {
                     prog_handle,
                     join_handle,
-                    should_exit,
+                    log_collector: Mutex::new(WasmLogCollector {
+                        stdout: StepFetcher::new(stdout),
+                        stderr: StepFetcher::new(stderr),
+                    }),
                 }
             }
             _ => unreachable!(),
@@ -263,10 +230,12 @@ impl Task {
         Ok(Self {
             inner_impl,
             log_buffer,
+            log_cursor,
         })
     }
 
     fn poll_logs(&self, cursor: Option<usize>, maximum: usize) -> Vec<(usize, LogEntry)> {
+        self.collect_pending_logs();
         let mut guard = self.log_buffer.write().unwrap();
         if guard.is_empty() {
             return vec![];
@@ -295,14 +264,45 @@ impl Task {
         }
     }
 
+    fn set_pause(&mut self, pause: bool) -> Result<()> {
+        match &mut self.inner_impl {
+            TaskImpl::BpfLoader { polling_handle, .. } => {
+                polling_handle.set_pause(pause);
+            }
+            TaskImpl::Wasm { prog_handle, .. } => (if pause {
+                prog_handle.pause()
+            } else {
+                prog_handle.resume()
+            })
+            .map_err(|e| Error::Other(format!("Failed to set pause state: {}", e)))?,
+        }
+        Ok(())
+    }
+
+    fn collect_pending_logs(&self) {
+        if let TaskImpl::Wasm { log_collector, .. } = &self.inner_impl {
+            let mut guard = log_collector.lock().unwrap();
+            guard.drain(&self.log_buffer, &self.log_cursor);
+        }
+    }
+
     fn terminate(self) -> Result<()> {
-        match self.inner_impl {
+        let Task {
+            inner_impl,
+            log_buffer,
+            log_cursor,
+        } = self;
+
+        match inner_impl {
             TaskImpl::Wasm {
                 prog_handle,
                 join_handle,
-                should_exit,
+                log_collector,
             } => {
-                should_exit.store(true, Ordering::Relaxed);
+                {
+                    let mut guard = log_collector.lock().unwrap();
+                    guard.drain(&log_buffer, &log_cursor);
+                }
 
                 if !join_handle.is_finished() {
                     prog_handle.terminate().map_err(|e| {
@@ -324,6 +324,9 @@ impl Task {
                         )));
                     }
                 }
+
+                let mut guard = log_collector.lock().unwrap();
+                guard.drain(&log_buffer, &log_cursor);
             }
             TaskImpl::BpfLoader {
                 polling_handle,
@@ -349,7 +352,7 @@ enum TaskImpl {
     Wasm {
         prog_handle: WasmProgramHandle,
         join_handle: JoinHandle<anyhow::Result<()>>,
-        should_exit: Arc<AtomicBool>,
+        log_collector: Mutex<WasmLogCollector>,
     },
     BpfLoader {
         polling_handle: PollingHandle,
@@ -358,6 +361,42 @@ enum TaskImpl {
         // Kept only to preserve the extracted archive lifetime while the task is running.
         btf_archive_tempdir: Option<TempDir>,
     },
+}
+
+struct WasmLogCollector {
+    stdout: StepFetcher<Cursor<Vec<u8>>>,
+    stderr: StepFetcher<Cursor<Vec<u8>>>,
+}
+
+impl WasmLogCollector {
+    fn drain(
+        &mut self,
+        log_buffer: &Arc<RwLock<Vec<(usize, LogEntry)>>>,
+        log_cursor: &Arc<AtomicUsize>,
+    ) {
+        let mut log_entries = Vec::new();
+        if let Some(stderr_log) = self.stderr.fetch() {
+            log_entries.push(LogEntry {
+                log: String::from_utf8(stderr_log).unwrap(),
+                timestamp: chrono::Local::now().timestamp() as _,
+                log_type: LogType::Stderr,
+            });
+        }
+        if let Some(stdout_log) = self.stdout.fetch() {
+            log_entries.push(LogEntry {
+                log: String::from_utf8(stdout_log).unwrap(),
+                timestamp: chrono::Local::now().timestamp() as _,
+                log_type: LogType::Stdout,
+            });
+        }
+        let start_id = log_cursor.fetch_add(log_entries.len(), Ordering::Relaxed);
+        log_buffer.write().unwrap().extend(
+            log_entries
+                .into_iter()
+                .enumerate()
+                .map(|(offset, entry)| (offset + start_id, entry)),
+        );
+    }
 }
 
 struct MyEventHandler {
@@ -457,5 +496,30 @@ mod tests {
 
         pipe.borrow().write_all(b"cd").unwrap();
         assert_eq!(fetcher.fetch(), Some(b"cd".to_vec()));
+    }
+
+    #[test]
+    fn wasm_log_collector_flushes_pending_output() {
+        let stdout = ReadableWritePipe::new_vec_buf();
+        let stderr = ReadableWritePipe::new_vec_buf();
+        let mut collector = WasmLogCollector {
+            stdout: StepFetcher::new(stdout.clone()),
+            stderr: StepFetcher::new(stderr.clone()),
+        };
+        let log_buffer = Arc::new(RwLock::new(Vec::new()));
+        let log_cursor = Arc::new(AtomicUsize::new(0));
+
+        stdout.borrow().write_all(b"out").unwrap();
+        stderr.borrow().write_all(b"err").unwrap();
+        collector.drain(&log_buffer, &log_cursor);
+
+        let guard = log_buffer.read().unwrap();
+        assert_eq!(guard.len(), 2);
+        assert_eq!(guard[0].0, 0);
+        assert_eq!(guard[0].1.log, "err");
+        assert_eq!(guard[0].1.log_type.to_string(), "STDERR");
+        assert_eq!(guard[1].0, 1);
+        assert_eq!(guard[1].1.log, "out");
+        assert_eq!(guard[1].1.log_type.to_string(), "STDOUT");
     }
 }

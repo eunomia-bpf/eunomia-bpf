@@ -5,10 +5,18 @@
 //!
 use std::fmt::Display;
 
+/// Deprecated compatibility surface for the pre-issue-382 local runner API.
+#[cfg(feature = "native-client")]
+#[deprecated(note = "Use runner::native::{NativeRunner, RunningProgram} instead.")]
+pub mod client;
 /// Some helper functions
 pub mod helper;
 #[cfg(feature = "native-client")]
 pub mod native;
+
+/// Deprecated handle type used by the compatibility client API.
+#[cfg(feature = "native-client")]
+pub type ProgramHandle = u64;
 
 /// A log entry
 #[derive(Debug, Clone)]
