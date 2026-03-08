@@ -9,22 +9,26 @@ on:
     paths:
       - "ecli/**"
       - "compiler/**"  # Ensure ecc and ecli releasing at same time
-      - "wasm-rumtime/**"  # Release when dependencies updated
       - "third_party/**"
       - "bpf-loader-rs/**"
-      - "eunomia-sdk/**"
-      - ".github/**"
+      - "eunomia-sdks/**"
+      - ".github/assets/**"
+      - ".github/scripts/**"
+      - ".github/workflows/ecli-binary.yaml"
+      - ".github/workflows/ecc-binary.yml"
 
   pull_request:
     branches: ["*"]
     paths:
       - "ecli/**"
       - "compiler/**"
-      - "wasm-rumtime/**"
       - "third_party/**"
       - "bpf-loader-rs/**"
-      - "eunomia-sdk/**"
-      - ".github/**"
+      - "eunomia-sdks/**"
+      - ".github/assets/**"
+      - ".github/scripts/**"
+      - ".github/workflows/ecli-binary.yaml"
+      - ".github/workflows/ecc-binary.yml"
 env:
   BUILD_TYPE: Release
   INSTALL_LOCATION: .local
@@ -32,7 +36,6 @@ env:
 jobs:
   create-release-version:
     runs-on: ubuntu-latest
-    if:   github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/fix'))
     outputs:
       version: ${{steps.set_version.outputs.result}}
     steps:
