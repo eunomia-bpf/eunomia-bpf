@@ -14,6 +14,7 @@ use clap::Parser;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
 use log::debug;
+use serde_json::Value;
 use tempfile::TempDir;
 
 use crate::compile_bpf;
@@ -167,4 +168,79 @@ fn test_compress_and_pack() {
     e.write_all(&bpf_object).unwrap();
     let compressed_bytes = e.finish().unwrap();
     let _ = base64::encode(&compressed_bytes);
+}
+
+#[test]
+fn test_compile_header_only_respects_export_annotations_and_hides_dummy_symbols() {
+    let output_dir = TempDir::new().unwrap();
+    let header_path = output_dir.path().join("header_only.h");
+    fs::write(
+        &header_path,
+        r#"
+            #ifndef HEADER_ONLY_H
+            #define HEADER_ONLY_H
+
+            struct helper {
+                int ignored;
+            };
+
+            /* struct commented_out {
+                int ignored;
+            }; */
+
+            #if 0
+            struct disabled {
+                int ignored;
+            };
+            #endif
+
+            /// @export
+            struct selected_event {
+                int pid;
+            };
+
+            typedef struct helper_typedef {
+                int ignored;
+            } helper_typedef_t;
+
+            #endif
+        "#,
+    )
+    .unwrap();
+
+    let tmp_workspace = TempDir::new().unwrap();
+    init_eunomia_workspace(&tmp_workspace).unwrap();
+    let cp_args = CompileArgs::try_parse_from([
+        "ecc",
+        header_path.to_str().unwrap(),
+        "--header-only",
+        "--output-path",
+        output_dir.path().to_str().unwrap(),
+    ])
+    .unwrap();
+    let args = Options::init(cp_args, tmp_workspace).unwrap();
+    compile_bpf(&args).unwrap();
+
+    let meta_path = output_dir.path().join("header_only.skel.json");
+    let meta_json: Value = serde_json::from_str(&fs::read_to_string(meta_path).unwrap()).unwrap();
+    let export_types = meta_json["export_types"].as_array().unwrap();
+    assert_eq!(export_types.len(), 1);
+    assert_eq!(export_types[0]["name"].as_str().unwrap(), "selected_event");
+
+    if let Some(data_sections) = meta_json["bpf_skel"]["data_sections"].as_array() {
+        for data_section in data_sections {
+            let variables = data_section["variables"].as_array().unwrap();
+            assert!(variables.iter().all(|variable| {
+                !variable["name"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .starts_with("__eunomia_dummy_")
+            }));
+        }
+    }
+    if let Some(maps) = meta_json["bpf_skel"]["maps"].as_array() {
+        assert!(maps
+            .iter()
+            .all(|map| map["ident"].as_str().unwrap_or_default() != "bss"));
+    }
 }
