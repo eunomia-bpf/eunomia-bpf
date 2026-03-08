@@ -18,6 +18,7 @@ use flate2::Compression;
 use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::ffi::OsStr;
 use std::io::prelude::*;
 use std::io::ErrorKind;
 use std::path::PathBuf;
@@ -39,7 +40,6 @@ struct OutputArtifactOwner {
 
 #[derive(Debug, Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
 struct OutputArtifactBuildSignature {
-    yaml: bool,
     header_only: bool,
     export_event_header: Option<String>,
     wasm_header: bool,
@@ -175,6 +175,19 @@ struct OutputArtifactClaimReleaseFailure {
 #[cfg(test)]
 static OUTPUT_ARTIFACT_CLAIM_RELEASE_FAILURE: OnceLock<
     Mutex<Option<OutputArtifactClaimReleaseFailure>>,
+> = OnceLock::new();
+
+#[cfg(test)]
+#[derive(Clone)]
+struct OutputArtifactCleanupReservationBarrier {
+    reservation_path: PathBuf,
+    entered: Arc<Barrier>,
+    release: Arc<Barrier>,
+}
+
+#[cfg(test)]
+static OUTPUT_ARTIFACT_CLEANUP_RESERVATION_BARRIER: OnceLock<
+    Mutex<Option<OutputArtifactCleanupReservationBarrier>>,
 > = OnceLock::new();
 
 /// compile bpf object
@@ -434,9 +447,43 @@ fn normalize_optional_output_artifact_identity_path(path: &str) -> Option<String
     }
 }
 
+fn resolve_output_artifact_tool_path(path: &str, path_env: Option<&OsStr>) -> Option<PathBuf> {
+    let tool_path = Path::new(path);
+    if tool_path.is_absolute() || path.contains(std::path::MAIN_SEPARATOR) {
+        return Some(tool_path.to_path_buf());
+    }
+
+    let path_env = path_env?;
+    for dir in std::env::split_paths(path_env) {
+        let candidate = dir.join(tool_path);
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+    }
+
+    None
+}
+
+fn normalize_output_artifact_tool_identity_path(path: &str) -> String {
+    normalize_output_artifact_tool_identity_path_with_path_env(
+        path,
+        std::env::var_os("PATH").as_deref(),
+    )
+}
+
+fn normalize_output_artifact_tool_identity_path_with_path_env(
+    path: &str,
+    path_env: Option<&OsStr>,
+) -> String {
+    if let Some(resolved_path) = resolve_output_artifact_tool_path(path, path_env) {
+        return normalize_output_artifact_identity_path(resolved_path);
+    }
+
+    normalize_output_artifact_identity_path(path)
+}
+
 fn build_output_artifact_build_signature(args: &Options) -> OutputArtifactBuildSignature {
     OutputArtifactBuildSignature {
-        yaml: args.compile_opts.yaml,
         header_only: args.compile_opts.header_only,
         export_event_header: normalize_optional_output_artifact_identity_path(
             &args.compile_opts.export_event_header,
@@ -457,8 +504,10 @@ fn build_output_artifact_build_signature(args: &Options) -> OutputArtifactBuildS
             .workspace_path
             .as_deref()
             .map(normalize_output_artifact_identity_path),
-        clang_bin: normalize_output_artifact_identity_path(&args.compile_opts.parameters.clang_bin),
-        llvm_strip_bin: normalize_output_artifact_identity_path(
+        clang_bin: normalize_output_artifact_tool_identity_path(
+            &args.compile_opts.parameters.clang_bin,
+        ),
+        llvm_strip_bin: normalize_output_artifact_tool_identity_path(
             &args.compile_opts.parameters.llvm_strip_bin,
         ),
     }
@@ -491,6 +540,10 @@ fn get_output_artifact_marker_path_from_artifact(artifact_path: impl AsRef<Path>
 
 fn get_output_artifact_claim_directory(artifact_path: impl AsRef<Path>) -> PathBuf {
     get_output_artifact_marker_path_from_artifact(artifact_path).with_extension("claims")
+}
+
+fn get_output_artifact_cleanup_reservation_path(artifact_path: impl AsRef<Path>) -> PathBuf {
+    get_output_artifact_marker_path_from_artifact(artifact_path).with_extension("cleanup")
 }
 
 fn get_output_artifact_claim_path_for_invocation(
@@ -609,28 +662,134 @@ fn create_output_artifact_claim_marker_tempfile(
     Ok(claim_file)
 }
 
+fn create_output_artifact_cleanup_reservation_tempfile(
+    reservation_path: impl AsRef<Path>,
+) -> Result<NamedTempFile> {
+    let reservation_path = reservation_path.as_ref();
+    let reservation_dir = reservation_path
+        .parent()
+        .expect("Output artifact cleanup reservations are expected to have a parent directory");
+    let mut reservation_file = Builder::new()
+        .prefix(".tmp-output-artifact-cleanup-")
+        .suffix(".tmp")
+        .tempfile_in(reservation_dir)?;
+    reservation_file.as_file_mut().write_all(b"cleanup")?;
+    reservation_file.as_file_mut().sync_all()?;
+    Ok(reservation_file)
+}
+
+fn output_artifact_cleanup_is_reserved(artifact_path: impl AsRef<Path>) -> bool {
+    get_output_artifact_cleanup_reservation_path(artifact_path).exists()
+}
+
+fn ensure_output_artifact_is_not_being_cleaned_up(
+    artifact_path: &Path,
+    action: &str,
+) -> Result<()> {
+    if output_artifact_cleanup_is_reserved(artifact_path) {
+        bail!(
+            "Refusing to {} {} because it is being cleaned up",
+            action,
+            artifact_path.display()
+        );
+    }
+    Ok(())
+}
+
+struct OutputArtifactCleanupReservationGuard {
+    reservation_path: PathBuf,
+    released: bool,
+}
+
+impl OutputArtifactCleanupReservationGuard {
+    fn release(mut self) -> Result<()> {
+        self.released = true;
+        match fs::remove_file(&self.reservation_path) {
+            Ok(_) => Ok(()),
+            Err(err) if err.kind() == ErrorKind::NotFound => Ok(()),
+            Err(err) => Err(err.into()),
+        }
+    }
+}
+
+impl Drop for OutputArtifactCleanupReservationGuard {
+    fn drop(&mut self) {
+        if self.released {
+            return;
+        }
+
+        if let Err(err) = fs::remove_file(&self.reservation_path) {
+            if err.kind() != ErrorKind::NotFound {
+                error!(
+                    "Failed to release output artifact cleanup reservation {}: {err}",
+                    self.reservation_path.display()
+                );
+            }
+        }
+    }
+}
+
+fn try_reserve_output_artifact_cleanup(
+    artifact_path: impl AsRef<Path>,
+) -> Result<Option<OutputArtifactCleanupReservationGuard>> {
+    let artifact_path = artifact_path.as_ref();
+    let reservation_path = get_output_artifact_cleanup_reservation_path(artifact_path);
+    if reservation_path.exists() {
+        return Ok(None);
+    }
+
+    let reservation_file = create_output_artifact_cleanup_reservation_tempfile(&reservation_path)?;
+    match reservation_file.persist_noclobber(&reservation_path) {
+        Ok(_) => {
+            #[cfg(test)]
+            wait_for_output_artifact_cleanup_reservation(&reservation_path);
+            Ok(Some(OutputArtifactCleanupReservationGuard {
+                reservation_path,
+                released: false,
+            }))
+        }
+        Err(err) if err.error.kind() == ErrorKind::AlreadyExists => Ok(None),
+        Err(err) => Err(err.error.into()),
+    }
+}
+
 fn remove_output_artifact_owner_marker_if_unclaimed(
     owner: &OutputArtifactOwner,
     artifact_path: impl AsRef<Path>,
 ) -> Result<()> {
     let artifact_path = artifact_path.as_ref();
-    if artifact_path.exists()
-        || output_artifact_has_inflight_claims(artifact_path)?
-        || !read_output_artifact_claims(artifact_path)?.is_empty()
-    {
+    let Some(cleanup_reservation) = try_reserve_output_artifact_cleanup(artifact_path)? else {
         return Ok(());
-    }
+    };
+    let cleanup_result = (|| -> Result<()> {
+        if artifact_path.exists()
+            || output_artifact_has_inflight_claims(artifact_path)?
+            || !read_output_artifact_claims(artifact_path)?.is_empty()
+        {
+            return Ok(());
+        }
 
-    let marker_path = get_output_artifact_marker_path_from_artifact(artifact_path);
-    if !marker_path.exists() {
-        return Ok(());
-    }
+        let marker_path = get_output_artifact_marker_path_from_artifact(artifact_path);
+        if !marker_path.exists() {
+            return Ok(());
+        }
 
-    let marker = read_output_artifact_owner_marker(&marker_path)?;
-    if marker == *owner {
-        fs::remove_file(marker_path)?;
+        let marker = read_output_artifact_owner_marker(&marker_path)?;
+        if marker == *owner {
+            fs::remove_file(marker_path)?;
+        }
+        Ok(())
+    })();
+    let release_result = cleanup_reservation.release();
+
+    match (cleanup_result, release_result) {
+        (Ok(()), Ok(())) => Ok(()),
+        (Err(err), Ok(())) => Err(err),
+        (Ok(()), Err(release_err)) => Err(release_err),
+        (Err(err), Err(release_err)) => Err(err.context(format!(
+            "Failed to release output artifact cleanup reservation: {release_err}"
+        ))),
     }
-    Ok(())
 }
 
 fn publish_output_artifact_owner_marker(
@@ -796,6 +955,35 @@ pub(crate) fn set_output_artifact_claim_release_failure(failure: Option<(PathBuf
     });
 }
 
+#[cfg(test)]
+fn wait_for_output_artifact_cleanup_reservation(reservation_path: &Path) {
+    let barrier = OUTPUT_ARTIFACT_CLEANUP_RESERVATION_BARRIER
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap()
+        .clone();
+    if let Some(barrier) = barrier.filter(|barrier| barrier.reservation_path == reservation_path) {
+        barrier.entered.wait();
+        barrier.release.wait();
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn set_output_artifact_cleanup_reservation_barrier(
+    reservation_path: Option<(PathBuf, Arc<Barrier>, Arc<Barrier>)>,
+) {
+    *OUTPUT_ARTIFACT_CLEANUP_RESERVATION_BARRIER
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap() = reservation_path.map(|(reservation_path, entered, release)| {
+        OutputArtifactCleanupReservationBarrier {
+            reservation_path,
+            entered,
+            release,
+        }
+    });
+}
+
 pub(crate) fn ensure_output_artifact_can_be_written(
     args: &Options,
     artifact_path: impl AsRef<Path>,
@@ -807,6 +995,7 @@ pub(crate) fn ensure_output_artifact_can_be_written(
     } else {
         "claim output artifact"
     };
+    ensure_output_artifact_is_not_being_cleaned_up(artifact_path, action)?;
     let marker_path = args.get_output_artifact_marker_path(artifact_path);
     let claims = read_output_artifact_claims(artifact_path)?;
     if claims.iter().any(|claim| claim.owner != expected_owner) {
@@ -873,6 +1062,20 @@ fn claim_output_artifact(args: &Options, artifact_path: impl AsRef<Path>) -> Res
         Err(err) => return Err(err.error.into()),
     }
 
+    let action = if artifact_path.exists() {
+        "overwrite existing output artifact"
+    } else {
+        "claim output artifact"
+    };
+    if let Err(err) = ensure_output_artifact_is_not_being_cleaned_up(artifact_path, action) {
+        if let Err(release_err) = release_output_artifact_claim(&claim, artifact_path) {
+            return Err(err.context(format!(
+                "Failed to release output artifact claim after reservation conflict: {release_err}"
+            )));
+        }
+        return Err(err);
+    }
+
     if let Err(err) = publish_output_artifact_owner_marker(args, artifact_path) {
         if let Err(release_err) = release_output_artifact_claim(&claim, artifact_path) {
             return Err(err.context(format!(
@@ -931,60 +1134,81 @@ fn claim_requested_output_artifacts(args: &Options) -> Result<OutputArtifactClai
 
 fn remove_matching_sibling_package_artifact(args: &Options) -> Result<()> {
     let sibling_package_config_path = args.get_output_sibling_package_config_path();
-    if !sibling_package_config_path.exists() {
-        return Ok(());
-    }
-
-    let sibling_marker_path = args.get_output_sibling_package_marker_path();
-    if !sibling_marker_path.exists() {
+    let Some(cleanup_reservation) =
+        try_reserve_output_artifact_cleanup(&sibling_package_config_path)?
+    else {
         info!(
-            "Leaving sibling package artifact {} in place because it is unclaimed",
+            "Leaving sibling package artifact {} in place because it is being cleaned up",
             sibling_package_config_path.display()
         );
         return Ok(());
-    }
+    };
+    let cleanup_result = (|| -> Result<()> {
+        if !sibling_package_config_path.exists() {
+            return Ok(());
+        }
 
-    let sibling_marker = read_output_artifact_owner_marker(&sibling_marker_path)?;
-    let expected_owner = build_output_artifact_owner(args);
-    if !sibling_marker.matches_package_lineage(&expected_owner) {
+        let sibling_marker_path = args.get_output_sibling_package_marker_path();
+        if !sibling_marker_path.exists() {
+            info!(
+                "Leaving sibling package artifact {} in place because it is unclaimed",
+                sibling_package_config_path.display()
+            );
+            return Ok(());
+        }
+
+        let sibling_marker = read_output_artifact_owner_marker(&sibling_marker_path)?;
+        let expected_owner = build_output_artifact_owner(args);
+        if !sibling_marker.matches_package_lineage(&expected_owner) {
+            info!(
+                "Leaving sibling package artifact {} in place because it belongs to a different build",
+                sibling_package_config_path.display()
+            );
+            return Ok(());
+        }
+
+        if output_artifact_has_inflight_claims(&sibling_package_config_path)? {
+            info!(
+                "Leaving sibling package artifact {} in place because a claim is still being published",
+                sibling_package_config_path.display()
+            );
+            return Ok(());
+        }
+
+        if !read_output_artifact_claims(&sibling_package_config_path)?.is_empty() {
+            info!(
+                "Leaving sibling package artifact {} in place because it is still actively claimed",
+                sibling_package_config_path.display()
+            );
+            return Ok(());
+        }
+
         info!(
-            "Leaving sibling package artifact {} in place because it belongs to a different build",
+            "Removing stale package artifact {}...",
             sibling_package_config_path.display()
         );
-        return Ok(());
-    }
+        fs::remove_file(&sibling_package_config_path)?;
+        fs::remove_file(sibling_marker_path)?;
+        match fs::remove_dir(get_output_artifact_claim_directory(
+            args.get_output_sibling_package_config_path(),
+        )) {
+            Ok(_) => {}
+            Err(err) if err.kind() == ErrorKind::NotFound => {}
+            Err(err) if err.kind() == ErrorKind::DirectoryNotEmpty => {}
+            Err(err) => return Err(err.into()),
+        }
+        Ok(())
+    })();
+    let release_result = cleanup_reservation.release();
 
-    if output_artifact_has_inflight_claims(&sibling_package_config_path)? {
-        info!(
-            "Leaving sibling package artifact {} in place because a claim is still being published",
-            sibling_package_config_path.display()
-        );
-        return Ok(());
+    match (cleanup_result, release_result) {
+        (Ok(()), Ok(())) => Ok(()),
+        (Err(err), Ok(())) => Err(err),
+        (Ok(()), Err(release_err)) => Err(release_err),
+        (Err(err), Err(release_err)) => Err(err.context(format!(
+            "Failed to release output artifact cleanup reservation: {release_err}"
+        ))),
     }
-
-    if !read_output_artifact_claims(&sibling_package_config_path)?.is_empty() {
-        info!(
-            "Leaving sibling package artifact {} in place because it is still actively claimed",
-            sibling_package_config_path.display()
-        );
-        return Ok(());
-    }
-
-    info!(
-        "Removing stale package artifact {}...",
-        sibling_package_config_path.display()
-    );
-    fs::remove_file(sibling_package_config_path)?;
-    fs::remove_file(sibling_marker_path)?;
-    match fs::remove_dir(get_output_artifact_claim_directory(
-        args.get_output_sibling_package_config_path(),
-    )) {
-        Ok(_) => {}
-        Err(err) if err.kind() == ErrorKind::NotFound => {}
-        Err(err) if err.kind() == ErrorKind::DirectoryNotEmpty => {}
-        Err(err) => return Err(err.into()),
-    }
-    Ok(())
 }
 
 #[cfg(test)]
