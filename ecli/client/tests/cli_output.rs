@@ -60,6 +60,20 @@ fn legacy_positional_invocation_shows_public_migration_hint() {
 
 #[cfg(feature = "native")]
 #[test]
+fn plausible_run_like_names_still_show_public_migration_hint() {
+    for arg in ["rune", "runa", "raun", "r1un", "rnun", "nrun", "urun"] {
+        let output = run_cli(&[arg]);
+        assert!(!output.status.success());
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains("use `ecli run <program>` instead"));
+        assert!(stderr.contains("Usage: ecli [COMMAND]"));
+        assert!(!stderr.contains("ecli-rs"));
+    }
+}
+
+#[cfg(feature = "native")]
+#[test]
 fn subcommand_typos_keep_clap_unknown_subcommand_error() {
     for arg in [
         "pus", "pll", "runn", "ruun", "runx", "run-", "psuh", "psu", "plu", "pushhhh", "runnnn",

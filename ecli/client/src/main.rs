@@ -196,33 +196,22 @@ fn is_clear_run_command_typo(raw_args: &[OsString]) -> bool {
     }
 
     let first_arg = first_arg.to_ascii_lowercase();
-    let collapsed = collapse_adjacent_duplicate_chars(&first_arg);
     // Only suppress the migration hint for command-shaped tokens that are still
     // unmistakably derived from `run`, such as repeated-character variants,
     // those same repeated-character variants plus one trailing junk char,
-    // `nnrun`, or the harder two-swap permutations. General legacy
-    // program/image names like `bun`, `ru`, `ur`, `rnu`, `urn`, and `runner`
-    // should keep the migration guidance.
+    // `nnrun`, the known `runx`/`run-` suffix slips, or the harder two-swap
+    // permutations. General legacy program/image names like `bun`, `ru`, `ur`,
+    // `rnu`, `urn`, `runner`, `rune`, or `nrun` should keep the migration
+    // guidance.
     matches!(first_arg.as_str(), "nru" | "unr" | "nur")
-        || is_run_with_single_inserted_char(&first_arg)
-        || is_run_with_single_inserted_char(&collapsed)
+        || is_obvious_run_suffix_typo(&first_arg)
         || is_repeated_run_char_typo(&first_arg)
         || has_repeated_run_char_typo_with_trailing_junk(&first_arg)
 }
 
 #[cfg(feature = "native")]
-fn is_run_with_single_inserted_char(candidate: &str) -> bool {
-    if !candidate.starts_with('r') || candidate.chars().count() != 4 {
-        return false;
-    }
-
-    candidate.char_indices().any(|(idx, ch)| {
-        let next = idx + ch.len_utf8();
-        let mut without_char = String::with_capacity(candidate.len() - ch.len_utf8());
-        without_char.push_str(&candidate[..idx]);
-        without_char.push_str(&candidate[next..]);
-        without_char == "run"
-    })
+fn is_obvious_run_suffix_typo(candidate: &str) -> bool {
+    matches!(candidate, "runx" | "run-")
 }
 
 #[cfg(feature = "native")]
@@ -279,7 +268,7 @@ fn has_repeated_run_char_prefix(candidate: &str) -> bool {
     let Some(prefix) = candidate.strip_suffix("run") else {
         return false;
     };
-    if prefix.is_empty() {
+    if prefix.chars().count() < 2 {
         return false;
     }
 
@@ -507,6 +496,20 @@ mod tests {
 
             assert!(super::should_suggest_run_migration(&raw_args, &err));
             assert_eq!(super::has_suggested_subcommand(&err), clap_suggests_run);
+        }
+    }
+
+    #[cfg(feature = "native")]
+    #[test]
+    fn suggest_run_migration_for_plausible_run_like_program_names() {
+        for arg in ["rune", "runa", "raun", "r1un", "rnun", "nrun", "urun"] {
+            let raw_args = vec![OsString::from("ecli"), OsString::from(arg)];
+            let err = match CliArgs::try_parse_from(raw_args.clone()) {
+                Ok(_) => panic!("expected parse error"),
+                Err(err) => err,
+            };
+
+            assert!(super::should_suggest_run_migration(&raw_args, &err));
         }
     }
 
