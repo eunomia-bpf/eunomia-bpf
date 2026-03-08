@@ -29,7 +29,8 @@ use crate::tests::get_test_assets_dir;
 use super::{
     build_output_artifact_claim, claim_output_artifact, claim_requested_output_artifacts,
     ensure_output_artifact_can_be_written, get_output_artifact_claim_path, pack_object_in_config,
-    release_output_artifact_claim, set_output_artifact_marker_publish_barrier,
+    release_output_artifact_claim, set_output_artifact_claim_publish_barrier,
+    set_output_artifact_claim_release_failure, set_output_artifact_marker_publish_barrier,
     write_output_artifact_owner_marker,
 };
 
@@ -430,26 +431,117 @@ fn test_claim_requested_output_artifacts_rolls_back_earlier_claims_on_later_coll
         create_pack_test_args_from_source_path(&output_dir, &source_path_b, false);
     blocked_args.compile_opts.parameters.standalone = true;
 
-    claim_output_artifact(&owner_args, owner_args.get_standalone_executable_path()).unwrap();
+    let blocked_object_marker_path =
+        blocked_args.get_output_artifact_marker_path(blocked_args.get_output_object_path());
+    let blocked_config_marker_path =
+        blocked_args.get_output_artifact_marker_path(blocked_args.get_output_config_path());
+    let blocked_package_marker_path = blocked_args.get_output_package_marker_path();
+    let blocked_standalone_source_marker_path =
+        blocked_args.get_output_artifact_marker_path(blocked_args.get_standalone_source_file_path());
+    let blocked_standalone_source_claim_path =
+        get_output_artifact_claim_path(&blocked_args, blocked_args.get_standalone_source_file_path());
+    let publish_entered = Arc::new(Barrier::new(2));
+    let publish_release = Arc::new(Barrier::new(2));
 
-    let err = claim_requested_output_artifacts(&blocked_args)
-        .err()
-        .unwrap();
+    set_output_artifact_claim_publish_barrier(Some((
+        blocked_standalone_source_claim_path,
+        publish_entered.clone(),
+        publish_release.clone(),
+    )));
+
+    let blocked_handle = thread::spawn(move || claim_requested_output_artifacts(&blocked_args));
+
+    publish_entered.wait();
+    claim_output_artifact(&owner_args, owner_args.get_standalone_executable_path()).unwrap();
+    publish_release.wait();
+
+    let err = blocked_handle.join().unwrap().err().unwrap();
+    set_output_artifact_claim_publish_barrier(None);
 
     assert!(err.to_string().contains("belongs to a different source"));
-    assert!(!blocked_args
-        .get_output_artifact_marker_path(blocked_args.get_output_object_path())
-        .exists());
-    assert!(!blocked_args
-        .get_output_artifact_marker_path(blocked_args.get_output_config_path())
-        .exists());
-    assert!(!blocked_args.get_output_package_marker_path().exists());
-    assert!(!blocked_args
-        .get_output_artifact_marker_path(blocked_args.get_standalone_source_file_path())
-        .exists());
+    assert!(!blocked_object_marker_path.exists());
+    assert!(!blocked_config_marker_path.exists());
+    assert!(!blocked_package_marker_path.exists());
+    assert!(!blocked_standalone_source_marker_path.exists());
     assert!(owner_args
         .get_output_artifact_marker_path(owner_args.get_standalone_executable_path())
         .exists());
+}
+
+#[test]
+fn test_output_artifact_claims_guard_release_surfaces_cleanup_failures() {
+    let output_dir = TempDir::new().unwrap();
+    let args = create_pack_test_args(&output_dir, "client.bpf.c", false);
+    let claims = claim_requested_output_artifacts(&args).unwrap();
+
+    let injected_artifact_path = args.get_output_object_path();
+    let injected_claim_path = get_output_artifact_claim_path(&args, &injected_artifact_path);
+    set_output_artifact_claim_release_failure(Some((
+        injected_claim_path.clone(),
+        "injected release failure".to_string(),
+    )));
+
+    let err = claims.release().err().unwrap();
+    set_output_artifact_claim_release_failure(None);
+
+    assert!(err
+        .to_string()
+        .contains("Failed to release output artifact claims"));
+    assert!(err.to_string().contains("injected release failure"));
+    assert!(injected_claim_path.exists());
+    assert!(args
+        .get_output_artifact_marker_path(&injected_artifact_path)
+        .exists());
+    assert!(!args
+        .get_output_artifact_marker_path(args.get_output_config_path())
+        .exists());
+    assert!(!args.get_output_package_marker_path().exists());
+
+    release_output_artifact_claim(&build_output_artifact_claim(&args), &injected_artifact_path)
+        .unwrap();
+}
+
+#[test]
+fn test_claim_output_artifact_keeps_claim_directory_alive_during_concurrent_publish() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("shared.bpf.c");
+    fs::write(&source_path, "int x;").unwrap();
+
+    let active_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let publishing_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let publishing_claim = build_output_artifact_claim(&publishing_args);
+    let artifact_path = active_args.get_output_package_config_path();
+    let publishing_claim_path = get_output_artifact_claim_path(&publishing_args, &artifact_path);
+    let publish_entered = Arc::new(Barrier::new(2));
+    let publish_release = Arc::new(Barrier::new(2));
+
+    assert!(claim_output_artifact(&active_args, &artifact_path).unwrap());
+    set_output_artifact_claim_publish_barrier(Some((
+        publishing_claim_path.clone(),
+        publish_entered.clone(),
+        publish_release.clone(),
+    )));
+
+    let publishing_artifact_path = artifact_path.clone();
+    let publish_handle =
+        thread::spawn(move || claim_output_artifact(&publishing_args, &publishing_artifact_path));
+
+    publish_entered.wait();
+    release_output_artifact_claim(&build_output_artifact_claim(&active_args), &artifact_path)
+        .unwrap();
+    publish_release.wait();
+
+    let publish_result = publish_handle.join().unwrap();
+    set_output_artifact_claim_publish_barrier(None);
+
+    assert!(publish_result.unwrap());
+    assert!(publishing_claim_path.exists());
+    assert!(publishing_claim_path.parent().unwrap().exists());
+    assert!(active_args
+        .get_output_artifact_marker_path(&artifact_path)
+        .exists());
+
+    release_output_artifact_claim(&publishing_claim, &artifact_path).unwrap();
 }
 
 #[test]

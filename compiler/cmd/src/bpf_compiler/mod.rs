@@ -15,14 +15,14 @@ use crate::wasm::pack_object_in_wasm_header;
 use anyhow::{anyhow, bail, Context, Result};
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
-use log::{debug, info};
+use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::io::prelude::*;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::{fs, path::Path};
-use tempfile::NamedTempFile;
+use tempfile::{Builder, NamedTempFile};
 
 #[cfg(test)]
 use std::sync::{Arc, Barrier, Mutex, OnceLock};
@@ -41,6 +41,7 @@ struct OutputArtifactClaim {
     invocation_id: String,
 }
 
+#[must_use = "output artifact claims must be explicitly released to surface cleanup errors"]
 struct OutputArtifactClaimsGuard {
     artifact_paths: Vec<PathBuf>,
     claim: OutputArtifactClaim,
@@ -57,17 +58,40 @@ impl OutputArtifactClaimsGuard {
     fn track(&mut self, artifact_path: PathBuf) {
         self.artifact_paths.push(artifact_path);
     }
+
+    fn release(mut self) -> Result<()> {
+        self.release_tracked_claims()
+    }
+
+    fn release_tracked_claims(&mut self) -> Result<()> {
+        let mut release_errors = Vec::new();
+        while let Some(artifact_path) = self.artifact_paths.pop() {
+            if let Err(err) = release_output_artifact_claim(&self.claim, &artifact_path) {
+                release_errors.push(format!("{}: {err}", artifact_path.display()));
+            }
+        }
+
+        if release_errors.is_empty() {
+            return Ok(());
+        }
+
+        bail!(
+            "Failed to release output artifact claims: {}",
+            release_errors.join("; ")
+        );
+    }
 }
 
 impl Drop for OutputArtifactClaimsGuard {
     fn drop(&mut self) {
-        for artifact_path in self.artifact_paths.iter().rev() {
-            if let Err(err) = release_output_artifact_claim(&self.claim, artifact_path) {
-                debug!(
-                    "Failed to release output artifact claim {}: {err}",
-                    artifact_path.display()
-                );
-            }
+        if self.artifact_paths.is_empty() {
+            return;
+        }
+
+        if let Err(err) = self.release_tracked_claims() {
+            error!("Output artifact claims dropped without explicit release: {err}");
+        } else if !std::thread::panicking() {
+            error!("Output artifact claims dropped without explicit release");
         }
     }
 }
@@ -82,6 +106,31 @@ struct OutputArtifactMarkerPublishBarrier {
 #[cfg(test)]
 static OUTPUT_ARTIFACT_MARKER_PUBLISH_BARRIER: OnceLock<
     Mutex<Option<OutputArtifactMarkerPublishBarrier>>,
+> = OnceLock::new();
+
+#[cfg(test)]
+#[derive(Clone)]
+struct OutputArtifactClaimPublishBarrier {
+    claim_path: PathBuf,
+    entered: Arc<Barrier>,
+    release: Arc<Barrier>,
+}
+
+#[cfg(test)]
+static OUTPUT_ARTIFACT_CLAIM_PUBLISH_BARRIER: OnceLock<
+    Mutex<Option<OutputArtifactClaimPublishBarrier>>,
+> = OnceLock::new();
+
+#[cfg(test)]
+#[derive(Clone)]
+struct OutputArtifactClaimReleaseFailure {
+    claim_path: PathBuf,
+    message: String,
+}
+
+#[cfg(test)]
+static OUTPUT_ARTIFACT_CLAIM_RELEASE_FAILURE: OnceLock<
+    Mutex<Option<OutputArtifactClaimReleaseFailure>>,
 > = OnceLock::new();
 
 /// compile bpf object
@@ -211,43 +260,55 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
     let source_file_content = fs::read_to_string(&args.compile_opts.source_path)?;
     let mut temp_source_file = PathBuf::from(&args.compile_opts.source_path);
 
-    let _claimed_output_artifacts = claim_requested_output_artifacts(args)?;
+    let claimed_output_artifacts = claim_requested_output_artifacts(args)?;
+    let compile_result = (|| -> Result<()> {
+        if !args.compile_opts.export_event_header.is_empty() {
+            temp_source_file = args.get_source_file_temp_path();
+            // create temp source file
+            fs::write(&temp_source_file, source_file_content)?;
+            add_unused_ptr_for_structs(&args.compile_opts, &temp_source_file)?;
+        }
+        do_compile(args, &temp_source_file).with_context(|| anyhow!("Failed to compile"))?;
+        if !args.compile_opts.export_event_header.is_empty() {
+            fs::remove_file(temp_source_file)?;
+        }
+        if !args.compile_opts.parameters.no_generate_package_json {
+            pack_object_in_config(args)
+                .with_context(|| anyhow!("Failed to generate package artifact"))?;
+        }
+        // If we want a standalone executable..?
+        if args.compile_opts.parameters.standalone {
+            claim_output_artifact(args, args.get_standalone_source_file_path())?;
+            claim_output_artifact(args, args.get_standalone_executable_path())?;
+            build_standalone_executable(args)
+                .with_context(|| anyhow!("Failed to build standalone executable"))?;
+        }
+        if args.compile_opts.wasm_header {
+            claim_output_artifact(args, args.get_wasm_header_path())?;
+            pack_object_in_wasm_header(args)
+                .with_context(|| anyhow!("Failed to generate wasm header"))?;
+        }
+        if args.compile_opts.btfgen {
+            claim_output_artifact(args, args.get_output_btf_archive_directory())?;
+            claim_output_artifact(args, args.get_output_tar_path())?;
+            fetch_btfhub_repo(&args.compile_opts)
+                .with_context(|| anyhow!("Failed to fetch btfhub repo"))?;
+            generate_tailored_btf(args)
+                .with_context(|| anyhow!("Failed to generate tailored btf"))?;
+            package_btfhub_tar(args).with_context(|| anyhow!("Failed to package btfhub tar"))?;
+        }
+        Ok(())
+    })();
+    let release_result = claimed_output_artifacts.release();
 
-    if !args.compile_opts.export_event_header.is_empty() {
-        temp_source_file = args.get_source_file_temp_path();
-        // create temp source file
-        fs::write(&temp_source_file, source_file_content)?;
-        add_unused_ptr_for_structs(&args.compile_opts, &temp_source_file)?;
+    match (compile_result, release_result) {
+        (Ok(()), Ok(())) => Ok(()),
+        (Err(err), Ok(())) => Err(err),
+        (Ok(()), Err(release_err)) => Err(release_err),
+        (Err(err), Err(release_err)) => Err(anyhow!(
+            "{err}. Failed to release output artifact claims: {release_err}"
+        )),
     }
-    do_compile(args, &temp_source_file).with_context(|| anyhow!("Failed to compile"))?;
-    if !args.compile_opts.export_event_header.is_empty() {
-        fs::remove_file(temp_source_file)?;
-    }
-    if !args.compile_opts.parameters.no_generate_package_json {
-        pack_object_in_config(args)
-            .with_context(|| anyhow!("Failed to generate package artifact"))?;
-    }
-    // If we want a standalone executable..?
-    if args.compile_opts.parameters.standalone {
-        claim_output_artifact(args, args.get_standalone_source_file_path())?;
-        claim_output_artifact(args, args.get_standalone_executable_path())?;
-        build_standalone_executable(args)
-            .with_context(|| anyhow!("Failed to build standalone executable"))?;
-    }
-    if args.compile_opts.wasm_header {
-        claim_output_artifact(args, args.get_wasm_header_path())?;
-        pack_object_in_wasm_header(args)
-            .with_context(|| anyhow!("Failed to generate wasm header"))?;
-    }
-    if args.compile_opts.btfgen {
-        claim_output_artifact(args, args.get_output_btf_archive_directory())?;
-        claim_output_artifact(args, args.get_output_tar_path())?;
-        fetch_btfhub_repo(&args.compile_opts)
-            .with_context(|| anyhow!("Failed to fetch btfhub repo"))?;
-        generate_tailored_btf(args).with_context(|| anyhow!("Failed to generate tailored btf"))?;
-        package_btfhub_tar(args).with_context(|| anyhow!("Failed to package btfhub tar"))?;
-    }
-    Ok(())
 }
 
 /// Pack the object file into a generated package artifact.
@@ -399,6 +460,13 @@ fn read_output_artifact_claims(
             continue;
         }
         let claim_path = entry.path();
+        if claim_path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            != Some("json")
+        {
+            continue;
+        }
         let claim = serde_json::from_str(&fs::read_to_string(&claim_path)?).with_context(|| {
             anyhow!(
                 "Failed to parse output artifact claim marker {}",
@@ -419,10 +487,10 @@ fn create_output_artifact_claim_marker_tempfile(
         .parent()
         .expect("Output artifact claim markers are expected to have a parent directory");
     fs::create_dir_all(claim_dir)?;
-    let temp_dir = claim_dir
-        .parent()
-        .expect("Output artifact claim directories are expected to have a parent directory");
-    let mut claim_file = NamedTempFile::new_in(temp_dir)?;
+    let mut claim_file = Builder::new()
+        .prefix(".tmp-output-artifact-claim-")
+        .suffix(".tmp")
+        .tempfile_in(claim_dir)?;
     serde_json::to_writer(claim_file.as_file_mut(), claim)?;
     claim_file.as_file_mut().sync_all()?;
     Ok(claim_file)
@@ -508,6 +576,8 @@ fn release_output_artifact_claim(
     let artifact_path = artifact_path.as_ref();
     let claim_path =
         get_output_artifact_claim_path_for_invocation(&claim.invocation_id, artifact_path);
+    #[cfg(test)]
+    fail_output_artifact_claim_release_if_configured(&claim_path)?;
     match fs::remove_file(&claim_path) {
         Ok(_) => {}
         Err(err) if err.kind() == ErrorKind::NotFound => {}
@@ -554,6 +624,60 @@ pub(crate) fn set_output_artifact_marker_publish_barrier(
             barrier,
         },
     );
+}
+
+#[cfg(test)]
+fn wait_for_output_artifact_claim_publish(claim_path: &Path) {
+    let barrier = OUTPUT_ARTIFACT_CLAIM_PUBLISH_BARRIER
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap()
+        .clone();
+    if let Some(barrier) = barrier.filter(|barrier| barrier.claim_path == claim_path) {
+        barrier.entered.wait();
+        barrier.release.wait();
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn set_output_artifact_claim_publish_barrier(
+    claim_path: Option<(PathBuf, Arc<Barrier>, Arc<Barrier>)>,
+) {
+    *OUTPUT_ARTIFACT_CLAIM_PUBLISH_BARRIER
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap() =
+        claim_path.map(
+            |(claim_path, entered, release)| OutputArtifactClaimPublishBarrier {
+                claim_path,
+                entered,
+                release,
+            },
+        );
+}
+
+#[cfg(test)]
+fn fail_output_artifact_claim_release_if_configured(claim_path: &Path) -> Result<()> {
+    let failure = OUTPUT_ARTIFACT_CLAIM_RELEASE_FAILURE
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap()
+        .clone();
+    if let Some(failure) = failure.filter(|failure| failure.claim_path == claim_path) {
+        bail!("{}", failure.message);
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+pub(crate) fn set_output_artifact_claim_release_failure(failure: Option<(PathBuf, String)>) {
+    *OUTPUT_ARTIFACT_CLAIM_RELEASE_FAILURE
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap() = failure.map(|(claim_path, message)| OutputArtifactClaimReleaseFailure {
+        claim_path,
+        message,
+    });
 }
 
 pub(crate) fn ensure_output_artifact_can_be_written(
@@ -622,6 +746,8 @@ fn claim_output_artifact(args: &Options, artifact_path: impl AsRef<Path>) -> Res
     }
 
     let claim_file = create_output_artifact_claim_marker_tempfile(&claim_path, &claim)?;
+    #[cfg(test)]
+    wait_for_output_artifact_claim_publish(&claim_path);
     match claim_file.persist_noclobber(&claim_path) {
         Ok(_) => {}
         Err(err) if err.error.kind() == ErrorKind::AlreadyExists => {
@@ -672,7 +798,15 @@ fn claim_requested_output_artifacts(args: &Options) -> Result<OutputArtifactClai
 
     let mut claims = OutputArtifactClaimsGuard::new(args);
     for artifact_path in artifact_paths {
-        claim_output_artifact(args, &artifact_path)?;
+        if let Err(err) = claim_output_artifact(args, &artifact_path) {
+            let rollback_err = claims.release_tracked_claims();
+            return match rollback_err {
+                Ok(()) => Err(err),
+                Err(rollback_err) => Err(anyhow!(
+                    "{err}. Failed to rollback output artifact claims: {rollback_err}"
+                )),
+            };
+        }
         claims.track(artifact_path);
     }
 
