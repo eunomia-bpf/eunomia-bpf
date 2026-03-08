@@ -3,7 +3,7 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use crate::bpf_compiler::standalone::build_standalone_executable;
+use crate::bpf_compiler::standalone::{build_standalone_executable, render_standalone_source};
 use crate::config::{
     fetch_btfhub_repo, generate_tailored_btf, get_bpf_compile_args, get_bpftool_path,
     options::current_unix_time_nanos, package_btfhub_tar, Options,
@@ -11,7 +11,7 @@ use crate::config::{
 use crate::document_parser::parse_source_documents;
 use crate::export_types::{add_unused_ptr_for_structs, find_all_export_structs};
 use crate::handle_std_command_with_log;
-use crate::wasm::pack_object_in_wasm_header;
+use crate::wasm::render_wasm_header;
 use anyhow::{anyhow, bail, Context, Result};
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
@@ -81,7 +81,7 @@ impl OutputArtifactOwner {
 
 impl OutputArtifactSourceSnapshot {
     fn matches(&self, other: &Self) -> bool {
-        self.digest.is_empty() || other.digest.is_empty() || self.digest == other.digest
+        self.digest == other.digest
     }
 }
 
@@ -408,6 +408,71 @@ fn publish_output_file_artifact(
     )
 }
 
+fn publish_standalone_artifacts_for_invocation<F>(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+    standalone_source: String,
+    build_executable: F,
+) -> Result<()>
+where
+    F: FnOnce(&Path, &Path) -> Result<()>,
+{
+    let source_path = args.get_standalone_source_file_path();
+    let executable_path = args.get_standalone_executable_path();
+    let mut source_file = create_output_artifact_tempfile(&source_path)?;
+    source_file
+        .as_file_mut()
+        .write_all(standalone_source.as_bytes())?;
+    source_file.as_file_mut().sync_all()?;
+
+    let mut executable_file = create_output_artifact_tempfile(&executable_path)?;
+    build_executable(source_file.path(), executable_file.path())?;
+    executable_file.as_file_mut().sync_all()?;
+
+    publish_output_file_artifact_for_invocation(invocation, args, source_file, &source_path)?;
+    publish_output_file_artifact_for_invocation(
+        invocation,
+        args,
+        executable_file,
+        &executable_path,
+    )?;
+    Ok(())
+}
+
+fn build_standalone_artifacts_for_invocation(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+) -> Result<()> {
+    let standalone_source = render_standalone_source(args)?;
+    publish_standalone_artifacts_for_invocation(
+        invocation,
+        args,
+        standalone_source,
+        |source_path, executable_path| {
+            build_standalone_executable(args, source_path, executable_path)
+        },
+    )
+}
+
+fn publish_wasm_header_artifact_for_invocation(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+) -> Result<()> {
+    let output_wasm_header_path = args.get_wasm_header_path();
+    let mut output_wasm_header_file = create_output_artifact_tempfile(&output_wasm_header_path)?;
+    output_wasm_header_file
+        .as_file_mut()
+        .write_all(render_wasm_header(args)?.as_bytes())?;
+    output_wasm_header_file.as_file_mut().sync_all()?;
+    publish_output_file_artifact_for_invocation(
+        invocation,
+        args,
+        output_wasm_header_file,
+        &output_wasm_header_path,
+    )?;
+    Ok(())
+}
+
 fn publish_output_directory_artifact_for_invocation(
     invocation: &OutputArtifactInvocation,
     args: &Options,
@@ -617,22 +682,11 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
         }
         // If we want a standalone executable..?
         if args.compile_opts.parameters.standalone {
-            claim_output_artifact_for_invocation(
-                &invocation,
-                args,
-                args.get_standalone_source_file_path(),
-            )?;
-            claim_output_artifact_for_invocation(
-                &invocation,
-                args,
-                args.get_standalone_executable_path(),
-            )?;
-            build_standalone_executable(args)
+            build_standalone_artifacts_for_invocation(&invocation, args)
                 .with_context(|| anyhow!("Failed to build standalone executable"))?;
         }
         if args.compile_opts.wasm_header {
-            claim_output_artifact_for_invocation(&invocation, args, args.get_wasm_header_path())?;
-            pack_object_in_wasm_header(args)
+            publish_wasm_header_artifact_for_invocation(&invocation, args)
                 .with_context(|| anyhow!("Failed to generate wasm header"))?;
         }
         if args.compile_opts.btfgen {
