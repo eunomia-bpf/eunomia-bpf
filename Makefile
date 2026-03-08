@@ -60,13 +60,29 @@ release:
 	staging_root="$$(mktemp -d)"; \
 	release_root="$$(mktemp -d ./.eunomia.release.XXXXXX)"; \
 	previous_root=""; \
-	trap 'status=$$?; if [ $$status -ne 0 ] && [ -n "$$previous_root" ]; then rm -rf eunomia; mv "$$previous_root" eunomia; fi; rm -rf "$$staging_root" "$$release_root"; exit $$status' EXIT; \
+	release_live=0; \
+	cleanup() { \
+		status=$$?; \
+		set +e; \
+		if [ $$status -ne 0 ] && [ "$$release_live" -eq 0 ] && [ -n "$$previous_root" ] && [ -e "$$previous_root" ]; then \
+			rm -rf eunomia; \
+			mv "$$previous_root" eunomia; \
+			previous_root=""; \
+		fi; \
+		rm -rf "$$staging_root" "$$release_root"; \
+		if [ $$status -ne 0 ] && [ "$$release_live" -eq 1 ] && [ -n "$$previous_root" ] && [ -e "$$previous_root" ]; then \
+			printf '%s\n' "release installed, but backup cleanup failed; inspect $$previous_root" >&2; \
+		fi; \
+		exit $$status; \
+	}; \
+	trap cleanup EXIT; \
 	stage_home="$$staging_root/eunomia"; \
 	$(MAKE) -C ecli install EUNOMIA_HOME="$$stage_home"; \
 	$(MAKE) -C compiler install EUNOMIA_HOME="$$stage_home"; \
 	cp -R "$$stage_home" "$$release_root/eunomia"; \
 	tar -czvf "$$release_root/eunomia.tar.gz" -C "$$release_root" eunomia; \
 	mv "$$release_root/eunomia.tar.gz" eunomia.tar.gz; \
-	if [ -e eunomia ]; then previous_root="$$release_root/eunomia.previous"; mv eunomia "$$previous_root"; fi; \
+	if [ -e eunomia ]; then previous_root="$$(mktemp -d ./.eunomia.previous.XXXXXX)"; rmdir "$$previous_root"; mv eunomia "$$previous_root"; fi; \
 	mv "$$release_root/eunomia" eunomia; \
+	release_live=1; \
 	if [ -n "$$previous_root" ]; then rm -rf "$$previous_root"; previous_root=""; fi
