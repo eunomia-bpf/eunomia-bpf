@@ -99,11 +99,14 @@ docker's configuration (~/.docker/config.json) and use them to login into the re
 If unable to read, will login to the registry anonymously";
 
 #[cfg(feature = "native")]
+const CLI_ABOUT: &str = "ecli subcommands, including run, push, pull";
+#[cfg(not(feature = "native"))]
+const CLI_ABOUT: &str = "ecli subcommands, including push, pull";
+#[cfg(feature = "native")]
 const MISSING_SUBCOMMAND_MESSAGE: &str = "Use a subcommand such as `run`, `push`, or `pull`";
 #[cfg(not(feature = "native"))]
 const MISSING_SUBCOMMAND_MESSAGE: &str = "Use a subcommand such as `push` or `pull`";
 
-/// ecli subcommands, including run, push, pull.
 #[derive(Subcommand)]
 pub enum Action {
     /// run ebpf program
@@ -151,6 +154,7 @@ pub enum Action {
 }
 
 #[derive(Parser)]
+#[command(about = CLI_ABOUT)]
 struct CliArgs {
     #[command(subcommand)]
     action: Option<Action>,
@@ -227,7 +231,7 @@ async fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use clap::Parser;
+    use clap::{CommandFactory, Parser};
     #[cfg(feature = "native")]
     use ecli_lib::config::ProgramType;
 
@@ -238,6 +242,24 @@ mod tests {
     #[test]
     fn reject_legacy_top_level_run_shim() {
         assert!(CliArgs::try_parse_from(["ecli", "./prog.json"]).is_err());
+    }
+
+    #[cfg(feature = "native")]
+    #[test]
+    fn top_level_help_mentions_run_when_native_enabled() {
+        let help = CliArgs::command().render_help().to_string();
+
+        assert!(help.contains("ecli subcommands, including run, push, pull"));
+        assert!(help.contains("\n  run "));
+    }
+
+    #[cfg(not(feature = "native"))]
+    #[test]
+    fn top_level_help_omits_run_when_native_disabled() {
+        let help = CliArgs::command().render_help().to_string();
+
+        assert!(help.contains("ecli subcommands, including push, pull"));
+        assert!(!help.contains("\n  run "));
     }
 
     #[cfg(feature = "native")]
