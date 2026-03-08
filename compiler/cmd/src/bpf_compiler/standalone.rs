@@ -25,9 +25,9 @@ pub(crate) fn build_standalone_executable(opts: &Options) -> Result<()> {
     if !libeunomia_path.exists() {
         bail!("`{:?}` does not exist, fetch one from https://github.com/eunomia-bpf/eunomia-bpf/actions",libeunomia_path);
     }
-    let package_json_content = std::fs::read_to_string(opts.get_output_package_config_path())
-        .with_context(|| anyhow!("Failed to read package json"))?;
-    let bytes_str = package_json_content
+    let package_content = std::fs::read_to_string(opts.get_output_package_config_path())
+        .with_context(|| anyhow!("Failed to read generated package artifact"))?;
+    let bytes_str = package_content
         .as_bytes()
         .iter()
         .map(|x| {

@@ -159,7 +159,8 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
         fs::remove_file(temp_source_file)?;
     }
     if !args.compile_opts.parameters.no_generate_package_json {
-        pack_object_in_config(args).with_context(|| anyhow!("Failed to generate package json"))?;
+        pack_object_in_config(args)
+            .with_context(|| anyhow!("Failed to generate package artifact"))?;
     }
     // If we want a standalone executable..?
     if args.compile_opts.parameters.standalone {
@@ -179,9 +180,9 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
     Ok(())
 }
 
-/// pack the object file into a package.json
+/// Pack the object file into a generated package artifact.
 fn pack_object_in_config(args: &Options) -> Result<()> {
-    info!("Generating package json..");
+    info!("Generating package artifact..");
     let output_bpf_object_path = args.get_output_object_path();
     let bpf_object = fs::read(output_bpf_object_path)?;
 
@@ -201,29 +202,17 @@ fn pack_object_in_config(args: &Options) -> Result<()> {
         "bpf_object_size": bpf_object.len(),
         "meta": meta_json,
     });
-    if args.compile_opts.yaml {
-        let output_package_config_path = Path::new(&output_json_path)
-            .parent()
-            .unwrap()
-            .join("package.yaml");
-        info!(
-            "Packing ebpf object and config into {}...",
-            output_package_config_path.display()
-        );
-        let package_config_str = serde_yaml::to_string(&package_config).unwrap();
-        fs::write(output_package_config_path, package_config_str)?;
+    let output_package_config_path = args.get_output_package_config_path();
+    info!(
+        "Packing ebpf object and config into {}...",
+        output_package_config_path.display()
+    );
+    let package_config_str = if args.compile_opts.yaml {
+        serde_yaml::to_string(&package_config).unwrap()
     } else {
-        let output_package_config_path = Path::new(&output_json_path)
-            .parent()
-            .unwrap()
-            .join("package.json");
-        info!(
-            "Packing ebpf object and config into {}...",
-            output_package_config_path.display()
-        );
-        let package_config_str = serde_json::to_string(&package_config).unwrap();
-        fs::write(output_package_config_path, package_config_str)?;
+        serde_json::to_string(&package_config).unwrap()
     };
+    fs::write(output_package_config_path, package_config_str)?;
     Ok(())
 }
 

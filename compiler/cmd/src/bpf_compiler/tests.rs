@@ -168,3 +168,33 @@ fn test_compress_and_pack() {
     let compressed_bytes = e.finish().unwrap();
     let _ = base64::encode(&compressed_bytes);
 }
+
+#[test]
+fn test_pack_object_in_config_uses_yaml_package_path() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("client.bpf.c");
+    fs::write(&source_path, "int x;").unwrap();
+
+    let mut compile_opts = CompileArgs::try_parse_from([
+        "ecc",
+        source_path.to_str().unwrap(),
+        "--output-path",
+        output_dir.path().to_str().unwrap(),
+    ])
+    .unwrap();
+    compile_opts.yaml = true;
+
+    let args = Options {
+        tmpdir: TempDir::new().unwrap(),
+        compile_opts,
+        object_name: "client".to_string(),
+    };
+
+    fs::write(args.get_output_object_path(), b"hello world").unwrap();
+    fs::write(args.get_output_config_path(), "meta:\n  ok: true\n").unwrap();
+
+    pack_object_in_config(&args).unwrap();
+
+    assert!(args.get_output_package_config_path().exists());
+    assert!(!output_dir.path().join("package.json").exists());
+}
