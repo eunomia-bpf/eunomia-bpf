@@ -9,11 +9,11 @@ use std::result::Result::Ok;
 
 use crate::config::get_bpf_compile_args;
 use crate::config::Options;
+use crate::libclang::with_clang;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use clang::documentation::CommentChild;
-use clang::Clang;
 use clang::Entity;
 use clang::EntityKind;
 use clang::Index;
@@ -228,40 +228,39 @@ pub fn parse_source_documents(
     source_path: &str,
     bpf_skel_json: Value,
 ) -> Result<Value> {
-    // Acquire an instance of `Clang`
-    let clang = match Clang::new() {
-        Ok(clang) => clang,
-        Err(e) => {
-            return Err(anyhow!("Failed to create Clang instance: {}", e));
-        }
-    };
-    // Create a new `Index`
-    let index = Index::new(&clang, false, true);
-    let _source_path = Path::new(source_path);
-    let canonic_source_path = _source_path.canonicalize().unwrap();
-    let tu = parse_source_files(&index, args, &canonic_source_path)?;
+    let source_path = Path::new(source_path);
+    let canonic_source_path = source_path.canonicalize().with_context(|| {
+        anyhow!(
+            "Failed to canonicalize source path: {}",
+            source_path.display()
+        )
+    })?;
 
-    // Get the entities in this translation unit
-    let entities = tu
-        .get_entity()
-        .get_children()
-        .into_iter()
-        .filter(|e| {
-            if let Some(location) = e.get_location() {
-                if let Some(file) = location.get_file_location().file {
-                    if file.get_path() == canonic_source_path {
-                        return true;
+    with_clang(|clang| {
+        let index = Index::new(clang, false, true);
+        let tu = parse_source_files(&index, args, &canonic_source_path)?;
+
+        // Get the entities in this translation unit
+        let entities = tu
+            .get_entity()
+            .get_children()
+            .into_iter()
+            .filter(|e| {
+                if let Some(location) = e.get_location() {
+                    if let Some(file) = location.get_file_location().file {
+                        if file.get_path() == canonic_source_path {
+                            return true;
+                        }
                     }
                 }
-            }
-            false
-        })
-        .collect::<Vec<_>>();
+                false
+            })
+            .collect::<Vec<_>>();
 
-    // resolve comments for section data and functions, maps
-    // find the entity with the same name as the names in the json skeleton
-    let new_skel_json = resolve_bpf_skel_entities(&entities, bpf_skel_json)?;
-    Ok(new_skel_json)
+        // resolve comments for section data and functions, maps
+        // find the entity with the same name as the names in the json skeleton
+        resolve_bpf_skel_entities(&entities, bpf_skel_json)
+    })
 }
 
 #[cfg(test)]
@@ -353,18 +352,8 @@ mod test {
                 }
             ],
             "maps":[], "progs":[]}),
-        );
-        let skel = match skel {
-            Ok(skel) => skel,
-            Err(e) => {
-                if e.to_string()
-                    != "Failed to create Clang instance: an instance of `Clang` already exists"
-                {
-                    panic!("failed to parse source documents: {}", e);
-                }
-                return;
-            }
-        };
+        )
+        .unwrap();
         let rodata = &skel["data_sections"][0];
         assert_eq!(rodata, &test_case_res);
     }
@@ -399,18 +388,8 @@ mod test {
                     "name": "handle_exit"
                 }
             ],"maps":[], "data_sections":[]}),
-        );
-        let skel = match skel {
-            Ok(skel) => skel,
-            Err(e) => {
-                if e.to_string()
-                    != "Failed to create Clang instance: an instance of `Clang` already exists"
-                {
-                    panic!("failed to parse source documents: {}", e);
-                }
-                return;
-            }
-        };
+        )
+        .unwrap();
         let handle_exec = &skel["progs"];
         assert_eq!(handle_exec, &test_case_res);
     }
@@ -432,18 +411,8 @@ mod test {
                     "name": "exec_start",
                 }
             ], "progs":[], "data_sections":[]}),
-        );
-        let skel = match skel {
-            Ok(skel) => skel,
-            Err(e) => {
-                if e.to_string()
-                    != "Failed to create Clang instance: an instance of `Clang` already exists"
-                {
-                    panic!("failed to parse source documents: {}", e);
-                }
-                return;
-            }
-        };
+        )
+        .unwrap();
         let exec_start = &skel["maps"][0];
         assert_eq!(exec_start, &test_case_res);
     }
