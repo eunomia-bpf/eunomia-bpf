@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Context};
 use clap::{error::ErrorKind, Args, CommandFactory, Parser, Subcommand};
+use std::ffi::OsString;
 
 use bpf_oci::{
     auth::RegistryAuthExt,
@@ -106,6 +107,9 @@ const CLI_ABOUT: &str = "ecli subcommands, including push, pull";
 const MISSING_SUBCOMMAND_MESSAGE: &str = "Use a subcommand such as `run`, `push`, or `pull`";
 #[cfg(not(feature = "native"))]
 const MISSING_SUBCOMMAND_MESSAGE: &str = "Use a subcommand such as `push` or `pull`";
+#[cfg(feature = "native")]
+const LEGACY_RUN_MIGRATION_MESSAGE: &str =
+    "The top-level positional run mode has been removed. Use `ecli run <program>` instead, for example `ecli run ./prog.json`.";
 
 #[derive(Subcommand)]
 pub enum Action {
@@ -160,6 +164,25 @@ struct CliArgs {
     action: Option<Action>,
 }
 
+#[cfg(feature = "native")]
+fn should_suggest_run_migration(raw_args: &[OsString]) -> bool {
+    let Some(first_arg) = raw_args.get(1).and_then(|arg| arg.to_str()) else {
+        return false;
+    };
+    if first_arg.starts_with('-') && first_arg != "-" {
+        return false;
+    }
+    if matches!(first_arg, "run" | "push" | "pull" | "help") {
+        return false;
+    }
+    first_arg == "-" || first_arg.contains(['.', '/', ':'])
+}
+
+#[cfg(not(feature = "native"))]
+fn should_suggest_run_migration(_raw_args: &[OsString]) -> bool {
+    false
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     flexi_logger::Logger::try_with_env_or_str("info")
@@ -175,7 +198,14 @@ async fn main() -> anyhow::Result<()> {
         })
         .ok();
     }
-    let args = CliArgs::parse();
+    let raw_args = std::env::args_os().collect::<Vec<_>>();
+    if should_suggest_run_migration(&raw_args) {
+        #[cfg(feature = "native")]
+        CliArgs::command()
+            .error(ErrorKind::InvalidSubcommand, LEGACY_RUN_MIGRATION_MESSAGE)
+            .exit();
+    }
+    let args = CliArgs::parse_from(raw_args);
 
     match args.action {
         #[cfg(feature = "native")]
@@ -278,6 +308,44 @@ mod tests {
             super::MISSING_SUBCOMMAND_MESSAGE,
             "Use a subcommand such as `push` or `pull`"
         );
+    }
+
+    #[cfg(feature = "native")]
+    #[test]
+    fn suggest_run_migration_for_legacy_program_argument() {
+        assert!(super::should_suggest_run_migration(&[
+            "ecli".into(),
+            "./prog.json".into(),
+        ]));
+        assert!(super::should_suggest_run_migration(&[
+            "ecli".into(),
+            "ghcr.io/eunomia-bpf/execve:latest".into(),
+        ]));
+    }
+
+    #[test]
+    fn do_not_suggest_run_migration_for_real_subcommands_or_flags() {
+        assert!(!super::should_suggest_run_migration(&[
+            "ecli".into(),
+            "push".into()
+        ]));
+        assert!(!super::should_suggest_run_migration(&[
+            "ecli".into(),
+            "--help".into()
+        ]));
+        assert!(!super::should_suggest_run_migration(&[
+            "ecli".into(),
+            "rn".into()
+        ]));
+    }
+
+    #[cfg(not(feature = "native"))]
+    #[test]
+    fn no_native_build_does_not_offer_run_migration() {
+        assert!(!super::should_suggest_run_migration(&[
+            "ecli".into(),
+            "./prog.json".into(),
+        ]));
     }
 
     #[cfg(feature = "native")]

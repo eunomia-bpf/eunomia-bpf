@@ -128,10 +128,12 @@ jobs:
     
     - name: test ecli
       run: |
-        cd ecli/ecli-lib
+        cd ecli
         # Install rustup manually using user root
         curl https://sh.rustup.rs -o rustup.sh
-        sudo bash -c "cat rustup.sh | sh -s -- -y ; /root/.cargo/bin/cargo test -- --skip test_pause_and_resume"
+        sudo bash -c "cat rustup.sh | sh -s -- -y ; cd $PWD && /root/.cargo/bin/cargo test -p ecli-lib -- --skip test_pause_and_resume"
+        cargo test -p ecli-rs --bin ecli-rs
+        cargo test -p ecli-rs --bin ecli-rs --no-default-features
     - name: Package ecli
       run: |
         mkdir -p release

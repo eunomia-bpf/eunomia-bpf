@@ -25,7 +25,7 @@ This example include a eBPF program and a WASM module in user space.
     ```console
     $ wget https://aka.pw/bpf-ecli -O ecli && chmod +x ./ecli
     $ ./ecli -h
-    Usage: ecli [--help] [--version] [--json] [--no-cache] url-and-args
+    Usage: ecli [COMMAND]
     ....
     ```
 
