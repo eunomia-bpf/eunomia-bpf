@@ -35,7 +35,7 @@ fn help_output_uses_public_binary_name_without_run() {
 #[cfg(feature = "native")]
 #[test]
 fn legacy_positional_invocation_shows_public_migration_hint() {
-    for arg in ["./prog.json", "prog", "alpine"] {
+    for arg in ["./prog.json", "prog", "alpine", "rn", "un", "rnu", "urn"] {
         let output = run_cli(&[arg]);
         assert!(!output.status.success());
 
@@ -50,7 +50,8 @@ fn legacy_positional_invocation_shows_public_migration_hint() {
 #[test]
 fn subcommand_typos_keep_clap_unknown_subcommand_error() {
     for arg in [
-        "pus", "pll", "runn", "psuh", "psu", "plu", "pushhhh", "runnnn", "rn", "un", "rnu", "urn",
+        "pus", "pll", "runn", "psuh", "psu", "plu", "pushhhh", "runnnn", "ur", "nru", "rn-",
+        "nnrun",
     ] {
         let output = run_cli(&[arg]);
         assert!(!output.status.success());
@@ -65,8 +66,8 @@ fn subcommand_typos_keep_clap_unknown_subcommand_error() {
 
 #[cfg(feature = "native")]
 #[test]
-fn short_run_typos_without_clap_tips_still_keep_unknown_subcommand_error() {
-    for arg in ["rn", "un", "rnu", "urn"] {
+fn unsuggested_run_typos_without_clap_tips_still_keep_unknown_subcommand_error() {
+    for arg in ["ur", "nru", "rn-", "nnrun"] {
         let output = run_cli(&[arg]);
         assert!(!output.status.success());
 
