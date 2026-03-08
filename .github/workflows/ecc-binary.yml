@@ -109,25 +109,18 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: 'recursive'
-      - name: Prepare bpftool and vmlinux repo for building workspace
+      - name: Prepare vendored bpftool and vmlinux inputs
         run: |
-          mkdir workspace
-          mkdir assets
-          cd assets
-          git clone --recursive https://github.com/eunomia-bpf/vmlinux
-          cd vmlinux
-          git checkout 933f83b
-          # Avoid symlink issues
-          rm vmlinux.h
-          cd ..
-          git clone --recursive https://github.com/eunomia-bpf/bpftool
-          cd bpftool
+          test -f third_party/bpftool/src/Makefile
+          test -f third_party/bpftool/libbpf/src/Makefile
+          test -f third_party/vmlinux/x86/vmlinux.h
+          test -f third_party/vmlinux/arm64/vmlinux.h
+          mkdir -p workspace/bin
       - name: Build workspace
         run: |
           apt-get update
           apt-get install -y zlib1g-dev libelf-dev gcc make
-          mkdir -p workspace/bin
-          cd assets/bpftool/src
+          cd third_party/bpftool/src
           CFLAGS="-static" make
           cp bpftool ../../../workspace/bin/
           ls -lah ../../../workspace/bin/
@@ -135,8 +128,9 @@ jobs:
         run: |
           cd workspace
           mkdir -p include
-          cp -r ../assets/bpftool/src/libbpf/include/bpf include/
-          cp -r ../assets/vmlinux/ include/
+          cp -r ../third_party/bpftool/src/.output/libbpf/include/bpf include/
+          cp -r ../third_party/vmlinux/ include/
+          rm -f ./include/vmlinux/vmlinux.h
           cp ./include/vmlinux/x86/vmlinux.h ./include/vmlinux
           ls -lah .
           ls -lah bin/
@@ -249,18 +243,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu file
           aarch64-linux-gnu-gcc --version
-      - name: Prepare bpftool and vmlinux repo for building workspace
+      - name: Prepare vendored bpftool and vmlinux inputs
         run: |
-          mkdir workspace
-          mkdir assets
-          cd assets
-          git clone --recursive https://github.com/eunomia-bpf/vmlinux
-          cd vmlinux
-          git checkout 933f83b
-          # Avoid symlink issues
-          rm vmlinux.h
-          cd ..
-          git clone --recursive https://github.com/eunomia-bpf/bpftool
+          test -f third_party/bpftool/src/Makefile
+          test -f third_party/bpftool/libbpf/src/Makefile
+          test -f third_party/vmlinux/x86/vmlinux.h
+          test -f third_party/vmlinux/arm64/vmlinux.h
+          mkdir -p workspace/bin
       - name: Build workspace in aarch64 virtual machine
         uses: uraimo/run-on-arch-action@v2
         with: 
@@ -270,13 +259,13 @@ jobs:
           setup: |
             mkdir -p "${PWD}/workspace/bin"
           dockerRunArgs: |
-            --volume "${PWD}/assets:/assets"
+            --volume "${PWD}/third_party/bpftool:/bpftool"
             --volume "${PWD}/workspace:/workspace"
           install: |
             apt-get update
             apt-get install -y zlib1g-dev libelf-dev gcc make pkg-config
           run: |
-            cd /assets/bpftool/src
+            cd /bpftool/src
 
             MAX_RETRIES=5
             RETRY_COUNT=0
@@ -299,8 +288,9 @@ jobs:
         run: |
           cd workspace
           mkdir -p include
-          cp -r ../assets/bpftool/src/libbpf/include/bpf include/
-          cp -r ../assets/vmlinux/ include/
+          cp -r ../third_party/bpftool/src/.output/libbpf/include/bpf include/
+          cp -r ../third_party/vmlinux/ include/
+          rm -f ./include/vmlinux/vmlinux.h
           cp ./include/vmlinux/arm64/vmlinux.h ./include/vmlinux
           ls -lah .
           ls -lah bin/
