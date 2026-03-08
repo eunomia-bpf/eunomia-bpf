@@ -28,10 +28,12 @@ use crate::tests::get_test_assets_dir;
 
 use super::{
     build_output_artifact_claim, claim_output_artifact, claim_requested_output_artifacts,
-    ensure_output_artifact_can_be_written, get_output_artifact_claim_path, pack_object_in_config,
+    ensure_output_artifact_can_be_written, get_output_artifact_claim_path,
+    get_output_artifact_cleanup_reservation_path,
+    normalize_output_artifact_tool_identity_path_with_path_env, pack_object_in_config,
     release_output_artifact_claim, set_output_artifact_claim_publish_barrier,
-    set_output_artifact_claim_release_failure, set_output_artifact_marker_publish_barrier,
-    write_output_artifact_owner_marker,
+    set_output_artifact_claim_release_failure, set_output_artifact_cleanup_reservation_barrier,
+    set_output_artifact_marker_publish_barrier, write_output_artifact_owner_marker,
 };
 
 fn setup_tests(test_name: &str) -> (String, String, PathBuf) {
@@ -316,7 +318,7 @@ fn test_pack_object_in_config_keeps_concurrent_same_source_sibling_package() {
 }
 
 #[test]
-fn test_claim_output_artifact_rejects_same_source_different_build_inputs() {
+fn test_claim_output_artifact_allows_same_source_json_yaml_shared_object() {
     let output_dir = TempDir::new().unwrap();
     let source_path = output_dir.path().join("shared.bpf.c");
     fs::write(&source_path, "int x;").unwrap();
@@ -324,7 +326,25 @@ fn test_claim_output_artifact_rejects_same_source_different_build_inputs() {
 
     let baseline_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
     let yaml_args = create_pack_test_args_from_source_path(&output_dir, &source_path, true);
-    assert_output_artifact_claim_conflict(&baseline_args, &yaml_args, &object_path);
+
+    assert!(claim_output_artifact(&baseline_args, &object_path).unwrap());
+    assert!(claim_output_artifact(&yaml_args, &object_path).unwrap());
+    assert!(get_output_artifact_claim_path(&baseline_args, &object_path).exists());
+    assert!(get_output_artifact_claim_path(&yaml_args, &object_path).exists());
+
+    release_output_artifact_claim(&build_output_artifact_claim(&baseline_args), &object_path)
+        .unwrap();
+    release_output_artifact_claim(&build_output_artifact_claim(&yaml_args), &object_path).unwrap();
+}
+
+#[test]
+fn test_claim_output_artifact_rejects_same_source_different_build_inputs() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("shared.bpf.c");
+    fs::write(&source_path, "int x;").unwrap();
+    let object_path = output_dir.path().join("shared.bpf.o");
+
+    let baseline_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
 
     let mut cflags_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
     cflags_args
@@ -341,6 +361,57 @@ fn test_claim_output_artifact_rejects_same_source_different_build_inputs() {
     export_header_args.compile_opts.export_event_header =
         export_header_path.to_string_lossy().to_string();
     assert_output_artifact_claim_conflict(&baseline_args, &export_header_args, &object_path);
+}
+
+#[test]
+fn test_path_resolved_tool_binaries_produce_distinct_build_identities() {
+    let first_toolchain = TempDir::new().unwrap();
+    let second_toolchain = TempDir::new().unwrap();
+
+    let first_clang = first_toolchain.path().join("clang");
+    let second_clang = second_toolchain.path().join("clang");
+    let first_strip = first_toolchain.path().join("llvm-strip");
+    let second_strip = second_toolchain.path().join("llvm-strip");
+
+    for tool_path in [&first_clang, &second_clang, &first_strip, &second_strip] {
+        fs::write(tool_path, "#!/bin/sh\n").unwrap();
+    }
+
+    let first_path_env =
+        std::env::join_paths([first_toolchain.path(), std::path::Path::new("/usr/bin")]).unwrap();
+    let second_path_env =
+        std::env::join_paths([second_toolchain.path(), std::path::Path::new("/usr/bin")]).unwrap();
+
+    assert_eq!(
+        normalize_output_artifact_tool_identity_path_with_path_env(
+            "clang",
+            Some(first_path_env.as_os_str()),
+        ),
+        fs::canonicalize(&first_clang)
+            .unwrap()
+            .to_string_lossy()
+            .to_string()
+    );
+    assert_ne!(
+        normalize_output_artifact_tool_identity_path_with_path_env(
+            "clang",
+            Some(first_path_env.as_os_str()),
+        ),
+        normalize_output_artifact_tool_identity_path_with_path_env(
+            "clang",
+            Some(second_path_env.as_os_str()),
+        )
+    );
+    assert_ne!(
+        normalize_output_artifact_tool_identity_path_with_path_env(
+            "llvm-strip",
+            Some(first_path_env.as_os_str()),
+        ),
+        normalize_output_artifact_tool_identity_path_with_path_env(
+            "llvm-strip",
+            Some(second_path_env.as_os_str()),
+        )
+    );
 }
 
 #[test]
@@ -639,6 +710,105 @@ fn test_pack_object_in_config_keeps_sibling_package_during_claim_publication() {
     release_output_artifact_claim(
         &publishing_json_claim,
         output_dir.path().join("package.json"),
+    )
+    .unwrap();
+}
+
+#[test]
+fn test_pack_object_in_config_reserves_sibling_package_during_cleanup() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("shared.bpf.c");
+    fs::write(&source_path, "int x;").unwrap();
+
+    let initial_json_args =
+        create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    fs::write(initial_json_args.get_output_object_path(), b"json").unwrap();
+    write_test_meta_config(&initial_json_args);
+    pack_object_in_config(&initial_json_args).unwrap();
+
+    let yaml_args = create_pack_test_args_from_source_path(&output_dir, &source_path, true);
+    fs::write(yaml_args.get_output_object_path(), b"yaml").unwrap();
+    write_test_meta_config(&yaml_args);
+
+    let competing_json_args =
+        create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let cleanup_reservation_path =
+        get_output_artifact_cleanup_reservation_path(output_dir.path().join("package.json"));
+    let cleanup_entered = Arc::new(Barrier::new(2));
+    let cleanup_release = Arc::new(Barrier::new(2));
+
+    set_output_artifact_cleanup_reservation_barrier(Some((
+        cleanup_reservation_path,
+        cleanup_entered.clone(),
+        cleanup_release.clone(),
+    )));
+
+    let yaml_handle = thread::spawn(move || pack_object_in_config(&yaml_args));
+
+    cleanup_entered.wait();
+    let err = claim_output_artifact(
+        &competing_json_args,
+        competing_json_args.get_output_package_config_path(),
+    )
+    .err()
+    .unwrap();
+    assert!(err.to_string().contains("being cleaned up"));
+    cleanup_release.wait();
+
+    yaml_handle.join().unwrap().unwrap();
+    set_output_artifact_cleanup_reservation_barrier(None);
+
+    assert!(!output_dir.path().join("package.json").exists());
+    assert!(output_dir.path().join("package.yaml").exists());
+}
+
+#[test]
+fn test_release_output_artifact_claim_reserves_cleanup_before_marker_removal() {
+    let output_dir = TempDir::new().unwrap();
+    let source_dir_a = TempDir::new().unwrap();
+    let source_dir_b = TempDir::new().unwrap();
+    let source_path_a = source_dir_a.path().join("shared.bpf.c");
+    let source_path_b = source_dir_b.path().join("shared.bpf.c");
+    fs::write(&source_path_a, "int x;").unwrap();
+    fs::write(&source_path_b, "int x;").unwrap();
+
+    let active_args = create_pack_test_args_from_source_path(&output_dir, &source_path_a, false);
+    let competing_args = create_pack_test_args_from_source_path(&output_dir, &source_path_b, false);
+    let artifact_path = active_args.get_output_package_config_path();
+    let cleanup_reservation_path = get_output_artifact_cleanup_reservation_path(&artifact_path);
+    let cleanup_entered = Arc::new(Barrier::new(2));
+    let cleanup_release = Arc::new(Barrier::new(2));
+
+    assert!(claim_output_artifact(&active_args, &artifact_path).unwrap());
+    set_output_artifact_cleanup_reservation_barrier(Some((
+        cleanup_reservation_path,
+        cleanup_entered.clone(),
+        cleanup_release.clone(),
+    )));
+
+    let active_claim = build_output_artifact_claim(&active_args);
+    let releasing_artifact_path = artifact_path.clone();
+    let release_handle = thread::spawn(move || {
+        release_output_artifact_claim(&active_claim, &releasing_artifact_path)
+    });
+
+    cleanup_entered.wait();
+    let err = claim_output_artifact(&competing_args, &artifact_path)
+        .err()
+        .unwrap();
+    assert!(err.to_string().contains("being cleaned up"));
+    cleanup_release.wait();
+
+    release_handle.join().unwrap().unwrap();
+    set_output_artifact_cleanup_reservation_barrier(None);
+
+    assert!(!active_args
+        .get_output_artifact_marker_path(&artifact_path)
+        .exists());
+    assert!(claim_output_artifact(&competing_args, &artifact_path).unwrap());
+    release_output_artifact_claim(
+        &build_output_artifact_claim(&competing_args),
+        &artifact_path,
     )
     .unwrap();
 }
