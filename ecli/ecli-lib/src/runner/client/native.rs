@@ -9,12 +9,16 @@
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex, RwLock},
+    time::Instant,
 };
 
 use crate::{
     config::ProgramType,
     error::{Error, Result},
-    runner::{native::NativeRunner, native::RunningProgram, LogEntry, ProgramHandle},
+    runner::{
+        compat_completion_retention, native::NativeRunner, native::RunningProgram, LogEntry,
+        ProgramHandle,
+    },
 };
 
 use super::{AbstractClient, ProgramDesc, ProgramStatus};
@@ -27,6 +31,7 @@ struct ProgramSlot {
 
 struct CompletedProgram {
     logs: Vec<(usize, LogEntry)>,
+    retained_until: Instant,
 }
 
 struct NativeClientState {
@@ -46,7 +51,12 @@ impl Default for NativeClientState {
 }
 
 impl NativeClientState {
-    fn retire_exited_programs(&mut self) {
+    fn prune_expired_completed_programs(&mut self, now: Instant) {
+        self.completed_programs
+            .retain(|_, program| program.retained_until > now);
+    }
+
+    fn retire_exited_programs(&mut self, now: Instant) {
         let completed_handles = self
             .programs
             .iter()
@@ -62,9 +72,20 @@ impl NativeClientState {
 
         for (handle, logs) in completed_handles {
             self.programs.remove(&handle);
-            self.completed_programs
-                .insert(handle, CompletedProgram { logs });
+            self.completed_programs.insert(
+                handle,
+                CompletedProgram {
+                    logs,
+                    retained_until: now + compat_completion_retention(),
+                },
+            );
         }
+    }
+
+    fn refresh_completed_programs(&mut self) {
+        let now = Instant::now();
+        self.prune_expired_completed_programs(now);
+        self.retire_exited_programs(now);
     }
 }
 
@@ -108,6 +129,7 @@ impl AbstractClient for EcliNativeClient {
             NativeRunner::start_program(prog_buf, prog_type, export_json, args, btf_archive_path)?;
 
         let mut guard = self.state.write().unwrap();
+        guard.refresh_completed_programs();
         let handle = guard.next_handle;
         guard.next_handle += 1;
         guard.programs.insert(
@@ -124,6 +146,7 @@ impl AbstractClient for EcliNativeClient {
     async fn terminate_program(&self, handle: ProgramHandle) -> Result<()> {
         let slot = {
             let mut guard = self.state.write().unwrap();
+            guard.refresh_completed_programs();
             if let Some(slot) = guard.programs.remove(&handle) {
                 slot
             } else if guard.completed_programs.remove(&handle).is_some() {
@@ -141,6 +164,7 @@ impl AbstractClient for EcliNativeClient {
 
     async fn set_program_pause_state(&self, handle: ProgramHandle, pause: bool) -> Result<()> {
         let mut guard = self.state.write().unwrap();
+        guard.refresh_completed_programs();
         let slot = guard
             .programs
             .get_mut(&handle)
@@ -161,7 +185,8 @@ impl AbstractClient for EcliNativeClient {
         maximum_count: Option<usize>,
     ) -> Result<Vec<(usize, crate::runner::LogEntry)>> {
         let completed_logs = {
-            let guard = self.state.read().unwrap();
+            let mut guard = self.state.write().unwrap();
+            guard.refresh_completed_programs();
             if let Some(slot) = guard.programs.get(&handle) {
                 Some(Arc::clone(&slot.program))
             } else if let Some(program) = guard.completed_programs.get(&handle) {
@@ -181,9 +206,7 @@ impl AbstractClient for EcliNativeClient {
 
     async fn get_program_list(&self) -> Result<Vec<ProgramDesc>> {
         let mut guard = self.state.write().unwrap();
-        // Retain completed handles until explicit cleanup so one finished session
-        // is not dropped while callers keep polling list state for another.
-        guard.retire_exited_programs();
+        guard.refresh_completed_programs();
         Ok(guard
             .programs
             .iter()
@@ -209,10 +232,11 @@ mod tests {
     };
 
     #[tokio::test(flavor = "current_thread")]
-    async fn completed_programs_keep_tail_logs_while_other_programs_are_still_running() {
+    async fn completed_programs_keep_tail_logs_for_a_bounded_window() {
         let client = EcliNativeClient::default();
         let completed_handle = 1;
         let active_handle = 2;
+        let retention = crate::runner::compat_completion_retention();
         let mut state = client.state.write().unwrap();
         state.programs.insert(
             completed_handle,
@@ -231,7 +255,7 @@ mod tests {
                 paused: false,
                 program: Arc::new(Mutex::new(Some(
                     test_running_program_with_delayed_wasm_output(
-                        std::time::Duration::from_millis(250),
+                        retention.checked_mul(3).unwrap(),
                         b"",
                         b"",
                     ),
@@ -252,7 +276,7 @@ mod tests {
 
         assert!(list_only_shows_active_handle);
 
-        for _ in 0..3 {
+        for _ in 0..2 {
             let list = client.get_program_list().await.unwrap();
             assert_eq!(list.len(), 1);
             assert_eq!(list[0].id, active_handle);
@@ -266,11 +290,21 @@ mod tests {
             assert_eq!(logs[1].1.log, "out");
         }
 
-        client.terminate_program(completed_handle).await.unwrap();
+        tokio::time::sleep(retention + std::time::Duration::from_millis(50)).await;
+
+        let list = client.get_program_list().await.unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].id, active_handle);
         assert!(client
             .fetch_logs(completed_handle, None, Some(10))
             .await
             .is_err());
+
+        let state = client.state.read().unwrap();
+        assert!(!state.programs.contains_key(&completed_handle));
+        assert!(!state.completed_programs.contains_key(&completed_handle));
+        drop(state);
+
         client.terminate_program(active_handle).await.unwrap();
 
         let state = client.state.read().unwrap();
@@ -279,9 +313,10 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
-    async fn quiet_completed_programs_are_retained_until_explicit_cleanup() {
+    async fn quiet_completed_programs_expire_without_explicit_cleanup() {
         let client = EcliNativeClient::default();
         let handle = 1;
+        let retention = crate::runner::compat_completion_retention();
         client.state.write().unwrap().programs.insert(
             handle,
             ProgramSlot {
@@ -315,7 +350,8 @@ mod tests {
             .unwrap()
             .is_empty());
 
-        client.terminate_program(handle).await.unwrap();
+        tokio::time::sleep(retention + std::time::Duration::from_millis(50)).await;
+        assert!(client.get_program_list().await.unwrap().is_empty());
         assert!(client.fetch_logs(handle, None, Some(10)).await.is_err());
 
         let state = client.state.read().unwrap();

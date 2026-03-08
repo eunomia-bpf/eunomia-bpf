@@ -5,6 +5,9 @@
 //!
 use std::fmt::Display;
 
+#[cfg(feature = "native-client")]
+use std::time::Duration;
+
 /// Deprecated compatibility surface for the pre-issue-382 local runner API.
 #[deprecated(note = "Use runner::native::{NativeRunner, RunningProgram} instead.")]
 pub mod client;
@@ -19,6 +22,16 @@ pub mod task_manager;
 
 /// Deprecated handle type used by the compatibility client API.
 pub type ProgramHandle = u64;
+
+#[cfg(all(feature = "native-client", test))]
+pub(crate) fn compat_completion_retention() -> Duration {
+    Duration::from_millis(150)
+}
+
+#[cfg(all(feature = "native-client", not(test)))]
+pub(crate) fn compat_completion_retention() -> Duration {
+    Duration::from_secs(5)
+}
 
 /// A log entry
 #[derive(Debug, Clone)]

@@ -9,6 +9,7 @@
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
+    time::Instant,
 };
 
 use crate::{
@@ -16,6 +17,7 @@ use crate::{
     error::{Error, Result},
     runner::{
         client::{ProgramDesc, ProgramStatus},
+        compat_completion_retention,
         native::{NativeRunner, RunningProgram},
         LogEntry, ProgramHandle,
     },
@@ -42,7 +44,12 @@ impl Default for NativeTaskManager {
 }
 
 impl NativeTaskManager {
-    fn retire_exited_tasks(&mut self) {
+    fn prune_expired_completed_tasks(&mut self, now: Instant) {
+        self.completed_tasks
+            .retain(|_, task| task.retained_until > now);
+    }
+
+    fn retire_exited_tasks(&mut self, now: Instant) {
         let completed_ids = self
             .tasks
             .iter()
@@ -57,8 +64,20 @@ impl NativeTaskManager {
 
         for (id, completed_task) in completed_ids {
             self.tasks.remove(&id);
-            self.completed_tasks.insert(id, completed_task);
+            self.completed_tasks.insert(
+                id,
+                CompletedTask {
+                    retained_until: now + compat_completion_retention(),
+                    ..completed_task
+                },
+            );
         }
+    }
+
+    fn refresh_completed_tasks(&mut self) {
+        let now = Instant::now();
+        self.prune_expired_completed_tasks(now);
+        self.retire_exited_tasks(now);
     }
 
     /// Get a reference to a compatibility task.
@@ -66,15 +85,16 @@ impl NativeTaskManager {
         self.tasks.get(&(handle as usize)).cloned().or_else(|| {
             self.completed_tasks
                 .get(&(handle as usize))
+                .filter(|task| task.retained_until > Instant::now())
                 .map(|task| Arc::new(Mutex::new(Task::from_completed(task))))
         })
     }
 
-    /// Get all active compatibility tasks. Finished tasks are retained until
-    /// explicit cleanup so callers can still read any tail logs after
+    /// Get all active compatibility tasks. Finished tasks remain readable for
+    /// a short post-exit window so callers can still fetch tail logs after
     /// observing liveness while they monitor other tasks.
     pub fn get_task_list(&mut self) -> Vec<ProgramDesc> {
-        self.retire_exited_tasks();
+        self.refresh_completed_tasks();
         self.tasks
             .iter()
             .map(|(id, task)| {
@@ -94,6 +114,7 @@ impl NativeTaskManager {
 
     /// Terminate a compatibility task by handle.
     pub fn terminate_task(&mut self, handle: ProgramHandle) -> Result<()> {
+        self.refresh_completed_tasks();
         let task = if let Some(task) = self.tasks.remove(&(handle as usize)) {
             task
         } else if self.completed_tasks.remove(&(handle as usize)).is_some() {
@@ -124,6 +145,7 @@ impl NativeTaskManager {
         args: &[String],
         btf_archive_path: Option<String>,
     ) -> Result<usize> {
+        self.prune_expired_completed_tasks(Instant::now());
         let task_id = self.next_task_id;
         self.next_task_id += 1;
         let task = Task {
@@ -146,6 +168,7 @@ impl NativeTaskManager {
 struct CompletedTask {
     name: String,
     logs: Vec<(usize, LogEntry)>,
+    retained_until: Instant,
 }
 
 /// Deprecated compatibility wrapper for a single running program.
@@ -172,6 +195,7 @@ impl Task {
                 .as_ref()
                 .map(|program| program.fetch_logs(None, Some(usize::MAX)))
                 .unwrap_or_else(|| self.completed_logs.clone().unwrap_or_default()),
+            retained_until: Instant::now(),
         }
     }
 
@@ -234,9 +258,10 @@ mod tests {
     }
 
     #[test]
-    fn completed_tasks_keep_tail_logs_while_other_tasks_are_still_running() {
+    fn completed_tasks_keep_tail_logs_for_a_bounded_window() {
         let completed_task_id = FIRST_TASK_ID;
         let active_task_id = FIRST_TASK_ID + 1;
+        let retention = crate::runner::compat_completion_retention();
         let mut manager = NativeTaskManager::default();
         manager.next_task_id = active_task_id + 1;
         manager.tasks.insert(
@@ -254,7 +279,7 @@ mod tests {
                 name: "active".to_string(),
                 paused: false,
                 program: Some(test_running_program_with_delayed_wasm_output(
-                    std::time::Duration::from_millis(250),
+                    retention.checked_mul(3).unwrap(),
                     b"",
                     b"",
                 )),
@@ -274,7 +299,7 @@ mod tests {
 
         assert!(list_only_shows_active_task);
 
-        for _ in 0..3 {
+        for _ in 0..2 {
             let list = manager.get_task_list();
             assert_eq!(list.len(), 1);
             assert_eq!(list[0].id, active_task_id as ProgramHandle);
@@ -288,12 +313,15 @@ mod tests {
             assert_eq!(logs[1].1.log, "out");
         }
 
-        manager
-            .terminate_task(completed_task_id as ProgramHandle)
-            .unwrap();
+        std::thread::sleep(retention + std::time::Duration::from_millis(50));
+        let list = manager.get_task_list();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].id, active_task_id as ProgramHandle);
         assert!(manager
             .get_task(completed_task_id as ProgramHandle)
             .is_none());
+        assert!(!manager.tasks.contains_key(&completed_task_id));
+        assert!(!manager.completed_tasks.contains_key(&completed_task_id));
         manager
             .terminate_task(active_task_id as ProgramHandle)
             .unwrap();
@@ -303,8 +331,9 @@ mod tests {
     }
 
     #[test]
-    fn quiet_completed_tasks_are_retained_until_explicit_cleanup() {
+    fn quiet_completed_tasks_expire_without_explicit_cleanup() {
         let task_id = FIRST_TASK_ID;
+        let retention = crate::runner::compat_completion_retention();
         let mut manager = NativeTaskManager::default();
         manager.next_task_id = task_id + 1;
         manager.tasks.insert(
@@ -334,7 +363,8 @@ mod tests {
         let task = manager.get_task(task_id as ProgramHandle).unwrap();
         assert!(task.lock().unwrap().poll_log(None, 10).is_empty());
 
-        manager.terminate_task(task_id as ProgramHandle).unwrap();
+        std::thread::sleep(retention + std::time::Duration::from_millis(50));
+        assert!(manager.get_task_list().is_empty());
         assert!(manager.get_task(task_id as ProgramHandle).is_none());
         assert!(manager.tasks.is_empty());
         assert!(manager.completed_tasks.is_empty());
