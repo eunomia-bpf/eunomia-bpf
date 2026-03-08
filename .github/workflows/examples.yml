@@ -79,6 +79,9 @@ jobs:
       - name: test supported arm64 examples
         run:  |
               # The hosted arm64 runner kernel does not expose every tracing hook
-              # that the full example matrix expects. Keep one known-good example
-              # here as an arm64 smoke test and expand this list incrementally.
-              TEST_CASES_DIRS=bootstrap make -C examples/tests test
+              # that the full example matrix expects. Keep the allowlist explicit
+              # and expand it only after each example passes on the official arm64
+              # runner. `opensnoop` is currently excluded because the runner
+              # kernel lacks the expected syscalls/sys_enter_open tracepoint.
+              TEST_CASES_DIRS='bashreadline bootstrap fentry-link kprobe-link lsm-connect mdflush minimal runqlat sigsnoop tc tcpstates xdp' \
+                make -C examples/tests test
