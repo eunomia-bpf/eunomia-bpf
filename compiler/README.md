@@ -23,6 +23,8 @@ chmod +x ecc
 sudo mv ecc /usr/local/bin/
 ```
 
+The raw GitHub release binary currently does **not** bundle the `libeunomia.a` standalone sidecar, so `--standalone` is not supported from that install path yet.
+
 Install from source with the standalone runtime staged into `EUNOMIA_HOME`:
 ```bash
 cd compiler
@@ -134,7 +136,7 @@ ecc program.bpf.c --standalone -o mytool
 
 Produces a self-contained executable with embedded eBPF program and runner.
 
-`--standalone` now links against the normal `bpf-loader-c-wrapper` static archive plus its native link flags. A compiler install created with `make install` stages `libeunomia.a` and `libeunomia.a.linkflags` automatically. If you run `ecc` directly from a checkout, it will build that archive from `bpf-loader-rs/` on first use when needed.
+`--standalone` now links against the normal `bpf-loader-c-wrapper` static archive plus its native link flags. A compiler install created with `make install` stages `libeunomia.a` and `libeunomia.a.linkflags` automatically, and the Nix package installs the same sidecar into `$out/lib`. If you run `ecc` directly from a checkout, it will build that archive from `bpf-loader-rs/` on first use when needed.
 
 ### WebAssembly Header
 ```bash

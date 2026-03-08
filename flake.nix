@@ -102,6 +102,53 @@
             hash = "sha256-CVEmKkzdFNLKCbcbeSIoM5QjYVLQglpz6gy7+ZFPgCY=";
           };
 
+          standaloneRuntime = pkgs.stdenv.mkDerivation (finalAttrs: {
+            pname = "ecc-standalone-runtime";
+            inherit version;
+            src = self;
+            cargoRoot = "bpf-loader-rs";
+            cargoDeps = pkgs.rustPlatform.importCargoLock {
+              lockFile = ./${finalAttrs.cargoRoot}/Cargo.lock;
+            };
+
+            nativeBuildInputs = with pkgs;[
+              pkg-config
+              cargoSetupHook
+              cargo
+              rustc
+            ];
+
+            buildInputs = with pkgs;[
+              elfutils
+              zlib
+              zlib.static
+            ];
+
+            preBuild = ''
+              cd ${finalAttrs.cargoRoot}
+            '';
+
+            buildPhase = ''
+              runHook preBuild
+              cargo rustc -p bpf-loader-c-wrapper --release -- --print=native-static-libs 2>&1 \
+                | awk -F 'native-static-libs: ' '/native-static-libs:/ { print $2 }' \
+                | awk 'BEGIN { first = 1 } { for (i = 1; i <= NF; i++) { if ($i != "-lgcc_s") { printf "%s%s", first ? "" : " ", $i; first = 0 } } } END { print "" }' \
+                > libeunomia.a.linkflags
+              test -s libeunomia.a.linkflags
+              test -f target/release/libeunomia.a
+              runHook postBuild
+            '';
+
+            installPhase = ''
+              runHook preInstall
+              install -Dm 644 target/release/libeunomia.a $out/lib/libeunomia.a
+              install -Dm 644 libeunomia.a.linkflags $out/lib/libeunomia.a.linkflags
+              runHook postInstall
+            '';
+
+            inherit meta;
+          });
+
           ecli = pkgs.stdenv.mkDerivation (finalAttrs: {
             name = "ecli";
             inherit version;
@@ -213,9 +260,13 @@
               };
 
               postInstall = ''
+                mkdir -p $out/lib
+                cp ${standaloneRuntime}/lib/libeunomia.a $out/lib/
+                cp ${standaloneRuntime}/lib/libeunomia.a.linkflags $out/lib/
                 wrapProgram $out/bin/ecc-rs \
                   --prefix LIBCLANG_PATH : ${llvmPackages.libclang.lib}/lib \
-                  --prefix PATH : ${lib.makeBinPath (with llvmPackages; [clang bintools-unwrapped])}
+                  --prefix PATH : ${lib.makeBinPath (with llvmPackages; [clang bintools-unwrapped])} \
+                  --prefix LIBRARY_PATH : ${lib.makeLibraryPath [ elfutils zlib.static ]}
               '';
 
               inherit meta;

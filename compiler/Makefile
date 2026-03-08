@@ -8,6 +8,10 @@ BPFTOOL := $(BPFTOOL_SRC)/src/bpftool
 ECC := cmd/target/release/ecc-rs
 LIBEUNOMIA := ../bpf-loader-rs/target/release/libeunomia.a
 LIBEUNOMIA_LINKFLAGS := ../bpf-loader-rs/target/release/libeunomia.a.linkflags
+WORKSPACE_ECC := workspace/bin/ecc-rs
+WORKSPACE_LIBEUNOMIA := workspace/libeunomia.a
+WORKSPACE_LIBEUNOMIA_LINKFLAGS := workspace/libeunomia.a.linkflags
+STANDALONE_RUNTIME_SOURCES := $(shell find ../bpf-loader-rs/bpf-loader-c-wrapper ../bpf-loader-rs/bpf-loader-lib -type f) ../bpf-loader-rs/Cargo.toml ../bpf-loader-rs/Cargo.lock
 ARCH := $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/' | sed 's/riscv64/riscv/')
 VMLINUX := ../third_party/vmlinux/$(ARCH)/vmlinux.h
 # Use our own libbpf API headers and Linux UAPI headers distributed with
@@ -44,8 +48,8 @@ else
 	MAKEFLAGS += --no-print-directory
 endif
 
-.PHONY: all install $(ECC)
-all: $(ECC)
+.PHONY: all install
+all: $(WORKSPACE_ECC) $(WORKSPACE_LIBEUNOMIA) $(WORKSPACE_LIBEUNOMIA_LINKFLAGS)
 
 wasi-sdk-16.0-linux.tar.gz:
 	wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-16/wasi-sdk-16.0-linux.tar.gz
@@ -54,7 +58,7 @@ wasi-sdk-16.0-linux.tar.gz:
 .PHONY: clean
 clean:
 	$(call msg,CLEAN)
-	$(Q)rm -rf $(OUTPUT) $(APPS) *.o
+	$(Q)rm -rf $(OUTPUT) $(APPS) *.o workspace
 	cd cmd && cargo clean
 
 $(OUTPUT) $(OUTPUT)/libbpf:
@@ -64,25 +68,28 @@ $(OUTPUT) $(OUTPUT)/libbpf:
 $(BPFTOOL):
 	$(MAKE) -C $(BPFTOOL_SRC)/src
 
-$(LIBEUNOMIA_LINKFLAGS):
+$(WORKSPACE_LIBEUNOMIA) $(WORKSPACE_LIBEUNOMIA_LINKFLAGS): $(STANDALONE_RUNTIME_SOURCES)
 	cargo rustc --manifest-path ../bpf-loader-rs/Cargo.toml -p bpf-loader-c-wrapper --release -- --print=native-static-libs 2>&1 | awk -F 'native-static-libs: ' '/native-static-libs:/ { print $$2 }' | awk 'BEGIN { first = 1 } { for (i = 1; i <= NF; i++) { if ($$i != "-lgcc_s") { printf "%s%s", first ? "" : " ", $$i; first = 0 } } } END { print "" }' > $(LIBEUNOMIA_LINKFLAGS)
 	test -s $(LIBEUNOMIA_LINKFLAGS)
 	test -f $(LIBEUNOMIA)
+	mkdir -p workspace
+	cp $(LIBEUNOMIA) $(WORKSPACE_LIBEUNOMIA)
+	cp $(LIBEUNOMIA_LINKFLAGS) $(WORKSPACE_LIBEUNOMIA_LINKFLAGS)
 
-$(ECC): $(BPFTOOL) $(LIBEUNOMIA_LINKFLAGS)
+$(ECC): $(BPFTOOL)
 	cd cmd && cargo build --release
 	cargo install cargo-out-dir
 	cd cmd && cargo build # Run a debug build to create the workspace directory 
 	# cd cmd && cp -r `cargo-out-dir`/workspace ..
+
+$(WORKSPACE_ECC): $(ECC)
 	mkdir -p workspace/bin
-	cp $(ECC) workspace/bin/ecc-rs
-	cp $(LIBEUNOMIA) workspace/libeunomia.a
-	cp $(LIBEUNOMIA_LINKFLAGS) workspace/libeunomia.a.linkflags
+	cp $(ECC) $(WORKSPACE_ECC)
 
 XDG_DATA_HOME ?= ${HOME}/.local/share
 EUNOMIA_HOME := $(XDG_DATA_HOME)/eunomia
 
-install:
+install: all
 	rm -rf $(EUNOMIA_HOME) && mkdir -p $(EUNOMIA_HOME) && cp -r workspace/* $(EUNOMIA_HOME)
 .PHONY: test
 test:
