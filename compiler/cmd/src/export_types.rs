@@ -32,18 +32,46 @@ struct ExportStructCandidate {
     explicit: bool,
 }
 
+fn same_source_file(actual_path: &Path, expected_path: &Path) -> bool {
+    if actual_path == expected_path {
+        return true;
+    }
+    match (actual_path.canonicalize(), expected_path.canonicalize()) {
+        (Ok(actual), Ok(expected)) => actual == expected,
+        _ => false,
+    }
+}
+
 fn entity_is_in_file(entity: &Entity, expected_path: &Path) -> bool {
     entity
         .get_location()
         .and_then(|location| location.get_file_location().file)
-        .map(|file| file.get_path() == expected_path)
+        .map(|file| same_source_file(&file.get_path(), expected_path))
         .unwrap_or(false)
+}
+
+fn trim_comment_marker(line: &str) -> &str {
+    let line = line.trim();
+    let line = line
+        .strip_prefix("///")
+        .or_else(|| line.strip_prefix("//!"))
+        .or_else(|| line.strip_prefix("/**"))
+        .or_else(|| line.strip_prefix("/*"))
+        .or_else(|| line.strip_prefix('*'))
+        .unwrap_or(line)
+        .trim();
+    line.strip_suffix("*/").unwrap_or(line).trim()
 }
 
 fn has_export_annotation(entity: &Entity) -> bool {
     entity
         .get_comment()
-        .map(|comment| comment.contains(EXPORT_ANNOTATION))
+        .map(|comment| {
+            comment
+                .lines()
+                .map(trim_comment_marker)
+                .any(|line| line == EXPORT_ANNOTATION)
+        })
         .unwrap_or(false)
 }
 
@@ -59,12 +87,8 @@ fn push_export_struct(candidates: &mut Vec<ExportStructCandidate>, name: String,
 }
 
 fn collect_export_struct_candidates(args: &Options) -> Result<Vec<ExportStructCandidate>> {
-    let source_path = Path::new(&args.compile_opts.source_path)
-        .canonicalize()
-        .with_context(|| anyhow!("Failed to canonicalize source path"))?;
-    let export_header_path = Path::new(&args.compile_opts.export_event_header)
-        .canonicalize()
-        .with_context(|| anyhow!("Failed to canonicalize export header path"))?;
+    let source_path = Path::new(&args.compile_opts.source_path).to_path_buf();
+    let export_header_path = Path::new(&args.compile_opts.export_event_header).to_path_buf();
 
     with_clang(|clang| {
         let index = Index::new(clang, false, true);
@@ -205,6 +229,7 @@ pub fn strip_synthetic_bpf_skel_symbols(mut bpf_skel: Value) -> Value {
 
 #[cfg(test)]
 mod test {
+    use std::os::unix::fs::symlink;
     use std::{fs, path::Path};
 
     use clap::Parser;
@@ -275,6 +300,25 @@ mod test {
     }
 
     #[test]
+    fn test_find_all_export_structs_ignores_export_mentions_in_prose() {
+        let temp_dir = TempDir::new().unwrap();
+        let header_path = temp_dir.path().join("event.h");
+        let source_path = temp_dir.path().join("test.bpf.c");
+        let test_event = r#"
+            /// This helper mentions @export in prose but is not annotated.
+            struct helper { int x; };
+            struct event { int x; };
+        "#;
+        fs::write(&header_path, test_event).unwrap();
+        fs::write(&source_path, "#include \"event.h\"\n").unwrap();
+
+        let opts = create_options(&source_path, Some(&header_path), false);
+        let structs = find_all_export_structs(&opts).unwrap();
+
+        assert_eq!(structs, vec!["helper", "event"]);
+    }
+
+    #[test]
     fn test_add_unused_ptr_for_structs() {
         let temp_dir = TempDir::new().unwrap();
         let header_path = temp_dir.path().join("event.h");
@@ -313,5 +357,33 @@ mod test {
         let structs = find_all_export_structs(&opts).unwrap();
 
         assert_eq!(structs, vec!["event4"]);
+    }
+
+    #[test]
+    fn test_find_all_export_structs_header_only_keeps_symlink_include_root() {
+        let temp_dir = TempDir::new().unwrap();
+        let real_dir = temp_dir.path().join("real");
+        let symlink_dir = temp_dir.path().join("link");
+        fs::create_dir_all(&real_dir).unwrap();
+        fs::create_dir_all(&symlink_dir).unwrap();
+
+        let real_header_path = real_dir.join("event.h");
+        let symlink_header_path = symlink_dir.join("event.h");
+        fs::write(
+            &real_header_path,
+            r#"
+                #include "shared.h"
+                /// @export
+                struct event { shared_int_t x; };
+            "#,
+        )
+        .unwrap();
+        fs::write(symlink_dir.join("shared.h"), "typedef int shared_int_t;\n").unwrap();
+        symlink(&real_header_path, &symlink_header_path).unwrap();
+
+        let opts = create_options(&symlink_header_path, None, true);
+        let structs = find_all_export_structs(&opts).unwrap();
+
+        assert_eq!(structs, vec!["event"]);
     }
 }
