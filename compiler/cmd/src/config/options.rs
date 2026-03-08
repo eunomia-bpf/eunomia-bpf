@@ -38,7 +38,6 @@ pub struct Options {
     pub tmpdir: TempDir,
     pub compile_opts: CompileArgs,
     pub object_name: String,
-    pub invocation_started_at_unix_nanos: u64,
 }
 
 impl Options {
@@ -57,7 +56,6 @@ impl Options {
             compile_opts: opts.clone(),
             tmpdir: tmp_workspace,
             object_name,
-            invocation_started_at_unix_nanos: current_unix_time_nanos(),
         })
     }
     #[allow(unused)]
