@@ -9,7 +9,9 @@ use crate::config::{
     package_btfhub_tar, Options,
 };
 use crate::document_parser::parse_source_documents;
-use crate::export_types::{add_unused_ptr_for_structs, find_all_export_structs};
+use crate::export_types::{
+    add_unused_ptr_for_structs, find_all_export_structs, strip_synthetic_bpf_skel_symbols,
+};
 use crate::handle_std_command_with_log;
 use crate::wasm::pack_object_in_wasm_header;
 use anyhow::{anyhow, bail, Context, Result};
@@ -78,7 +80,7 @@ fn get_export_types_json(
     let output =
         handle_std_command_with_log!(command, "Failed to dump BTF from the compiled file!");
     // filter the output to get the export types json
-    let export_structs = find_all_export_structs(&args.compile_opts)?;
+    let export_structs = find_all_export_structs(args)?;
     let export_types_json: Value =
         serde_json::from_str(&output).with_context(|| anyhow!("Failed to parse btf json"))?;
     let export_types_json = export_types_json["structs"]
@@ -118,7 +120,7 @@ fn do_compile(args: &Options, temp_source_file: impl AsRef<Path>) -> Result<()> 
                 bpf_skel
             }
         };
-    meta_json["bpf_skel"] = bpf_skel_with_doc;
+    meta_json["bpf_skel"] = strip_synthetic_bpf_skel_symbols(bpf_skel_with_doc);
 
     // compile export types
     if !args.compile_opts.export_event_header.is_empty() {
@@ -152,7 +154,7 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
         temp_source_file = args.get_source_file_temp_path();
         // create temp source file
         fs::write(&temp_source_file, source_file_content)?;
-        add_unused_ptr_for_structs(&args.compile_opts, &temp_source_file)?;
+        add_unused_ptr_for_structs(args, &temp_source_file)?;
     }
     do_compile(args, &temp_source_file).with_context(|| anyhow!("Failed to compile"))?;
     if !args.compile_opts.export_event_header.is_empty() {

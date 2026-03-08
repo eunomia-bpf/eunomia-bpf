@@ -55,10 +55,12 @@ impl EunomiaWorkspace {
     long_about = "see https://github.com/eunomia-bpf/eunomia-bpf for more information"
 )]
 pub struct CompileArgs {
-    #[arg(help = "path of the bpf.c file to compile")]
+    #[arg(
+        help = "path of the BPF source file, or the header-only input when --header-only is used"
+    )]
     pub source_path: String,
 
-    #[arg(default_value_t = ("").to_string(), help = "path of the bpf.h header for defining event struct")]
+    #[arg(default_value_t = ("").to_string(), help = "path of the header that defines exported structs")]
     pub export_event_header: String,
 
     #[arg(
@@ -82,7 +84,7 @@ pub struct CompileArgs {
     #[arg(
         long,
         default_value_t = false,
-        help = "generate a bpf object for struct definition with header file only"
+        help = "treat SOURCE_PATH as a self-contained header translation unit and export-header input"
     )]
     pub header_only: bool,
 
@@ -243,6 +245,9 @@ pub fn get_bpf_compile_args(
         "-Wno-unknown-attributes".to_string(),
         format!("-D__TARGET_ARCH_{target_arch}"),
     ];
+    if args.compile_opts.header_only {
+        compile_args.extend(["-x".to_string(), "c".to_string()]);
+    }
     compile_args.extend(bpf_sys_include);
     compile_args.extend(get_eunomia_include_args(args)?);
     compile_args.extend(args.compile_opts.parameters.additional_cflags.clone());
