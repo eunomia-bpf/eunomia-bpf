@@ -16,6 +16,7 @@ on:
         - ".github/scripts/**"
         - ".github/workflows/ecli-binary.yaml"
         - ".github/workflows/ecc-binary.yml"
+        - ".github/workflows/release-coordinator.yml"
   
     pull_request:
       branches: ["*"]
@@ -30,6 +31,7 @@ on:
         - ".github/scripts/**"
         - ".github/workflows/ecli-binary.yaml"
         - ".github/workflows/ecc-binary.yml"
+        - ".github/workflows/release-coordinator.yml"
 env:
   BUILD_TYPE: Release
   INSTALL_LOCATION: .local
@@ -38,58 +40,9 @@ env:
 jobs:
   create-release-version:
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{steps.set_version.outputs.result}}
-    steps:
-      - name: Set latest release version
-        id: set_version
-        uses: actions/github-script@v6
-        with:
-          result-encoding: string
-          script: |
-            const versionPattern = /^v(\d+)\.(\d+)\.(\d+)$/;
-
-            function parseVersion(version) {
-              const match = versionPattern.exec(version);
-              if (!match) {
-                return null;
-              }
-              return match.slice(1).map(Number);
-            }
-
-            function compareVersions(a, b) {
-              for (let i = 0; i < a.length; i += 1) {
-                if (a[i] !== b[i]) {
-                  return a[i] - b[i];
-                }
-              }
-              return 0;
-            }
-
-            const releases = await github.paginate(github.rest.repos.listReleases, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              per_page: 100,
-            });
-
-            const tags = await github.paginate(github.rest.repos.listTags, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              per_page: 100,
-            });
-
-            const versions = [...releases.map(release => release.tag_name), ...tags.map(tag => tag.name)]
-              .map(parseVersion)
-              .filter(Boolean)
-              .sort(compareVersions);
-
-            if (versions.length === 0) {
-              return "v0.0.1";
-            }
-
-            const [major, minor, patch] = versions[versions.length - 1];
-            return `v${major}.${minor}.${patch + 1}`;
+    uses: ./.github/workflows/release-coordinator.yml
+    with:
+      create_release: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf' }}
             
   build-ecc-binary-x86:
     name: Build ecc on x86_64
@@ -407,19 +360,6 @@ jobs:
       - name: Copy ecc binary x86_64 to ecc
         run: |
           cp ./results/ecc-x86_64/ecc-x86_64 ./results/ecc-x86_64/ecc
-      - name: Ensure draft release exists
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ needs.create-release-version.outputs.version }}
-        run: |
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release $RELEASE_TAG already exists"
-          elif ! gh release create "$RELEASE_TAG" --draft --generate-notes --target "$GITHUB_SHA"; then
-            echo "Release creation raced with another workflow, re-checking state"
-            gh release view "$RELEASE_TAG" >/dev/null
-          fi
       - name: Upload ecc assets to draft release
         if:   github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf'
         env:
