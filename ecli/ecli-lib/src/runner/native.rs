@@ -10,6 +10,7 @@ use std::{
         Arc, Mutex, RwLock,
     },
     thread::JoinHandle,
+    time::Instant,
 };
 
 use bpf_compatible_rs::{tempfile::TempDir, unpack_tar};
@@ -87,6 +88,10 @@ impl RunningProgram {
         self.task.has_exited()
     }
 
+    pub(crate) fn retained_until(&self, retention: std::time::Duration) -> Option<Instant> {
+        self.task.retained_until(retention)
+    }
+
     pub fn set_pause(&mut self, pause: bool) -> Result<()> {
         self.task.set_pause(pause)
     }
@@ -100,6 +105,7 @@ struct Task {
     inner_impl: Mutex<TaskImpl>,
     log_buffer: Arc<RwLock<Vec<(usize, LogEntry)>>>,
     log_cursor: Arc<AtomicUsize>,
+    exited_at: Arc<Mutex<Option<Instant>>>,
 }
 
 impl Task {
@@ -137,11 +143,13 @@ impl Task {
 
         let log_buffer = Arc::new(RwLock::new(Vec::<(usize, LogEntry)>::new()));
         let log_cursor = Arc::new(AtomicUsize::new(0));
+        let exited_at = Arc::new(Mutex::new(None));
 
         let inner_impl = match ty {
             ProgramType::JsonEunomia => {
                 let log_buffer_inner = Arc::clone(&log_buffer);
                 let log_cursor_inner = Arc::clone(&log_cursor);
+                let exited_at_inner = Arc::clone(&exited_at);
                 let (tx, rx) = std::sync::mpsc::channel::<PollingHandle>();
                 let mut package = serde_json::from_slice::<ComposedObject>(&buf).map_err(|e| {
                     Error::InvalidParam(format!("Failed to deserialize package to object: {}", e))
@@ -163,7 +171,7 @@ impl Task {
                     )
                     .map_err(|e| Error::Bpf(format!("Failed to parse arguments: {}", e)))?;
                 let btf_path = btf.extract_archive_path().map(|path| path.to_string());
-                let join_handle = std::thread::spawn(move || {
+                let worker = std::thread::spawn(move || {
                     let skel = BpfSkeletonBuilder::from_json_package(&package, btf_path.as_deref())
                         .build()
                         .map_err(|e| Error::Bpf(format!("Failed to build skeleton: {:?}", e)))?
@@ -185,6 +193,7 @@ impl Task {
                     .unwrap();
                     Result::Ok(())
                 });
+                let join_handle = wrap_join_handle(worker, exited_at_inner);
 
                 match rx.recv() {
                     Ok(polling_handle) => TaskImpl::BpfLoader {
@@ -193,10 +202,16 @@ impl Task {
                         btf_archive_tempdir: btf.extract_tempdir(),
                     },
                     Err(e) => {
+                        let worker_err = match join_handle.join() {
+                            Ok(JoinOutcome::Finished(Ok(()))) => {
+                                "worker exited before exposing a polling handle".to_string()
+                            }
+                            Ok(JoinOutcome::Finished(Err(err))) => format!("{:?}", err),
+                            Ok(JoinOutcome::Panicked) | Err(_) => "worker panicked".to_string(),
+                        };
                         return Err(Error::Bpf(format!(
                             "Failed to start polling: {:?}, {:?}",
-                            join_handle.join().unwrap().unwrap_err(),
-                            e
+                            worker_err, e
                         )));
                     }
                 }
@@ -204,7 +219,7 @@ impl Task {
             ProgramType::WasmModule => {
                 let stdout = ReadableWritePipe::new_vec_buf();
                 let stderr = ReadableWritePipe::new_vec_buf();
-                let (prog_handle, join_handle) = run_wasm_bpf_module_async(
+                let (prog_handle, worker) = run_wasm_bpf_module_async(
                     &buf,
                     args,
                     Config {
@@ -214,6 +229,7 @@ impl Task {
                     },
                 )
                 .map_err(|e| Error::Wasm(format!("Failed to run wasm bpf module: {}", e)))?;
+                let join_handle = wrap_join_handle(worker, Arc::clone(&exited_at));
 
                 TaskImpl::Wasm {
                     prog_handle: Some(prog_handle),
@@ -231,6 +247,7 @@ impl Task {
             inner_impl: Mutex::new(inner_impl),
             log_buffer,
             log_cursor,
+            exited_at,
         })
     }
 
@@ -262,6 +279,15 @@ impl Task {
     fn has_exited(&self) -> bool {
         self.sync_exit_state();
         matches!(&*self.inner_impl.lock().unwrap(), TaskImpl::Completed(_))
+    }
+
+    fn retained_until(&self, retention: std::time::Duration) -> Option<Instant> {
+        self.sync_exit_state();
+        self.exited_at
+            .lock()
+            .unwrap()
+            .as_ref()
+            .and_then(|exited_at| exited_at.checked_add(retention))
     }
 
     fn set_pause(&mut self, pause: bool) -> Result<()> {
@@ -336,6 +362,7 @@ impl Task {
             inner_impl,
             log_buffer,
             log_cursor,
+            exited_at: _,
         } = self;
 
         match inner_impl.into_inner().unwrap() {
@@ -369,12 +396,12 @@ impl Task {
 enum TaskImpl {
     Wasm {
         prog_handle: Option<WasmProgramHandle>,
-        join_handle: JoinHandle<anyhow::Result<()>>,
+        join_handle: JoinHandle<JoinOutcome<anyhow::Result<()>>>,
         log_collector: WasmLogCollector,
     },
     BpfLoader {
         polling_handle: PollingHandle,
-        join_handle: JoinHandle<Result<()>>,
+        join_handle: JoinHandle<JoinOutcome<Result<()>>>,
         #[allow(unused)]
         // Kept only to preserve the extracted archive lifetime while the task is running.
         btf_archive_tempdir: Option<TempDir>,
@@ -382,9 +409,28 @@ enum TaskImpl {
     Completed(Result<()>),
 }
 
+enum JoinOutcome<T> {
+    Finished(T),
+    Panicked,
+}
+
+fn wrap_join_handle<T: Send + 'static>(
+    join_handle: JoinHandle<T>,
+    exited_at: Arc<Mutex<Option<Instant>>>,
+) -> JoinHandle<JoinOutcome<T>> {
+    std::thread::spawn(move || {
+        let result = join_handle.join();
+        *exited_at.lock().unwrap() = Some(Instant::now());
+        match result {
+            Ok(result) => JoinOutcome::Finished(result),
+            Err(_) => JoinOutcome::Panicked,
+        }
+    })
+}
+
 fn finalize_wasm_task(
     prog_handle: Option<WasmProgramHandle>,
-    join_handle: JoinHandle<anyhow::Result<()>>,
+    join_handle: JoinHandle<JoinOutcome<anyhow::Result<()>>>,
     mut log_collector: WasmLogCollector,
     terminate_running: bool,
     log_buffer: &Arc<RwLock<Vec<(usize, LogEntry)>>>,
@@ -400,10 +446,15 @@ fn finalize_wasm_task(
         }
     }
 
-    if let Err(e) = join_handle
+    let outcome = join_handle
         .join()
-        .map_err(|_| Error::ThreadJoin("Failed to join".to_string()))?
-    {
+        .map_err(|_| Error::ThreadJoin("Failed to join".to_string()))?;
+    let result = match outcome {
+        JoinOutcome::Finished(result) => result,
+        JoinOutcome::Panicked => return Err(Error::ThreadJoin("Failed to join".to_string())),
+    };
+
+    if let Err(e) = result {
         let formatted = format!("{:?}", e);
         if !formatted.contains("Wasm program terminated")
             && !formatted.contains("receiving on a closed channel")
@@ -421,7 +472,7 @@ fn finalize_wasm_task(
 
 fn finalize_bpf_loader_task(
     polling_handle: Option<PollingHandle>,
-    join_handle: JoinHandle<Result<()>>,
+    join_handle: JoinHandle<JoinOutcome<Result<()>>>,
     terminate_running: bool,
     btf_archive_tempdir: Option<TempDir>,
 ) -> Result<()> {
@@ -431,10 +482,14 @@ fn finalize_bpf_loader_task(
             polling_handle.terminate();
         }
     }
-    join_handle
+    match join_handle
         .join()
         .map_err(|_| Error::ThreadJoin("Failed to join".to_string()))?
-        .map_err(|e| Error::Bpf(format!("Failed to wait for the thread's exiting: {:?}", e)))
+    {
+        JoinOutcome::Finished(result) => result
+            .map_err(|e| Error::Bpf(format!("Failed to wait for the thread's exiting: {:?}", e))),
+        JoinOutcome::Panicked => Err(Error::ThreadJoin("Failed to join".to_string())),
+    }
 }
 
 struct WasmLogCollector {
@@ -543,12 +598,14 @@ pub(crate) fn test_running_program_with_delayed_wasm_output(
     let stderr = ReadableWritePipe::new_vec_buf();
     let stdout_writer = stdout.clone();
     let stderr_writer = stderr.clone();
-    let join_handle = std::thread::spawn(move || {
+    let exited_at = Arc::new(Mutex::new(None));
+    let worker = std::thread::spawn(move || {
         std::thread::sleep(delay);
         stderr_writer.borrow().write_all(stderr_bytes).unwrap();
         stdout_writer.borrow().write_all(stdout_bytes).unwrap();
         Ok(())
     });
+    let join_handle = wrap_join_handle(worker, Arc::clone(&exited_at));
 
     RunningProgram {
         task: Task {
@@ -562,6 +619,7 @@ pub(crate) fn test_running_program_with_delayed_wasm_output(
             }),
             log_buffer: Arc::new(RwLock::new(Vec::new())),
             log_cursor: Arc::new(AtomicUsize::new(0)),
+            exited_at,
         },
     }
 }

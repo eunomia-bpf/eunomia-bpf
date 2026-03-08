@@ -56,7 +56,8 @@ impl NativeClientState {
             .retain(|_, program| program.retained_until > now);
     }
 
-    fn retire_exited_programs(&mut self, now: Instant) {
+    fn retire_exited_programs(&mut self) {
+        let retention = compat_completion_retention();
         let completed_handles = self
             .programs
             .iter()
@@ -66,26 +67,28 @@ impl NativeClientState {
                 if !program.has_exited() {
                     return None;
                 }
-                Some((*handle, program.fetch_logs(None, Some(usize::MAX))))
+                Some((
+                    *handle,
+                    CompletedProgram {
+                        logs: program.fetch_logs(None, Some(usize::MAX)),
+                        retained_until: program
+                            .retained_until(retention)
+                            .expect("completed program must expose an exit timestamp"),
+                    },
+                ))
             })
             .collect::<Vec<_>>();
 
-        for (handle, logs) in completed_handles {
+        for (handle, completed_program) in completed_handles {
             self.programs.remove(&handle);
-            self.completed_programs.insert(
-                handle,
-                CompletedProgram {
-                    logs,
-                    retained_until: now + compat_completion_retention(),
-                },
-            );
+            self.completed_programs.insert(handle, completed_program);
         }
     }
 
     fn refresh_completed_programs(&mut self) {
         let now = Instant::now();
+        self.retire_exited_programs();
         self.prune_expired_completed_programs(now);
-        self.retire_exited_programs(now);
     }
 }
 
@@ -231,6 +234,21 @@ mod tests {
         test_running_program_with_delayed_wasm_output, test_running_program_with_wasm_output,
     };
 
+    fn wait_until_program_exited(program: &Arc<Mutex<Option<RunningProgram>>>) {
+        for _ in 0..50 {
+            if program
+                .lock()
+                .unwrap()
+                .as_ref()
+                .is_some_and(RunningProgram::has_exited)
+            {
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        panic!("program did not exit in time");
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn completed_programs_keep_tail_logs_for_a_bounded_window() {
         let client = EcliNativeClient::default();
@@ -357,5 +375,32 @@ mod tests {
         let state = client.state.read().unwrap();
         assert!(state.programs.is_empty());
         assert!(state.completed_programs.is_empty());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn idle_gaps_do_not_extend_fetch_logs_retention_window() {
+        let client = EcliNativeClient::default();
+        let handle = 1;
+        let retention = crate::runner::compat_completion_retention();
+        let program = Arc::new(Mutex::new(Some(test_running_program_with_wasm_output(
+            b"out", b"err",
+        ))));
+        client.state.write().unwrap().programs.insert(
+            handle,
+            ProgramSlot {
+                name: "completed".to_string(),
+                paused: false,
+                program: Arc::clone(&program),
+            },
+        );
+
+        wait_until_program_exited(&program);
+        tokio::time::sleep(retention + std::time::Duration::from_millis(50)).await;
+
+        assert!(client.fetch_logs(handle, None, Some(10)).await.is_err());
+
+        let state = client.state.read().unwrap();
+        assert!(!state.programs.contains_key(&handle));
+        assert!(!state.completed_programs.contains_key(&handle));
     }
 }
