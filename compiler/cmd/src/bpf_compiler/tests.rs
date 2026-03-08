@@ -25,7 +25,7 @@ use crate::helper::get_target_arch;
 use crate::tests::get_test_assets_dir;
 
 use super::{
-    ensure_output_artifact_can_be_written, pack_object_in_config,
+    claim_output_artifact, ensure_output_artifact_can_be_written, pack_object_in_config,
     write_output_artifact_owner_marker,
 };
 
@@ -305,4 +305,20 @@ fn test_output_artifact_guard_rejects_other_source_same_basename_btfgen_stage() 
             .unwrap();
 
     assert!(err.to_string().contains("belongs to a different source"));
+}
+
+#[test]
+fn test_claimed_partial_artifact_is_not_unowned_on_retry() {
+    let output_dir = TempDir::new().unwrap();
+
+    let args = create_pack_test_args(&output_dir, "client.bpf.c", false);
+    let artifact_path = args.get_standalone_executable_path();
+
+    claim_output_artifact(&args, &artifact_path).unwrap();
+    fs::write(&artifact_path, b"partial").unwrap();
+
+    ensure_output_artifact_can_be_written(&args, &artifact_path).unwrap();
+    assert!(args
+        .get_output_artifact_marker_path(&artifact_path)
+        .exists());
 }

@@ -150,7 +150,8 @@ impl Options {
         self.get_output_directory().join("ewasm-skel.h")
     }
     pub fn get_source_file_temp_path(&self) -> PathBuf {
-        self.get_output_directory().join("temp.c")
+        self.get_workspace_directory()
+            .join(format!("{}.temp.c", self.object_name))
     }
     pub fn get_standalone_executable_path(&self) -> PathBuf {
         self.get_output_directory()
