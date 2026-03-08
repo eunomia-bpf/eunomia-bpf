@@ -185,73 +185,48 @@ fn should_suggest_run_migration(raw_args: &[OsString]) -> bool {
 
 #[cfg(feature = "native")]
 fn is_likely_subcommand_typo(input: &str, subcommand: &str) -> bool {
-    is_within_one_edit(input, subcommand) || is_single_transposition(input, subcommand)
+    is_within_edit_distance(input, subcommand, 2)
 }
 
 #[cfg(feature = "native")]
-fn is_within_one_edit(lhs: &str, rhs: &str) -> bool {
-    if lhs == rhs {
-        return true;
-    }
-
+fn is_within_edit_distance(lhs: &str, rhs: &str, max_distance: usize) -> bool {
     let lhs = lhs.as_bytes();
     let rhs = rhs.as_bytes();
-    if lhs.len().abs_diff(rhs.len()) > 1 {
+    if lhs.len().abs_diff(rhs.len()) > max_distance {
         return false;
     }
 
-    let (mut i, mut j, mut edits) = (0usize, 0usize, 0usize);
-    while i < lhs.len() && j < rhs.len() {
-        if lhs[i] == rhs[j] {
-            i += 1;
-            j += 1;
-            continue;
+    let mut prev_prev = vec![0; rhs.len() + 1];
+    let mut prev = (0..=rhs.len()).collect::<Vec<_>>();
+    let mut curr = vec![0; rhs.len() + 1];
+
+    for (i, &lhs_byte) in lhs.iter().enumerate() {
+        curr[0] = i + 1;
+        let mut row_min = curr[0];
+
+        for (j, &rhs_byte) in rhs.iter().enumerate() {
+            let substitution_cost = usize::from(lhs_byte != rhs_byte);
+            let mut cost = (prev[j + 1] + 1)
+                .min(curr[j] + 1)
+                .min(prev[j] + substitution_cost);
+
+            if i > 0 && j > 0 && lhs_byte == rhs[j - 1] && lhs[i - 1] == rhs_byte {
+                cost = cost.min(prev_prev[j - 1] + 1);
+            }
+
+            curr[j + 1] = cost;
+            row_min = row_min.min(cost);
         }
 
-        edits += 1;
-        if edits > 1 {
+        if row_min > max_distance {
             return false;
         }
 
-        match lhs.len().cmp(&rhs.len()) {
-            std::cmp::Ordering::Less => j += 1,
-            std::cmp::Ordering::Equal => {
-                i += 1;
-                j += 1;
-            }
-            std::cmp::Ordering::Greater => i += 1,
-        }
+        std::mem::swap(&mut prev_prev, &mut prev);
+        std::mem::swap(&mut prev, &mut curr);
     }
 
-    if i < lhs.len() || j < rhs.len() {
-        edits += 1;
-    }
-
-    edits <= 1
-}
-
-#[cfg(feature = "native")]
-fn is_single_transposition(lhs: &str, rhs: &str) -> bool {
-    if lhs.len() != rhs.len() {
-        return false;
-    }
-
-    let lhs = lhs.as_bytes();
-    let rhs = rhs.as_bytes();
-    let mismatches = lhs
-        .iter()
-        .zip(rhs.iter())
-        .enumerate()
-        .filter_map(|(idx, (left, right))| (left != right).then_some(idx))
-        .collect::<Vec<_>>();
-
-    matches!(
-        mismatches.as_slice(),
-        [first, second]
-            if second == &(first + 1)
-                && lhs[*first] == rhs[*second]
-                && lhs[*second] == rhs[*first]
-    )
+    prev[rhs.len()] <= max_distance
 }
 
 #[cfg(not(feature = "native"))]
@@ -429,7 +404,7 @@ mod tests {
     #[cfg(feature = "native")]
     #[test]
     fn do_not_suggest_run_migration_for_subcommand_typos() {
-        for typo in ["pus", "pll", "runn", "psuh"] {
+        for typo in ["pus", "pll", "runn", "psuh", "psu", "plu"] {
             assert!(!super::should_suggest_run_migration(&[
                 "ecli".into(),
                 typo.into()
