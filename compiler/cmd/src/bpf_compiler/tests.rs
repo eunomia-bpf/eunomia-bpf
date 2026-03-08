@@ -12,6 +12,7 @@ use std::sync::{Arc, Barrier};
 use std::thread;
 use std::{fs, path};
 
+use anyhow::anyhow;
 use clap::Parser;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
@@ -28,12 +29,13 @@ use crate::tests::get_test_assets_dir;
 
 use super::{
     build_output_artifact_claim, claim_output_artifact, claim_requested_output_artifacts,
-    ensure_output_artifact_can_be_written, get_output_artifact_claim_path,
-    get_output_artifact_cleanup_reservation_path,
+    create_output_object_tempfile, ensure_output_artifact_can_be_written,
+    get_output_artifact_claim_path, get_output_artifact_cleanup_reservation_path,
     normalize_output_artifact_tool_identity_path_with_path_env, pack_object_in_config,
-    release_output_artifact_claim, set_output_artifact_claim_publish_barrier,
-    set_output_artifact_claim_release_failure, set_output_artifact_cleanup_reservation_barrier,
-    set_output_artifact_marker_publish_barrier, write_output_artifact_owner_marker,
+    publish_output_object_artifact, release_output_artifact_claim,
+    set_output_artifact_claim_publish_barrier, set_output_artifact_claim_release_failure,
+    set_output_artifact_cleanup_reservation_barrier, set_output_artifact_marker_publish_barrier,
+    set_output_object_publish_barrier, write_output_artifact_owner_marker,
 };
 
 fn setup_tests(test_name: &str) -> (String, String, PathBuf) {
@@ -42,6 +44,9 @@ fn setup_tests(test_name: &str) -> (String, String, PathBuf) {
     let test_event = std::fs::read_to_string(assets_dir.join("event.h")).unwrap();
     let tmp_dir = path::Path::new(TEMP_EUNOMIA_DIR);
     let tmp_dir = tmp_dir.join(test_name);
+    if tmp_dir.exists() {
+        fs::remove_dir_all(&tmp_dir).unwrap();
+    }
     fs::create_dir_all(&tmp_dir).unwrap();
     std::fs::copy(
         assets_dir.join("other_header.h"),
@@ -139,6 +144,165 @@ fn test_compile_bpf() {
     args.compile_opts.yaml = true;
     compile_bpf(&args).unwrap();
     fs::remove_dir_all(tmp_dir).unwrap();
+}
+
+#[test]
+fn test_overlapping_same_source_json_yaml_builds_publish_and_pack_shared_object() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("client.bpf.c");
+    fs::write(&source_path, "int x;").unwrap();
+
+    let json_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let yaml_args = create_pack_test_args_from_source_path(&output_dir, &source_path, true);
+    let output_object_path = output_dir.path().join("client.bpf.o");
+    let publish_entered = Arc::new(Barrier::new(3));
+    let publish_release = Arc::new(Barrier::new(3));
+    let package_claims_held = Arc::new(Barrier::new(3));
+    set_output_object_publish_barrier(Some((
+        output_object_path.clone(),
+        publish_entered.clone(),
+        publish_release.clone(),
+    )));
+
+    let json_package_claims_held = package_claims_held.clone();
+    let json_handle = thread::spawn(move || -> anyhow::Result<()> {
+        let claimed_output_artifacts = claim_requested_output_artifacts(&json_args)?;
+        let build_result = (|| -> anyhow::Result<()> {
+            let mut output_object_file =
+                create_output_object_tempfile(json_args.get_output_object_path())?;
+            output_object_file.write_all(b"json")?;
+            output_object_file.as_file_mut().sync_all()?;
+
+            write_test_meta_config(&json_args);
+            publish_output_object_artifact(
+                &json_args,
+                output_object_file,
+                json_args.get_output_object_path(),
+            )?;
+            pack_object_in_config(&json_args)?;
+            json_package_claims_held.wait();
+            Ok(())
+        })();
+        let release_result = claimed_output_artifacts.release();
+
+        match (build_result, release_result) {
+            (Ok(()), Ok(())) => Ok(()),
+            (Err(err), Ok(())) => Err(err),
+            (Ok(()), Err(release_err)) => Err(release_err),
+            (Err(err), Err(release_err)) => Err(anyhow!(
+                "{err}. Failed to release output artifact claims: {release_err}"
+            )),
+        }
+    });
+    let yaml_package_claims_held = package_claims_held.clone();
+    let yaml_handle = thread::spawn(move || -> anyhow::Result<()> {
+        let claimed_output_artifacts = claim_requested_output_artifacts(&yaml_args)?;
+        let build_result = (|| -> anyhow::Result<()> {
+            let mut output_object_file =
+                create_output_object_tempfile(yaml_args.get_output_object_path())?;
+            output_object_file.write_all(b"yaml")?;
+            output_object_file.as_file_mut().sync_all()?;
+
+            write_test_meta_config(&yaml_args);
+            publish_output_object_artifact(
+                &yaml_args,
+                output_object_file,
+                yaml_args.get_output_object_path(),
+            )?;
+            pack_object_in_config(&yaml_args)?;
+            yaml_package_claims_held.wait();
+            Ok(())
+        })();
+        let release_result = claimed_output_artifacts.release();
+
+        match (build_result, release_result) {
+            (Ok(()), Ok(())) => Ok(()),
+            (Err(err), Ok(())) => Err(err),
+            (Ok(()), Err(release_err)) => Err(release_err),
+            (Err(err), Err(release_err)) => Err(anyhow!(
+                "{err}. Failed to release output artifact claims: {release_err}"
+            )),
+        }
+    });
+
+    publish_entered.wait();
+    assert!(!output_object_path.exists());
+    publish_release.wait();
+    package_claims_held.wait();
+
+    let json_result = json_handle.join().unwrap();
+    let yaml_result = yaml_handle.join().unwrap();
+    set_output_object_publish_barrier(None);
+
+    json_result.unwrap();
+    yaml_result.unwrap();
+    assert!(output_dir.path().join("client.bpf.o").exists());
+    assert!(output_dir.path().join("client.skel.json").exists());
+    assert!(output_dir.path().join("client.skel.yaml").exists());
+    assert!(output_dir.path().join("package.json").exists());
+    assert!(output_dir.path().join("package.yaml").exists());
+}
+
+#[test]
+fn test_publish_output_object_artifact_allows_only_one_same_source_publisher() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("shared.bpf.c");
+    let object_path = output_dir.path().join("shared.bpf.o");
+    fs::write(&source_path, "int x;").unwrap();
+
+    let json_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let yaml_args = create_pack_test_args_from_source_path(&output_dir, &source_path, true);
+    let json_claim = build_output_artifact_claim(&json_args);
+    let yaml_claim = build_output_artifact_claim(&yaml_args);
+
+    assert!(claim_output_artifact(&json_args, &object_path).unwrap());
+    assert!(claim_output_artifact(&yaml_args, &object_path).unwrap());
+
+    let mut json_temp_object = create_output_object_tempfile(&object_path).unwrap();
+    json_temp_object.write_all(b"json").unwrap();
+    json_temp_object.as_file_mut().sync_all().unwrap();
+
+    let mut yaml_temp_object = create_output_object_tempfile(&object_path).unwrap();
+    yaml_temp_object.write_all(b"yaml").unwrap();
+    yaml_temp_object.as_file_mut().sync_all().unwrap();
+
+    let publish_entered = Arc::new(Barrier::new(3));
+    let publish_release = Arc::new(Barrier::new(3));
+    set_output_object_publish_barrier(Some((
+        object_path.clone(),
+        publish_entered.clone(),
+        publish_release.clone(),
+    )));
+
+    let json_object_path = object_path.clone();
+    let yaml_object_path = object_path.clone();
+    let json_handle = thread::spawn(move || {
+        publish_output_object_artifact(&json_args, json_temp_object, &json_object_path)
+    });
+    let yaml_handle = thread::spawn(move || {
+        publish_output_object_artifact(&yaml_args, yaml_temp_object, &yaml_object_path)
+    });
+
+    publish_entered.wait();
+    publish_release.wait();
+
+    let json_result = json_handle.join().unwrap();
+    let yaml_result = yaml_handle.join().unwrap();
+    set_output_object_publish_barrier(None);
+
+    let json_published = json_result.unwrap();
+    let yaml_published = yaml_result.unwrap();
+    let output_object = fs::read(&object_path).unwrap();
+
+    assert_ne!(json_published, yaml_published);
+    if json_published {
+        assert_eq!(output_object, b"json");
+    } else {
+        assert_eq!(output_object, b"yaml");
+    }
+
+    release_output_artifact_claim(&json_claim, &object_path).unwrap();
+    release_output_artifact_claim(&yaml_claim, &object_path).unwrap();
 }
 
 #[test]
