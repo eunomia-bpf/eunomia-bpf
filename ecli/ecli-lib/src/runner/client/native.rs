@@ -47,8 +47,6 @@ impl Default for NativeClientState {
 
 impl NativeClientState {
     fn retire_exited_programs(&mut self) {
-        self.completed_programs.clear();
-
         let completed_handles = self
             .programs
             .iter()
@@ -64,10 +62,8 @@ impl NativeClientState {
 
         for (handle, logs) in completed_handles {
             self.programs.remove(&handle);
-            if !logs.is_empty() {
-                self.completed_programs
-                    .insert(handle, CompletedProgram { logs });
-            }
+            self.completed_programs
+                .insert(handle, CompletedProgram { logs });
         }
     }
 }
@@ -185,8 +181,8 @@ impl AbstractClient for EcliNativeClient {
 
     async fn get_program_list(&self) -> Result<Vec<ProgramDesc>> {
         let mut guard = self.state.write().unwrap();
-        // Keep completed handles around for a single liveness poll so callers can
-        // drain any tail logs after noticing the session disappear from the list.
+        // Retain completed handles until explicit cleanup so one finished session
+        // is not dropped while callers keep polling list state for another.
         guard.retire_exited_programs();
         Ok(guard
             .programs
@@ -208,19 +204,91 @@ impl AbstractClient for EcliNativeClient {
 #[allow(deprecated)]
 mod tests {
     use super::*;
-    use crate::runner::native::test_running_program_with_wasm_output;
+    use crate::runner::native::{
+        test_running_program_with_delayed_wasm_output, test_running_program_with_wasm_output,
+    };
 
     #[tokio::test(flavor = "current_thread")]
-    async fn exited_programs_drop_from_liveness_list_but_keep_tail_logs_for_one_poll() {
+    async fn completed_programs_keep_tail_logs_while_other_programs_are_still_running() {
+        let client = EcliNativeClient::default();
+        let completed_handle = 1;
+        let active_handle = 2;
+        let mut state = client.state.write().unwrap();
+        state.programs.insert(
+            completed_handle,
+            ProgramSlot {
+                name: "completed".to_string(),
+                paused: false,
+                program: Arc::new(Mutex::new(Some(test_running_program_with_wasm_output(
+                    b"out", b"err",
+                )))),
+            },
+        );
+        state.programs.insert(
+            active_handle,
+            ProgramSlot {
+                name: "active".to_string(),
+                paused: false,
+                program: Arc::new(Mutex::new(Some(
+                    test_running_program_with_delayed_wasm_output(
+                        std::time::Duration::from_millis(250),
+                        b"",
+                        b"",
+                    ),
+                ))),
+            },
+        );
+        drop(state);
+
+        let mut list_only_shows_active_handle = false;
+        for _ in 0..50 {
+            let list = client.get_program_list().await.unwrap();
+            if list.len() == 1 && list[0].id == active_handle {
+                list_only_shows_active_handle = true;
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+
+        assert!(list_only_shows_active_handle);
+
+        for _ in 0..3 {
+            let list = client.get_program_list().await.unwrap();
+            assert_eq!(list.len(), 1);
+            assert_eq!(list[0].id, active_handle);
+
+            let logs = client
+                .fetch_logs(completed_handle, None, Some(10))
+                .await
+                .unwrap();
+            assert_eq!(logs.len(), 2);
+            assert_eq!(logs[0].1.log, "err");
+            assert_eq!(logs[1].1.log, "out");
+        }
+
+        client.terminate_program(completed_handle).await.unwrap();
+        assert!(client
+            .fetch_logs(completed_handle, None, Some(10))
+            .await
+            .is_err());
+        client.terminate_program(active_handle).await.unwrap();
+
+        let state = client.state.read().unwrap();
+        assert!(state.programs.is_empty());
+        assert!(state.completed_programs.is_empty());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn quiet_completed_programs_are_retained_until_explicit_cleanup() {
         let client = EcliNativeClient::default();
         let handle = 1;
         client.state.write().unwrap().programs.insert(
             handle,
             ProgramSlot {
-                name: "prog".to_string(),
+                name: "quiet".to_string(),
                 paused: false,
                 program: Arc::new(Mutex::new(Some(test_running_program_with_wasm_output(
-                    b"out", b"err",
+                    b"", b"",
                 )))),
             },
         );
@@ -235,13 +303,19 @@ mod tests {
         }
 
         assert!(list_became_empty);
-
-        let logs = client.fetch_logs(handle, None, Some(10)).await.unwrap();
-        assert_eq!(logs.len(), 2);
-        assert_eq!(logs[0].1.log, "err");
-        assert_eq!(logs[1].1.log, "out");
-
+        assert!(client
+            .fetch_logs(handle, None, Some(10))
+            .await
+            .unwrap()
+            .is_empty());
         assert!(client.get_program_list().await.unwrap().is_empty());
+        assert!(client
+            .fetch_logs(handle, None, Some(10))
+            .await
+            .unwrap()
+            .is_empty());
+
+        client.terminate_program(handle).await.unwrap();
         assert!(client.fetch_logs(handle, None, Some(10)).await.is_err());
 
         let state = client.state.read().unwrap();

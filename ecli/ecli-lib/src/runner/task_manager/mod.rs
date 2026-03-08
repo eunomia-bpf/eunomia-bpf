@@ -43,8 +43,6 @@ impl Default for NativeTaskManager {
 
 impl NativeTaskManager {
     fn retire_exited_tasks(&mut self) {
-        self.completed_tasks.clear();
-
         let completed_ids = self
             .tasks
             .iter()
@@ -59,9 +57,7 @@ impl NativeTaskManager {
 
         for (id, completed_task) in completed_ids {
             self.tasks.remove(&id);
-            if !completed_task.logs.is_empty() {
-                self.completed_tasks.insert(id, completed_task);
-            }
+            self.completed_tasks.insert(id, completed_task);
         }
     }
 
@@ -74,9 +70,9 @@ impl NativeTaskManager {
         })
     }
 
-    /// Get all active compatibility tasks. Finished tasks are retained for one
-    /// additional liveness poll so callers can still read any tail logs after
-    /// observing liveness.
+    /// Get all active compatibility tasks. Finished tasks are retained until
+    /// explicit cleanup so callers can still read any tail logs after
+    /// observing liveness while they monitor other tasks.
     pub fn get_task_list(&mut self) -> Vec<ProgramDesc> {
         self.retire_exited_tasks();
         self.tasks
@@ -227,7 +223,9 @@ impl Task {
 #[allow(deprecated)]
 mod tests {
     use super::*;
-    use crate::runner::native::test_running_program_with_wasm_output;
+    use crate::runner::native::{
+        test_running_program_with_delayed_wasm_output, test_running_program_with_wasm_output,
+    };
 
     #[test]
     fn empty_manager_reports_no_tasks() {
@@ -236,16 +234,85 @@ mod tests {
     }
 
     #[test]
-    fn exited_tasks_drop_from_liveness_list_but_keep_tail_logs_for_one_poll() {
+    fn completed_tasks_keep_tail_logs_while_other_tasks_are_still_running() {
+        let completed_task_id = FIRST_TASK_ID;
+        let active_task_id = FIRST_TASK_ID + 1;
+        let mut manager = NativeTaskManager::default();
+        manager.next_task_id = active_task_id + 1;
+        manager.tasks.insert(
+            completed_task_id,
+            Arc::new(Mutex::new(Task {
+                name: "completed".to_string(),
+                paused: false,
+                program: Some(test_running_program_with_wasm_output(b"out", b"err")),
+                completed_logs: None,
+            })),
+        );
+        manager.tasks.insert(
+            active_task_id,
+            Arc::new(Mutex::new(Task {
+                name: "active".to_string(),
+                paused: false,
+                program: Some(test_running_program_with_delayed_wasm_output(
+                    std::time::Duration::from_millis(250),
+                    b"",
+                    b"",
+                )),
+                completed_logs: None,
+            })),
+        );
+
+        let mut list_only_shows_active_task = false;
+        for _ in 0..50 {
+            let list = manager.get_task_list();
+            if list.len() == 1 && list[0].id == active_task_id as ProgramHandle {
+                list_only_shows_active_task = true;
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+
+        assert!(list_only_shows_active_task);
+
+        for _ in 0..3 {
+            let list = manager.get_task_list();
+            assert_eq!(list.len(), 1);
+            assert_eq!(list[0].id, active_task_id as ProgramHandle);
+
+            let task = manager
+                .get_task(completed_task_id as ProgramHandle)
+                .unwrap();
+            let logs = task.lock().unwrap().poll_log(None, 10);
+            assert_eq!(logs.len(), 2);
+            assert_eq!(logs[0].1.log, "err");
+            assert_eq!(logs[1].1.log, "out");
+        }
+
+        manager
+            .terminate_task(completed_task_id as ProgramHandle)
+            .unwrap();
+        assert!(manager
+            .get_task(completed_task_id as ProgramHandle)
+            .is_none());
+        manager
+            .terminate_task(active_task_id as ProgramHandle)
+            .unwrap();
+
+        assert!(manager.tasks.is_empty());
+        assert!(manager.completed_tasks.is_empty());
+    }
+
+    #[test]
+    fn quiet_completed_tasks_are_retained_until_explicit_cleanup() {
         let task_id = FIRST_TASK_ID;
         let mut manager = NativeTaskManager::default();
         manager.next_task_id = task_id + 1;
         manager.tasks.insert(
             task_id,
             Arc::new(Mutex::new(Task {
-                name: "prog".to_string(),
+                name: "quiet".to_string(),
                 paused: false,
-                program: Some(test_running_program_with_wasm_output(b"out", b"err")),
+                program: Some(test_running_program_with_wasm_output(b"", b"")),
                 completed_logs: None,
             })),
         );
@@ -262,12 +329,12 @@ mod tests {
         assert!(list_became_empty);
 
         let task = manager.get_task(task_id as ProgramHandle).unwrap();
-        let logs = task.lock().unwrap().poll_log(None, 10);
-        assert_eq!(logs.len(), 2);
-        assert_eq!(logs[0].1.log, "err");
-        assert_eq!(logs[1].1.log, "out");
-
+        assert!(task.lock().unwrap().poll_log(None, 10).is_empty());
         assert!(manager.get_task_list().is_empty());
+        let task = manager.get_task(task_id as ProgramHandle).unwrap();
+        assert!(task.lock().unwrap().poll_log(None, 10).is_empty());
+
+        manager.terminate_task(task_id as ProgramHandle).unwrap();
         assert!(manager.get_task(task_id as ProgramHandle).is_none());
         assert!(manager.tasks.is_empty());
         assert!(manager.completed_tasks.is_empty());

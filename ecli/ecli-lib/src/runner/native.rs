@@ -526,11 +526,25 @@ pub(crate) fn test_running_program_with_wasm_output(
     stdout_bytes: &'static [u8],
     stderr_bytes: &'static [u8],
 ) -> RunningProgram {
+    test_running_program_with_delayed_wasm_output(
+        std::time::Duration::ZERO,
+        stdout_bytes,
+        stderr_bytes,
+    )
+}
+
+#[cfg(test)]
+pub(crate) fn test_running_program_with_delayed_wasm_output(
+    delay: std::time::Duration,
+    stdout_bytes: &'static [u8],
+    stderr_bytes: &'static [u8],
+) -> RunningProgram {
     let stdout = ReadableWritePipe::new_vec_buf();
     let stderr = ReadableWritePipe::new_vec_buf();
     let stdout_writer = stdout.clone();
     let stderr_writer = stderr.clone();
     let join_handle = std::thread::spawn(move || {
+        std::thread::sleep(delay);
         stderr_writer.borrow().write_all(stderr_bytes).unwrap();
         stdout_writer.borrow().write_all(stdout_bytes).unwrap();
         Ok(())
