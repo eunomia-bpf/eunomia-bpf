@@ -28,6 +28,7 @@ pub const FIRST_TASK_ID: usize = 1;
 pub struct NativeTaskManager {
     next_task_id: usize,
     tasks: HashMap<usize, Arc<Mutex<Task>>>,
+    completed_tasks: HashMap<usize, CompletedTask>,
 }
 
 impl Default for NativeTaskManager {
@@ -35,28 +36,54 @@ impl Default for NativeTaskManager {
         Self {
             next_task_id: FIRST_TASK_ID,
             tasks: HashMap::new(),
+            completed_tasks: HashMap::new(),
         }
     }
 }
 
 impl NativeTaskManager {
-    /// Get a reference to a compatibility task.
-    pub fn get_task(&self, handle: ProgramHandle) -> Option<Arc<Mutex<Task>>> {
-        self.tasks.get(&(handle as usize)).cloned()
-    }
+    fn retire_exited_tasks(&mut self) {
+        self.completed_tasks.clear();
 
-    /// Get all active compatibility tasks. Finished tasks are retained internally
-    /// until explicit termination so callers can still read any tail logs after
-    /// observing liveness.
-    pub fn get_task_list(&mut self) -> Vec<ProgramDesc> {
-        self.tasks
+        let completed_ids = self
+            .tasks
             .iter()
             .filter_map(|(id, task)| {
                 let task = task.lock().unwrap();
-                if task.has_exited() {
+                if !task.has_exited() {
                     return None;
                 }
-                Some(ProgramDesc {
+                Some((*id, task.completed_snapshot()))
+            })
+            .collect::<Vec<_>>();
+
+        for (id, completed_task) in completed_ids {
+            self.tasks.remove(&id);
+            if !completed_task.logs.is_empty() {
+                self.completed_tasks.insert(id, completed_task);
+            }
+        }
+    }
+
+    /// Get a reference to a compatibility task.
+    pub fn get_task(&self, handle: ProgramHandle) -> Option<Arc<Mutex<Task>>> {
+        self.tasks.get(&(handle as usize)).cloned().or_else(|| {
+            self.completed_tasks
+                .get(&(handle as usize))
+                .map(|task| Arc::new(Mutex::new(Task::from_completed(task))))
+        })
+    }
+
+    /// Get all active compatibility tasks. Finished tasks are retained for one
+    /// additional liveness poll so callers can still read any tail logs after
+    /// observing liveness.
+    pub fn get_task_list(&mut self) -> Vec<ProgramDesc> {
+        self.retire_exited_tasks();
+        self.tasks
+            .iter()
+            .map(|(id, task)| {
+                let task = task.lock().unwrap();
+                ProgramDesc {
                     id: *id as ProgramHandle,
                     name: task.name.clone(),
                     status: if task.paused {
@@ -64,17 +91,20 @@ impl NativeTaskManager {
                     } else {
                         ProgramStatus::Running
                     },
-                })
+                }
             })
             .collect()
     }
 
     /// Terminate a compatibility task by handle.
     pub fn terminate_task(&mut self, handle: ProgramHandle) -> Result<()> {
-        let task = self
-            .tasks
-            .remove(&(handle as usize))
-            .ok_or_else(|| Error::Bpf(format!("Invalid handle: {}", handle)))?;
+        let task = if let Some(task) = self.tasks.remove(&(handle as usize)) {
+            task
+        } else if self.completed_tasks.remove(&(handle as usize)).is_some() {
+            return Ok(());
+        } else {
+            return Err(Error::Bpf(format!("Invalid handle: {}", handle)));
+        };
         let task = match Arc::try_unwrap(task) {
             Ok(task) => task.into_inner().unwrap(),
             Err(task) => {
@@ -110,10 +140,16 @@ impl NativeTaskManager {
                 args,
                 btf_archive_path,
             )?),
+            completed_logs: None,
         };
         self.tasks.insert(task_id, Arc::new(Mutex::new(task)));
         Ok(task_id)
     }
+}
+
+struct CompletedTask {
+    name: String,
+    logs: Vec<(usize, LogEntry)>,
 }
 
 /// Deprecated compatibility wrapper for a single running program.
@@ -121,6 +157,7 @@ pub struct Task {
     name: String,
     paused: bool,
     program: Option<RunningProgram>,
+    completed_logs: Option<Vec<(usize, LogEntry)>>,
 }
 
 impl Task {
@@ -131,12 +168,40 @@ impl Task {
             .unwrap_or(true)
     }
 
+    fn completed_snapshot(&self) -> CompletedTask {
+        CompletedTask {
+            name: self.name.clone(),
+            logs: self
+                .program
+                .as_ref()
+                .map(|program| program.fetch_logs(None, Some(usize::MAX)))
+                .unwrap_or_else(|| self.completed_logs.clone().unwrap_or_default()),
+        }
+    }
+
+    fn from_completed(task: &CompletedTask) -> Self {
+        Self {
+            name: task.name.clone(),
+            paused: false,
+            program: None,
+            completed_logs: Some(task.logs.clone()),
+        }
+    }
+
     /// Poll logs from the wrapped program.
     pub fn poll_log(&self, cursor: Option<usize>, maximum: usize) -> Vec<(usize, LogEntry)> {
-        self.program
-            .as_ref()
-            .map(|program| program.fetch_logs(cursor, Some(maximum)))
-            .unwrap_or_default()
+        if let Some(program) = self.program.as_ref() {
+            return program.fetch_logs(cursor, Some(maximum));
+        }
+
+        self.completed_logs
+            .as_deref()
+            .unwrap_or(&[])
+            .iter()
+            .filter(|(log_cursor, _)| cursor.map_or(true, |cursor| *log_cursor >= cursor))
+            .take(maximum)
+            .cloned()
+            .collect()
     }
 
     /// Pause or resume the wrapped program.
@@ -171,7 +236,7 @@ mod tests {
     }
 
     #[test]
-    fn exited_tasks_drop_from_liveness_list_but_keep_tail_logs() {
+    fn exited_tasks_drop_from_liveness_list_but_keep_tail_logs_for_one_poll() {
         let task_id = FIRST_TASK_ID;
         let mut manager = NativeTaskManager::default();
         manager.next_task_id = task_id + 1;
@@ -181,22 +246,30 @@ mod tests {
                 name: "prog".to_string(),
                 paused: false,
                 program: Some(test_running_program_with_wasm_output(b"out", b"err")),
+                completed_logs: None,
             })),
         );
 
+        let mut list_became_empty = false;
         for _ in 0..50 {
             if manager.get_task_list().is_empty() {
+                list_became_empty = true;
                 break;
             }
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
 
-        assert!(manager.get_task_list().is_empty());
+        assert!(list_became_empty);
 
         let task = manager.get_task(task_id as ProgramHandle).unwrap();
         let logs = task.lock().unwrap().poll_log(None, 10);
         assert_eq!(logs.len(), 2);
         assert_eq!(logs[0].1.log, "err");
         assert_eq!(logs[1].1.log, "out");
+
+        assert!(manager.get_task_list().is_empty());
+        assert!(manager.get_task(task_id as ProgramHandle).is_none());
+        assert!(manager.tasks.is_empty());
+        assert!(manager.completed_tasks.is_empty());
     }
 }

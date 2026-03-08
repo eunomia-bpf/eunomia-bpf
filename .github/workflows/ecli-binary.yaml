@@ -104,8 +104,8 @@ jobs:
     - name: test ecli-lib compatibility surface
       run: |
         cd ecli/ecli-lib
-        curl https://sh.rustup.rs -o rustup.sh
-        sudo bash -c "cat rustup.sh | sh -s -- -y ; /root/.cargo/bin/cargo test -- --skip test_pause_and_resume ; /root/.cargo/bin/cargo check --manifest-path compat-tests/no-native-public-api/Cargo.toml"
+        cargo test -- --skip test_pause_and_resume
+        cargo check --manifest-path compat-tests/no-native-public-api/Cargo.toml
 
   build-full-client:
     needs: create-release-version
@@ -151,10 +151,8 @@ jobs:
     - name: test ecli
       run: |
         cd ecli/ecli-lib
-        # Install rustup manually using user root
-        curl https://sh.rustup.rs -o rustup.sh
-        sudo bash -c "cat rustup.sh | sh -s -- -y ; /root/.cargo/bin/cargo test -- --skip test_pause_and_resume"
-        /root/.cargo/bin/cargo check --manifest-path compat-tests/no-native-public-api/Cargo.toml
+        cargo test -- --skip test_pause_and_resume
+        cargo check --manifest-path compat-tests/no-native-public-api/Cargo.toml
     - name: Package ecli
       run: |
         mkdir -p release

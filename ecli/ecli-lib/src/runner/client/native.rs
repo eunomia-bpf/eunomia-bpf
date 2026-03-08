@@ -14,7 +14,7 @@ use std::{
 use crate::{
     config::ProgramType,
     error::{Error, Result},
-    runner::{native::NativeRunner, native::RunningProgram, ProgramHandle},
+    runner::{native::NativeRunner, native::RunningProgram, LogEntry, ProgramHandle},
 };
 
 use super::{AbstractClient, ProgramDesc, ProgramStatus};
@@ -25,20 +25,14 @@ struct ProgramSlot {
     program: Arc<Mutex<Option<RunningProgram>>>,
 }
 
-impl ProgramSlot {
-    fn has_exited(&self) -> bool {
-        self.program
-            .lock()
-            .unwrap()
-            .as_ref()
-            .map(RunningProgram::has_exited)
-            .unwrap_or(true)
-    }
+struct CompletedProgram {
+    logs: Vec<(usize, LogEntry)>,
 }
 
 struct NativeClientState {
     next_handle: ProgramHandle,
     programs: HashMap<ProgramHandle, ProgramSlot>,
+    completed_programs: HashMap<ProgramHandle, CompletedProgram>,
 }
 
 impl Default for NativeClientState {
@@ -46,8 +40,48 @@ impl Default for NativeClientState {
         Self {
             next_handle: 1,
             programs: HashMap::new(),
+            completed_programs: HashMap::new(),
         }
     }
+}
+
+impl NativeClientState {
+    fn retire_exited_programs(&mut self) {
+        self.completed_programs.clear();
+
+        let completed_handles = self
+            .programs
+            .iter()
+            .filter_map(|(handle, slot)| {
+                let program_guard = slot.program.lock().unwrap();
+                let program = program_guard.as_ref()?;
+                if !program.has_exited() {
+                    return None;
+                }
+                Some((*handle, program.fetch_logs(None, Some(usize::MAX))))
+            })
+            .collect::<Vec<_>>();
+
+        for (handle, logs) in completed_handles {
+            self.programs.remove(&handle);
+            if !logs.is_empty() {
+                self.completed_programs
+                    .insert(handle, CompletedProgram { logs });
+            }
+        }
+    }
+}
+
+fn snapshot_logs(
+    logs: &[(usize, LogEntry)],
+    cursor: Option<usize>,
+    maximum_count: Option<usize>,
+) -> Vec<(usize, LogEntry)> {
+    logs.iter()
+        .filter(|(log_cursor, _)| cursor.map_or(true, |cursor| *log_cursor >= cursor))
+        .take(maximum_count.unwrap_or(crate::runner::DEFAULT_MAXIMUM_LOG_ENTRIES))
+        .cloned()
+        .collect()
 }
 
 /// Deprecated compatibility client preserved for downstream callers.
@@ -92,13 +126,16 @@ impl AbstractClient for EcliNativeClient {
     }
 
     async fn terminate_program(&self, handle: ProgramHandle) -> Result<()> {
-        let slot = self
-            .state
-            .write()
-            .unwrap()
-            .programs
-            .remove(&handle)
-            .ok_or_else(|| Error::Other(format!("Invalid handle: {}", handle)))?;
+        let slot = {
+            let mut guard = self.state.write().unwrap();
+            if let Some(slot) = guard.programs.remove(&handle) {
+                slot
+            } else if guard.completed_programs.remove(&handle).is_some() {
+                return Ok(());
+            } else {
+                return Err(Error::Other(format!("Invalid handle: {}", handle)));
+            }
+        };
         let mut program_guard = slot.program.lock().unwrap();
         let program = program_guard
             .take()
@@ -127,16 +164,18 @@ impl AbstractClient for EcliNativeClient {
         cursor: Option<usize>,
         maximum_count: Option<usize>,
     ) -> Result<Vec<(usize, crate::runner::LogEntry)>> {
-        let program = {
+        let completed_logs = {
             let guard = self.state.read().unwrap();
-            Arc::clone(
-                &guard
-                    .programs
-                    .get(&handle)
-                    .ok_or_else(|| Error::Other(format!("Invalid handle: {}", handle)))?
-                    .program,
-            )
+            if let Some(slot) = guard.programs.get(&handle) {
+                Some(Arc::clone(&slot.program))
+            } else if let Some(program) = guard.completed_programs.get(&handle) {
+                return Ok(snapshot_logs(&program.logs, cursor, maximum_count));
+            } else {
+                None
+            }
         };
+        let program =
+            completed_logs.ok_or_else(|| Error::Other(format!("Invalid handle: {}", handle)))?;
         let program_guard = program.lock().unwrap();
         let program = program_guard
             .as_ref()
@@ -145,23 +184,21 @@ impl AbstractClient for EcliNativeClient {
     }
 
     async fn get_program_list(&self) -> Result<Vec<ProgramDesc>> {
-        let guard = self.state.read().unwrap();
+        let mut guard = self.state.write().unwrap();
+        // Keep completed handles around for a single liveness poll so callers can
+        // drain any tail logs after noticing the session disappear from the list.
+        guard.retire_exited_programs();
         Ok(guard
             .programs
             .iter()
-            .filter_map(|(handle, slot)| {
-                if slot.has_exited() {
-                    return None;
-                }
-                Some(ProgramDesc {
-                    id: *handle,
-                    name: slot.name.clone(),
-                    status: if slot.paused {
-                        ProgramStatus::Paused
-                    } else {
-                        ProgramStatus::Running
-                    },
-                })
+            .map(|(handle, slot)| ProgramDesc {
+                id: *handle,
+                name: slot.name.clone(),
+                status: if slot.paused {
+                    ProgramStatus::Paused
+                } else {
+                    ProgramStatus::Running
+                },
             })
             .collect())
     }
@@ -174,7 +211,7 @@ mod tests {
     use crate::runner::native::test_running_program_with_wasm_output;
 
     #[tokio::test(flavor = "current_thread")]
-    async fn exited_programs_drop_from_liveness_list_but_keep_tail_logs() {
+    async fn exited_programs_drop_from_liveness_list_but_keep_tail_logs_for_one_poll() {
         let client = EcliNativeClient::default();
         let handle = 1;
         client.state.write().unwrap().programs.insert(
@@ -188,18 +225,27 @@ mod tests {
             },
         );
 
+        let mut list_became_empty = false;
         for _ in 0..50 {
             if client.get_program_list().await.unwrap().is_empty() {
+                list_became_empty = true;
                 break;
             }
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
         }
 
-        assert!(client.get_program_list().await.unwrap().is_empty());
+        assert!(list_became_empty);
 
         let logs = client.fetch_logs(handle, None, Some(10)).await.unwrap();
         assert_eq!(logs.len(), 2);
         assert_eq!(logs[0].1.log, "err");
         assert_eq!(logs[1].1.log, "out");
+
+        assert!(client.get_program_list().await.unwrap().is_empty());
+        assert!(client.fetch_logs(handle, None, Some(10)).await.is_err());
+
+        let state = client.state.read().unwrap();
+        assert!(state.programs.is_empty());
+        assert!(state.completed_programs.is_empty());
     }
 }
