@@ -89,7 +89,7 @@ $(WORKSPACE_ECC): $(ECC)
 	cp $(ECC) $(WORKSPACE_ECC)
 
 XDG_DATA_HOME ?= ${HOME}/.local/share
-EUNOMIA_HOME := $(XDG_DATA_HOME)/eunomia
+EUNOMIA_HOME ?= $(XDG_DATA_HOME)/eunomia
 
 install: all
 	mkdir -p $(EUNOMIA_HOME) && cp -r workspace/. $(EUNOMIA_HOME)/

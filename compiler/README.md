@@ -25,10 +25,13 @@ sudo mv ecc /usr/local/bin/
 
 The raw GitHub release binary currently does **not** bundle the `libeunomia.a` standalone sidecar, so `--standalone` is not supported from that install path yet.
 
-Install from source with the standalone runtime staged into the same user data directory that `ecc` looks up at runtime (`$EUNOMIA_HOME`, or `$XDG_DATA_HOME/eunomia`, or `$HOME/.local/share/eunomia`):
+Install from source with the standalone runtime staged into the same user data directory that `ecc` looks up at runtime. The source install target honors `EUNOMIA_HOME` first, then falls back to `$XDG_DATA_HOME/eunomia`, then `$HOME/.local/share/eunomia`:
 ```bash
 cd compiler
 make install
+
+# Optional: stage into a custom runtime root
+EUNOMIA_HOME=/tmp/custom make install
 ```
 
 Or use Docker:
@@ -324,7 +327,10 @@ git submodule update --init --recursive --remote
 make
 
 # Install
-sudo make install
+make install
+
+# Optional: preserve a custom runtime root
+EUNOMIA_HOME=/tmp/custom make install
 
 # Verify
 ecc -h

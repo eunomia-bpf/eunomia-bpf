@@ -65,6 +65,62 @@ pub fn get_target_arch() -> String {
     arch.to_string()
 }
 
+#[cfg(test)]
+mod tests {
+    use super::{get_eunomia_data_dir, EUNOMIA_HOME_ENV};
+    use std::{
+        ffi::OsString,
+        sync::{Mutex, OnceLock},
+    };
+    use tempfile::TempDir;
+
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    struct EnvGuard {
+        saved: Vec<(&'static str, Option<OsString>)>,
+    }
+
+    impl EnvGuard {
+        fn capture(keys: &[&'static str]) -> Self {
+            Self {
+                saved: keys
+                    .iter()
+                    .map(|key| (*key, std::env::var_os(key)))
+                    .collect(),
+            }
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            for (key, value) in &self.saved {
+                match value {
+                    Some(value) => std::env::set_var(key, value),
+                    None => std::env::remove_var(key),
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_get_eunomia_data_dir_prefers_eunomia_home_env() {
+        let _lock = env_lock().lock().unwrap();
+        let _env = EnvGuard::capture(&[EUNOMIA_HOME_ENV, "XDG_DATA_HOME", "HOME"]);
+        let temp_dir = TempDir::new().unwrap();
+        let eunomia_home = temp_dir.path().join("custom-eunomia-home");
+        let xdg_data_home = temp_dir.path().join("xdg-data-home");
+
+        std::env::set_var(EUNOMIA_HOME_ENV, &eunomia_home);
+        std::env::set_var("XDG_DATA_HOME", &xdg_data_home);
+        std::env::remove_var("HOME");
+
+        assert_eq!(get_eunomia_data_dir().unwrap(), eunomia_home);
+    }
+}
+
 #[macro_export]
 macro_rules! handle_runscript_output {
     ($code:expr, $command:expr, $output:expr, $error: expr, $error_msg: literal) => {

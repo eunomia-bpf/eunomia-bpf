@@ -53,7 +53,7 @@ eunomia-exporter: ## build the exporter for custom metric
 	cd eunomia-exporter && cargo build --release
 
 XDG_DATA_HOME ?= ${HOME}/.local/share
-EUNOMIA_HOME := $(XDG_DATA_HOME)/eunomia
+EUNOMIA_HOME ?= $(XDG_DATA_HOME)/eunomia
 
 release:
 	make -C ecli install

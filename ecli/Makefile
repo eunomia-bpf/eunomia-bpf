@@ -1,5 +1,5 @@
 XDG_DATA_HOME ?= ${HOME}/.local/share
-EUNOMIA_HOME := $(XDG_DATA_HOME)/eunomia
+EUNOMIA_HOME ?= $(XDG_DATA_HOME)/eunomia
 
 .PHONY: build
 build:
