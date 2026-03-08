@@ -178,25 +178,30 @@ fn write_test_meta_config(args: &Options) {
     fs::write(args.get_output_config_path(), meta).unwrap();
 }
 
-#[test]
-fn test_pack_object_in_config_switches_package_formats_cleanly() {
-    let output_dir = TempDir::new().unwrap();
-    let source_path = output_dir.path().join("client.bpf.c");
+fn create_pack_test_args(output_dir: &TempDir, source_name: &str, yaml: bool) -> Options {
+    let source_path = output_dir.path().join(source_name);
     fs::write(&source_path, "int x;").unwrap();
 
-    let compile_opts = CompileArgs::try_parse_from([
+    let mut compile_opts = CompileArgs::try_parse_from([
         "ecc",
         source_path.to_str().unwrap(),
         "--output-path",
         output_dir.path().to_str().unwrap(),
     ])
     .unwrap();
+    compile_opts.yaml = yaml;
 
-    let mut args = Options {
+    Options {
         tmpdir: TempDir::new().unwrap(),
         compile_opts,
-        object_name: "client".to_string(),
-    };
+        object_name: source_name.split('.').next().unwrap().to_string(),
+    }
+}
+
+#[test]
+fn test_pack_object_in_config_switches_package_formats_cleanly() {
+    let output_dir = TempDir::new().unwrap();
+    let mut args = create_pack_test_args(&output_dir, "client.bpf.c", false);
 
     fs::write(args.get_output_object_path(), b"hello world").unwrap();
 
@@ -205,6 +210,7 @@ fn test_pack_object_in_config_switches_package_formats_cleanly() {
 
     assert!(output_dir.path().join("package.json").exists());
     assert!(!output_dir.path().join("package.yaml").exists());
+    assert!(args.get_output_package_marker_path().exists());
 
     args.compile_opts.yaml = true;
     write_test_meta_config(&args);
@@ -212,6 +218,7 @@ fn test_pack_object_in_config_switches_package_formats_cleanly() {
 
     assert!(args.get_output_package_config_path().exists());
     assert!(!output_dir.path().join("package.json").exists());
+    assert!(!args.get_output_sibling_package_marker_path().exists());
 
     args.compile_opts.yaml = false;
     write_test_meta_config(&args);
@@ -219,4 +226,25 @@ fn test_pack_object_in_config_switches_package_formats_cleanly() {
 
     assert!(output_dir.path().join("package.json").exists());
     assert!(!output_dir.path().join("package.yaml").exists());
+    assert!(!args.get_output_sibling_package_marker_path().exists());
+}
+
+#[test]
+fn test_pack_object_in_config_keeps_other_program_sibling_package() {
+    let output_dir = TempDir::new().unwrap();
+
+    let json_args = create_pack_test_args(&output_dir, "first.bpf.c", false);
+    fs::write(json_args.get_output_object_path(), b"first").unwrap();
+    write_test_meta_config(&json_args);
+    pack_object_in_config(&json_args).unwrap();
+
+    let yaml_args = create_pack_test_args(&output_dir, "second.bpf.c", true);
+    fs::write(yaml_args.get_output_object_path(), b"second").unwrap();
+    write_test_meta_config(&yaml_args);
+    pack_object_in_config(&yaml_args).unwrap();
+
+    assert!(output_dir.path().join("package.json").exists());
+    assert!(output_dir.path().join("package.yaml").exists());
+    assert!(json_args.get_output_package_marker_path().exists());
+    assert!(yaml_args.get_output_package_marker_path().exists());
 }
