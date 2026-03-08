@@ -27,9 +27,12 @@ pub(crate) async fn run_native(
     let program = NativeRunner::start_program(&buf, prog_type, export_json, args, None)?;
     let mut last_poll = None;
     loop {
-        print_new_logs(&program, &mut last_poll);
-        if TERMINATED.load(Ordering::Relaxed) || program.has_exited() {
-            print_new_logs(&program, &mut last_poll);
+        drain_all_logs(&program, &mut last_poll);
+        if TERMINATED.load(Ordering::Relaxed) {
+            break;
+        }
+        if program.has_exited() {
+            drain_all_logs(&program, &mut last_poll);
             break;
         }
         tokio::time::sleep(Duration::from_millis(100)).await;
@@ -38,13 +41,20 @@ pub(crate) async fn run_native(
     Ok(())
 }
 
-fn print_new_logs(program: &RunningProgram, last_poll: &mut Option<usize>) {
-    for (cursor, log) in program.fetch_logs(*last_poll, None) {
-        if let LogType::Plain = log.log_type {
-            println!("{}", log.log);
-        } else {
-            print!("{}", log.log);
+fn drain_all_logs(program: &RunningProgram, last_poll: &mut Option<usize>) {
+    loop {
+        let mut drained_any = false;
+        for (cursor, log) in program.fetch_logs(*last_poll, None) {
+            if let LogType::Plain = log.log_type {
+                println!("{}", log.log);
+            } else {
+                print!("{}", log.log);
+            }
+            *last_poll = Some(cursor + 1);
+            drained_any = true;
         }
-        *last_poll = Some(cursor + 1);
+        if !drained_any {
+            break;
+        }
     }
 }

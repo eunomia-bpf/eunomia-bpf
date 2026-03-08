@@ -40,31 +40,14 @@ impl Default for NativeTaskManager {
 }
 
 impl NativeTaskManager {
-    fn clean_dead_tasks(&mut self) {
-        let dead_ids = self
-            .tasks
-            .iter()
-            .filter_map(|(id, task)| {
-                if task.lock().unwrap().died() {
-                    Some(*id)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-        for id in dead_ids {
-            self.tasks.remove(&id);
-        }
-    }
-
     /// Get a reference to a compatibility task.
     pub fn get_task(&self, handle: ProgramHandle) -> Option<Arc<Mutex<Task>>> {
         self.tasks.get(&(handle as usize)).cloned()
     }
 
-    /// Get all active compatibility tasks.
+    /// Get all compatibility tasks. Finished tasks are retained until explicit
+    /// termination so callers can still read any tail logs after observing liveness.
     pub fn get_task_list(&mut self) -> Vec<ProgramDesc> {
-        self.clean_dead_tasks();
         self.tasks
             .iter()
             .map(|(id, task)| {
@@ -143,13 +126,6 @@ impl Task {
             .as_ref()
             .map(|program| program.fetch_logs(cursor, Some(maximum)))
             .unwrap_or_default()
-    }
-
-    fn died(&self) -> bool {
-        self.program
-            .as_ref()
-            .map(RunningProgram::has_exited)
-            .unwrap_or(true)
     }
 
     /// Pause or resume the wrapped program.

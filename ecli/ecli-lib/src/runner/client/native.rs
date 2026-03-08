@@ -39,26 +39,6 @@ impl Default for NativeClientState {
     }
 }
 
-impl NativeClientState {
-    fn clean_dead_tasks(&mut self) {
-        let dead_handles = self
-            .programs
-            .iter()
-            .filter_map(|(handle, slot)| {
-                let guard = slot.program.lock().unwrap();
-                match guard.as_ref() {
-                    Some(program) if program.has_exited() => Some(*handle),
-                    None => Some(*handle),
-                    _ => None,
-                }
-            })
-            .collect::<Vec<_>>();
-        for handle in dead_handles {
-            self.programs.remove(&handle);
-        }
-    }
-}
-
 /// Deprecated compatibility client preserved for downstream callers.
 pub struct EcliNativeClient {
     state: RwLock<NativeClientState>,
@@ -154,8 +134,7 @@ impl AbstractClient for EcliNativeClient {
     }
 
     async fn get_program_list(&self) -> Result<Vec<ProgramDesc>> {
-        let mut guard = self.state.write().unwrap();
-        guard.clean_dead_tasks();
+        let guard = self.state.read().unwrap();
         Ok(guard
             .programs
             .iter()
