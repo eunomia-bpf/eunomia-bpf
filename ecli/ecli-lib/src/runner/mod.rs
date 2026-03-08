@@ -12,6 +12,10 @@ pub mod client;
 pub mod helper;
 #[cfg(feature = "native-client")]
 pub mod native;
+/// Deprecated compatibility surface for the pre-issue-382 task-manager API.
+#[cfg(feature = "native-client")]
+#[deprecated(note = "Use runner::native::{NativeRunner, RunningProgram} instead.")]
+pub mod task_manager;
 
 /// Deprecated handle type used by the compatibility client API.
 pub type ProgramHandle = u64;

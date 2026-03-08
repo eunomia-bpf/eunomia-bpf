@@ -1,0 +1,10 @@
+[package]
+name = "ecli-lib-no-native-public-api"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+ecli-lib = { path = "../..", default-features = false }
+
+[workspace]
