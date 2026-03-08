@@ -8,6 +8,7 @@ use clap::{ArgAction, Parser};
 use fs_extra::dir::CopyOptions;
 use log::debug;
 use rust_embed::RustEmbed;
+use std::io::{Seek, SeekFrom};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::result::Result::Ok;
@@ -153,14 +154,17 @@ pub fn fetch_btfhub_repo(args: &CompileArgs) -> Result<String> {
     }
 }
 
-pub fn generate_tailored_btf(args: &Options) -> Result<String> {
+pub fn generate_tailored_btf(
+    args: &Options,
+    custom_archive_path: impl AsRef<Path>,
+) -> Result<String> {
     let bpftool_path =
         get_bpftool_path(&args.tmpdir).with_context(|| anyhow!("Failed to load bpftool"))?;
 
     let btf_archive_path = Path::new(&args.compile_opts.btfhub_archive);
     let btf_tmp = args.tmpdir.path();
 
-    let custom_archive_path = args.get_output_btf_archive_directory();
+    let custom_archive_path = custom_archive_path.as_ref();
     let command = format!(
         r#"
         rm -rf {}/btfhub-archive {}
@@ -189,13 +193,20 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
     Ok(output)
 }
 
-pub fn package_btfhub_tar(args: &Options) -> Result<()> {
-    let tar_path = args.get_output_tar_path();
-    let btf_path = args.get_output_btf_archive_directory();
-    let package =
-        fs::File::create(tar_path).with_context(|| anyhow!("Failed to create the tar"))?;
+pub fn package_btfhub_tar(
+    args: &Options,
+    btf_path: impl AsRef<Path>,
+    tar_file: &mut fs::File,
+) -> Result<()> {
+    let btf_path = btf_path.as_ref();
+    tar_file
+        .set_len(0)
+        .with_context(|| anyhow!("Failed to reset the tar output file"))?;
+    tar_file
+        .seek(SeekFrom::Start(0))
+        .with_context(|| anyhow!("Failed to rewind the tar output file"))?;
 
-    let mut tar = Builder::new(package);
+    let mut tar = Builder::new(tar_file);
     let mut object = fs::File::open(args.get_output_object_path())
         .with_context(|| anyhow!("Failed to open the object file for putting in the tar"))?;
     let mut json = fs::File::open(args.get_output_package_config_path())
