@@ -39,16 +39,18 @@ env:
     
 jobs:
   create-release-version:
-    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+    needs: [build-ecc-binary-x86, build-ecc-binary-aarch64]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf' && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')
     uses: ./.github/workflows/release-coordinator.yml
     with:
-      create_release: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf' }}
+      create_release: true
             
   build-ecc-binary-x86:
     name: Build ecc on x86_64
     runs-on: ubuntu-22.04
     container:
       image: ubuntu:22.04
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
     steps:
       - name: Install basic dependencies in container
         run: |
@@ -182,6 +184,7 @@ jobs:
   build-ecc-binary-aarch64:
     name: Build ecc on aarch64
     runs-on: ubuntu-22.04
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -344,6 +347,7 @@ jobs:
             fi
 
   release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository_owner == 'eunomia-bpf' && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')
     needs: [create-release-version, build-ecc-binary-x86, build-ecc-binary-aarch64]
     runs-on: ubuntu-latest
     concurrency:

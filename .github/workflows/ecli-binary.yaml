@@ -38,13 +38,7 @@ env:
   INSTALL_LOCATION: .local
 
 jobs:
-  create-release-version:
-    uses: ./.github/workflows/release-coordinator.yml
-    with:
-      create_release: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && (github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong') }}
-
   build-full-client:
-    needs: create-release-version
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
     strategy:
@@ -95,7 +89,7 @@ jobs:
         mkdir -p release
         cp ecli/client/ecli release/ecli
         cd release
-        tar -czvf ecli-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz ecli
+        tar -czvf ecli-${{ matrix.target }}.tar.gz ecli
     - name: Test CLI
       run: |
         mkdir cli-test
@@ -106,13 +100,12 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with: 
-        name: "ecli-full-${{needs.create-release-version.outputs.version}}"
+        name: "ecli-full-${{ matrix.target }}"
         path: |
-          release/ecli-${{ matrix.target }}-${{ needs.create-release-version.outputs.version }}.tar.gz
+          release/ecli-${{ matrix.target }}.tar.gz
           release/ecli
 
   build-full-client-aarch64:
-    needs: create-release-version
     runs-on: ubuntu-22.04
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
     steps:
@@ -248,8 +241,15 @@ jobs:
         name: ecli-rs-aarch64
         path: ecli-aarch64
 
+  create-release-version:
+    needs: [build-full-client, build-full-client-aarch64]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && (github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')
+    uses: ./.github/workflows/release-coordinator.yml
+    with:
+      create_release: true
+
   publish-release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && ( github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && ( github.repository_owner == 'eunomia-bpf' || github.repository_owner == 'officeyutong') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')
     runs-on: ubuntu-latest
     needs: [create-release-version, build-full-client, build-full-client-aarch64]
     concurrency:
