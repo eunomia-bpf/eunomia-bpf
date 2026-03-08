@@ -1,4 +1,6 @@
 use anyhow::{anyhow, Context};
+#[cfg(feature = "native")]
+use clap::error::ContextKind;
 use clap::{error::ErrorKind, Args, CommandFactory, Parser, Subcommand};
 use std::ffi::OsString;
 
@@ -167,66 +169,30 @@ struct CliArgs {
 }
 
 #[cfg(feature = "native")]
-fn should_suggest_run_migration(raw_args: &[OsString]) -> bool {
+fn should_suggest_run_migration(raw_args: &[OsString], err: &clap::Error) -> bool {
+    is_legacy_run_candidate(raw_args) && !has_suggested_subcommand(err)
+}
+
+#[cfg(feature = "native")]
+fn is_legacy_run_candidate(raw_args: &[OsString]) -> bool {
     let Some(first_arg) = raw_args.get(1).and_then(|arg| arg.to_str()) else {
         return false;
     };
     if first_arg.starts_with('-') && first_arg != "-" {
         return false;
     }
-    if TOP_LEVEL_SUBCOMMANDS
-        .iter()
-        .any(|subcommand| is_likely_subcommand_typo(first_arg, subcommand))
-    {
-        return false;
-    }
-    true
+    !TOP_LEVEL_SUBCOMMANDS.contains(&first_arg)
+}
+
+#[cfg(not(feature = "native"))]
+#[allow(dead_code)]
+fn is_legacy_run_candidate(_raw_args: &[OsString]) -> bool {
+    false
 }
 
 #[cfg(feature = "native")]
-fn is_likely_subcommand_typo(input: &str, subcommand: &str) -> bool {
-    is_within_edit_distance(input, subcommand, 2)
-}
-
-#[cfg(feature = "native")]
-fn is_within_edit_distance(lhs: &str, rhs: &str, max_distance: usize) -> bool {
-    let lhs = lhs.as_bytes();
-    let rhs = rhs.as_bytes();
-    if lhs.len().abs_diff(rhs.len()) > max_distance {
-        return false;
-    }
-
-    let mut prev_prev = vec![0; rhs.len() + 1];
-    let mut prev = (0..=rhs.len()).collect::<Vec<_>>();
-    let mut curr = vec![0; rhs.len() + 1];
-
-    for (i, &lhs_byte) in lhs.iter().enumerate() {
-        curr[0] = i + 1;
-        let mut row_min = curr[0];
-
-        for (j, &rhs_byte) in rhs.iter().enumerate() {
-            let substitution_cost = usize::from(lhs_byte != rhs_byte);
-            let mut cost = (prev[j + 1] + 1)
-                .min(curr[j] + 1)
-                .min(prev[j] + substitution_cost);
-
-            if i > 0 && j > 0 && lhs_byte == rhs[j - 1] && lhs[i - 1] == rhs_byte {
-                cost = cost.min(prev_prev[j - 1] + 1);
-            }
-
-            curr[j + 1] = cost;
-            row_min = row_min.min(cost);
-        }
-
-        if row_min > max_distance {
-            return false;
-        }
-
-        std::mem::swap(&mut prev_prev, &mut prev);
-        std::mem::swap(&mut prev, &mut curr);
-    }
-
-    prev[rhs.len()] <= max_distance
+fn has_suggested_subcommand(err: &clap::Error) -> bool {
+    err.get(ContextKind::SuggestedSubcommand).is_some()
 }
 
 #[cfg(not(feature = "native"))]
@@ -255,7 +221,8 @@ async fn main() -> anyhow::Result<()> {
         Ok(args) => args,
         Err(err) => {
             #[cfg(feature = "native")]
-            if err.kind() == ErrorKind::InvalidSubcommand && should_suggest_run_migration(&raw_args)
+            if err.kind() == ErrorKind::InvalidSubcommand
+                && should_suggest_run_migration(&raw_args, &err)
             {
                 CliArgs::command()
                     .error(ErrorKind::InvalidSubcommand, LEGACY_RUN_MIGRATION_MESSAGE)
@@ -326,6 +293,8 @@ mod tests {
     #[cfg(feature = "native")]
     use super::Action;
     use super::CliArgs;
+    #[cfg(feature = "native")]
+    use std::ffi::OsString;
 
     #[test]
     fn reject_legacy_top_level_run_shim() {
@@ -371,31 +340,30 @@ mod tests {
     #[cfg(feature = "native")]
     #[test]
     fn suggest_run_migration_for_legacy_program_argument() {
-        assert!(super::should_suggest_run_migration(&[
-            "ecli".into(),
-            "./prog.json".into(),
-        ]));
-        assert!(super::should_suggest_run_migration(&[
-            "ecli".into(),
-            "ghcr.io/eunomia-bpf/execve:latest".into(),
-        ]));
-        assert!(super::should_suggest_run_migration(&[
-            "ecli".into(),
-            "prog".into(),
-        ]));
-        assert!(super::should_suggest_run_migration(&[
-            "ecli".into(),
-            "alpine".into(),
-        ]));
+        for arg in [
+            "./prog.json",
+            "ghcr.io/eunomia-bpf/execve:latest",
+            "prog",
+            "alpine",
+        ] {
+            let raw_args = vec![OsString::from("ecli"), OsString::from(arg)];
+            let err = match CliArgs::try_parse_from(raw_args.clone()) {
+                Ok(_) => panic!("expected parse error"),
+                Err(err) => err,
+            };
+
+            assert!(super::should_suggest_run_migration(&raw_args, &err));
+            assert!(!super::has_suggested_subcommand(&err));
+        }
     }
 
     #[test]
-    fn do_not_suggest_run_migration_for_real_subcommands_or_flags() {
-        assert!(!super::should_suggest_run_migration(&[
+    fn do_not_treat_real_subcommands_or_flags_as_legacy_run_candidates() {
+        assert!(!super::is_legacy_run_candidate(&[
             "ecli".into(),
             "push".into()
         ]));
-        assert!(!super::should_suggest_run_migration(&[
+        assert!(!super::is_legacy_run_candidate(&[
             "ecli".into(),
             "--help".into()
         ]));
@@ -404,11 +372,17 @@ mod tests {
     #[cfg(feature = "native")]
     #[test]
     fn do_not_suggest_run_migration_for_subcommand_typos() {
-        for typo in ["pus", "pll", "runn", "psuh", "psu", "plu"] {
-            assert!(!super::should_suggest_run_migration(&[
-                "ecli".into(),
-                typo.into()
-            ]));
+        for typo in [
+            "pus", "pll", "runn", "psuh", "psu", "plu", "pushhhh", "runnnn",
+        ] {
+            let raw_args = vec![OsString::from("ecli"), OsString::from(typo)];
+            let err = match CliArgs::try_parse_from(raw_args.clone()) {
+                Ok(_) => panic!("expected parse error"),
+                Err(err) => err,
+            };
+
+            assert!(!super::should_suggest_run_migration(&raw_args, &err));
+            assert!(super::has_suggested_subcommand(&err));
         }
     }
 
