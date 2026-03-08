@@ -45,14 +45,18 @@ impl NativeTaskManager {
         self.tasks.get(&(handle as usize)).cloned()
     }
 
-    /// Get all compatibility tasks. Finished tasks are retained until explicit
-    /// termination so callers can still read any tail logs after observing liveness.
+    /// Get all active compatibility tasks. Finished tasks are retained internally
+    /// until explicit termination so callers can still read any tail logs after
+    /// observing liveness.
     pub fn get_task_list(&mut self) -> Vec<ProgramDesc> {
         self.tasks
             .iter()
-            .map(|(id, task)| {
+            .filter_map(|(id, task)| {
                 let task = task.lock().unwrap();
-                ProgramDesc {
+                if task.has_exited() {
+                    return None;
+                }
+                Some(ProgramDesc {
                     id: *id as ProgramHandle,
                     name: task.name.clone(),
                     status: if task.paused {
@@ -60,7 +64,7 @@ impl NativeTaskManager {
                     } else {
                         ProgramStatus::Running
                     },
-                }
+                })
             })
             .collect()
     }
@@ -120,6 +124,13 @@ pub struct Task {
 }
 
 impl Task {
+    fn has_exited(&self) -> bool {
+        self.program
+            .as_ref()
+            .map(RunningProgram::has_exited)
+            .unwrap_or(true)
+    }
+
     /// Poll logs from the wrapped program.
     pub fn poll_log(&self, cursor: Option<usize>, maximum: usize) -> Vec<(usize, LogEntry)> {
         self.program
@@ -151,10 +162,41 @@ impl Task {
 #[allow(deprecated)]
 mod tests {
     use super::*;
+    use crate::runner::native::test_running_program_with_wasm_output;
 
     #[test]
     fn empty_manager_reports_no_tasks() {
         let mut manager = NativeTaskManager::default();
         assert!(manager.get_task_list().is_empty());
+    }
+
+    #[test]
+    fn exited_tasks_drop_from_liveness_list_but_keep_tail_logs() {
+        let task_id = FIRST_TASK_ID;
+        let mut manager = NativeTaskManager::default();
+        manager.next_task_id = task_id + 1;
+        manager.tasks.insert(
+            task_id,
+            Arc::new(Mutex::new(Task {
+                name: "prog".to_string(),
+                paused: false,
+                program: Some(test_running_program_with_wasm_output(b"out", b"err")),
+            })),
+        );
+
+        for _ in 0..50 {
+            if manager.get_task_list().is_empty() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+
+        assert!(manager.get_task_list().is_empty());
+
+        let task = manager.get_task(task_id as ProgramHandle).unwrap();
+        let logs = task.lock().unwrap().poll_log(None, 10);
+        assert_eq!(logs.len(), 2);
+        assert_eq!(logs[0].1.log, "err");
+        assert_eq!(logs[1].1.log, "out");
     }
 }

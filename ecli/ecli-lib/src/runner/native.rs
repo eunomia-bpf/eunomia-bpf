@@ -97,7 +97,7 @@ impl RunningProgram {
 }
 
 struct Task {
-    inner_impl: TaskImpl,
+    inner_impl: Mutex<TaskImpl>,
     log_buffer: Arc<RwLock<Vec<(usize, LogEntry)>>>,
     log_cursor: Arc<AtomicUsize>,
 }
@@ -216,26 +216,28 @@ impl Task {
                 .map_err(|e| Error::Wasm(format!("Failed to run wasm bpf module: {}", e)))?;
 
                 TaskImpl::Wasm {
-                    prog_handle,
+                    prog_handle: Some(prog_handle),
                     join_handle,
-                    log_collector: Mutex::new(WasmLogCollector {
+                    log_collector: WasmLogCollector {
                         stdout: StepFetcher::new(stdout),
                         stderr: StepFetcher::new(stderr),
-                    }),
+                    },
                 }
             }
             _ => unreachable!(),
         };
 
         Ok(Self {
-            inner_impl,
+            inner_impl: Mutex::new(inner_impl),
             log_buffer,
             log_cursor,
         })
     }
 
     fn poll_logs(&self, cursor: Option<usize>, maximum: usize) -> Vec<(usize, LogEntry)> {
+        self.sync_exit_state();
         self.collect_pending_logs();
+        self.sync_exit_state();
         let mut guard = self.log_buffer.write().unwrap();
         if guard.is_empty() {
             return vec![];
@@ -258,32 +260,75 @@ impl Task {
     }
 
     fn has_exited(&self) -> bool {
-        match &self.inner_impl {
-            TaskImpl::BpfLoader { join_handle, .. } => join_handle.is_finished(),
-            TaskImpl::Wasm { join_handle, .. } => join_handle.is_finished(),
-        }
+        self.sync_exit_state();
+        matches!(&*self.inner_impl.lock().unwrap(), TaskImpl::Completed(_))
     }
 
     fn set_pause(&mut self, pause: bool) -> Result<()> {
-        match &mut self.inner_impl {
+        let mut guard = self.inner_impl.lock().unwrap();
+        match &mut *guard {
             TaskImpl::BpfLoader { polling_handle, .. } => {
                 polling_handle.set_pause(pause);
             }
             TaskImpl::Wasm { prog_handle, .. } => (if pause {
-                prog_handle.pause()
+                prog_handle
+                    .as_mut()
+                    .ok_or_else(|| Error::Other("Task has already terminated".to_string()))?
+                    .pause()
             } else {
-                prog_handle.resume()
+                prog_handle
+                    .as_mut()
+                    .ok_or_else(|| Error::Other("Task has already terminated".to_string()))?
+                    .resume()
             })
             .map_err(|e| Error::Other(format!("Failed to set pause state: {}", e)))?,
+            TaskImpl::Completed(_) => {
+                return Err(Error::Other("Task has already terminated".to_string()));
+            }
         }
         Ok(())
     }
 
     fn collect_pending_logs(&self) {
-        if let TaskImpl::Wasm { log_collector, .. } = &self.inner_impl {
-            let mut guard = log_collector.lock().unwrap();
-            guard.drain(&self.log_buffer, &self.log_cursor);
+        let mut guard = self.inner_impl.lock().unwrap();
+        if let TaskImpl::Wasm { log_collector, .. } = &mut *guard {
+            log_collector.drain(&self.log_buffer, &self.log_cursor);
         }
+    }
+
+    fn sync_exit_state(&self) {
+        let mut guard = self.inner_impl.lock().unwrap();
+        let should_finalize = match &*guard {
+            TaskImpl::Wasm { join_handle, .. } => join_handle.is_finished(),
+            TaskImpl::BpfLoader { join_handle, .. } => join_handle.is_finished(),
+            TaskImpl::Completed(_) => false,
+        };
+        if !should_finalize {
+            return;
+        }
+
+        let finished = std::mem::replace(&mut *guard, TaskImpl::Completed(Ok(())));
+        let result = match finished {
+            TaskImpl::Wasm {
+                join_handle,
+                log_collector,
+                ..
+            } => finalize_wasm_task(
+                None,
+                join_handle,
+                log_collector,
+                false,
+                &self.log_buffer,
+                &self.log_cursor,
+            ),
+            TaskImpl::BpfLoader {
+                join_handle,
+                btf_archive_tempdir,
+                ..
+            } => finalize_bpf_loader_task(None, join_handle, false, btf_archive_tempdir),
+            TaskImpl::Completed(result) => result,
+        };
+        *guard = TaskImpl::Completed(result);
     }
 
     fn terminate(self) -> Result<()> {
@@ -293,66 +338,39 @@ impl Task {
             log_cursor,
         } = self;
 
-        match inner_impl {
+        match inner_impl.into_inner().unwrap() {
             TaskImpl::Wasm {
                 prog_handle,
                 join_handle,
                 log_collector,
-            } => {
-                {
-                    let mut guard = log_collector.lock().unwrap();
-                    guard.drain(&log_buffer, &log_cursor);
-                }
-
-                if !join_handle.is_finished() {
-                    prog_handle.terminate().map_err(|e| {
-                        Error::Wasm(format!("Failed to terminate wasm program: {}", e))
-                    })?;
-                }
-
-                if let Err(e) = join_handle
-                    .join()
-                    .map_err(|_| Error::ThreadJoin("Failed to join".to_string()))?
-                {
-                    let formatted = format!("{:?}", e);
-                    if !formatted.contains("Wasm program terminated")
-                        && !formatted.contains("receiving on a closed channel")
-                    {
-                        return Err(Error::Bpf(format!(
-                            "Failed to wait for the worker: {:?}",
-                            e
-                        )));
-                    }
-                }
-
-                let mut guard = log_collector.lock().unwrap();
-                guard.drain(&log_buffer, &log_cursor);
-            }
+            } => finalize_wasm_task(
+                prog_handle,
+                join_handle,
+                log_collector,
+                true,
+                &log_buffer,
+                &log_cursor,
+            ),
             TaskImpl::BpfLoader {
                 polling_handle,
                 join_handle,
-                ..
-            } => {
-                if !join_handle.is_finished() {
-                    polling_handle.terminate();
-                }
-                join_handle
-                    .join()
-                    .map_err(|_| Error::ThreadJoin("Failed to join".to_string()))?
-                    .map_err(|e| {
-                        Error::Bpf(format!("Failed to wait for the thread's exiting: {:?}", e))
-                    })?;
-            }
+                btf_archive_tempdir,
+            } => finalize_bpf_loader_task(
+                Some(polling_handle),
+                join_handle,
+                true,
+                btf_archive_tempdir,
+            ),
+            TaskImpl::Completed(result) => result,
         }
-        Ok(())
     }
 }
 
 enum TaskImpl {
     Wasm {
-        prog_handle: WasmProgramHandle,
+        prog_handle: Option<WasmProgramHandle>,
         join_handle: JoinHandle<anyhow::Result<()>>,
-        log_collector: Mutex<WasmLogCollector>,
+        log_collector: WasmLogCollector,
     },
     BpfLoader {
         polling_handle: PollingHandle,
@@ -361,6 +379,62 @@ enum TaskImpl {
         // Kept only to preserve the extracted archive lifetime while the task is running.
         btf_archive_tempdir: Option<TempDir>,
     },
+    Completed(Result<()>),
+}
+
+fn finalize_wasm_task(
+    prog_handle: Option<WasmProgramHandle>,
+    join_handle: JoinHandle<anyhow::Result<()>>,
+    mut log_collector: WasmLogCollector,
+    terminate_running: bool,
+    log_buffer: &Arc<RwLock<Vec<(usize, LogEntry)>>>,
+    log_cursor: &Arc<AtomicUsize>,
+) -> Result<()> {
+    log_collector.drain(log_buffer, log_cursor);
+
+    if terminate_running && !join_handle.is_finished() {
+        if let Some(prog_handle) = prog_handle {
+            prog_handle
+                .terminate()
+                .map_err(|e| Error::Wasm(format!("Failed to terminate wasm program: {}", e)))?;
+        }
+    }
+
+    if let Err(e) = join_handle
+        .join()
+        .map_err(|_| Error::ThreadJoin("Failed to join".to_string()))?
+    {
+        let formatted = format!("{:?}", e);
+        if !formatted.contains("Wasm program terminated")
+            && !formatted.contains("receiving on a closed channel")
+        {
+            return Err(Error::Bpf(format!(
+                "Failed to wait for the worker: {:?}",
+                e
+            )));
+        }
+    }
+
+    log_collector.drain(log_buffer, log_cursor);
+    Ok(())
+}
+
+fn finalize_bpf_loader_task(
+    polling_handle: Option<PollingHandle>,
+    join_handle: JoinHandle<Result<()>>,
+    terminate_running: bool,
+    btf_archive_tempdir: Option<TempDir>,
+) -> Result<()> {
+    let _btf_archive_tempdir = btf_archive_tempdir;
+    if terminate_running && !join_handle.is_finished() {
+        if let Some(polling_handle) = polling_handle {
+            polling_handle.terminate();
+        }
+    }
+    join_handle
+        .join()
+        .map_err(|_| Error::ThreadJoin("Failed to join".to_string()))?
+        .map_err(|e| Error::Bpf(format!("Failed to wait for the thread's exiting: {:?}", e)))
 }
 
 struct WasmLogCollector {
@@ -448,8 +522,49 @@ impl StepFetcher<Cursor<Vec<u8>>> {
 }
 
 #[cfg(test)]
+pub(crate) fn test_running_program_with_wasm_output(
+    stdout_bytes: &'static [u8],
+    stderr_bytes: &'static [u8],
+) -> RunningProgram {
+    let stdout = ReadableWritePipe::new_vec_buf();
+    let stderr = ReadableWritePipe::new_vec_buf();
+    let stdout_writer = stdout.clone();
+    let stderr_writer = stderr.clone();
+    let join_handle = std::thread::spawn(move || {
+        stderr_writer.borrow().write_all(stderr_bytes).unwrap();
+        stdout_writer.borrow().write_all(stdout_bytes).unwrap();
+        Ok(())
+    });
+
+    RunningProgram {
+        task: Task {
+            inner_impl: Mutex::new(TaskImpl::Wasm {
+                prog_handle: None,
+                join_handle,
+                log_collector: WasmLogCollector {
+                    stdout: StepFetcher::new(stdout),
+                    stderr: StepFetcher::new(stderr),
+                },
+            }),
+            log_buffer: Arc::new(RwLock::new(Vec::new())),
+            log_cursor: Arc::new(AtomicUsize::new(0)),
+        },
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
+
+    fn wait_until_exited(program: &RunningProgram) {
+        for _ in 0..50 {
+            if program.has_exited() {
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        panic!("program did not exit in time");
+    }
 
     #[test]
     fn start_program_rejects_invalid_wasm_module() {
@@ -521,5 +636,34 @@ mod tests {
         assert_eq!(guard[1].0, 1);
         assert_eq!(guard[1].1.log, "out");
         assert_eq!(guard[1].1.log_type.to_string(), "STDOUT");
+    }
+
+    #[test]
+    fn has_exited_flushes_tail_wasm_logs_before_returning_true() {
+        let program = test_running_program_with_wasm_output(b"out", b"err");
+
+        wait_until_exited(&program);
+
+        let logs = program.fetch_logs(None, None);
+        assert_eq!(logs.len(), 2);
+        assert_eq!(logs[0].1.log, "err");
+        assert_eq!(logs[1].1.log, "out");
+
+        program.terminate().unwrap();
+    }
+
+    #[test]
+    fn fetch_logs_flushes_tail_wasm_logs_without_prior_liveness_probe() {
+        let program = test_running_program_with_wasm_output(b"out", b"err");
+
+        std::thread::sleep(std::time::Duration::from_millis(20));
+
+        let logs = program.fetch_logs(None, None);
+        assert_eq!(logs.len(), 2);
+        assert_eq!(logs[0].1.log, "err");
+        assert_eq!(logs[1].1.log, "out");
+        assert!(program.has_exited());
+
+        program.terminate().unwrap();
     }
 }

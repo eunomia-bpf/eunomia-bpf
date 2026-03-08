@@ -25,6 +25,17 @@ struct ProgramSlot {
     program: Arc<Mutex<Option<RunningProgram>>>,
 }
 
+impl ProgramSlot {
+    fn has_exited(&self) -> bool {
+        self.program
+            .lock()
+            .unwrap()
+            .as_ref()
+            .map(RunningProgram::has_exited)
+            .unwrap_or(true)
+    }
+}
+
 struct NativeClientState {
     next_handle: ProgramHandle,
     programs: HashMap<ProgramHandle, ProgramSlot>,
@@ -138,15 +149,57 @@ impl AbstractClient for EcliNativeClient {
         Ok(guard
             .programs
             .iter()
-            .map(|(handle, slot)| ProgramDesc {
-                id: *handle,
-                name: slot.name.clone(),
-                status: if slot.paused {
-                    ProgramStatus::Paused
-                } else {
-                    ProgramStatus::Running
-                },
+            .filter_map(|(handle, slot)| {
+                if slot.has_exited() {
+                    return None;
+                }
+                Some(ProgramDesc {
+                    id: *handle,
+                    name: slot.name.clone(),
+                    status: if slot.paused {
+                        ProgramStatus::Paused
+                    } else {
+                        ProgramStatus::Running
+                    },
+                })
             })
             .collect())
+    }
+}
+
+#[cfg(test)]
+#[allow(deprecated)]
+mod tests {
+    use super::*;
+    use crate::runner::native::test_running_program_with_wasm_output;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn exited_programs_drop_from_liveness_list_but_keep_tail_logs() {
+        let client = EcliNativeClient::default();
+        let handle = 1;
+        client.state.write().unwrap().programs.insert(
+            handle,
+            ProgramSlot {
+                name: "prog".to_string(),
+                paused: false,
+                program: Arc::new(Mutex::new(Some(test_running_program_with_wasm_output(
+                    b"out", b"err",
+                )))),
+            },
+        );
+
+        for _ in 0..50 {
+            if client.get_program_list().await.unwrap().is_empty() {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+
+        assert!(client.get_program_list().await.unwrap().is_empty());
+
+        let logs = client.fetch_logs(handle, None, Some(10)).await.unwrap();
+        assert_eq!(logs.len(), 2);
+        assert_eq!(logs[0].1.log, "err");
+        assert_eq!(logs[1].1.log, "out");
     }
 }

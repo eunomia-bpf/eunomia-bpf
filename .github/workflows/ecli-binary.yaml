@@ -85,6 +85,28 @@ jobs:
             const [major, minor, patch] = versions[versions.length - 1];
             return `v${major}.${minor}.${patch + 1}`;
 
+  test-ecli-lib-compat:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]')"
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+    - name: install deps
+      run: |
+          sudo make -C ecli install-deps
+          sudo make -C bpf-loader-rs install-deps
+    - name: cache rust
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: |
+          ecli
+    - name: test ecli-lib compatibility surface
+      run: |
+        cd ecli/ecli-lib
+        curl https://sh.rustup.rs -o rustup.sh
+        sudo bash -c "cat rustup.sh | sh -s -- -y ; /root/.cargo/bin/cargo test -- --skip test_pause_and_resume ; /root/.cargo/bin/cargo check --manifest-path compat-tests/no-native-public-api/Cargo.toml"
+
   build-full-client:
     needs: create-release-version
     runs-on: ubuntu-latest
