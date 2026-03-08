@@ -199,19 +199,59 @@ fn is_clear_run_command_typo(raw_args: &[OsString]) -> bool {
     // Only suppress the migration hint for command-shaped tokens that are still
     // unmistakably derived from `run`, such as repeated-character variants,
     // those same repeated-character variants plus one trailing junk char,
-    // `nnrun`, the known `runx`/`run-` suffix slips, or the harder two-swap
-    // permutations. General legacy program/image names like `bun`, `ru`, `ur`,
-    // `rnu`, `urn`, `runner`, `rune`, or `nrun` should keep the migration
-    // guidance.
+    // `nnrun`, the known one-char insertion/suffix slips, or the harder
+    // two-swap permutations. General legacy program/image names like `bun`,
+    // `ru`, `ur`, `rnu`, `urn`, `runner`, `rune`, or `nrun` should keep the
+    // migration guidance.
     matches!(first_arg.as_str(), "nru" | "unr" | "nur")
-        || is_obvious_run_suffix_typo(&first_arg)
+        || is_obvious_run_single_char_insertion_typo(&first_arg)
         || is_repeated_run_char_typo(&first_arg)
         || has_repeated_run_char_typo_with_trailing_junk(&first_arg)
 }
 
 #[cfg(feature = "native")]
-fn is_obvious_run_suffix_typo(candidate: &str) -> bool {
-    matches!(candidate, "runx" | "run-")
+fn is_obvious_run_single_char_insertion_typo(candidate: &str) -> bool {
+    candidate == "runx"
+        || has_single_trailing_run_typo_char(candidate)
+        || has_single_run_separator_insertion(candidate)
+}
+
+#[cfg(feature = "native")]
+fn has_single_trailing_run_typo_char(candidate: &str) -> bool {
+    let Some(suffix) = candidate.strip_prefix("run") else {
+        return false;
+    };
+    let mut chars = suffix.chars();
+    matches!(chars.next(), Some(ch) if is_obvious_run_suffix_char(ch)) && chars.next().is_none()
+}
+
+#[cfg(feature = "native")]
+fn is_obvious_run_suffix_char(ch: char) -> bool {
+    ch.is_ascii_digit() || matches!(ch, '-' | '_' | '.')
+}
+
+#[cfg(feature = "native")]
+fn has_single_run_separator_insertion(candidate: &str) -> bool {
+    if candidate.chars().count() != 4 {
+        return false;
+    }
+
+    for (idx, ch) in candidate.chars().enumerate() {
+        if idx == 3 || !matches!(ch, '-' | '_' | '.') {
+            continue;
+        }
+
+        let without_separator: String = candidate
+            .chars()
+            .enumerate()
+            .filter_map(|(current_idx, current_ch)| (current_idx != idx).then_some(current_ch))
+            .collect();
+        if without_separator == "run" {
+            return true;
+        }
+    }
+
+    false
 }
 
 #[cfg(feature = "native")]
@@ -530,7 +570,8 @@ mod tests {
     fn do_not_suggest_run_migration_for_subcommand_typos() {
         for typo in [
             "pus", "pll", "rrn", "runn", "runn-", "runn1", "ruun", "runx", "run-", "psuh", "psu",
-            "plu", "pushhhh", "runnnn", "rrn-", "rrn1", "rnn-", "rnn1", "nnrun-", "nnrun1",
+            "plu", "pushhhh", "runnnn", "rrn-", "rrn1", "rnn-", "rnn1", "nnrun-", "nnrun1", "run1",
+            "run_", "run.", "r-un", "ru-n",
         ] {
             let raw_args = vec![OsString::from("ecli"), OsString::from(typo)];
             let err = match CliArgs::try_parse_from(raw_args.clone()) {
