@@ -6,6 +6,8 @@ LLVM_STRIP ?= llvm-strip
 BPFTOOL_SRC := $(abspath ../third_party/bpftool)
 BPFTOOL := $(BPFTOOL_SRC)/src/bpftool
 ECC := cmd/target/release/ecc-rs
+LIBEUNOMIA := ../bpf-loader-rs/target/release/libeunomia.a
+LIBEUNOMIA_LINKFLAGS := ../bpf-loader-rs/target/release/libeunomia.a.linkflags
 ARCH := $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/' | sed 's/riscv64/riscv/')
 VMLINUX := ../third_party/vmlinux/$(ARCH)/vmlinux.h
 # Use our own libbpf API headers and Linux UAPI headers distributed with
@@ -62,13 +64,20 @@ $(OUTPUT) $(OUTPUT)/libbpf:
 $(BPFTOOL):
 	$(MAKE) -C $(BPFTOOL_SRC)/src
 
-$(ECC): $(BPFTOOL)
+$(LIBEUNOMIA_LINKFLAGS):
+	cargo rustc --manifest-path ../bpf-loader-rs/Cargo.toml -p bpf-loader-c-wrapper --release -- --print=native-static-libs 2>&1 | awk -F 'native-static-libs: ' '/native-static-libs:/ { print $$2 }' | awk 'BEGIN { first = 1 } { for (i = 1; i <= NF; i++) { if ($$i != "-lgcc_s") { printf "%s%s", first ? "" : " ", $$i; first = 0 } } } END { print "" }' > $(LIBEUNOMIA_LINKFLAGS)
+	test -s $(LIBEUNOMIA_LINKFLAGS)
+	test -f $(LIBEUNOMIA)
+
+$(ECC): $(BPFTOOL) $(LIBEUNOMIA_LINKFLAGS)
 	cd cmd && cargo build --release
 	cargo install cargo-out-dir
 	cd cmd && cargo build # Run a debug build to create the workspace directory 
 	# cd cmd && cp -r `cargo-out-dir`/workspace ..
 	mkdir -p workspace/bin
 	cp $(ECC) workspace/bin/ecc-rs
+	cp $(LIBEUNOMIA) workspace/libeunomia.a
+	cp $(LIBEUNOMIA_LINKFLAGS) workspace/libeunomia.a.linkflags
 
 XDG_DATA_HOME ?= ${HOME}/.local/share
 EUNOMIA_HOME := $(XDG_DATA_HOME)/eunomia

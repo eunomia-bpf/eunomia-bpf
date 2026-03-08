@@ -23,6 +23,12 @@ chmod +x ecc
 sudo mv ecc /usr/local/bin/
 ```
 
+Install from source with the standalone runtime staged into `EUNOMIA_HOME`:
+```bash
+cd compiler
+sudo make install
+```
+
 Or use Docker:
 ```bash
 # For x86_64
@@ -127,6 +133,8 @@ ecc program.bpf.c --standalone -o mytool
 ```
 
 Produces a self-contained executable with embedded eBPF program and runner.
+
+`--standalone` now links against the normal `bpf-loader-c-wrapper` static archive plus its native link flags. A compiler install created with `make install` stages `libeunomia.a` and `libeunomia.a.linkflags` automatically. If you run `ecc` directly from a checkout, it will build that archive from `bpf-loader-rs/` on first use when needed.
 
 ### WebAssembly Header
 ```bash
