@@ -274,7 +274,9 @@ mod test {
     use serde_json::json;
     use tempfile::TempDir;
 
-    use crate::config::{init_eunomia_workspace, CompileArgs, Options};
+    use crate::config::{
+        init_eunomia_workspace, options::current_unix_time_nanos, CompileArgs, Options,
+    };
 
     use super::parse_source_documents;
 
@@ -307,6 +309,7 @@ mod test {
                 .to_str()
                 .unwrap()
                 .to_string(),
+            invocation_started_at_unix_nanos: current_unix_time_nanos(),
         }
     }
 
