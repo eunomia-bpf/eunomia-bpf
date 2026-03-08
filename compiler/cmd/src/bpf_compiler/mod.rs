@@ -6,7 +6,7 @@
 use crate::bpf_compiler::standalone::build_standalone_executable;
 use crate::config::{
     fetch_btfhub_repo, generate_tailored_btf, get_bpf_compile_args, get_bpftool_path,
-    package_btfhub_tar, Options,
+    options::current_unix_time_nanos, package_btfhub_tar, Options,
 };
 use crate::document_parser::parse_source_documents;
 use crate::export_types::{add_unused_ptr_for_structs, find_all_export_structs};
@@ -23,7 +23,7 @@ use std::io::prelude::*;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::{fs, path::Path};
-use tempfile::{Builder, NamedTempFile};
+use tempfile::{Builder, NamedTempFile, TempDir};
 
 #[cfg(test)]
 use std::sync::{Arc, Barrier, Mutex, OnceLock};
@@ -77,6 +77,13 @@ impl OutputArtifactBuildSignature {
             && self.clang_bin == other.clang_bin
             && self.llvm_strip_bin == other.llvm_strip_bin
     }
+}
+
+#[derive(Debug, Clone, Deserialize, Eq, PartialEq, Serialize)]
+struct OutputArtifactMarker {
+    owner: OutputArtifactOwner,
+    #[serde(default)]
+    finalized_at_unix_nanos: Option<u64>,
 }
 
 #[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -232,7 +239,9 @@ fn compile_bpf_object(
     Ok(())
 }
 
-fn create_output_object_tempfile(output_artifact_path: impl AsRef<Path>) -> Result<NamedTempFile> {
+fn create_output_artifact_tempfile(
+    output_artifact_path: impl AsRef<Path>,
+) -> Result<NamedTempFile> {
     let output_artifact_path = output_artifact_path.as_ref();
     let output_dir = output_artifact_path
         .parent()
@@ -252,21 +261,99 @@ fn create_output_object_tempfile(output_artifact_path: impl AsRef<Path>) -> Resu
         .map_err(Into::into)
 }
 
-fn publish_output_object_artifact(
+fn create_output_object_tempfile(output_artifact_path: impl AsRef<Path>) -> Result<NamedTempFile> {
+    create_output_artifact_tempfile(output_artifact_path)
+}
+
+fn create_output_artifact_tempdir(output_artifact_path: impl AsRef<Path>) -> Result<TempDir> {
+    let output_artifact_path = output_artifact_path.as_ref();
+    let output_dir = output_artifact_path
+        .parent()
+        .expect("Output artifacts are expected to have a parent directory");
+    let temp_prefix = format!(
+        ".tmp-output-dir-{}-",
+        output_artifact_path
+            .file_name()
+            .expect("Output artifacts are expected to have a file name")
+            .to_string_lossy()
+    );
+
+    Builder::new()
+        .prefix(&temp_prefix)
+        .tempdir_in(output_dir)
+        .map_err(Into::into)
+}
+
+fn publish_output_file_artifact(
     args: &Options,
-    output_object_file: NamedTempFile,
+    output_artifact_file: NamedTempFile,
     output_artifact_path: impl AsRef<Path>,
 ) -> Result<bool> {
     let output_artifact_path = output_artifact_path.as_ref();
     #[cfg(test)]
     wait_for_output_object_publish(output_artifact_path);
-    match output_object_file.persist_noclobber(output_artifact_path) {
-        Ok(_) => Ok(true),
+    match output_artifact_file.persist_noclobber(output_artifact_path) {
+        Ok(_) => {
+            record_output_artifact_finalization(args, output_artifact_path)?;
+            Ok(true)
+        }
         Err(err) if err.error.kind() == ErrorKind::AlreadyExists => {
             ensure_output_artifact_can_be_written(args, output_artifact_path)?;
             Ok(false)
         }
         Err(err) => Err(err.error.into()),
+    }
+}
+
+fn publish_output_object_artifact(
+    args: &Options,
+    output_object_file: NamedTempFile,
+    output_artifact_path: impl AsRef<Path>,
+) -> Result<bool> {
+    publish_output_file_artifact(args, output_object_file, output_artifact_path)
+}
+
+fn publish_output_directory_artifact(
+    args: &Options,
+    output_artifact_dir: TempDir,
+    output_artifact_path: impl AsRef<Path>,
+) -> Result<bool> {
+    let output_artifact_path = output_artifact_path.as_ref();
+    let temp_artifact_path = output_artifact_dir.into_path();
+    match fs::rename(&temp_artifact_path, output_artifact_path) {
+        Ok(_) => {
+            record_output_artifact_finalization(args, output_artifact_path)?;
+            Ok(true)
+        }
+        Err(err)
+            if matches!(
+                err.kind(),
+                ErrorKind::AlreadyExists | ErrorKind::DirectoryNotEmpty
+            ) =>
+        {
+            let cleanup_result = match fs::remove_dir_all(&temp_artifact_path) {
+                Ok(_) => Ok(()),
+                Err(cleanup_err) if cleanup_err.kind() == ErrorKind::NotFound => Ok(()),
+                Err(cleanup_err) => Err(cleanup_err),
+            };
+            ensure_output_artifact_can_be_written(args, output_artifact_path)?;
+            cleanup_result?;
+            Ok(false)
+        }
+        Err(err) => {
+            match fs::remove_dir_all(&temp_artifact_path) {
+                Ok(_) => {}
+                Err(cleanup_err) if cleanup_err.kind() == ErrorKind::NotFound => {}
+                Err(cleanup_err) => {
+                    return Err(anyhow!(
+                        "Failed to rename output directory {} into place: {err}. Failed to clean up temporary output directory {}: {cleanup_err}",
+                        output_artifact_path.display(),
+                        temp_artifact_path.display()
+                    ));
+                }
+            }
+            Err(err.into())
+        }
     }
 }
 
@@ -360,7 +447,12 @@ fn do_compile(args: &Options, temp_source_file: impl AsRef<Path>) -> Result<()> 
         serde_json::to_string(&meta_json)?
     };
     claim_output_artifact(args, &output_json_path)?;
-    fs::write(&output_json_path, meta_config_str)?;
+    let mut output_json_file = create_output_artifact_tempfile(&output_json_path)?;
+    output_json_file
+        .as_file_mut()
+        .write_all(meta_config_str.as_bytes())?;
+    output_json_file.as_file_mut().sync_all()?;
+    publish_output_file_artifact(args, output_json_file, &output_json_path)?;
     publish_output_object_artifact(args, output_bpf_object_file, &output_bpf_object_path)?;
     Ok(())
 }
@@ -401,13 +493,28 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
                 .with_context(|| anyhow!("Failed to generate wasm header"))?;
         }
         if args.compile_opts.btfgen {
-            claim_output_artifact(args, args.get_output_btf_archive_directory())?;
-            claim_output_artifact(args, args.get_output_tar_path())?;
+            let output_btf_archive_path = args.get_output_btf_archive_directory();
+            let output_btf_archive_dir = create_output_artifact_tempdir(&output_btf_archive_path)?;
             fetch_btfhub_repo(&args.compile_opts)
                 .with_context(|| anyhow!("Failed to fetch btfhub repo"))?;
-            generate_tailored_btf(args)
+            generate_tailored_btf(args, output_btf_archive_dir.path())
                 .with_context(|| anyhow!("Failed to generate tailored btf"))?;
-            package_btfhub_tar(args).with_context(|| anyhow!("Failed to package btfhub tar"))?;
+            publish_output_directory_artifact(
+                args,
+                output_btf_archive_dir,
+                &output_btf_archive_path,
+            )?;
+
+            let output_tar_path = args.get_output_tar_path();
+            let mut output_tar_file = create_output_artifact_tempfile(&output_tar_path)?;
+            package_btfhub_tar(
+                args,
+                &output_btf_archive_path,
+                output_tar_file.as_file_mut(),
+            )
+            .with_context(|| anyhow!("Failed to package btfhub tar"))?;
+            output_tar_file.as_file_mut().sync_all()?;
+            publish_output_file_artifact(args, output_tar_file, &output_tar_path)?;
         }
         Ok(())
     })();
@@ -458,7 +565,12 @@ fn pack_object_in_config(args: &Options) -> Result<()> {
         serde_json::to_string(&package_config).unwrap()
     };
     let pack_result = (|| -> Result<()> {
-        fs::write(&output_package_config_path, package_config_str)?;
+        let mut output_package_file = create_output_artifact_tempfile(&output_package_config_path)?;
+        output_package_file
+            .as_file_mut()
+            .write_all(package_config_str.as_bytes())?;
+        output_package_file.as_file_mut().sync_all()?;
+        publish_output_file_artifact(args, output_package_file, &output_package_config_path)?;
         remove_matching_sibling_package_artifact(args)?;
         Ok(())
     })();
@@ -614,7 +726,17 @@ fn get_output_artifact_claim_path(args: &Options, artifact_path: impl AsRef<Path
     get_output_artifact_claim_path_for_invocation(&claim.invocation_id, artifact_path)
 }
 
-fn read_output_artifact_owner_marker(marker_path: impl AsRef<Path>) -> Result<OutputArtifactOwner> {
+fn build_output_artifact_marker(
+    args: &Options,
+    finalized_at_unix_nanos: Option<u64>,
+) -> OutputArtifactMarker {
+    OutputArtifactMarker {
+        owner: build_output_artifact_owner(args),
+        finalized_at_unix_nanos,
+    }
+}
+
+fn read_output_artifact_marker(marker_path: impl AsRef<Path>) -> Result<OutputArtifactMarker> {
     let marker_path = marker_path.as_ref();
     serde_json::from_str(&fs::read_to_string(marker_path)?).with_context(|| {
         anyhow!(
@@ -624,9 +746,13 @@ fn read_output_artifact_owner_marker(marker_path: impl AsRef<Path>) -> Result<Ou
     })
 }
 
-fn create_output_artifact_owner_marker_tempfile(
+fn read_output_artifact_owner_marker(marker_path: impl AsRef<Path>) -> Result<OutputArtifactOwner> {
+    Ok(read_output_artifact_marker(marker_path)?.owner)
+}
+
+fn create_output_artifact_marker_tempfile(
     marker_path: impl AsRef<Path>,
-    marker: &OutputArtifactOwner,
+    marker: &OutputArtifactMarker,
 ) -> Result<NamedTempFile> {
     let marker_path = marker_path.as_ref();
     let marker_dir = marker_path
@@ -636,6 +762,33 @@ fn create_output_artifact_owner_marker_tempfile(
     serde_json::to_writer(marker_file.as_file_mut(), marker)?;
     marker_file.as_file_mut().sync_all()?;
     Ok(marker_file)
+}
+
+fn record_output_artifact_finalization(
+    args: &Options,
+    artifact_path: impl AsRef<Path>,
+) -> Result<()> {
+    let artifact_path = artifact_path.as_ref();
+    let marker_path = args.get_output_artifact_marker_path(artifact_path);
+    let expected_owner = build_output_artifact_owner(args);
+
+    if marker_path.exists() {
+        let marker = read_output_artifact_marker(&marker_path)?;
+        if marker.owner != expected_owner && artifact_path.exists() {
+            bail!(
+                "Refusing to finalize output artifact {} because it belongs to a different source or build",
+                artifact_path.display()
+            );
+        }
+    }
+
+    create_output_artifact_marker_tempfile(
+        &marker_path,
+        &build_output_artifact_marker(args, Some(current_unix_time_nanos())),
+    )?
+    .persist(&marker_path)
+    .map_err(|err| err.error)?;
+    Ok(())
 }
 
 fn read_output_artifact_claims(
@@ -855,8 +1008,8 @@ fn publish_output_artifact_owner_marker(
     let owner = build_output_artifact_owner(args);
     let marker_path = args.get_output_artifact_marker_path(artifact_path);
     if marker_path.exists() {
-        let marker = read_output_artifact_owner_marker(&marker_path)?;
-        if marker == owner {
+        let marker = read_output_artifact_marker(&marker_path)?;
+        if marker.owner == owner {
             return Ok(());
         }
         let claims = read_output_artifact_claims(artifact_path)?;
@@ -866,21 +1019,27 @@ fn publish_output_artifact_owner_marker(
                 artifact_path.display()
             );
         }
-        create_output_artifact_owner_marker_tempfile(&marker_path, &owner)?
-            .persist(&marker_path)
-            .map_err(|err| err.error)?;
+        create_output_artifact_marker_tempfile(
+            &marker_path,
+            &build_output_artifact_marker(args, None),
+        )?
+        .persist(&marker_path)
+        .map_err(|err| err.error)?;
         return Ok(());
     }
 
-    let marker_file = create_output_artifact_owner_marker_tempfile(&marker_path, &owner)?;
+    let marker_file = create_output_artifact_marker_tempfile(
+        &marker_path,
+        &build_output_artifact_marker(args, None),
+    )?;
     #[cfg(test)]
     wait_for_output_artifact_marker_publish(&marker_path);
     match marker_file.persist_noclobber(&marker_path) {
         Ok(_) => Ok(()),
         Err(err) if err.error.kind() == ErrorKind::AlreadyExists => {
-            let marker = read_output_artifact_owner_marker(&marker_path)?;
+            let marker = read_output_artifact_marker(&marker_path)?;
             let claims = read_output_artifact_claims(artifact_path)?;
-            if marker != owner
+            if marker.owner != owner
                 && (artifact_path.exists() || claims.iter().any(|claim| claim.owner != owner))
             {
                 bail!(
@@ -888,10 +1047,13 @@ fn publish_output_artifact_owner_marker(
                     artifact_path.display()
                 );
             }
-            if marker != owner {
-                create_output_artifact_owner_marker_tempfile(&marker_path, &owner)?
-                    .persist(&marker_path)
-                    .map_err(|persist_err| persist_err.error)?;
+            if marker.owner != owner {
+                create_output_artifact_marker_tempfile(
+                    &marker_path,
+                    &build_output_artifact_marker(args, marker.finalized_at_unix_nanos),
+                )?
+                .persist(&marker_path)
+                .map_err(|persist_err| persist_err.error)?;
             }
             Ok(())
         }
@@ -1173,11 +1335,43 @@ fn claim_output_artifact(args: &Options, artifact_path: impl AsRef<Path>) -> Res
     Ok(true)
 }
 
-fn collect_requested_output_artifacts(args: &Options) -> Vec<PathBuf> {
+fn should_preserve_active_sibling_package_artifact(args: &Options) -> Result<bool> {
+    if args.compile_opts.parameters.no_generate_package_json {
+        return Ok(false);
+    }
+
+    let sibling_package_config_path = args.get_output_sibling_package_config_path();
+    let expected_owner = build_output_artifact_owner(args);
+    let sibling_claims = read_output_artifact_claims(&sibling_package_config_path)?;
+    if sibling_claims
+        .iter()
+        .any(|claim| claim.owner.matches_package_lineage(&expected_owner))
+    {
+        return Ok(true);
+    }
+
+    if !output_artifact_has_inflight_claims(&sibling_package_config_path)? {
+        return Ok(false);
+    }
+
+    let sibling_marker_path = args.get_output_sibling_package_marker_path();
+    if !sibling_marker_path.exists() {
+        return Ok(false);
+    }
+
+    Ok(read_output_artifact_marker(&sibling_marker_path)?
+        .owner
+        .matches_package_lineage(&expected_owner))
+}
+
+fn collect_requested_output_artifacts(args: &Options) -> Result<Vec<PathBuf>> {
     let mut artifact_paths = vec![args.get_output_object_path(), args.get_output_config_path()];
 
     if !args.compile_opts.parameters.no_generate_package_json {
         artifact_paths.push(args.get_output_package_config_path());
+        if should_preserve_active_sibling_package_artifact(args)? {
+            artifact_paths.push(args.get_output_sibling_package_config_path());
+        }
     }
     if args.compile_opts.parameters.standalone {
         artifact_paths.push(args.get_standalone_source_file_path());
@@ -1191,11 +1385,11 @@ fn collect_requested_output_artifacts(args: &Options) -> Vec<PathBuf> {
         artifact_paths.push(args.get_output_tar_path());
     }
 
-    artifact_paths
+    Ok(artifact_paths)
 }
 
 fn claim_requested_output_artifacts(args: &Options) -> Result<OutputArtifactClaimsGuard> {
-    let artifact_paths = collect_requested_output_artifacts(args);
+    let artifact_paths = collect_requested_output_artifacts(args)?;
     for artifact_path in &artifact_paths {
         ensure_output_artifact_can_be_written(args, artifact_path)?;
     }
@@ -1242,9 +1436,12 @@ fn remove_matching_sibling_package_artifact(args: &Options) -> Result<()> {
             return Ok(());
         }
 
-        let sibling_marker = read_output_artifact_owner_marker(&sibling_marker_path)?;
+        let sibling_marker = read_output_artifact_marker(&sibling_marker_path)?;
         let expected_owner = build_output_artifact_owner(args);
-        if !sibling_marker.matches_package_lineage(&expected_owner) {
+        if !sibling_marker
+            .owner
+            .matches_package_lineage(&expected_owner)
+        {
             info!(
                 "Leaving sibling package artifact {} in place because it belongs to a different build",
                 sibling_package_config_path.display()
@@ -1263,6 +1460,17 @@ fn remove_matching_sibling_package_artifact(args: &Options) -> Result<()> {
         if !read_output_artifact_claims(&sibling_package_config_path)?.is_empty() {
             info!(
                 "Leaving sibling package artifact {} in place because it is still actively claimed",
+                sibling_package_config_path.display()
+            );
+            return Ok(());
+        }
+
+        if sibling_marker
+            .finalized_at_unix_nanos
+            .is_some_and(|finalized_at| finalized_at >= args.invocation_started_at_unix_nanos)
+        {
+            info!(
+                "Leaving sibling package artifact {} in place because it was finalized by an overlapping build",
                 sibling_package_config_path.display()
             );
             return Ok(());

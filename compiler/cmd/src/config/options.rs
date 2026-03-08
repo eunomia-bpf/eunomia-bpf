@@ -3,7 +3,10 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use super::CompileArgs;
 use anyhow::{anyhow, Result};
@@ -35,6 +38,7 @@ pub struct Options {
     pub tmpdir: TempDir,
     pub compile_opts: CompileArgs,
     pub object_name: String,
+    pub invocation_started_at_unix_nanos: u64,
 }
 
 impl Options {
@@ -53,6 +57,7 @@ impl Options {
             compile_opts: opts.clone(),
             tmpdir: tmp_workspace,
             object_name,
+            invocation_started_at_unix_nanos: current_unix_time_nanos(),
         })
     }
     #[allow(unused)]
@@ -161,6 +166,13 @@ impl Options {
         self.get_output_directory()
             .join(format!("{}.standalone.c", self.object_name))
     }
+}
+
+pub(crate) fn current_unix_time_nanos() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("System time should be after the Unix epoch")
+        .as_nanos() as u64
 }
 
 fn check_compile_opts(opts: &mut CompileArgs) -> Result<()> {
