@@ -29,16 +29,20 @@ use crate::helper::get_target_arch;
 use crate::tests::get_test_assets_dir;
 
 use super::{
-    build_output_artifact_claim, claim_output_artifact, claim_requested_output_artifacts,
-    create_output_artifact_tempdir, create_output_artifact_tempfile, create_output_object_tempfile,
+    build_output_artifact_claim, build_output_artifact_marker, build_output_artifact_owner,
+    claim_output_artifact, claim_requested_output_artifacts,
+    claim_requested_output_artifacts_for_invocation, create_output_artifact_tempdir,
+    create_output_artifact_tempfile, create_output_object_tempfile,
     ensure_output_artifact_can_be_written, get_output_artifact_claim_path,
     get_output_artifact_cleanup_reservation_path,
     normalize_output_artifact_tool_identity_path_with_path_env, pack_object_in_config,
     publish_output_directory_artifact, publish_output_file_artifact,
-    publish_output_object_artifact, release_output_artifact_claim,
-    set_output_artifact_claim_publish_barrier, set_output_artifact_claim_release_failure,
-    set_output_artifact_cleanup_reservation_barrier, set_output_artifact_marker_publish_barrier,
-    set_output_object_publish_barrier, write_output_artifact_owner_marker,
+    publish_output_object_artifact, publish_standalone_artifacts_for_invocation,
+    publish_wasm_header_artifact_for_invocation, read_output_artifact_marker,
+    release_output_artifact_claim, set_output_artifact_claim_publish_barrier,
+    set_output_artifact_claim_release_failure, set_output_artifact_cleanup_reservation_barrier,
+    set_output_artifact_marker_publish_barrier, set_output_object_publish_barrier,
+    write_output_artifact_owner_marker, OutputArtifactInvocation,
 };
 
 fn setup_tests(test_name: &str) -> (String, String, PathBuf) {
@@ -504,6 +508,43 @@ fn create_pack_test_args(output_dir: &TempDir, source_name: &str, yaml: bool) ->
     create_pack_test_args_from_source_path(output_dir, &source_path, yaml)
 }
 
+fn assert_output_artifact_finalized(args: &Options, artifact_path: impl AsRef<path::Path>) {
+    let marker =
+        read_output_artifact_marker(args.get_output_artifact_marker_path(artifact_path)).unwrap();
+    assert!(marker.finalized_at_unix_nanos.is_some());
+}
+
+fn write_legacy_output_artifact_marker(args: &Options, artifact_path: impl AsRef<path::Path>) {
+    let marker_path = args.get_output_artifact_marker_path(&artifact_path);
+    let owner = build_output_artifact_owner(args).unwrap();
+    let mut marker_json =
+        serde_json::to_value(build_output_artifact_marker(&owner, Some(1))).unwrap();
+    marker_json["owner"]
+        .as_object_mut()
+        .unwrap()
+        .remove("source_snapshot");
+    marker_json
+        .as_object_mut()
+        .unwrap()
+        .remove("finalized_at_unix_nanos");
+    fs::write(marker_path, serde_json::to_vec(&marker_json).unwrap()).unwrap();
+}
+
+fn write_legacy_output_artifact_claim(args: &Options, artifact_path: impl AsRef<path::Path>) {
+    let claim_path = get_output_artifact_claim_path(args, artifact_path);
+    fs::create_dir_all(claim_path.parent().unwrap()).unwrap();
+    let mut claim_json = serde_json::to_value(build_output_artifact_claim(args).unwrap()).unwrap();
+    claim_json["owner"]
+        .as_object_mut()
+        .unwrap()
+        .remove("source_snapshot");
+    claim_json
+        .as_object_mut()
+        .unwrap()
+        .remove("started_at_unix_nanos");
+    fs::write(claim_path, serde_json::to_vec(&claim_json).unwrap()).unwrap();
+}
+
 fn assert_output_artifact_claim_conflict(
     expected_owner: &Options,
     conflicting_owner: &Options,
@@ -519,6 +560,69 @@ fn assert_output_artifact_claim_conflict(
         artifact_path,
     )
     .unwrap();
+}
+
+#[test]
+fn test_publish_standalone_artifacts_finalize_source_and_executable() {
+    let output_dir = TempDir::new().unwrap();
+    let mut args = create_pack_test_args(&output_dir, "client.bpf.c", false);
+    args.compile_opts.parameters.standalone = true;
+
+    let invocation = OutputArtifactInvocation::start(&args).unwrap();
+    let claims = claim_requested_output_artifacts_for_invocation(&invocation, &args).unwrap();
+    let final_source_path = args.get_standalone_source_file_path();
+    let final_executable_path = args.get_standalone_executable_path();
+    let standalone_source = "int main(void) { return 0; }\n";
+
+    publish_standalone_artifacts_for_invocation(
+        &invocation,
+        &args,
+        standalone_source.to_string(),
+        |temp_source_path, temp_executable_path| {
+            assert_ne!(temp_source_path, final_source_path.as_path());
+            assert_ne!(temp_executable_path, final_executable_path.as_path());
+            assert!(!final_source_path.exists());
+            assert!(!final_executable_path.exists());
+            assert_eq!(
+                fs::read_to_string(temp_source_path).unwrap(),
+                standalone_source
+            );
+            fs::write(temp_executable_path, b"standalone-binary")?;
+            Ok(())
+        },
+    )
+    .unwrap();
+    claims.release().unwrap();
+
+    assert_eq!(
+        fs::read_to_string(&final_source_path).unwrap(),
+        standalone_source
+    );
+    assert_eq!(
+        fs::read(&final_executable_path).unwrap(),
+        b"standalone-binary"
+    );
+    assert_output_artifact_finalized(&args, &final_source_path);
+    assert_output_artifact_finalized(&args, &final_executable_path);
+}
+
+#[test]
+fn test_publish_wasm_header_artifact_finalizes_output() {
+    let output_dir = TempDir::new().unwrap();
+    let mut args = create_pack_test_args(&output_dir, "client.bpf.c", false);
+    args.compile_opts.wasm_header = true;
+
+    let invocation = OutputArtifactInvocation::start(&args).unwrap();
+    let claims = claim_requested_output_artifacts_for_invocation(&invocation, &args).unwrap();
+    let package_path = args.get_output_package_config_path();
+    fs::write(&package_path, "{\"program\":\"value\"}").unwrap();
+
+    publish_wasm_header_artifact_for_invocation(&invocation, &args).unwrap();
+    claims.release().unwrap();
+
+    let wasm_header = fs::read_to_string(args.get_wasm_header_path()).unwrap();
+    assert!(wasm_header.contains("\\\"program\\\":\\\"value\\\""));
+    assert_output_artifact_finalized(&args, args.get_wasm_header_path());
 }
 
 #[test]
@@ -762,6 +866,28 @@ fn test_claim_output_artifact_rejects_same_path_source_revision_change() {
     assert!(err.to_string().contains("belongs to a different source"));
 
     release_output_artifact_claim(&first_claim, &object_path).unwrap();
+}
+
+#[test]
+fn test_legacy_marker_and_claim_do_not_match_new_source_revision() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("shared.bpf.c");
+    let object_path = output_dir.path().join("shared.bpf.o");
+    fs::write(&source_path, "int x = 1;").unwrap();
+
+    let first_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    fs::write(&object_path, b"legacy-object").unwrap();
+    write_legacy_output_artifact_marker(&first_args, &object_path);
+    write_legacy_output_artifact_claim(&first_args, &object_path);
+
+    fs::write(&source_path, "int x = 2;").unwrap();
+
+    let second_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let err = claim_output_artifact(&second_args, &object_path)
+        .err()
+        .unwrap();
+
+    assert!(err.to_string().contains("belongs to a different source"));
 }
 
 #[test]
@@ -1195,6 +1321,29 @@ fn test_pack_object_in_config_reserves_sibling_package_during_cleanup() {
 
     assert!(!output_dir.path().join("package.json").exists());
     assert!(output_dir.path().join("package.yaml").exists());
+}
+
+#[test]
+fn test_pack_object_in_config_preserves_legacy_sibling_package_artifact() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("shared.bpf.c");
+    fs::write(&source_path, "int x;").unwrap();
+
+    let json_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    fs::write(
+        json_args.get_output_package_config_path(),
+        "{\"legacy\":true}",
+    )
+    .unwrap();
+    write_legacy_output_artifact_marker(&json_args, json_args.get_output_package_config_path());
+
+    let yaml_args = create_pack_test_args_from_source_path(&output_dir, &source_path, true);
+    fs::write(yaml_args.get_output_object_path(), b"yaml").unwrap();
+    write_test_meta_config(&yaml_args);
+    pack_object_in_config(&yaml_args).unwrap();
+
+    assert!(json_args.get_output_package_config_path().exists());
+    assert!(yaml_args.get_output_package_config_path().exists());
 }
 
 #[test]
