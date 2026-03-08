@@ -109,9 +109,8 @@ fn do_compile(args: &Options, temp_source_file: impl AsRef<Path>) -> Result<()> 
 
     // compile bpf object
     info!("Compiling bpf object...");
-    ensure_output_artifact_can_be_written(args, &output_bpf_object_path)?;
+    claim_output_artifact(args, &output_bpf_object_path)?;
     compile_bpf_object(args, temp_source_file, &output_bpf_object_path)?;
-    write_output_artifact_owner_marker(args, &output_bpf_object_path)?;
     let bpf_skel_json = get_bpf_skel_json(&output_bpf_object_path, args)?;
     let bpf_skel = serde_json::from_str::<Value>(&bpf_skel_json)
         .with_context(|| anyhow!("Failed to parse json skeleton"))?;
@@ -146,9 +145,8 @@ fn do_compile(args: &Options, temp_source_file: impl AsRef<Path>) -> Result<()> 
     } else {
         serde_json::to_string(&meta_json)?
     };
-    ensure_output_artifact_can_be_written(args, &output_json_path)?;
+    claim_output_artifact(args, &output_json_path)?;
     fs::write(&output_json_path, meta_config_str)?;
-    write_output_artifact_owner_marker(args, &output_json_path)?;
     Ok(())
 }
 
@@ -175,28 +173,23 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
     }
     // If we want a standalone executable..?
     if args.compile_opts.parameters.standalone {
-        ensure_output_artifact_can_be_written(args, args.get_standalone_source_file_path())?;
-        ensure_output_artifact_can_be_written(args, args.get_standalone_executable_path())?;
+        claim_output_artifact(args, args.get_standalone_source_file_path())?;
+        claim_output_artifact(args, args.get_standalone_executable_path())?;
         build_standalone_executable(args)
             .with_context(|| anyhow!("Failed to build standalone executable"))?;
-        write_output_artifact_owner_marker(args, args.get_standalone_source_file_path())?;
-        write_output_artifact_owner_marker(args, args.get_standalone_executable_path())?;
     }
     if args.compile_opts.wasm_header {
-        ensure_output_artifact_can_be_written(args, args.get_wasm_header_path())?;
+        claim_output_artifact(args, args.get_wasm_header_path())?;
         pack_object_in_wasm_header(args)
             .with_context(|| anyhow!("Failed to generate wasm header"))?;
-        write_output_artifact_owner_marker(args, args.get_wasm_header_path())?;
     }
     if args.compile_opts.btfgen {
-        ensure_output_artifact_can_be_written(args, args.get_output_btf_archive_directory())?;
-        ensure_output_artifact_can_be_written(args, args.get_output_tar_path())?;
+        claim_output_artifact(args, args.get_output_btf_archive_directory())?;
+        claim_output_artifact(args, args.get_output_tar_path())?;
         fetch_btfhub_repo(&args.compile_opts)
             .with_context(|| anyhow!("Failed to fetch btfhub repo"))?;
         generate_tailored_btf(args).with_context(|| anyhow!("Failed to generate tailored btf"))?;
-        write_output_artifact_owner_marker(args, args.get_output_btf_archive_directory())?;
         package_btfhub_tar(args).with_context(|| anyhow!("Failed to package btfhub tar"))?;
-        write_output_artifact_owner_marker(args, args.get_output_tar_path())?;
     }
     Ok(())
 }
@@ -228,14 +221,13 @@ fn pack_object_in_config(args: &Options) -> Result<()> {
         "Packing ebpf object and config into {}...",
         output_package_config_path.display()
     );
-    ensure_output_artifact_can_be_written(args, &output_package_config_path)?;
+    claim_output_artifact(args, &output_package_config_path)?;
     let package_config_str = if args.compile_opts.yaml {
         serde_yaml::to_string(&package_config).unwrap()
     } else {
         serde_json::to_string(&package_config).unwrap()
     };
     fs::write(&output_package_config_path, package_config_str)?;
-    write_output_artifact_owner_marker(args, &output_package_config_path)?;
 
     remove_matching_sibling_package_artifact(args)?;
 
@@ -288,6 +280,13 @@ pub(crate) fn write_output_artifact_owner_marker(
     let marker = build_output_artifact_owner(args);
     let marker_path = args.get_output_artifact_marker_path(artifact_path);
     fs::write(marker_path, serde_json::to_string(&marker)?)?;
+    Ok(())
+}
+
+fn claim_output_artifact(args: &Options, artifact_path: impl AsRef<Path>) -> Result<()> {
+    let artifact_path = artifact_path.as_ref();
+    ensure_output_artifact_can_be_written(args, artifact_path)?;
+    write_output_artifact_owner_marker(args, artifact_path)?;
     Ok(())
 }
 

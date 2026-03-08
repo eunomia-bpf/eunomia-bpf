@@ -156,6 +156,17 @@ fn test_output_btf_archive_directory_is_object_scoped() {
 }
 
 #[test]
+fn test_source_file_temp_path_uses_workspace_and_object_name() {
+    let (_tmp_source_dir, source_path) = create_source_file();
+
+    let args = create_initialized_options(source_path.to_str().unwrap());
+    assert_eq!(
+        args.get_source_file_temp_path(),
+        args.get_workspace_directory().join("test.temp.c")
+    );
+}
+
+#[test]
 fn test_reject_yaml_modes_that_require_json_package_output() {
     let (_tmp_source_dir, source_path) = create_source_file();
 
