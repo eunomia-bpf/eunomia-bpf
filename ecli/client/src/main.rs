@@ -98,6 +98,11 @@ If neither of -i, -u & -p is provided, will try to read credentials from \
 docker's configuration (~/.docker/config.json) and use them to login into the registry. \
 If unable to read, will login to the registry anonymously";
 
+#[cfg(feature = "native")]
+const MISSING_SUBCOMMAND_MESSAGE: &str = "Use a subcommand such as `run`, `push`, or `pull`";
+#[cfg(not(feature = "native"))]
+const MISSING_SUBCOMMAND_MESSAGE: &str = "Use a subcommand such as `push` or `pull`";
+
 /// ecli subcommands, including run, push, pull.
 #[derive(Subcommand)]
 pub enum Action {
@@ -214,7 +219,7 @@ async fn main() -> anyhow::Result<()> {
         None => CliArgs::command()
             .error(
                 ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
-                "Use a subcommand such as `run`, `push`, or `pull`",
+                MISSING_SUBCOMMAND_MESSAGE,
             )
             .exit(),
     }
@@ -223,13 +228,34 @@ async fn main() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
+    #[cfg(feature = "native")]
     use ecli_lib::config::ProgramType;
 
-    use super::{Action, CliArgs};
+    #[cfg(feature = "native")]
+    use super::Action;
+    use super::CliArgs;
 
     #[test]
     fn reject_legacy_top_level_run_shim() {
         assert!(CliArgs::try_parse_from(["ecli", "./prog.json"]).is_err());
+    }
+
+    #[cfg(feature = "native")]
+    #[test]
+    fn missing_subcommand_message_mentions_run_when_native_enabled() {
+        assert_eq!(
+            super::MISSING_SUBCOMMAND_MESSAGE,
+            "Use a subcommand such as `run`, `push`, or `pull`"
+        );
+    }
+
+    #[cfg(not(feature = "native"))]
+    #[test]
+    fn missing_subcommand_message_omits_run_when_native_disabled() {
+        assert_eq!(
+            super::MISSING_SUBCOMMAND_MESSAGE,
+            "Use a subcommand such as `push` or `pull`"
+        );
     }
 
     #[cfg(feature = "native")]

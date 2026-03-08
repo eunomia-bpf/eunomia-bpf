@@ -16,7 +16,7 @@ installs a tracepoint handler which is triggered once every second. It uses
 
 
 ```console
-$ sudo ecli  examples/bpftools/minimal/package.json
+$ sudo ecli run examples/bpftools/minimal/package.json
 Runing eBPF program...
 ```
 

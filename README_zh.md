@@ -69,16 +69,13 @@ $ sudo ./ecli run ghcr.io/eunomia-bpf/execve:latest # 从 OCI 仓库运行一个
     $ ./ecli -h
     ecli 子命令，包括 run、push、pull
 
-    用法: ecli [COMMAND_LINE]... [COMMAND]
+    用法: ecli [COMMAND]
 
     命令:
       run     运行ebpf程序
       push    将镜像推送到注册表
       pull    从注册表拉取镜像
       help    打印此消息或给定子命令的帮助
-
-    参数:
-      [COMMAND_LINE]...  不推荐使用。仅用于兼容旧版本。要运行的命令行；可执行对象可以是本地路径、URL 或 `-`（从 stdin 读取）。后续参数会原样传递给程序
 
     选项:
       -h, --help  打印帮助

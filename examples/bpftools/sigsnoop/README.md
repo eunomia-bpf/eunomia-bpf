@@ -177,7 +177,7 @@ Packing ebpf object and config into package.json...
 Run:
 
 ```console
-$ sudo ./ecli examples/bpftools/sigsnoop/package.json
+$ sudo ./ecli run examples/bpftools/sigsnoop/package.json
 TIME     PID     TPID    SIG     RET     COMM    
 20:43:44  21276  3054    0       0       cpptools-srv
 20:43:44  22407  3054    0       0       cpptools-srv
@@ -186,7 +186,7 @@ TIME     PID     TPID    SIG     RET     COMM
 20:43:44  2915   2803    0       0       node
 20:43:44  2943   2803    0       0       node
 20:43:44  31453  3054    0       0       cpptools-srv
-$ sudo ./ecli examples/bpftools/sigsnoop/package.json  -h
+$ sudo ./ecli run examples/bpftools/sigsnoop/package.json -h
 Usage: sigsnoop_bpf [--help] [--version] [--verbose] [--filtered_pid VAR] [--target_signal VAR] [--failed_only]
 
 A simple eBPF program
