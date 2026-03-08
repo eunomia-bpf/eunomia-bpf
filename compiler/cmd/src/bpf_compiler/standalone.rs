@@ -4,7 +4,9 @@
 //! All rights reserved.
 //!
 use std::{
-    env, fs,
+    env,
+    ffi::OsStr,
+    fs,
     io::ErrorKind,
     path::{Path, PathBuf},
     process::Command,
@@ -17,6 +19,7 @@ use log::{debug, info};
 const STANDALONE_RUNTIME_ENV: &str = "EUNOMIA_STANDALONE_LIB";
 const EUNOMIA_HOME_ENV: &str = "EUNOMIA_HOME";
 const CHECKOUT_RUNTIME_TARGET_DIR: &str = "bpf-loader-rs/target/eunomia-standalone-runtime";
+const BIN_DIR_NAME: &str = "bin";
 const DEFAULT_NATIVE_LINK_ARGS: &[&str] = &[
     "-lelf",
     "-lz",
@@ -242,20 +245,42 @@ fn checkout_roots() -> Vec<PathBuf> {
     roots
 }
 
-fn installed_runtime_candidates() -> Vec<PathBuf> {
-    let mut candidates = Vec::new();
+fn add_current_exe_runtime_candidates(candidates: &mut Vec<PathBuf>, current_exe: &Path) {
+    let Some(current_exe_dir) = current_exe.parent() else {
+        return;
+    };
 
-    if let Ok(current_exe) = env::current_exe() {
-        if let Some(current_exe_dir) = current_exe.parent() {
-            for ancestor in current_exe_dir.ancestors() {
-                add_install_layout_candidates(&mut candidates, ancestor);
-            }
+    add_install_layout_candidates(candidates, current_exe_dir);
+
+    if current_exe_dir.file_name() == Some(OsStr::new(BIN_DIR_NAME)) {
+        if let Some(install_root) = current_exe_dir.parent() {
+            add_install_layout_candidates(candidates, install_root);
         }
     }
+}
 
-    if let Ok(eunomia_home) = get_eunomia_data_dir() {
-        add_install_layout_candidates(&mut candidates, &eunomia_home);
+fn installed_runtime_candidates_for(
+    current_exe: Option<&Path>,
+    eunomia_home: Option<&Path>,
+) -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+
+    if let Some(current_exe) = current_exe {
+        add_current_exe_runtime_candidates(&mut candidates, current_exe);
     }
+
+    if let Some(eunomia_home) = eunomia_home {
+        add_install_layout_candidates(&mut candidates, eunomia_home);
+    }
+
+    candidates
+}
+
+fn installed_runtime_candidates() -> Vec<PathBuf> {
+    let current_exe = env::current_exe().ok();
+    let eunomia_home = get_eunomia_data_dir().ok();
+    let candidates =
+        installed_runtime_candidates_for(current_exe.as_deref(), eunomia_home.as_deref());
 
     debug!(
         "Installed standalone runtime search paths: {:?}",
@@ -416,10 +441,10 @@ pub(crate) fn build_standalone_executable(opts: &Options) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        checkout_runtime_build_dir, find_checkout_root, link_flags_path_for,
-        merge_native_link_args, normalize_native_link_args, parse_native_link_args,
-        resolve_standalone_runtime, select_runtime_resolution, RuntimeSelection, EUNOMIA_HOME_ENV,
-        STANDALONE_RUNTIME_ENV,
+        checkout_runtime_build_dir, find_checkout_root, installed_runtime_candidates_for,
+        link_flags_path_for, merge_native_link_args, normalize_native_link_args,
+        parse_native_link_args, resolve_standalone_runtime, select_runtime_resolution,
+        RuntimeSelection, EUNOMIA_HOME_ENV, STANDALONE_RUNTIME_ENV,
     };
     use std::{
         ffi::OsString,
@@ -570,6 +595,42 @@ mod tests {
                 panic!("installed runtime should win before checkout fallback")
             }
         }
+    }
+
+    #[test]
+    fn test_installed_runtime_candidates_only_consider_current_bin_root_and_eunomia_home() {
+        let candidates = installed_runtime_candidates_for(
+            Some(Path::new("/opt/eunomia/bin/ecc-rs")),
+            Some(Path::new("/home/test/.local/share/eunomia")),
+        );
+
+        assert_eq!(
+            candidates,
+            vec![
+                PathBuf::from("/opt/eunomia/bin/libeunomia.a"),
+                PathBuf::from("/opt/eunomia/bin/lib/libeunomia.a"),
+                PathBuf::from("/opt/eunomia/libeunomia.a"),
+                PathBuf::from("/opt/eunomia/lib/libeunomia.a"),
+                PathBuf::from("/home/test/.local/share/eunomia/libeunomia.a"),
+                PathBuf::from("/home/test/.local/share/eunomia/lib/libeunomia.a"),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_installed_runtime_candidates_do_not_walk_past_non_bin_executable_dirs() {
+        let candidates = installed_runtime_candidates_for(
+            Some(Path::new("/tmp/build/target/release/ecc-rs")),
+            None,
+        );
+
+        assert_eq!(
+            candidates,
+            vec![
+                PathBuf::from("/tmp/build/target/release/libeunomia.a"),
+                PathBuf::from("/tmp/build/target/release/lib/libeunomia.a"),
+            ]
+        );
     }
 
     #[test]

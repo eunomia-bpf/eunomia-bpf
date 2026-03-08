@@ -70,13 +70,25 @@ $(BPFTOOL):
 	$(MAKE) -C $(BPFTOOL_SRC)/src
 
 $(WORKSPACE_LIBEUNOMIA) $(WORKSPACE_LIBEUNOMIA_LINKFLAGS): $(STANDALONE_RUNTIME_SOURCES)
-	mkdir -p $(LIBEUNOMIA_TARGET_DIR)/release
-	( cargo rustc --manifest-path ../bpf-loader-rs/Cargo.toml -p bpf-loader-c-wrapper --target-dir $(LIBEUNOMIA_TARGET_DIR) --release -- --print=native-static-libs 2>&1 | awk -F 'native-static-libs: ' '/native-static-libs:/ { print $$2 }'; pkg-config --static --libs libelf zlib 2>/dev/null || true ) | awk '{ for (i = 1; i <= NF; i++) { if ($$i != "-lgcc_s") { printf "%s ", $$i } } } END { print "" }' > $(LIBEUNOMIA_LINKFLAGS)
-	test -s $(LIBEUNOMIA_LINKFLAGS)
-	test -f $(LIBEUNOMIA)
-	mkdir -p workspace
-	cp $(LIBEUNOMIA) $(WORKSPACE_LIBEUNOMIA)
-	cp $(LIBEUNOMIA_LINKFLAGS) $(WORKSPACE_LIBEUNOMIA_LINKFLAGS)
+	set -eu; \
+	mkdir -p $(LIBEUNOMIA_TARGET_DIR)/release; \
+	tmp_output="$$(mktemp)"; \
+	tmp_linkflags="$$(mktemp)"; \
+	trap 'rm -f "$$tmp_output" "$$tmp_linkflags"' EXIT; \
+	if ! cargo rustc --manifest-path ../bpf-loader-rs/Cargo.toml -p bpf-loader-c-wrapper --target-dir $(LIBEUNOMIA_TARGET_DIR) --release -- --print=native-static-libs >"$$tmp_output" 2>&1; then \
+		cat "$$tmp_output"; \
+		exit 1; \
+	fi; \
+	{ \
+		awk -F 'native-static-libs: ' '/native-static-libs:/ { print $$2 }' "$$tmp_output"; \
+		pkg-config --static --libs libelf zlib 2>/dev/null || true; \
+	} | awk '{ for (i = 1; i <= NF; i++) { if ($$i != "-lgcc_s") { printf "%s ", $$i } } } END { print "" }' > "$$tmp_linkflags"; \
+	test -s "$$tmp_linkflags"; \
+	test -f $(LIBEUNOMIA); \
+	cp "$$tmp_linkflags" $(LIBEUNOMIA_LINKFLAGS); \
+	mkdir -p workspace; \
+	cp $(LIBEUNOMIA) $(WORKSPACE_LIBEUNOMIA); \
+	cp "$$tmp_linkflags" $(WORKSPACE_LIBEUNOMIA_LINKFLAGS)
 
 $(ECC): $(BPFTOOL)
 	cd cmd && cargo build --release

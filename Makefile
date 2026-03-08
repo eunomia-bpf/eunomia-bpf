@@ -58,9 +58,13 @@ EUNOMIA_HOME ?= $(XDG_DATA_HOME)/eunomia
 release:
 	@set -eu; \
 	staging_root="$$(mktemp -d)"; \
-	trap 'rm -rf "$$staging_root" eunomia' EXIT; \
+	release_root="$$(mktemp -d ./.eunomia.release.XXXXXX)"; \
+	trap 'rm -rf "$$staging_root" "$$release_root"' EXIT; \
 	stage_home="$$staging_root/eunomia"; \
 	$(MAKE) -C ecli install EUNOMIA_HOME="$$stage_home"; \
 	$(MAKE) -C compiler install EUNOMIA_HOME="$$stage_home"; \
-	cp -R "$$stage_home" eunomia; \
+	cp -R "$$stage_home" "$$release_root/eunomia"; \
+	rm -rf eunomia; \
+	mv "$$release_root/eunomia" eunomia; \
+	rmdir "$$release_root"; \
 	tar -czvf eunomia.tar.gz eunomia
