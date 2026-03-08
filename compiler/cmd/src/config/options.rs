@@ -118,6 +118,19 @@ impl Options {
         self.get_output_package_config_path_for(self.package_format().sibling())
     }
 
+    pub fn get_output_package_marker_path_for(&self, package_format: PackageFormat) -> PathBuf {
+        self.get_output_directory()
+            .join(format!(".{}.ecc-owner.json", package_format.file_name()))
+    }
+
+    pub fn get_output_package_marker_path(&self) -> PathBuf {
+        self.get_output_package_marker_path_for(self.package_format())
+    }
+
+    pub fn get_output_sibling_package_marker_path(&self) -> PathBuf {
+        self.get_output_package_marker_path_for(self.package_format().sibling())
+    }
+
     pub fn get_wasm_header_path(&self) -> PathBuf {
         self.get_output_directory().join("ewasm-skel.h")
     }
