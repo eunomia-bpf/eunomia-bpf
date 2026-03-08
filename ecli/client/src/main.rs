@@ -158,7 +158,7 @@ pub enum Action {
 }
 
 #[derive(Parser)]
-#[command(about = CLI_ABOUT)]
+#[command(name = "ecli", bin_name = "ecli", about = CLI_ABOUT)]
 struct CliArgs {
     #[command(subcommand)]
     action: Option<Action>,
