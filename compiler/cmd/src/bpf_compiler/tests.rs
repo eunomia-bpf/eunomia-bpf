@@ -322,3 +322,19 @@ fn test_claimed_partial_artifact_is_not_unowned_on_retry() {
         .get_output_artifact_marker_path(&artifact_path)
         .exists());
 }
+
+#[test]
+fn test_claim_output_artifact_reserves_fresh_path_for_first_source() {
+    let output_dir = TempDir::new().unwrap();
+
+    let first_args = create_pack_test_args(&output_dir, "first.bpf.c", false);
+    let second_args = create_pack_test_args(&output_dir, "second.bpf.c", false);
+    let artifact_path = first_args.get_output_package_config_path();
+
+    claim_output_artifact(&first_args, &artifact_path).unwrap();
+    let err = claim_output_artifact(&second_args, &artifact_path)
+        .err()
+        .unwrap();
+
+    assert!(err.to_string().contains("belongs to a different source"));
+}
