@@ -27,6 +27,7 @@ use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::{fs, path::Path};
 use tempfile::{Builder, NamedTempFile, TempDir};
+use walkdir::WalkDir;
 
 #[cfg(test)]
 use std::sync::{Arc, Barrier, Mutex, OnceLock};
@@ -77,11 +78,24 @@ impl OutputArtifactOwner {
     fn matches_package_lineage(&self, other: &Self) -> bool {
         self.matches_revision(other)
     }
+
+    fn is_legacy_upgrade_target_for(&self, other: &Self) -> bool {
+        self.source_snapshot.is_missing()
+            && self.object_name == other.object_name
+            && self.source_path == other.source_path
+            && self
+                .build_signature
+                .matches_package_lineage(&other.build_signature)
+    }
 }
 
 impl OutputArtifactSourceSnapshot {
     fn matches(&self, other: &Self) -> bool {
         self.digest == other.digest
+    }
+
+    fn is_missing(&self) -> bool {
+        self.digest.is_empty()
     }
 }
 
@@ -336,6 +350,128 @@ fn create_output_artifact_tempdir(output_artifact_path: impl AsRef<Path>) -> Res
         .map_err(Into::into)
 }
 
+fn output_artifact_conflict_error(artifact_path: impl AsRef<Path>, action: &str) -> anyhow::Error {
+    anyhow!(
+        "Refusing to {} {} because it belongs to a different source or build",
+        action,
+        artifact_path.as_ref().display()
+    )
+}
+
+fn output_artifact_files_match(
+    expected_artifact_path: impl AsRef<Path>,
+    actual_artifact_path: impl AsRef<Path>,
+) -> Result<bool> {
+    let expected_artifact_path = expected_artifact_path.as_ref();
+    let actual_artifact_path = actual_artifact_path.as_ref();
+    let expected_metadata = fs::metadata(expected_artifact_path)?;
+    let actual_metadata = fs::metadata(actual_artifact_path)?;
+    if expected_metadata.len() != actual_metadata.len() {
+        return Ok(false);
+    }
+
+    let mut expected_reader = BufReader::new(fs::File::open(expected_artifact_path)?);
+    let mut actual_reader = BufReader::new(fs::File::open(actual_artifact_path)?);
+    let mut expected_buffer = [0_u8; 8192];
+    let mut actual_buffer = [0_u8; 8192];
+    loop {
+        let expected_bytes_read = expected_reader.read(&mut expected_buffer)?;
+        let actual_bytes_read = actual_reader.read(&mut actual_buffer)?;
+        if expected_bytes_read != actual_bytes_read {
+            return Ok(false);
+        }
+        if expected_bytes_read == 0 {
+            return Ok(true);
+        }
+        if expected_buffer[..expected_bytes_read] != actual_buffer[..actual_bytes_read] {
+            return Ok(false);
+        }
+    }
+}
+
+fn collect_output_artifact_directory_entries(
+    artifact_path: impl AsRef<Path>,
+) -> Result<Vec<(PathBuf, bool)>> {
+    let artifact_path = artifact_path.as_ref();
+    let mut entries = Vec::new();
+    for entry in WalkDir::new(artifact_path) {
+        let entry = entry?;
+        let relative_path = entry
+            .path()
+            .strip_prefix(artifact_path)
+            .expect("walkdir entries should stay within the artifact path")
+            .to_path_buf();
+        entries.push((relative_path, entry.file_type().is_dir()));
+    }
+    entries.sort();
+    Ok(entries)
+}
+
+fn output_artifact_directories_match(
+    expected_artifact_path: impl AsRef<Path>,
+    actual_artifact_path: impl AsRef<Path>,
+) -> Result<bool> {
+    let expected_artifact_path = expected_artifact_path.as_ref();
+    let actual_artifact_path = actual_artifact_path.as_ref();
+    let expected_entries = collect_output_artifact_directory_entries(expected_artifact_path)?;
+    let actual_entries = collect_output_artifact_directory_entries(actual_artifact_path)?;
+    if expected_entries != actual_entries {
+        return Ok(false);
+    }
+
+    for (relative_path, is_dir) in expected_entries {
+        if is_dir {
+            continue;
+        }
+
+        if !output_artifact_files_match(
+            expected_artifact_path.join(&relative_path),
+            actual_artifact_path.join(&relative_path),
+        )? {
+            return Ok(false);
+        }
+    }
+
+    Ok(true)
+}
+
+fn finalize_legacy_output_artifact_upgrade_for_invocation(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+    built_artifact_path: impl AsRef<Path>,
+    output_artifact_path: impl AsRef<Path>,
+    action: &str,
+) -> Result<bool> {
+    let built_artifact_path = built_artifact_path.as_ref();
+    let output_artifact_path = output_artifact_path.as_ref();
+    let marker_path = args.get_output_artifact_marker_path(output_artifact_path);
+    if !marker_path.exists() || !output_artifact_path.exists() {
+        return Ok(false);
+    }
+
+    let marker = read_output_artifact_marker(&marker_path)?;
+    if !marker
+        .owner
+        .is_legacy_upgrade_target_for(invocation.owner())
+    {
+        return Ok(false);
+    }
+
+    let artifacts_match = if built_artifact_path.is_file() && output_artifact_path.is_file() {
+        output_artifact_files_match(built_artifact_path, output_artifact_path)?
+    } else if built_artifact_path.is_dir() && output_artifact_path.is_dir() {
+        output_artifact_directories_match(built_artifact_path, output_artifact_path)?
+    } else {
+        false
+    };
+    if !artifacts_match {
+        return Err(output_artifact_conflict_error(output_artifact_path, action));
+    }
+
+    record_output_artifact_finalization_for_invocation(invocation, args, output_artifact_path)?;
+    Ok(true)
+}
+
 fn publish_output_file_artifact_for_invocation(
     invocation: &OutputArtifactInvocation,
     args: &Options,
@@ -343,6 +479,7 @@ fn publish_output_file_artifact_for_invocation(
     output_artifact_path: impl AsRef<Path>,
 ) -> Result<bool> {
     let output_artifact_path = output_artifact_path.as_ref();
+    let temp_artifact_path = output_artifact_file.path().to_path_buf();
     #[cfg(test)]
     wait_for_output_object_publish(output_artifact_path);
     match output_artifact_file.persist_noclobber(output_artifact_path) {
@@ -355,6 +492,19 @@ fn publish_output_file_artifact_for_invocation(
             Ok(true)
         }
         Err(err) if err.error.kind() == ErrorKind::AlreadyExists => {
+            if finalize_legacy_output_artifact_upgrade_for_invocation(
+                invocation,
+                args,
+                &temp_artifact_path,
+                output_artifact_path,
+                if output_artifact_path.exists() {
+                    "overwrite existing output artifact"
+                } else {
+                    "claim output artifact"
+                },
+            )? {
+                return Ok(false);
+            }
             ensure_output_artifact_can_be_written_for_invocation(
                 invocation,
                 args,
@@ -496,11 +646,27 @@ fn publish_output_directory_artifact_for_invocation(
                 ErrorKind::AlreadyExists | ErrorKind::DirectoryNotEmpty
             ) =>
         {
+            let legacy_upgrade_result = finalize_legacy_output_artifact_upgrade_for_invocation(
+                invocation,
+                args,
+                &temp_artifact_path,
+                output_artifact_path,
+                if output_artifact_path.exists() {
+                    "overwrite existing output artifact"
+                } else {
+                    "claim output artifact"
+                },
+            );
             let cleanup_result = match fs::remove_dir_all(&temp_artifact_path) {
                 Ok(_) => Ok(()),
                 Err(cleanup_err) if cleanup_err.kind() == ErrorKind::NotFound => Ok(()),
                 Err(cleanup_err) => Err(cleanup_err),
             };
+            if let Ok(true) = legacy_upgrade_result {
+                cleanup_result?;
+                return Ok(false);
+            }
+            legacy_upgrade_result?;
             ensure_output_artifact_can_be_written_for_invocation(
                 invocation,
                 args,
@@ -1192,7 +1358,10 @@ fn record_output_artifact_finalization_for_invocation(
 
     if marker_path.exists() {
         let marker = read_output_artifact_marker(&marker_path)?;
-        if !marker.owner.matches_revision(expected_owner) && artifact_path.exists() {
+        if !marker.owner.matches_revision(expected_owner)
+            && !marker.owner.is_legacy_upgrade_target_for(expected_owner)
+            && artifact_path.exists()
+        {
             bail!(
                 "Refusing to finalize output artifact {} because it belongs to a different source or build",
                 artifact_path.display()
@@ -1432,15 +1601,28 @@ fn publish_output_artifact_owner_marker_for_invocation(
             return Ok(());
         }
         let claims = read_output_artifact_claims(artifact_path)?;
+        if marker.owner.is_legacy_upgrade_target_for(owner) && artifact_path.exists() {
+            if claims.iter().any(|claim| {
+                !claim.owner.matches_revision(owner)
+                    && !claim.owner.is_legacy_upgrade_target_for(owner)
+            }) {
+                return Err(output_artifact_conflict_error(
+                    artifact_path,
+                    "claim output artifact",
+                ));
+            }
+            return Ok(());
+        }
         if artifact_path.exists()
-            || claims
-                .iter()
-                .any(|claim| !claim.owner.matches_revision(owner))
+            || claims.iter().any(|claim| {
+                !claim.owner.matches_revision(owner)
+                    && !claim.owner.is_legacy_upgrade_target_for(owner)
+            })
         {
-            bail!(
-                "Refusing to claim output artifact {} because it belongs to a different source or build",
-                artifact_path.display()
-            );
+            return Err(output_artifact_conflict_error(
+                artifact_path,
+                "claim output artifact",
+            ));
         }
         create_output_artifact_marker_tempfile(
             &marker_path,
@@ -1462,16 +1644,29 @@ fn publish_output_artifact_owner_marker_for_invocation(
         Err(err) if err.error.kind() == ErrorKind::AlreadyExists => {
             let marker = read_output_artifact_marker(&marker_path)?;
             let claims = read_output_artifact_claims(artifact_path)?;
+            if marker.owner.is_legacy_upgrade_target_for(owner) && artifact_path.exists() {
+                if claims.iter().any(|claim| {
+                    !claim.owner.matches_revision(owner)
+                        && !claim.owner.is_legacy_upgrade_target_for(owner)
+                }) {
+                    return Err(output_artifact_conflict_error(
+                        artifact_path,
+                        "claim output artifact",
+                    ));
+                }
+                return Ok(());
+            }
             if !marker.owner.matches_revision(owner)
                 && (artifact_path.exists()
-                    || claims
-                        .iter()
-                        .any(|claim| !claim.owner.matches_revision(owner)))
+                    || claims.iter().any(|claim| {
+                        !claim.owner.matches_revision(owner)
+                            && !claim.owner.is_legacy_upgrade_target_for(owner)
+                    }))
             {
-                bail!(
-                    "Refusing to claim output artifact {} because it belongs to a different source or build",
-                    artifact_path.display()
-                );
+                return Err(output_artifact_conflict_error(
+                    artifact_path,
+                    "claim output artifact",
+                ));
             }
             if !marker.owner.matches_revision(owner) {
                 create_output_artifact_marker_tempfile(
@@ -1688,15 +1883,11 @@ fn ensure_output_artifact_can_be_written_for_invocation(
     ensure_output_artifact_is_not_being_cleaned_up(artifact_path, action)?;
     let marker_path = args.get_output_artifact_marker_path(artifact_path);
     let claims = read_output_artifact_claims(artifact_path)?;
-    if claims
-        .iter()
-        .any(|claim| !claim.owner.matches_revision(expected_owner))
-    {
-        bail!(
-            "Refusing to {} {} because it belongs to a different source or build",
-            action,
-            artifact_path.display()
-        );
+    if claims.iter().any(|claim| {
+        !claim.owner.matches_revision(expected_owner)
+            && !claim.owner.is_legacy_upgrade_target_for(expected_owner)
+    }) {
+        return Err(output_artifact_conflict_error(artifact_path, action));
     }
 
     if !artifact_path.exists() && !marker_path.exists() && claims.is_empty() {
@@ -1716,12 +1907,11 @@ fn ensure_output_artifact_can_be_written_for_invocation(
     }
 
     let marker = read_output_artifact_owner_marker(&marker_path)?;
-    if !marker.matches_revision(expected_owner) && artifact_path.exists() {
-        bail!(
-            "Refusing to {} {} because it belongs to a different source or build",
-            action,
-            artifact_path.display()
-        );
+    if !marker.matches_revision(expected_owner)
+        && !marker.is_legacy_upgrade_target_for(expected_owner)
+        && artifact_path.exists()
+    {
+        return Err(output_artifact_conflict_error(artifact_path, action));
     }
 
     Ok(())

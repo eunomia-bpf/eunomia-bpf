@@ -869,25 +869,87 @@ fn test_claim_output_artifact_rejects_same_path_source_revision_change() {
 }
 
 #[test]
-fn test_legacy_marker_and_claim_do_not_match_new_source_revision() {
+fn test_unchanged_legacy_artifact_upgrades_owner_during_finalization() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("shared.bpf.c");
+    let object_path = output_dir.path().join("shared.bpf.o");
+    let legacy_object = b"legacy-object";
+    fs::write(&source_path, "int x = 1;").unwrap();
+
+    let legacy_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    fs::write(&object_path, legacy_object).unwrap();
+    write_legacy_output_artifact_marker(&legacy_args, &object_path);
+    write_legacy_output_artifact_claim(&legacy_args, &object_path);
+
+    let upgrade_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    assert!(claim_output_artifact(&upgrade_args, &object_path).unwrap());
+
+    let mut upgraded_object = create_output_object_tempfile(&object_path).unwrap();
+    upgraded_object
+        .as_file_mut()
+        .write_all(legacy_object)
+        .unwrap();
+    upgraded_object.as_file_mut().sync_all().unwrap();
+    assert!(!publish_output_object_artifact(&upgrade_args, upgraded_object, &object_path).unwrap());
+
+    let upgraded_marker =
+        read_output_artifact_marker(upgrade_args.get_output_artifact_marker_path(&object_path))
+            .unwrap();
+    assert_eq!(
+        upgraded_marker.owner,
+        build_output_artifact_owner(&upgrade_args).unwrap()
+    );
+    assert!(upgraded_marker.finalized_at_unix_nanos.is_some());
+
+    release_output_artifact_claim(
+        &build_output_artifact_claim(&upgrade_args).unwrap(),
+        &object_path,
+    )
+    .unwrap();
+    release_output_artifact_claim(
+        &build_output_artifact_claim(&legacy_args).unwrap(),
+        &object_path,
+    )
+    .unwrap();
+}
+
+#[test]
+fn test_legacy_marker_and_claim_reject_changed_source_during_finalization() {
     let output_dir = TempDir::new().unwrap();
     let source_path = output_dir.path().join("shared.bpf.c");
     let object_path = output_dir.path().join("shared.bpf.o");
     fs::write(&source_path, "int x = 1;").unwrap();
 
-    let first_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let legacy_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
     fs::write(&object_path, b"legacy-object").unwrap();
-    write_legacy_output_artifact_marker(&first_args, &object_path);
-    write_legacy_output_artifact_claim(&first_args, &object_path);
+    write_legacy_output_artifact_marker(&legacy_args, &object_path);
+    write_legacy_output_artifact_claim(&legacy_args, &object_path);
 
     fs::write(&source_path, "int x = 2;").unwrap();
 
     let second_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
-    let err = claim_output_artifact(&second_args, &object_path)
+    assert!(claim_output_artifact(&second_args, &object_path).unwrap());
+    let mut rebuilt_object = create_output_object_tempfile(&object_path).unwrap();
+    rebuilt_object
+        .as_file_mut()
+        .write_all(b"rebuilt-object")
+        .unwrap();
+    rebuilt_object.as_file_mut().sync_all().unwrap();
+    let err = publish_output_object_artifact(&second_args, rebuilt_object, &object_path)
         .err()
         .unwrap();
 
     assert!(err.to_string().contains("belongs to a different source"));
+    release_output_artifact_claim(
+        &build_output_artifact_claim(&second_args).unwrap(),
+        &object_path,
+    )
+    .unwrap();
+    release_output_artifact_claim(
+        &build_output_artifact_claim(&legacy_args).unwrap(),
+        &object_path,
+    )
+    .unwrap();
 }
 
 #[test]
