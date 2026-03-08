@@ -85,7 +85,7 @@ $ sudo ./ecli run ghcr.io/eunomia-bpf/execve:latest # 从 OCI 仓库运行一个
     ....
     ```
 
-- 安装`ecc`编译器工具链，用于将eBPF内核代码编译为`config`文件或`Wasm`模块（为了编译，需要安装`clang`、`llvm`和`libclang`）：
+- 安装`ecc`编译器工具链，用于将eBPF内核代码编译为`config`文件或`Wasm`模块（为了编译，需要安装`clang`、`llvm`、`libclang`和`pkg-config`）：
 
     ```console
     $ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecc && chmod +x ./ecc

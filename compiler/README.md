@@ -307,7 +307,7 @@ fs::write("package.json", serde_json::to_string(&package)?)?;
 
 **Ubuntu/Debian:**
 ```bash
-apt install clang libelf1 libelf-dev zlib1g-dev libzstd-dev liblzma-dev llvm
+apt install clang libelf1 libelf-dev zlib1g-dev libzstd-dev liblzma-dev llvm pkg-config
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
@@ -316,6 +316,8 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 dnf install clang elfutils-libelf elfutils-libelf-devel zlib-devel libzstd-devel xz-devel
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
+
+Install the `pkg-config` executable as provided by your distro as well; `ecc --standalone` now uses it when resolving static runtime link flags.
 
 ### Build Steps
 

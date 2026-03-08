@@ -1,4 +1,4 @@
-.PHONY: ecli bpf-loader-rs eunomia-exporter help install-deps clean all
+.PHONY: ecli bpf-loader-rs eunomia-exporter help install-deps clean all release
 .DEFAULT_GOAL := all
 all: bpf-loader-rs ecli ## Build all binaries
 
@@ -33,7 +33,7 @@ help:
 
 install-deps: ## install deps
 	apt update
-	apt-get install libcurl4-openssl-dev libelf-dev clang llvm cmake zlib1g-dev libzstd-dev liblzma-dev
+	apt-get install libcurl4-openssl-dev libelf-dev clang llvm cmake zlib1g-dev libzstd-dev liblzma-dev pkg-config
 
 ecli: ## build the command line tool for eunomia-bpf
 	make -C ecli build
@@ -56,8 +56,11 @@ XDG_DATA_HOME ?= ${HOME}/.local/share
 EUNOMIA_HOME ?= $(XDG_DATA_HOME)/eunomia
 
 release:
-	make -C ecli install
-	make -C compiler install
-	cp -R $(EUNOMIA_HOME) eunomia
+	@set -eu; \
+	staging_root="$$(mktemp -d)"; \
+	trap 'rm -rf "$$staging_root" eunomia' EXIT; \
+	stage_home="$$staging_root/eunomia"; \
+	$(MAKE) -C ecli install EUNOMIA_HOME="$$stage_home"; \
+	$(MAKE) -C compiler install EUNOMIA_HOME="$$stage_home"; \
+	cp -R "$$stage_home" eunomia; \
 	tar -czvf eunomia.tar.gz eunomia
-	rm -rf eunomia

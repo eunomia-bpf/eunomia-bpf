@@ -33,6 +33,11 @@ struct StandaloneRuntime {
     native_link_args: Vec<String>,
 }
 
+enum RuntimeSelection {
+    ExistingLibrary(PathBuf),
+    CheckoutRoots(Vec<PathBuf>),
+}
+
 fn num_to_hex(v: u8) -> char {
     match v {
         0..=9 => (48 + v) as char,
@@ -164,6 +169,49 @@ fn standalone_runtime_from_library_path(library_path: PathBuf) -> Result<Standal
     })
 }
 
+fn first_existing_runtime_candidate<I>(candidates: I) -> Option<PathBuf>
+where
+    I: IntoIterator<Item = PathBuf>,
+{
+    candidates.into_iter().find(|path| path.exists())
+}
+
+fn select_runtime_resolution(
+    explicit_path: Option<PathBuf>,
+    eunomia_home_candidates: Option<Vec<PathBuf>>,
+    installed_candidates: Vec<PathBuf>,
+    checkout_roots: Vec<PathBuf>,
+) -> Result<RuntimeSelection> {
+    if let Some(explicit_path) = explicit_path {
+        if !explicit_path.exists() {
+            bail!(
+                "`{}` points to `{}`, but that file does not exist",
+                STANDALONE_RUNTIME_ENV,
+                explicit_path.display()
+            );
+        }
+        return Ok(RuntimeSelection::ExistingLibrary(explicit_path));
+    }
+
+    if let Some(path) =
+        first_existing_runtime_candidate(eunomia_home_candidates.into_iter().flatten())
+    {
+        return Ok(RuntimeSelection::ExistingLibrary(path));
+    }
+
+    if let Some(path) = first_existing_runtime_candidate(installed_candidates) {
+        return Ok(RuntimeSelection::ExistingLibrary(path));
+    }
+
+    if !checkout_roots.is_empty() {
+        return Ok(RuntimeSelection::CheckoutRoots(checkout_roots));
+    }
+
+    bail!(
+        "Failed to locate `libeunomia.a` for `--standalone`. Install `ecc` via `make -C compiler install`, or build the runtime with `cargo rustc --manifest-path bpf-loader-rs/Cargo.toml -p bpf-loader-c-wrapper --release -- --print=native-static-libs`."
+    );
+}
+
 fn find_checkout_root(start: &Path) -> Option<PathBuf> {
     for candidate in start.ancestors() {
         if candidate.join("bpf-loader-rs/Cargo.toml").is_file()
@@ -293,54 +341,36 @@ fn build_runtime_from_checkout(checkout_root: &Path) -> Result<StandaloneRuntime
 }
 
 fn resolve_standalone_runtime() -> Result<StandaloneRuntime> {
-    if let Ok(explicit_path) = env::var(STANDALONE_RUNTIME_ENV) {
-        let explicit_path = PathBuf::from(explicit_path);
-        if !explicit_path.exists() {
-            bail!(
-                "`{}` points to `{}`, but that file does not exist",
-                STANDALONE_RUNTIME_ENV,
-                explicit_path.display()
-            );
-        }
-        return standalone_runtime_from_library_path(explicit_path);
-    }
-
-    if let Some(eunomia_home_candidates) = eunomia_home_runtime_candidates() {
-        if let Some(path) = eunomia_home_candidates
-            .into_iter()
-            .find(|path| path.exists())
-        {
-            return standalone_runtime_from_library_path(path);
-        }
-    }
-
-    let mut build_error = None;
-    for checkout_root in checkout_roots() {
-        match build_runtime_from_checkout(&checkout_root) {
-            Ok(runtime) => return Ok(runtime),
-            Err(err) => {
-                debug!(
-                    "Failed to build checkout standalone runtime from {}: {}",
-                    checkout_root.display(),
-                    err
-                );
-                build_error = Some(err);
+    match select_runtime_resolution(
+        env::var(STANDALONE_RUNTIME_ENV).ok().map(PathBuf::from),
+        eunomia_home_runtime_candidates(),
+        installed_runtime_candidates(),
+        checkout_roots(),
+    )? {
+        RuntimeSelection::ExistingLibrary(path) => standalone_runtime_from_library_path(path),
+        RuntimeSelection::CheckoutRoots(checkout_roots) => {
+            let mut build_error = None;
+            for checkout_root in checkout_roots {
+                match build_runtime_from_checkout(&checkout_root) {
+                    Ok(runtime) => return Ok(runtime),
+                    Err(err) => {
+                        debug!(
+                            "Failed to build checkout standalone runtime from {}: {}",
+                            checkout_root.display(),
+                            err
+                        );
+                        build_error = Some(err);
+                    }
+                }
             }
+
+            if let Some(err) = build_error {
+                return Err(err);
+            }
+
+            unreachable!("runtime selection should only return checkout roots when present");
         }
     }
-
-    let installed_candidates = installed_runtime_candidates();
-    if let Some(path) = installed_candidates.into_iter().find(|path| path.exists()) {
-        return standalone_runtime_from_library_path(path);
-    }
-
-    if let Some(err) = build_error {
-        return Err(err);
-    }
-
-    bail!(
-        "Failed to locate `libeunomia.a` for `--standalone`. Install `ecc` via `make -C compiler install`, or build the runtime with `cargo rustc --manifest-path bpf-loader-rs/Cargo.toml -p bpf-loader-c-wrapper --release -- --print=native-static-libs`."
-    );
 }
 
 pub(crate) fn build_standalone_executable(opts: &Options) -> Result<()> {
@@ -388,7 +418,8 @@ mod tests {
     use super::{
         checkout_runtime_build_dir, find_checkout_root, link_flags_path_for,
         merge_native_link_args, normalize_native_link_args, parse_native_link_args,
-        resolve_standalone_runtime, EUNOMIA_HOME_ENV, STANDALONE_RUNTIME_ENV,
+        resolve_standalone_runtime, select_runtime_resolution, RuntimeSelection, EUNOMIA_HOME_ENV,
+        STANDALONE_RUNTIME_ENV,
     };
     use std::{
         ffi::OsString,
@@ -513,6 +544,32 @@ mod tests {
     fn test_link_flags_path_for() {
         let path = link_flags_path_for(Path::new("/tmp/libeunomia.a"));
         assert_eq!(path, Path::new("/tmp/libeunomia.a.linkflags"));
+    }
+
+    #[test]
+    fn test_select_runtime_resolution_prefers_installed_runtime_over_checkout_fallbacks() {
+        let temp_dir = TempDir::new().unwrap();
+        let installed_runtime = temp_dir.path().join("installed/libeunomia.a");
+        let checkout_root = temp_dir.path().join("repo-root");
+
+        fs::create_dir_all(installed_runtime.parent().unwrap()).unwrap();
+        fs::write(&installed_runtime, "").unwrap();
+        fs::create_dir_all(&checkout_root).unwrap();
+
+        let selection = select_runtime_resolution(
+            None,
+            None,
+            vec![installed_runtime.clone()],
+            vec![checkout_root],
+        )
+        .unwrap();
+
+        match selection {
+            RuntimeSelection::ExistingLibrary(path) => assert_eq!(path, installed_runtime),
+            RuntimeSelection::CheckoutRoots(_) => {
+                panic!("installed runtime should win before checkout fallback")
+            }
+        }
     }
 
     #[test]

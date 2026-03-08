@@ -138,7 +138,7 @@ endif
 .PHONY: install-deps
 install-deps:
 	sudo apt-get update
-	sudo apt-get -y install clang libelf1 libelf-dev zlib1g-dev libzstd-dev liblzma-dev cmake llvm libclang-dev
+	sudo apt-get -y install clang libelf1 libelf-dev zlib1g-dev libzstd-dev liblzma-dev cmake llvm libclang-dev pkg-config
 
 # delete failed targets
 .DELETE_ON_ERROR:

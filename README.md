@@ -85,7 +85,7 @@ The legacy remote HTTP mode (`ecli client` / `ecli-server`) has been removed fro
     ....
     ```
 
-- Install the `ecc` compiler-toolchain for compiling eBPF kernel code to a `config` file or `Wasm` module(`clang`, `llvm`, and `libclang` should be installed for compiling):
+- Install the `ecc` compiler-toolchain for compiling eBPF kernel code to a `config` file or `Wasm` module(`clang`, `llvm`, `libclang`, and `pkg-config` should be installed for compiling):
 
     ```console
     $ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecc && chmod +x ./ecc

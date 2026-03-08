@@ -29,7 +29,7 @@ This example include a eBPF program and a WASM module in user space.
     ....
     ```
 
-- Install the `ecc` compiler-toolchain for compiling eBPF kernel code to a `config` file or `WASM` module(`clang`, `llvm`, and `libclang` should be installed for compiling), and install `struct-bindgen` for generating the export event header:
+- Install the `ecc` compiler-toolchain for compiling eBPF kernel code to a `config` file or `WASM` module(`clang`, `llvm`, `libclang`, and `pkg-config` should be installed for compiling), and install `struct-bindgen` for generating the export event header:
 
     ```console
     $ wget https://github.com/eunomia-bpf/eunomia-bpf/releases/latest/download/ecc && chmod +x ./ecc
