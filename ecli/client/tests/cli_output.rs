@@ -35,13 +35,15 @@ fn help_output_uses_public_binary_name_without_run() {
 #[cfg(feature = "native")]
 #[test]
 fn legacy_positional_invocation_shows_public_migration_hint() {
-    let output = run_cli(&["./prog.json"]);
-    assert!(!output.status.success());
+    for arg in ["./prog.json", "prog", "alpine"] {
+        let output = run_cli(&[arg]);
+        assert!(!output.status.success());
 
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("Use `ecli run <program>` instead"));
-    assert!(stderr.contains("Usage: ecli [COMMAND]"));
-    assert!(!stderr.contains("ecli-rs"));
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains("use `ecli run <program>` instead"));
+        assert!(stderr.contains("Usage: ecli [COMMAND]"));
+        assert!(!stderr.contains("ecli-rs"));
+    }
 }
 
 #[cfg(not(feature = "native"))]

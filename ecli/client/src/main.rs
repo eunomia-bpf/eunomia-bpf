@@ -109,7 +109,7 @@ const MISSING_SUBCOMMAND_MESSAGE: &str = "Use a subcommand such as `run`, `push`
 const MISSING_SUBCOMMAND_MESSAGE: &str = "Use a subcommand such as `push` or `pull`";
 #[cfg(feature = "native")]
 const LEGACY_RUN_MIGRATION_MESSAGE: &str =
-    "The top-level positional run mode has been removed. Use `ecli run <program>` instead, for example `ecli run ./prog.json`.";
+    "The top-level positional run mode has been removed. If you intended to run a program, use `ecli run <program>` instead, for example `ecli run prog` or `ecli run alpine`.";
 
 #[derive(Subcommand)]
 pub enum Action {
@@ -175,10 +175,11 @@ fn should_suggest_run_migration(raw_args: &[OsString]) -> bool {
     if matches!(first_arg, "run" | "push" | "pull" | "help") {
         return false;
     }
-    first_arg == "-" || first_arg.contains(['.', '/', ':'])
+    true
 }
 
 #[cfg(not(feature = "native"))]
+#[allow(dead_code)]
 fn should_suggest_run_migration(_raw_args: &[OsString]) -> bool {
     false
 }
@@ -199,13 +200,19 @@ async fn main() -> anyhow::Result<()> {
         .ok();
     }
     let raw_args = std::env::args_os().collect::<Vec<_>>();
-    if should_suggest_run_migration(&raw_args) {
-        #[cfg(feature = "native")]
-        CliArgs::command()
-            .error(ErrorKind::InvalidSubcommand, LEGACY_RUN_MIGRATION_MESSAGE)
-            .exit();
-    }
-    let args = CliArgs::parse_from(raw_args);
+    let args = match CliArgs::try_parse_from(raw_args.clone()) {
+        Ok(args) => args,
+        Err(err) => {
+            #[cfg(feature = "native")]
+            if err.kind() == ErrorKind::InvalidSubcommand && should_suggest_run_migration(&raw_args)
+            {
+                CliArgs::command()
+                    .error(ErrorKind::InvalidSubcommand, LEGACY_RUN_MIGRATION_MESSAGE)
+                    .exit();
+            }
+            err.exit();
+        }
+    };
 
     match args.action {
         #[cfg(feature = "native")]
@@ -321,6 +328,14 @@ mod tests {
             "ecli".into(),
             "ghcr.io/eunomia-bpf/execve:latest".into(),
         ]));
+        assert!(super::should_suggest_run_migration(&[
+            "ecli".into(),
+            "prog".into(),
+        ]));
+        assert!(super::should_suggest_run_migration(&[
+            "ecli".into(),
+            "alpine".into(),
+        ]));
     }
 
     #[test]
@@ -332,10 +347,6 @@ mod tests {
         assert!(!super::should_suggest_run_migration(&[
             "ecli".into(),
             "--help".into()
-        ]));
-        assert!(!super::should_suggest_run_migration(&[
-            "ecli".into(),
-            "rn".into()
         ]));
     }
 
