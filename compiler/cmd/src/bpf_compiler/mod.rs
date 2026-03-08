@@ -350,6 +350,17 @@ fn create_output_artifact_tempdir(output_artifact_path: impl AsRef<Path>) -> Res
         .map_err(Into::into)
 }
 
+fn io_error_is_directory_not_empty(err: &std::io::Error) -> bool {
+    #[cfg(windows)]
+    const DIRECTORY_NOT_EMPTY_OS_ERROR: i32 = 145;
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    const DIRECTORY_NOT_EMPTY_OS_ERROR: i32 = 66;
+    #[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
+    const DIRECTORY_NOT_EMPTY_OS_ERROR: i32 = 39;
+
+    err.raw_os_error() == Some(DIRECTORY_NOT_EMPTY_OS_ERROR)
+}
+
 fn output_artifact_conflict_error(artifact_path: impl AsRef<Path>, action: &str) -> anyhow::Error {
     anyhow!(
         "Refusing to {} {} because it belongs to a different source or build",
@@ -641,10 +652,7 @@ fn publish_output_directory_artifact_for_invocation(
             Ok(true)
         }
         Err(err)
-            if matches!(
-                err.kind(),
-                ErrorKind::AlreadyExists | ErrorKind::DirectoryNotEmpty
-            ) =>
+            if err.kind() == ErrorKind::AlreadyExists || io_error_is_directory_not_empty(&err) =>
         {
             let legacy_upgrade_result = finalize_legacy_output_artifact_upgrade_for_invocation(
                 invocation,
@@ -1712,7 +1720,7 @@ fn release_output_artifact_claim(
         match fs::remove_dir(&claim_dir) {
             Ok(_) => {}
             Err(err) if err.kind() == ErrorKind::NotFound => {}
-            Err(err) if err.kind() == ErrorKind::DirectoryNotEmpty => {}
+            Err(err) if io_error_is_directory_not_empty(&err) => {}
             Err(err) => return Err(err.into()),
         }
     }
@@ -2151,7 +2159,7 @@ fn remove_matching_sibling_package_artifact_for_invocation(
         )) {
             Ok(_) => {}
             Err(err) if err.kind() == ErrorKind::NotFound => {}
-            Err(err) if err.kind() == ErrorKind::DirectoryNotEmpty => {}
+            Err(err) if io_error_is_directory_not_empty(&err) => {}
             Err(err) => return Err(err.into()),
         }
         Ok(())
