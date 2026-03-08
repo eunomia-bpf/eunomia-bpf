@@ -122,7 +122,7 @@ pub struct CompileExtraArgs {
         short,
         long,
         default_value_t = false,
-        help = "Don't generate a `package.json` containing the binary of the ELF file of the ebpf program"
+        help = "Don't generate the packaged output artifact (`package.json` or `package.yaml`) containing the binary of the ELF file of the ebpf program"
     )]
     pub no_generate_package_json: bool,
 
@@ -130,7 +130,7 @@ pub struct CompileExtraArgs {
         long,
         short = 's',
         default_value_t = false,
-        help = "Produce standalone executable; Can only be used when `no_generate_package_json` is disabled",
+        help = "Produce standalone executable; currently requires generated JSON package output",
         conflicts_with = "no_generate_package_json"
     )]
     pub standalone: bool,
@@ -196,7 +196,7 @@ pub fn package_btfhub_tar(args: &Options) -> Result<()> {
     let mut object = fs::File::open(args.get_output_object_path())
         .with_context(|| anyhow!("Failed to open the object file for putting in the tar"))?;
     let mut json = fs::File::open(args.get_output_package_config_path())
-        .with_context(|| anyhow!("Failed to open the package json to put in the tar"))?;
+        .with_context(|| anyhow!("Failed to open the generated package file to put in the tar"))?;
 
     tar.append_dir_all(".", btf_path)
         .with_context(|| anyhow!("Failed to add btf archives into tar"))?;

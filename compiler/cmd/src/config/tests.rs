@@ -24,6 +24,13 @@ fn create_initialized_options(source_path: &str) -> Options {
     Options::init(compile_opts, tmp_workspace).unwrap()
 }
 
+fn create_source_file() -> (TempDir, PathBuf) {
+    let tmp_source_dir = TempDir::new().unwrap();
+    let source_path = tmp_source_dir.path().join("test.bpf.c");
+    fs::write(&source_path, "int x;").unwrap();
+    (tmp_source_dir, source_path)
+}
+
 #[test]
 fn test_parse_args() {
     init_options(CompileArgs::parse_from(&["ecc", "../test/client.bpf.c"]));
@@ -113,4 +120,87 @@ fn test_get_bpf_compile_args_split_target_and_use_source_dir() {
         .any(|window| window == ["-target", "bpf"]));
     assert!(!compile_args.iter().any(|arg| arg == "-target bpf"));
     assert!(compile_args.iter().any(|arg| arg == &source_include));
+}
+
+#[test]
+fn test_output_package_path_tracks_selected_format() {
+    let (_tmp_source_dir, source_path) = create_source_file();
+
+    let args = create_initialized_options(source_path.to_str().unwrap());
+    assert_eq!(
+        args.get_output_package_config_path(),
+        source_path.parent().unwrap().join("package.json")
+    );
+
+    let mut yaml_args = create_initialized_options(source_path.to_str().unwrap());
+    yaml_args.compile_opts.yaml = true;
+    assert_eq!(
+        yaml_args.get_output_package_config_path(),
+        source_path.parent().unwrap().join("package.yaml")
+    );
+}
+
+#[test]
+fn test_reject_yaml_modes_that_require_json_package_output() {
+    let (_tmp_source_dir, source_path) = create_source_file();
+
+    for cli_args in [
+        vec![
+            "ecc",
+            source_path.to_str().unwrap(),
+            "--yaml",
+            "--wasm-header",
+        ],
+        vec![
+            "ecc",
+            source_path.to_str().unwrap(),
+            "--yaml",
+            "--standalone",
+        ],
+        vec!["ecc", source_path.to_str().unwrap(), "--yaml", "--btfgen"],
+    ] {
+        let compile_opts = CompileArgs::parse_from(cli_args);
+        let err = Options::init(compile_opts, TempDir::new().unwrap())
+            .err()
+            .unwrap();
+        assert!(err.to_string().contains("requires JSON package output"));
+    }
+}
+
+#[test]
+fn test_reject_modes_that_require_generated_package_output() {
+    let (_tmp_source_dir, source_path) = create_source_file();
+
+    for cli_args in [
+        vec![
+            "ecc",
+            source_path.to_str().unwrap(),
+            "--no-generate-package-json",
+            "--wasm-header",
+        ],
+        vec![
+            "ecc",
+            source_path.to_str().unwrap(),
+            "--no-generate-package-json",
+            "--btfgen",
+        ],
+    ] {
+        let compile_opts = CompileArgs::parse_from(cli_args);
+        let err = Options::init(compile_opts, TempDir::new().unwrap())
+            .err()
+            .unwrap();
+        assert!(err
+            .to_string()
+            .contains("requires a generated package artifact"));
+    }
+
+    let mut compile_opts = CompileArgs::parse_from(["ecc", source_path.to_str().unwrap()]);
+    compile_opts.parameters.no_generate_package_json = true;
+    compile_opts.parameters.standalone = true;
+    let err = Options::init(compile_opts, TempDir::new().unwrap())
+        .err()
+        .unwrap();
+    assert!(err
+        .to_string()
+        .contains("requires a generated package artifact"));
 }

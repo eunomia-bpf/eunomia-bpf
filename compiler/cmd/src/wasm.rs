@@ -13,9 +13,9 @@ base = {};
 "#;
 
 pub fn pack_object_in_wasm_header(args: &Options) -> Result<()> {
-    let json_path = args.get_output_package_config_path();
-    let json_str = fs::read_to_string(json_path)?;
-    let json = json_str.replace('"', "\\\"");
+    let package_path = args.get_output_package_config_path();
+    let package_str = fs::read_to_string(package_path)?;
+    let json = package_str.replace('"', "\\\"");
     let content = format!(
         r#"
     // auto generated. do not edit.

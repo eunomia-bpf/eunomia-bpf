@@ -9,6 +9,21 @@ use super::CompileArgs;
 use anyhow::{anyhow, Result};
 use tempfile::TempDir;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PackageFormat {
+    Json,
+    Yaml,
+}
+
+impl PackageFormat {
+    pub fn file_name(self) -> &'static str {
+        match self {
+            Self::Json => "package.json",
+            Self::Yaml => "package.yaml",
+        }
+    }
+}
+
 pub struct Options {
     pub tmpdir: TempDir,
     pub compile_opts: CompileArgs,
@@ -71,8 +86,17 @@ impl Options {
             .join(format!("{}.tar", self.object_name))
     }
 
+    pub fn package_format(&self) -> PackageFormat {
+        if self.compile_opts.yaml {
+            PackageFormat::Yaml
+        } else {
+            PackageFormat::Json
+        }
+    }
+
     pub fn get_output_package_config_path(&self) -> PathBuf {
-        self.get_output_directory().join("package.json")
+        self.get_output_directory()
+            .join(self.package_format().file_name())
     }
 
     pub fn get_wasm_header_path(&self) -> PathBuf {
@@ -92,9 +116,42 @@ impl Options {
 }
 
 fn check_compile_opts(opts: &mut CompileArgs) -> Result<()> {
+    validate_output_mode_combinations(opts)?;
     if opts.header_only {
         // treat header as a source file
         opts.export_event_header.clone_from(&opts.source_path);
     }
+    Ok(())
+}
+
+fn validate_output_mode_combinations(opts: &CompileArgs) -> Result<()> {
+    if opts.yaml {
+        for (enabled, flag) in [
+            (opts.wasm_header, "--wasm-header"),
+            (opts.parameters.standalone, "--standalone"),
+            (opts.btfgen, "--btfgen"),
+        ] {
+            if enabled {
+                return Err(anyhow!(
+                    "{flag} currently requires JSON package output and cannot be combined with --yaml"
+                ));
+            }
+        }
+    }
+
+    if opts.parameters.no_generate_package_json {
+        for (enabled, flag) in [
+            (opts.parameters.standalone, "--standalone"),
+            (opts.wasm_header, "--wasm-header"),
+            (opts.btfgen, "--btfgen"),
+        ] {
+            if enabled {
+                return Err(anyhow!(
+                    "{flag} requires a generated package artifact and cannot be combined with --no-generate-package-json"
+                ));
+            }
+        }
+    }
+
     Ok(())
 }
