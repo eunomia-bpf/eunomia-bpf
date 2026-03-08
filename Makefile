@@ -59,12 +59,14 @@ release:
 	@set -eu; \
 	staging_root="$$(mktemp -d)"; \
 	release_root="$$(mktemp -d ./.eunomia.release.XXXXXX)"; \
-	trap 'rm -rf "$$staging_root" "$$release_root"' EXIT; \
+	previous_root=""; \
+	trap 'status=$$?; if [ $$status -ne 0 ] && [ -n "$$previous_root" ]; then rm -rf eunomia; mv "$$previous_root" eunomia; fi; rm -rf "$$staging_root" "$$release_root"; exit $$status' EXIT; \
 	stage_home="$$staging_root/eunomia"; \
 	$(MAKE) -C ecli install EUNOMIA_HOME="$$stage_home"; \
 	$(MAKE) -C compiler install EUNOMIA_HOME="$$stage_home"; \
 	cp -R "$$stage_home" "$$release_root/eunomia"; \
-	rm -rf eunomia; \
+	tar -czvf "$$release_root/eunomia.tar.gz" -C "$$release_root" eunomia; \
+	mv "$$release_root/eunomia.tar.gz" eunomia.tar.gz; \
+	if [ -e eunomia ]; then previous_root="$$release_root/eunomia.previous"; mv eunomia "$$previous_root"; fi; \
 	mv "$$release_root/eunomia" eunomia; \
-	rmdir "$$release_root"; \
-	tar -czvf eunomia.tar.gz eunomia
+	if [ -n "$$previous_root" ]; then rm -rf "$$previous_root"; previous_root=""; fi

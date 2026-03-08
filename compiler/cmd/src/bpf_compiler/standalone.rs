@@ -245,18 +245,24 @@ fn checkout_roots() -> Vec<PathBuf> {
     roots
 }
 
-fn add_current_exe_runtime_candidates(candidates: &mut Vec<PathBuf>, current_exe: &Path) {
+fn add_current_exe_runtime_candidates(
+    primary_candidates: &mut Vec<PathBuf>,
+    fallback_candidates: &mut Vec<PathBuf>,
+    current_exe: &Path,
+) {
     let Some(current_exe_dir) = current_exe.parent() else {
         return;
     };
 
-    add_install_layout_candidates(candidates, current_exe_dir);
-
     if current_exe_dir.file_name() == Some(OsStr::new(BIN_DIR_NAME)) {
         if let Some(install_root) = current_exe_dir.parent() {
-            add_install_layout_candidates(candidates, install_root);
+            add_install_layout_candidates(primary_candidates, install_root);
         }
+        add_install_layout_candidates(fallback_candidates, current_exe_dir);
+        return;
     }
+
+    add_install_layout_candidates(primary_candidates, current_exe_dir);
 }
 
 fn installed_runtime_candidates_for(
@@ -264,14 +270,17 @@ fn installed_runtime_candidates_for(
     eunomia_home: Option<&Path>,
 ) -> Vec<PathBuf> {
     let mut candidates = Vec::new();
+    let mut fallback_candidates = Vec::new();
 
     if let Some(current_exe) = current_exe {
-        add_current_exe_runtime_candidates(&mut candidates, current_exe);
+        add_current_exe_runtime_candidates(&mut candidates, &mut fallback_candidates, current_exe);
     }
 
     if let Some(eunomia_home) = eunomia_home {
         add_install_layout_candidates(&mut candidates, eunomia_home);
     }
+
+    candidates.extend(fallback_candidates);
 
     candidates
 }
@@ -598,7 +607,7 @@ mod tests {
     }
 
     #[test]
-    fn test_installed_runtime_candidates_only_consider_current_bin_root_and_eunomia_home() {
+    fn test_installed_runtime_candidates_prefer_supported_install_layouts_before_bin_fallbacks() {
         let candidates = installed_runtime_candidates_for(
             Some(Path::new("/opt/eunomia/bin/ecc-rs")),
             Some(Path::new("/home/test/.local/share/eunomia")),
@@ -607,14 +616,41 @@ mod tests {
         assert_eq!(
             candidates,
             vec![
-                PathBuf::from("/opt/eunomia/bin/libeunomia.a"),
-                PathBuf::from("/opt/eunomia/bin/lib/libeunomia.a"),
                 PathBuf::from("/opt/eunomia/libeunomia.a"),
                 PathBuf::from("/opt/eunomia/lib/libeunomia.a"),
                 PathBuf::from("/home/test/.local/share/eunomia/libeunomia.a"),
                 PathBuf::from("/home/test/.local/share/eunomia/lib/libeunomia.a"),
+                PathBuf::from("/opt/eunomia/bin/libeunomia.a"),
+                PathBuf::from("/opt/eunomia/bin/lib/libeunomia.a"),
             ]
         );
+    }
+
+    #[test]
+    fn test_select_runtime_resolution_prefers_supported_install_layouts_over_bin_fallbacks() {
+        let temp_dir = TempDir::new().unwrap();
+        let install_root = temp_dir.path().join("install-root");
+        let supported_runtime = install_root.join("libeunomia.a");
+        let bin_fallback = install_root.join("bin/libeunomia.a");
+
+        fs::create_dir_all(bin_fallback.parent().unwrap()).unwrap();
+        fs::write(&supported_runtime, "").unwrap();
+        fs::write(&bin_fallback, "").unwrap();
+
+        let selection = select_runtime_resolution(
+            None,
+            None,
+            installed_runtime_candidates_for(Some(&install_root.join("bin/ecc-rs")), None),
+            Vec::new(),
+        )
+        .unwrap();
+
+        match selection {
+            RuntimeSelection::ExistingLibrary(path) => assert_eq!(path, supported_runtime),
+            RuntimeSelection::CheckoutRoots(_) => {
+                panic!("supported install layout should win before bin-adjacent fallback")
+            }
+        }
     }
 
     #[test]
