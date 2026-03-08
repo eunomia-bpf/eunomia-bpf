@@ -11,11 +11,10 @@ use ecli_lib::{
     config::ProgramType,
     runner::{
         client::{native::EcliNativeClient, AbstractClient},
+        helper::load_program_buf_and_guess_type,
         LogType,
     },
 };
-
-use crate::helper::load_prog_buf_and_guess_type;
 
 pub static TERMINATED: AtomicBool = AtomicBool::new(false);
 
@@ -26,7 +25,7 @@ pub(crate) async fn run_native(
     user_prog_type: Option<ProgramType>,
 ) -> anyhow::Result<()> {
     let client = EcliNativeClient::default();
-    let (buf, prog_type) = load_prog_buf_and_guess_type(&prog, user_prog_type).await?;
+    let (buf, prog_type) = load_program_buf_and_guess_type(&prog, user_prog_type).await?;
 
     let handle = client
         .start_program(

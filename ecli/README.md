@@ -33,7 +33,7 @@ Or build from source:
 
 ```bash
 cd ecli
-cargo build --release -p client
+cargo build --release -p ecli-rs
 cp target/release/ecli-rs ./ecli
 ```
 
@@ -89,7 +89,7 @@ Provide credentials inline:
 $ ./ecli -h
 ecli subcommands, including run, push, pull
 
-Usage: ecli [COMMAND_LINE]... [COMMAND]
+Usage: ecli [COMMAND]
 
 Commands:
   run     run ebpf program

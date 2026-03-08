@@ -23,7 +23,7 @@ TIME     EVENT COMM             PID     PPID    FILENAME/EXIT CODE
 $ ./ecli -h
 ecli subcommands, including run, push, pull
 
-Usage: ecli [COMMAND_LINE]... [COMMAND]
+Usage: ecli [COMMAND]
 
 Commands:
   run     run ebpf program

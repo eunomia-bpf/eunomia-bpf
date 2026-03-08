@@ -69,16 +69,13 @@ The legacy remote HTTP mode (`ecli client` / `ecli-server`) has been removed fro
     $ ./ecli -h
     ecli subcommands, including run, push, pull
 
-    Usage: ecli [COMMAND_LINE]... [COMMAND]
+    Usage: ecli [COMMAND]
 
     Commands:
       run     run ebpf program
       push    Operations about pushing image to registry
       pull    Operations about pulling image from registry
       help    Print this message or the help of the given subcommand(s)
-
-    Arguments:
-      [COMMAND_LINE]...  Not preferred. Only for compatibility to older versions. Command line to run. The executable could either be a local path or URL or `-` (read from stdin). The following arguments will be passed to the program
 
     Options:
       -h, --help  Print help

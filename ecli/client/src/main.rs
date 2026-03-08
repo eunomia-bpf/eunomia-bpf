@@ -12,30 +12,6 @@ use log::warn;
 #[cfg(feature = "native")]
 mod native_client;
 
-mod helper;
-
-#[derive(clap::clap_derive::Args)]
-struct RunProgArgs {
-    /// json output format
-    #[arg(
-        long,
-        short = 'j',
-        default_value_t = false,
-        help = "Let the ebpf program prints the logs in json format. Only works for JSON program"
-    )]
-    json: bool,
-    /// program path or url
-    #[arg(
-        allow_hyphen_values = true,
-        help = "ebpf program URL or local path, set it `-` to read the program from stdin"
-    )]
-    prog: String,
-    #[arg(help = "Extra args to the program; For wasm program, it will be passed directly to it; For JSON program, it will be passed to the generated argument parser", action = clap::ArgAction::Append)]
-    extra_args: Vec<String>,
-    #[clap(long, short, help = "Manually specity the program type", value_parser = helper::prog_type_value_parser)]
-    prog_type: Option<ecli_lib::config::ProgramType>,
-}
-
 #[derive(Parser)]
 #[group(multiple = false, required = false)]
 pub struct AuthArgs {
@@ -136,7 +112,7 @@ pub enum Action {
             help = "Let the ebpf program prints the logs in json format. Only works for JSON program"
         )]
         json: bool,
-        #[clap(long, short, help = "Manually specity the program type", value_parser = helper::prog_type_value_parser)]
+        #[clap(long, short, help = "Manually specity the program type")]
         prog_type: Option<ecli_lib::config::ProgramType>,
         #[arg(help = "Command line to run. The executable could either be a local path or URL or `-` (read from stdin). The following arguments will be passed to the program", action = clap::ArgAction::Append, allow_hyphen_values = true, required = true)]
         command_line: Vec<String>,
@@ -173,10 +149,6 @@ pub enum Action {
 struct CliArgs {
     #[command(subcommand)]
     action: Option<Action>,
-    /// program path or url
-    #[cfg(feature = "native")]
-    #[arg(help = "Not preferred. Only for compatibility to older versions. Command line to run. The executable could either be a local path or URL or `-` (read from stdin). The following arguments will be passed to the program", action = clap::ArgAction::Append, allow_hyphen_values = true, required = false)]
-    command_line: Vec<String>,
 }
 
 #[tokio::main]
@@ -195,16 +167,6 @@ async fn main() -> anyhow::Result<()> {
         .ok();
     }
     let args = CliArgs::parse();
-
-    #[cfg(feature = "native")]
-    {
-        if let Some((prog, extra_args)) = args.command_line.split_first() {
-            native_client::run_native(false, prog.to_string(), extra_args, None)
-                .await
-                .with_context(|| anyhow!("Failed to run native eBPF program"))?;
-            return Ok(());
-        }
-    }
 
     match args.action {
         #[cfg(feature = "native")]
@@ -252,8 +214,40 @@ async fn main() -> anyhow::Result<()> {
         None => CliArgs::command()
             .error(
                 ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
-                "Either use subcommand, or directly provide program URL",
+                "Use a subcommand such as `run`, `push`, or `pull`",
             )
             .exit(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+    use ecli_lib::config::ProgramType;
+
+    use super::{Action, CliArgs};
+
+    #[test]
+    fn reject_legacy_top_level_run_shim() {
+        assert!(CliArgs::try_parse_from(["ecli", "./prog.json"]).is_err());
+    }
+
+    #[cfg(feature = "native")]
+    #[test]
+    fn parse_run_subcommand_program_type_alias() {
+        let args =
+            CliArgs::try_parse_from(["ecli", "run", "--prog-type", "json", "./prog.json"]).unwrap();
+
+        match args.action {
+            Some(Action::Run {
+                prog_type,
+                command_line,
+                ..
+            }) => {
+                assert_eq!(prog_type, Some(ProgramType::JsonEunomia));
+                assert_eq!(command_line, vec!["./prog.json".to_string()]);
+            }
+            _ => panic!("expected run action"),
+        }
     }
 }
