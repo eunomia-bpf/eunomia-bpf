@@ -94,9 +94,12 @@ fn unsuggested_run_typos_without_clap_tips_still_keep_unknown_subcommand_error()
 #[test]
 fn clap_suggestions_are_preserved_for_detected_subcommand_typos() {
     for (arg, suggestion) in [
+        ("rrn", "run"),
         ("ruun", "run"),
         ("runx", "run"),
         ("run-", "run"),
+        ("runn-", "run"),
+        ("runn1", "run"),
         ("psu", "push"),
         ("plu", "pull"),
         ("pushhhh", "push"),
