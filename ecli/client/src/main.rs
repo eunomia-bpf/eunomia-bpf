@@ -170,7 +170,9 @@ struct CliArgs {
 
 #[cfg(feature = "native")]
 fn should_suggest_run_migration(raw_args: &[OsString], err: &clap::Error) -> bool {
-    is_legacy_run_candidate(raw_args) && !has_suggested_subcommand(err)
+    is_legacy_run_candidate(raw_args)
+        && !has_suggested_subcommand(err)
+        && !is_short_run_typo_without_clap_suggestion(raw_args)
 }
 
 #[cfg(feature = "native")]
@@ -182,6 +184,14 @@ fn is_legacy_run_candidate(raw_args: &[OsString]) -> bool {
         return false;
     }
     !TOP_LEVEL_SUBCOMMANDS.contains(&first_arg)
+}
+
+#[cfg(feature = "native")]
+fn is_short_run_typo_without_clap_suggestion(raw_args: &[OsString]) -> bool {
+    let Some(first_arg) = raw_args.get(1).and_then(|arg| arg.to_str()) else {
+        return false;
+    };
+    matches!(first_arg, "rn" | "un" | "rnu" | "urn")
 }
 
 #[cfg(not(feature = "native"))]
@@ -383,6 +393,21 @@ mod tests {
 
             assert!(!super::should_suggest_run_migration(&raw_args, &err));
             assert!(super::has_suggested_subcommand(&err));
+        }
+    }
+
+    #[cfg(feature = "native")]
+    #[test]
+    fn do_not_suggest_run_migration_for_short_run_typos_without_clap_suggestions() {
+        for typo in ["rn", "un", "rnu", "urn"] {
+            let raw_args = vec![OsString::from("ecli"), OsString::from(typo)];
+            let err = match CliArgs::try_parse_from(raw_args.clone()) {
+                Ok(_) => panic!("expected parse error"),
+                Err(err) => err,
+            };
+
+            assert!(!super::should_suggest_run_migration(&raw_args, &err));
+            assert!(!super::has_suggested_subcommand(&err));
         }
     }
 

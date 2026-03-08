@@ -50,7 +50,7 @@ fn legacy_positional_invocation_shows_public_migration_hint() {
 #[test]
 fn subcommand_typos_keep_clap_unknown_subcommand_error() {
     for arg in [
-        "pus", "pll", "runn", "psuh", "psu", "plu", "pushhhh", "runnnn",
+        "pus", "pll", "runn", "psuh", "psu", "plu", "pushhhh", "runnnn", "rn", "un", "rnu", "urn",
     ] {
         let output = run_cli(&[arg]);
         assert!(!output.status.success());
@@ -60,6 +60,20 @@ fn subcommand_typos_keep_clap_unknown_subcommand_error() {
         assert!(!stderr.contains("use `ecli run <program>` instead"));
         assert!(stderr.contains("Usage: ecli [COMMAND]"));
         assert!(!stderr.contains("ecli-rs"));
+    }
+}
+
+#[cfg(feature = "native")]
+#[test]
+fn short_run_typos_without_clap_tips_still_keep_unknown_subcommand_error() {
+    for arg in ["rn", "un", "rnu", "urn"] {
+        let output = run_cli(&[arg]);
+        assert!(!output.status.success());
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains(&format!("unrecognized subcommand '{arg}'")));
+        assert!(!stderr.contains("tip:"));
+        assert!(!stderr.contains("use `ecli run <program>` instead"));
     }
 }
 
