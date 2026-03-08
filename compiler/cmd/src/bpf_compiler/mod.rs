@@ -16,12 +16,19 @@ use anyhow::{anyhow, bail, Context, Result};
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
 use log::{debug, info};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::{fs, path::Path};
 
 pub(crate) mod standalone;
+
+#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+struct PackageArtifactMarker {
+    object_name: String,
+    source_path: String,
+}
 
 /// compile bpf object
 fn compile_bpf_object(
@@ -213,16 +220,62 @@ fn pack_object_in_config(args: &Options) -> Result<()> {
         serde_json::to_string(&package_config).unwrap()
     };
     fs::write(&output_package_config_path, package_config_str)?;
+    write_package_artifact_marker(args)?;
 
+    remove_matching_sibling_package_artifact(args)?;
+
+    Ok(())
+}
+
+fn build_package_artifact_marker(args: &Options) -> PackageArtifactMarker {
+    let source_path = fs::canonicalize(&args.compile_opts.source_path)
+        .unwrap_or_else(|_| PathBuf::from(&args.compile_opts.source_path))
+        .to_string_lossy()
+        .to_string();
+    PackageArtifactMarker {
+        object_name: args.object_name.clone(),
+        source_path,
+    }
+}
+
+fn write_package_artifact_marker(args: &Options) -> Result<()> {
+    let marker = build_package_artifact_marker(args);
+    let marker_path = args.get_output_package_marker_path();
+    fs::write(marker_path, serde_json::to_string(&marker)?)?;
+    Ok(())
+}
+
+fn remove_matching_sibling_package_artifact(args: &Options) -> Result<()> {
     let sibling_package_config_path = args.get_output_sibling_package_config_path();
-    if sibling_package_config_path.exists() {
-        info!(
-            "Removing stale package artifact {}...",
-            sibling_package_config_path.display()
-        );
-        fs::remove_file(sibling_package_config_path)?;
+    if !sibling_package_config_path.exists() {
+        return Ok(());
     }
 
+    let sibling_marker_path = args.get_output_sibling_package_marker_path();
+    if !sibling_marker_path.exists() {
+        info!(
+            "Leaving sibling package artifact {} in place because it is unclaimed",
+            sibling_package_config_path.display()
+        );
+        return Ok(());
+    }
+
+    let sibling_marker: PackageArtifactMarker =
+        serde_json::from_str(&fs::read_to_string(&sibling_marker_path)?)?;
+    if sibling_marker != build_package_artifact_marker(args) {
+        info!(
+            "Leaving sibling package artifact {} in place because it belongs to a different source",
+            sibling_package_config_path.display()
+        );
+        return Ok(());
+    }
+
+    info!(
+        "Removing stale package artifact {}...",
+        sibling_package_config_path.display()
+    );
+    fs::remove_file(sibling_package_config_path)?;
+    fs::remove_file(sibling_marker_path)?;
     Ok(())
 }
 

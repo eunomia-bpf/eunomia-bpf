@@ -163,6 +163,7 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
     let custom_archive_path = args.get_output_btf_archive_directory();
     let command = format!(
         r#"
+        rm -rf {}/btfhub-archive {}
         cp -r {} {}/btfhub-archive
         find {} -name "*.tar.xz" | \
         xargs -P 8 -I fileName sh -c 'tar xvfJ "fileName" -C "$(dirname "fileName")" && rm "fileName"'
@@ -170,6 +171,8 @@ pub fn generate_tailored_btf(args: &Options) -> Result<String> {
         xargs -P 8 -I fileName sh -c '{} gen min_core_btf "fileName" "fileName" {}'
         mkdir -p {} && cp -r {}/btfhub-archive {}
         "#,
+        btf_tmp.to_string_lossy(),
+        custom_archive_path.to_string_lossy(),
         btf_archive_path.to_string_lossy(),
         btf_tmp.to_string_lossy(),
         btf_tmp.to_string_lossy(),
