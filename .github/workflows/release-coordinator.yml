@@ -1,0 +1,127 @@
+name: Resolve release tag
+
+on:
+  workflow_call:
+    inputs:
+      create_release:
+        required: true
+        type: boolean
+    outputs:
+      version:
+        description: Resolved release tag
+        value: ${{ jobs.resolve.outputs.version }}
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-tag-${{ github.repository }}-${{ github.ref_name }}
+      cancel-in-progress: false
+    outputs:
+      version: ${{ steps.resolve.outputs.result }}
+    steps:
+      - name: Resolve release tag
+        id: resolve
+        uses: actions/github-script@v6
+        env:
+          CREATE_RELEASE: ${{ inputs.create_release }}
+        with:
+          result-encoding: string
+          script: |
+            const versionPattern = /^v(\d+)\.(\d+)\.(\d+)$/;
+
+            function parseVersion(version) {
+              const match = versionPattern.exec(version);
+              if (!match) {
+                return null;
+              }
+              return match.slice(1).map(Number);
+            }
+
+            function compareVersions(a, b) {
+              for (let i = 0; i < a.length; i += 1) {
+                if (a[i] !== b[i]) {
+                  return a[i] - b[i];
+                }
+              }
+              return 0;
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            const matchingRelease = releases
+              .filter(release => release.target_commitish === context.sha)
+              .filter(release => versionPattern.test(release.tag_name))
+              .map(release => ({
+                tag: release.tag_name,
+                version: parseVersion(release.tag_name),
+              }))
+              .sort((a, b) => compareVersions(a.version, b.version))
+              .at(-1);
+
+            if (matchingRelease) {
+              core.info(`Reusing existing release tag ${matchingRelease.tag} for ${context.sha}`);
+              return matchingRelease.tag;
+            }
+
+            const tags = await github.paginate(github.rest.repos.listTags, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            const versions = [...releases.map(release => release.tag_name), ...tags.map(tag => tag.name)]
+              .map(parseVersion)
+              .filter(Boolean)
+              .sort(compareVersions);
+
+            const nextTag = versions.length === 0
+              ? "v0.0.1"
+              : (() => {
+                  const [major, minor, patch] = versions[versions.length - 1];
+                  return `v${major}.${minor}.${patch + 1}`;
+                })();
+
+            if (process.env.CREATE_RELEASE !== 'true') {
+              core.info(`Resolved non-release build tag ${nextTag}`);
+              return nextTag;
+            }
+
+            try {
+              const created = await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: nextTag,
+                draft: true,
+                generate_release_notes: true,
+                target_commitish: context.sha,
+              });
+              core.info(`Created draft release ${created.data.tag_name} for ${context.sha}`);
+              return created.data.tag_name;
+            } catch (error) {
+              if (error.status !== 422) {
+                throw error;
+              }
+
+              const existing = await github.rest.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag: nextTag,
+              });
+
+              if (existing.data.target_commitish !== context.sha) {
+                core.setFailed(
+                  `Release tag ${nextTag} already points at ${existing.data.target_commitish}, expected ${context.sha}.`
+                );
+                return;
+              }
+
+              core.info(`Reusing concurrently created release ${existing.data.tag_name} for ${context.sha}`);
+              return existing.data.tag_name;
+            }

@@ -1,4 +1,4 @@
-.PHONY: ecli bpf-loader-rs eunomia-exporter help install-deps clean all
+.PHONY: all bpf-loader-rs clean ecc ecli eunomia-exporter help install-deps release
 .DEFAULT_GOAL := all
 all: bpf-loader-rs ecli ## Build all binaries
 
@@ -50,14 +50,12 @@ clean: ## clean all build projects
 	make -C examples clean
 eunomia-exporter: ## build the exporter for custom metric
 	make -C bpf-loader-rs
-	cd eunomia-exporter && cargo build --release
+	cd eunomia-sdks/eunomia-otel && cargo build --release
 
-XDG_DATA_HOME ?= ${HOME}/.local/share
-EUNOMIA_HOME := $(XDG_DATA_HOME)/eunomia
-
-release:
-	make -C ecli install
-	make -C compiler install
-	cp -R $(EUNOMIA_HOME) eunomia
+release: ecli ecc ## package ecli and ecc binaries into eunomia.tar.gz
+	rm -rf eunomia
+	mkdir -p eunomia/bin
+	cp ecli/target/release/ecli-rs eunomia/bin/ecli
+	cp compiler/cmd/target/release/ecc-rs eunomia/bin/ecc-rs
 	tar -czvf eunomia.tar.gz eunomia
 	rm -rf eunomia
