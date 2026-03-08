@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context};
 #[cfg(feature = "native")]
-use clap::error::ContextKind;
+use clap::error::{ContextKind, ContextValue};
 use clap::{error::ErrorKind, Args, CommandFactory, Parser, Subcommand};
 use std::ffi::OsString;
 
@@ -171,8 +171,8 @@ struct CliArgs {
 #[cfg(feature = "native")]
 fn should_suggest_run_migration(raw_args: &[OsString], err: &clap::Error) -> bool {
     is_legacy_run_candidate(raw_args)
-        && !has_suggested_subcommand(err)
-        && !is_unsuggested_run_typo(raw_args)
+        && !has_non_run_subcommand_suggestion(err)
+        && !is_clear_run_command_typo(raw_args)
 }
 
 #[cfg(feature = "native")]
@@ -187,55 +187,28 @@ fn is_legacy_run_candidate(raw_args: &[OsString]) -> bool {
 }
 
 #[cfg(feature = "native")]
-fn is_unsuggested_run_typo(raw_args: &[OsString]) -> bool {
+fn is_clear_run_command_typo(raw_args: &[OsString]) -> bool {
     let Some(first_arg) = raw_args.get(1).and_then(|arg| arg.to_str()) else {
         return false;
     };
-
-    // Keep ambiguous one-edit names like `rn` on the legacy migration path, but
-    // let broader two-edit `run` misspellings fall through to Clap's error.
-    is_within_edit_distance(first_arg, "run", 2) && !is_within_edit_distance(first_arg, "run", 1)
-}
-
-#[cfg(feature = "native")]
-fn is_within_edit_distance(lhs: &str, rhs: &str, max_distance: usize) -> bool {
-    let lhs = lhs.as_bytes();
-    let rhs = rhs.as_bytes();
-    if lhs.len().abs_diff(rhs.len()) > max_distance {
+    let first_arg = first_arg.to_ascii_lowercase();
+    if !first_arg.chars().all(|ch| matches!(ch, 'r' | 'u' | 'n')) {
         return false;
     }
 
-    let mut prev_prev = vec![0; rhs.len() + 1];
-    let mut prev = (0..=rhs.len()).collect::<Vec<_>>();
-    let mut curr = vec![0; rhs.len() + 1];
+    // Only suppress the migration hint for command-shaped tokens that are still
+    // unmistakably derived from `run`, such as `runn`, `nnrun`, or the
+    // harder two-swap permutations. General legacy program/image names like
+    // `bun`, `ru`, `ur`, `rnu`, and `urn` should keep the migration guidance.
+    (first_arg != "run" && first_arg.contains("run"))
+        || matches!(first_arg.as_str(), "nru" | "unr" | "nur")
+}
 
-    for (i, &lhs_byte) in lhs.iter().enumerate() {
-        curr[0] = i + 1;
-        let mut row_min = curr[0];
-
-        for (j, &rhs_byte) in rhs.iter().enumerate() {
-            let substitution_cost = usize::from(lhs_byte != rhs_byte);
-            let mut cost = (prev[j + 1] + 1)
-                .min(curr[j] + 1)
-                .min(prev[j] + substitution_cost);
-
-            if i > 0 && j > 0 && lhs_byte == rhs[j - 1] && lhs[i - 1] == rhs_byte {
-                cost = cost.min(prev_prev[j - 1] + 1);
-            }
-
-            curr[j + 1] = cost;
-            row_min = row_min.min(cost);
-        }
-
-        if row_min > max_distance {
-            return false;
-        }
-
-        std::mem::swap(&mut prev_prev, &mut prev);
-        std::mem::swap(&mut prev, &mut curr);
-    }
-
-    prev[rhs.len()] <= max_distance
+#[cfg(feature = "native")]
+fn has_non_run_subcommand_suggestion(err: &clap::Error) -> bool {
+    suggested_subcommands(err)
+        .map(|suggestions| suggestions.iter().any(|suggestion| suggestion != "run"))
+        .unwrap_or(false)
 }
 
 #[cfg(not(feature = "native"))]
@@ -244,9 +217,18 @@ fn is_legacy_run_candidate(_raw_args: &[OsString]) -> bool {
     false
 }
 
-#[cfg(feature = "native")]
+#[cfg(all(feature = "native", test))]
 fn has_suggested_subcommand(err: &clap::Error) -> bool {
-    err.get(ContextKind::SuggestedSubcommand).is_some()
+    suggested_subcommands(err).is_some()
+}
+
+#[cfg(feature = "native")]
+fn suggested_subcommands(err: &clap::Error) -> Option<&[String]> {
+    match err.get(ContextKind::SuggestedSubcommand) {
+        Some(ContextValue::String(suggestion)) => Some(std::slice::from_ref(suggestion)),
+        Some(ContextValue::Strings(suggestions)) => Some(suggestions.as_slice()),
+        _ => None,
+    }
 }
 
 #[cfg(not(feature = "native"))]
@@ -415,6 +397,21 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "native")]
+    #[test]
+    fn suggest_run_migration_for_legacy_program_names_near_run() {
+        for (arg, clap_suggests_run) in [("bun", true), ("ru", true), ("ur", false)] {
+            let raw_args = vec![OsString::from("ecli"), OsString::from(arg)];
+            let err = match CliArgs::try_parse_from(raw_args.clone()) {
+                Ok(_) => panic!("expected parse error"),
+                Err(err) => err,
+            };
+
+            assert!(super::should_suggest_run_migration(&raw_args, &err));
+            assert_eq!(super::has_suggested_subcommand(&err), clap_suggests_run);
+        }
+    }
+
     #[test]
     fn do_not_treat_real_subcommands_or_flags_as_legacy_run_candidates() {
         assert!(!super::is_legacy_run_candidate(&[
@@ -447,7 +444,7 @@ mod tests {
     #[cfg(feature = "native")]
     #[test]
     fn do_not_suggest_run_migration_for_unsuggested_run_typos() {
-        for typo in ["ur", "nru", "rn-", "nnrun"] {
+        for typo in ["nru", "unr", "nur", "nnrun"] {
             let raw_args = vec![OsString::from("ecli"), OsString::from(typo)];
             let err = match CliArgs::try_parse_from(raw_args.clone()) {
                 Ok(_) => panic!("expected parse error"),
