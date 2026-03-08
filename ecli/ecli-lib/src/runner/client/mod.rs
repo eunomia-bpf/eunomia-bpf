@@ -50,3 +50,24 @@ pub trait AbstractClient {
     ) -> Result<Vec<(usize, LogEntry)>>;
     async fn get_program_list(&self) -> Result<Vec<ProgramDesc>>;
 }
+
+#[cfg(test)]
+#[allow(deprecated)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[allow(deprecated)]
+    fn compatibility_types_are_available_without_native_feature() {
+        let handle: ProgramHandle = 7;
+        let desc = ProgramDesc {
+            id: handle,
+            name: "prog".to_string(),
+            status: ProgramStatus::Running,
+        };
+
+        assert_eq!(desc.id, 7);
+        assert_eq!(desc.name, "prog");
+        assert!(matches!(desc.status, ProgramStatus::Running));
+    }
+}
