@@ -195,16 +195,15 @@ fn is_clear_run_command_typo(raw_args: &[OsString]) -> bool {
     let collapsed = collapse_adjacent_duplicate_chars(&first_arg);
     // Only suppress the migration hint for command-shaped tokens that are still
     // unmistakably derived from `run`, such as repeated-character variants,
-    // repeated-character variants plus one extra suffix, `nnrun`, or the
-    // harder two-swap permutations. General legacy program/image names like
-    // `bun`, `ru`, `ur`, `rnu`, `urn`, and `runner` should keep the
-    // migration guidance.
+    // those same repeated-character variants plus one trailing junk char,
+    // `nnrun`, or the harder two-swap permutations. General legacy
+    // program/image names like `bun`, `ru`, `ur`, `rnu`, `urn`, and `runner`
+    // should keep the migration guidance.
     matches!(first_arg.as_str(), "nru" | "unr" | "nur")
         || is_run_with_single_inserted_char(&first_arg)
         || is_run_with_single_inserted_char(&collapsed)
-        || is_repeated_run_char_sequence(&first_arg)
-        || is_repeated_run_char_omission(&first_arg)
-        || has_repeated_run_char_prefix(&first_arg)
+        || is_repeated_run_char_typo(&first_arg)
+        || has_repeated_run_char_typo_with_trailing_junk(&first_arg)
 }
 
 #[cfg(feature = "native")]
@@ -265,6 +264,13 @@ fn is_ordered_run_subsequence(candidate: &str) -> bool {
 }
 
 #[cfg(feature = "native")]
+fn is_repeated_run_char_typo(candidate: &str) -> bool {
+    is_repeated_run_char_sequence(candidate)
+        || is_repeated_run_char_omission(candidate)
+        || has_repeated_run_char_prefix(candidate)
+}
+
+#[cfg(feature = "native")]
 fn has_repeated_run_char_prefix(candidate: &str) -> bool {
     let Some(prefix) = candidate.strip_suffix("run") else {
         return false;
@@ -276,6 +282,18 @@ fn has_repeated_run_char_prefix(candidate: &str) -> bool {
     let mut chars = prefix.chars();
     let first = chars.next().unwrap();
     matches!(first, 'r' | 'u' | 'n') && chars.all(|ch| ch == first)
+}
+
+#[cfg(feature = "native")]
+fn has_repeated_run_char_typo_with_trailing_junk(candidate: &str) -> bool {
+    let Some((last_idx, last_char)) = candidate.char_indices().last() else {
+        return false;
+    };
+    if last_idx == 0 || matches!(last_char, 'r' | 'u' | 'n') {
+        return false;
+    }
+
+    is_repeated_run_char_typo(&candidate[..last_idx])
 }
 
 #[cfg(feature = "native")]
@@ -505,7 +523,7 @@ mod tests {
     fn do_not_suggest_run_migration_for_subcommand_typos() {
         for typo in [
             "pus", "pll", "rrn", "runn", "runn-", "runn1", "ruun", "runx", "run-", "psuh", "psu",
-            "plu", "pushhhh", "runnnn",
+            "plu", "pushhhh", "runnnn", "rrn-", "rrn1", "rnn-", "rnn1", "nnrun-", "nnrun1",
         ] {
             let raw_args = vec![OsString::from("ecli"), OsString::from(typo)];
             let err = match CliArgs::try_parse_from(raw_args.clone()) {
