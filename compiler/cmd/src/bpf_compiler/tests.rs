@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::{Arc, Barrier};
 use std::thread;
+use std::time::Duration;
 use std::{fs, path};
 
 use anyhow::anyhow;
@@ -21,8 +22,8 @@ use tempfile::TempDir;
 
 use crate::compile_bpf;
 use crate::config::{
-    get_bpf_sys_include_args, get_eunomia_include_args, init_eunomia_workspace,
-    options::current_unix_time_nanos, CompileArgs, Options,
+    get_bpf_sys_include_args, get_eunomia_include_args, init_eunomia_workspace, CompileArgs,
+    Options,
 };
 use crate::helper::get_target_arch;
 use crate::tests::get_test_assets_dir;
@@ -66,7 +67,6 @@ fn test_get_attr() {
         tmpdir: tmp_workspace,
         compile_opts: CompileArgs::try_parse_from(["ecc", "_"]).unwrap(),
         object_name: "".to_string(),
-        invocation_started_at_unix_nanos: current_unix_time_nanos(),
     };
 
     let sys_include = get_bpf_sys_include_args(&args.compile_opts).unwrap();
@@ -112,7 +112,6 @@ fn test_generate_custom_btf() {
         tmpdir: tmp_workspace,
         compile_opts: cp_args,
         object_name: "test".to_string(),
-        invocation_started_at_unix_nanos: current_unix_time_nanos(),
     };
     compile_bpf(&args).unwrap();
     args.compile_opts.yaml = true;
@@ -143,7 +142,6 @@ fn test_compile_bpf() {
         tmpdir: tmp_workspace,
         compile_opts: cp_args,
         object_name: "test".to_string(),
-        invocation_started_at_unix_nanos: current_unix_time_nanos(),
     };
     compile_bpf(&args).unwrap();
     args.compile_opts.yaml = true;
@@ -257,8 +255,8 @@ fn test_publish_output_object_artifact_allows_only_one_same_source_publisher() {
 
     let json_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
     let yaml_args = create_pack_test_args_from_source_path(&output_dir, &source_path, true);
-    let json_claim = build_output_artifact_claim(&json_args);
-    let yaml_claim = build_output_artifact_claim(&yaml_args);
+    let json_claim = build_output_artifact_claim(&json_args).unwrap();
+    let yaml_claim = build_output_artifact_claim(&yaml_args).unwrap();
 
     assert!(claim_output_artifact(&json_args, &object_path).unwrap());
     assert!(claim_output_artifact(&yaml_args, &object_path).unwrap());
@@ -325,8 +323,8 @@ fn test_btfgen_final_artifacts_allow_only_one_same_source_publisher() {
 
     let archive_path = first_archive_args.get_output_btf_archive_directory();
     let tar_path = first_archive_args.get_output_tar_path();
-    let first_archive_claim = build_output_artifact_claim(&first_archive_args);
-    let second_archive_claim = build_output_artifact_claim(&second_archive_args);
+    let first_archive_claim = build_output_artifact_claim(&first_archive_args).unwrap();
+    let second_archive_claim = build_output_artifact_claim(&second_archive_args).unwrap();
 
     assert!(claim_output_artifact(&first_archive_args, &archive_path).unwrap());
     assert!(claim_output_artifact(&second_archive_args, &archive_path).unwrap());
@@ -381,8 +379,8 @@ fn test_btfgen_final_artifacts_allow_only_one_same_source_publisher() {
     let mut second_tar_args =
         create_pack_test_args_from_source_path(&output_dir, &source_path, false);
     second_tar_args.compile_opts.btfgen = true;
-    let first_tar_claim = build_output_artifact_claim(&first_tar_args);
-    let second_tar_claim = build_output_artifact_claim(&second_tar_args);
+    let first_tar_claim = build_output_artifact_claim(&first_tar_args).unwrap();
+    let second_tar_claim = build_output_artifact_claim(&second_tar_args).unwrap();
 
     assert!(claim_output_artifact(&first_tar_args, &tar_path).unwrap());
     assert!(claim_output_artifact(&second_tar_args, &tar_path).unwrap());
@@ -445,7 +443,6 @@ fn test_export_multi_and_pack() {
         tmpdir: tmp_workspace,
         compile_opts: cp_args,
         object_name: "export_multi_struct_test".to_string(),
-        invocation_started_at_unix_nanos: current_unix_time_nanos(),
     };
     compile_bpf(&args).unwrap();
     pack_object_in_config(&args).unwrap();
@@ -476,6 +473,8 @@ fn create_pack_test_args_from_source_path(
     source_path: &path::Path,
     yaml: bool,
 ) -> Options {
+    let tmpdir = TempDir::new().unwrap();
+    init_eunomia_workspace(&tmpdir).unwrap();
     let mut compile_opts = CompileArgs::try_parse_from([
         "ecc",
         source_path.to_str().unwrap(),
@@ -486,7 +485,7 @@ fn create_pack_test_args_from_source_path(
     compile_opts.yaml = yaml;
 
     Options {
-        tmpdir: TempDir::new().unwrap(),
+        tmpdir,
         compile_opts,
         object_name: source_path
             .file_name()
@@ -496,7 +495,6 @@ fn create_pack_test_args_from_source_path(
             .next()
             .unwrap()
             .to_string(),
-        invocation_started_at_unix_nanos: current_unix_time_nanos(),
     }
 }
 
@@ -516,8 +514,11 @@ fn assert_output_artifact_claim_conflict(
         .err()
         .unwrap();
     assert!(err.to_string().contains("belongs to a different source"));
-    release_output_artifact_claim(&build_output_artifact_claim(expected_owner), artifact_path)
-        .unwrap();
+    release_output_artifact_claim(
+        &build_output_artifact_claim(expected_owner).unwrap(),
+        artifact_path,
+    )
+    .unwrap();
 }
 
 #[test]
@@ -550,6 +551,31 @@ fn test_pack_object_in_config_switches_package_formats_cleanly() {
 
     assert!(output_dir.path().join("package.json").exists());
     assert!(!output_dir.path().join("package.yaml").exists());
+    assert!(!json_args.get_output_sibling_package_marker_path().exists());
+}
+
+#[test]
+fn test_pack_object_in_config_reused_options_use_fresh_overlap_cutoff() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("shared.bpf.c");
+    fs::write(&source_path, "int x;").unwrap();
+
+    let json_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let yaml_args = create_pack_test_args_from_source_path(&output_dir, &source_path, true);
+
+    fs::write(yaml_args.get_output_object_path(), b"yaml").unwrap();
+    write_test_meta_config(&yaml_args);
+    pack_object_in_config(&yaml_args).unwrap();
+    assert!(yaml_args.get_output_package_config_path().exists());
+
+    thread::sleep(Duration::from_millis(2));
+
+    fs::write(json_args.get_output_object_path(), b"json").unwrap();
+    write_test_meta_config(&json_args);
+    pack_object_in_config(&json_args).unwrap();
+
+    assert!(json_args.get_output_package_config_path().exists());
+    assert!(!yaml_args.get_output_package_config_path().exists());
     assert!(!json_args.get_output_sibling_package_marker_path().exists());
 }
 
@@ -626,7 +652,7 @@ fn test_pack_object_in_config_keeps_overlapping_sibling_after_first_claim_releas
     assert!(output_dir.path().join("package.yaml").exists());
 
     release_output_artifact_claim(
-        &build_output_artifact_claim(&yaml_args),
+        &build_output_artifact_claim(&yaml_args).unwrap(),
         yaml_args.get_output_package_config_path(),
     )
     .unwrap();
@@ -678,9 +704,16 @@ fn test_claim_output_artifact_allows_same_source_json_yaml_shared_object() {
     assert!(get_output_artifact_claim_path(&baseline_args, &object_path).exists());
     assert!(get_output_artifact_claim_path(&yaml_args, &object_path).exists());
 
-    release_output_artifact_claim(&build_output_artifact_claim(&baseline_args), &object_path)
-        .unwrap();
-    release_output_artifact_claim(&build_output_artifact_claim(&yaml_args), &object_path).unwrap();
+    release_output_artifact_claim(
+        &build_output_artifact_claim(&baseline_args).unwrap(),
+        &object_path,
+    )
+    .unwrap();
+    release_output_artifact_claim(
+        &build_output_artifact_claim(&yaml_args).unwrap(),
+        &object_path,
+    )
+    .unwrap();
 }
 
 #[test]
@@ -707,6 +740,56 @@ fn test_claim_output_artifact_rejects_same_source_different_build_inputs() {
     export_header_args.compile_opts.export_event_header =
         export_header_path.to_string_lossy().to_string();
     assert_output_artifact_claim_conflict(&baseline_args, &export_header_args, &object_path);
+}
+
+#[test]
+fn test_claim_output_artifact_rejects_same_path_source_revision_change() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("shared.bpf.c");
+    let object_path = output_dir.path().join("shared.bpf.o");
+    fs::write(&source_path, "int x = 1;").unwrap();
+
+    let first_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let first_claim = build_output_artifact_claim(&first_args).unwrap();
+    assert!(claim_output_artifact(&first_args, &object_path).unwrap());
+
+    fs::write(&source_path, "int x = 2;").unwrap();
+
+    let second_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let err = claim_output_artifact(&second_args, &object_path)
+        .err()
+        .unwrap();
+    assert!(err.to_string().contains("belongs to a different source"));
+
+    release_output_artifact_claim(&first_claim, &object_path).unwrap();
+}
+
+#[test]
+fn test_claim_output_artifact_rejects_same_path_included_header_revision_change() {
+    let output_dir = TempDir::new().unwrap();
+    let source_path = output_dir.path().join("shared.bpf.c");
+    let header_path = output_dir.path().join("shared.h");
+    let object_path = output_dir.path().join("shared.bpf.o");
+    fs::write(&header_path, "#define SHARED_VALUE 1\n").unwrap();
+    fs::write(
+        &source_path,
+        "#include \"shared.h\"\nint x = SHARED_VALUE;\n",
+    )
+    .unwrap();
+
+    let first_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let first_claim = build_output_artifact_claim(&first_args).unwrap();
+    assert!(claim_output_artifact(&first_args, &object_path).unwrap());
+
+    fs::write(&header_path, "#define SHARED_VALUE 2\n").unwrap();
+
+    let second_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
+    let err = claim_output_artifact(&second_args, &object_path)
+        .err()
+        .unwrap();
+    assert!(err.to_string().contains("belongs to a different source"));
+
+    release_output_artifact_claim(&first_claim, &object_path).unwrap();
 }
 
 #[test]
@@ -862,7 +945,7 @@ fn test_same_source_claims_keep_distinct_rollback_coverage() {
     assert!(err.to_string().contains("belongs to a different source"));
 
     release_output_artifact_claim(
-        &build_output_artifact_claim(&blocked_args),
+        &build_output_artifact_claim(&blocked_args).unwrap(),
         &shared_artifact_path,
     )
     .unwrap();
@@ -958,8 +1041,11 @@ fn test_output_artifact_claims_guard_release_surfaces_cleanup_failures() {
         .exists());
     assert!(!args.get_output_package_marker_path().exists());
 
-    release_output_artifact_claim(&build_output_artifact_claim(&args), &injected_artifact_path)
-        .unwrap();
+    release_output_artifact_claim(
+        &build_output_artifact_claim(&args).unwrap(),
+        &injected_artifact_path,
+    )
+    .unwrap();
 }
 
 #[test]
@@ -970,7 +1056,7 @@ fn test_claim_output_artifact_keeps_claim_directory_alive_during_concurrent_publ
 
     let active_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
     let publishing_args = create_pack_test_args_from_source_path(&output_dir, &source_path, false);
-    let publishing_claim = build_output_artifact_claim(&publishing_args);
+    let publishing_claim = build_output_artifact_claim(&publishing_args).unwrap();
     let artifact_path = active_args.get_output_package_config_path();
     let publishing_claim_path = get_output_artifact_claim_path(&publishing_args, &artifact_path);
     let publish_entered = Arc::new(Barrier::new(2));
@@ -988,8 +1074,11 @@ fn test_claim_output_artifact_keeps_claim_directory_alive_during_concurrent_publ
         thread::spawn(move || claim_output_artifact(&publishing_args, &publishing_artifact_path));
 
     publish_entered.wait();
-    release_output_artifact_claim(&build_output_artifact_claim(&active_args), &artifact_path)
-        .unwrap();
+    release_output_artifact_claim(
+        &build_output_artifact_claim(&active_args).unwrap(),
+        &artifact_path,
+    )
+    .unwrap();
     publish_release.wait();
 
     let publish_result = publish_handle.join().unwrap();
@@ -1019,7 +1108,7 @@ fn test_pack_object_in_config_keeps_sibling_package_during_claim_publication() {
 
     let publishing_json_args =
         create_pack_test_args_from_source_path(&output_dir, &source_path, false);
-    let publishing_json_claim = build_output_artifact_claim(&publishing_json_args);
+    let publishing_json_claim = build_output_artifact_claim(&publishing_json_args).unwrap();
     let publishing_package_path = publishing_json_args.get_output_package_config_path();
     let publishing_claim_path =
         get_output_artifact_claim_path(&publishing_json_args, &publishing_package_path);
@@ -1132,7 +1221,7 @@ fn test_release_output_artifact_claim_reserves_cleanup_before_marker_removal() {
         cleanup_release.clone(),
     )));
 
-    let active_claim = build_output_artifact_claim(&active_args);
+    let active_claim = build_output_artifact_claim(&active_args).unwrap();
     let releasing_artifact_path = artifact_path.clone();
     let release_handle = thread::spawn(move || {
         release_output_artifact_claim(&active_claim, &releasing_artifact_path)
@@ -1153,7 +1242,7 @@ fn test_release_output_artifact_claim_reserves_cleanup_before_marker_removal() {
         .exists());
     assert!(claim_output_artifact(&competing_args, &artifact_path).unwrap());
     release_output_artifact_claim(
-        &build_output_artifact_claim(&competing_args),
+        &build_output_artifact_claim(&competing_args).unwrap(),
         &artifact_path,
     )
     .unwrap();
