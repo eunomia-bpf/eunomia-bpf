@@ -205,21 +205,31 @@ jobs:
           apt-get install -y clang llvm file
           echo "Checking binary dependencies..."
           ldd ./data/ecc || echo "ldd failed, binary might be static"
+          SMOKE_OUTPUT_DIR=$(mktemp -d)
           if [ -d ./data/libs ]; then
             echo "Testing with bundled libraries..."
             ls -lah ./data/libs/
             export LD_LIBRARY_PATH=./data/libs:$LD_LIBRARY_PATH
-            ./data/ecc -l llvm-strip .github/assets/simple.bpf.c
+            ./data/ecc -l llvm-strip .github/assets/simple.bpf.c --output-path "$SMOKE_OUTPUT_DIR"
           else
             echo "No bundled libraries found, testing raw binary..."
-            ./data/ecc -l llvm-strip .github/assets/simple.bpf.c
+            ./data/ecc -l llvm-strip .github/assets/simple.bpf.c --output-path "$SMOKE_OUTPUT_DIR"
+          fi
+          if [[ ! -f "$SMOKE_OUTPUT_DIR/package.json" ]]; then
+            echo "ecc smoke test failed to produce package.json"
+            exit 1
           fi
       - name: Test the packaged x86_64 release artifact
         run: |
           apt-get update
           apt-get install -y clang llvm
           chmod +x ./ecc-x86_64
-          OWD=$(pwd) APPIMAGE_EXTRACT_AND_RUN=1 ./ecc-x86_64 -l llvm-strip .github/assets/simple.bpf.c
+          SMOKE_OUTPUT_DIR=$(mktemp -d)
+          OWD=$(pwd) APPIMAGE_EXTRACT_AND_RUN=1 ./ecc-x86_64 -l llvm-strip .github/assets/simple.bpf.c --output-path "$SMOKE_OUTPUT_DIR"
+          if [[ ! -f "$SMOKE_OUTPUT_DIR/package.json" ]]; then
+            echo "Packaged ecc smoke test failed to produce package.json"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         name: Upload build result
         with:
@@ -389,7 +399,12 @@ jobs:
             if [ -f squashfs-root/usr/bin/bin ]; then
               cd /workspace
               export LD_LIBRARY_PATH=/tmp/appimage-mount/squashfs-root/usr/lib:$LD_LIBRARY_PATH
-              /tmp/appimage-mount/squashfs-root/usr/bin/bin -l llvm-strip .github/assets/simple.bpf.c
+              SMOKE_OUTPUT_DIR=$(mktemp -d)
+              /tmp/appimage-mount/squashfs-root/usr/bin/bin -l llvm-strip .github/assets/simple.bpf.c --output-path "$SMOKE_OUTPUT_DIR"
+              if [[ ! -f "$SMOKE_OUTPUT_DIR/package.json" ]]; then
+                echo "Packaged aarch64 ecc smoke test failed to produce package.json"
+                exit 1
+              fi
             else
               echo "AppImage extraction failed, skipping test"
             fi
