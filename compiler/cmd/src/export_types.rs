@@ -3,7 +3,7 @@
 //! Copyright (c) 2023, eunomia-bpf
 //! All rights reserved.
 //!
-use std::{fs, path::Path};
+use std::{collections::HashSet, fs, path::Path};
 
 use anyhow::{anyhow, bail, Context, Result};
 use clang::{Entity, EntityKind, Index};
@@ -84,6 +84,10 @@ fn push_export_struct(candidates: &mut Vec<ExportStructCandidate>, name: String,
     } else {
         candidates.push(ExportStructCandidate { name, explicit });
     }
+}
+
+fn dummy_ptr_symbol_name(struct_name: &str) -> String {
+    format!("{DUMMY_PTR_PREFIX}{struct_name}_ptr")
 }
 
 fn collect_export_struct_candidates(args: &Options) -> Result<Vec<ExportStructCandidate>> {
@@ -173,55 +177,68 @@ pub fn add_unused_ptr_for_structs(args: &Options, file_path: impl AsRef<Path>) -
     };
 
     for struct_name in export_struct_names {
+        let dummy_symbol_name = dummy_ptr_symbol_name(&struct_name);
         content += &format!(
-            "const volatile struct {} * __eunomia_dummy_{}_ptr  __attribute__((unused));\n",
-            struct_name, struct_name
+            "const volatile struct {} * {}  __attribute__((unused));\n",
+            struct_name, dummy_symbol_name
         );
     }
     fs::write(file_path, content)?;
     Ok(())
 }
 
-pub fn strip_synthetic_bpf_skel_symbols(mut bpf_skel: Value) -> Value {
-    let mut removed_section_idents = Vec::new();
+pub fn get_synthetic_bpf_skel_symbols(args: &Options) -> Result<HashSet<String>> {
+    if args.compile_opts.export_event_header.is_empty() {
+        return Ok(HashSet::new());
+    }
+    Ok(find_all_export_structs(args)?
+        .into_iter()
+        .map(|struct_name| dummy_ptr_symbol_name(&struct_name))
+        .collect())
+}
+
+pub fn strip_synthetic_bpf_skel_symbols(
+    mut bpf_skel: Value,
+    synthetic_symbols: &HashSet<String>,
+) -> Value {
+    if synthetic_symbols.is_empty() {
+        return bpf_skel;
+    }
+
+    let mut removed_section_names = HashSet::new();
+    let mut removed_section_idents = HashSet::new();
     if let Some(data_sections) = bpf_skel["data_sections"].as_array_mut() {
         for data_section in data_sections.iter_mut() {
             if let Some(variables) = data_section["variables"].as_array_mut() {
+                let variable_count = variables.len();
                 variables.retain(|variable| {
                     variable["name"]
                         .as_str()
-                        .map(|name| !name.starts_with(DUMMY_PTR_PREFIX))
+                        .map(|name| !synthetic_symbols.contains(name))
                         .unwrap_or(true)
                 });
-            }
-            let should_remove = data_section["variables"]
-                .as_array()
-                .map(|variables| variables.is_empty())
-                .unwrap_or(false);
-            if should_remove {
-                if let Some(ident) = data_section["name"]
-                    .as_str()
-                    .and_then(|name| name.strip_prefix('.'))
-                {
-                    removed_section_idents.push(ident.to_string());
+                if variable_count != variables.len() && variables.is_empty() {
+                    if let Some(section_name) = data_section["name"].as_str() {
+                        removed_section_names.insert(section_name.to_string());
+                        if let Some(ident) = section_name.strip_prefix('.') {
+                            removed_section_idents.insert(ident.to_string());
+                        }
+                    }
                 }
             }
         }
         data_sections.retain(|data_section| {
-            !data_section["variables"]
-                .as_array()
-                .map(|variables| variables.is_empty())
-                .unwrap_or(false)
+            data_section["name"]
+                .as_str()
+                .map(|section_name| !removed_section_names.contains(section_name))
+                .unwrap_or(true)
         });
     }
     if let Some(maps) = bpf_skel["maps"].as_array_mut() {
         maps.retain(|map| {
             let mmaped = map["mmaped"].as_bool().unwrap_or(false);
             let ident = map["ident"].as_str().unwrap_or_default();
-            !(mmaped
-                && removed_section_idents
-                    .iter()
-                    .any(|removed| removed == ident))
+            !(mmaped && removed_section_idents.contains(ident))
         });
     }
     bpf_skel
@@ -229,13 +246,17 @@ pub fn strip_synthetic_bpf_skel_symbols(mut bpf_skel: Value) -> Value {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
     use std::os::unix::fs::symlink;
     use std::{fs, path::Path};
 
     use clap::Parser;
+    use serde_json::json;
     use tempfile::TempDir;
 
-    use super::{add_unused_ptr_for_structs, find_all_export_structs};
+    use super::{
+        add_unused_ptr_for_structs, find_all_export_structs, strip_synthetic_bpf_skel_symbols,
+    };
     use crate::config::{init_eunomia_workspace, CompileArgs, Options};
 
     fn create_options(
@@ -385,5 +406,55 @@ mod test {
         let structs = find_all_export_structs(&opts).unwrap();
 
         assert_eq!(structs, vec!["event"]);
+    }
+
+    #[test]
+    fn test_strip_synthetic_bpf_skel_symbols_only_removes_exact_dummy_matches() {
+        let original = json!({
+            "data_sections": [
+                {
+                    "name": ".rodata",
+                    "variables": [
+                        { "name": "__eunomia_dummy_user_setting" },
+                        { "name": "__eunomia_dummy_selected_event_ptr" },
+                        { "name": "__eunomia_dummy_selected_event_ptr_user" }
+                    ]
+                },
+                {
+                    "name": ".bss",
+                    "variables": [
+                        { "name": "kept" }
+                    ]
+                }
+            ],
+            "maps": [
+                { "ident": "rodata", "mmaped": true },
+                { "ident": "bss", "mmaped": true }
+            ]
+        });
+
+        assert_eq!(
+            strip_synthetic_bpf_skel_symbols(original.clone(), &HashSet::new()),
+            original
+        );
+
+        let stripped = strip_synthetic_bpf_skel_symbols(
+            original,
+            &HashSet::from(["__eunomia_dummy_selected_event_ptr".to_string()]),
+        );
+
+        let variables = stripped["data_sections"][0]["variables"]
+            .as_array()
+            .unwrap();
+        assert_eq!(variables.len(), 2);
+        assert_eq!(
+            variables[0]["name"].as_str().unwrap(),
+            "__eunomia_dummy_user_setting"
+        );
+        assert_eq!(
+            variables[1]["name"].as_str().unwrap(),
+            "__eunomia_dummy_selected_event_ptr_user"
+        );
+        assert_eq!(stripped["maps"].as_array().unwrap().len(), 2);
     }
 }

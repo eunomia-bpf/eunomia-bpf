@@ -6,6 +6,7 @@
 
 const TEMP_EUNOMIA_DIR: &str = "/tmp/eunomia";
 use std::io::Write;
+use std::os::unix::fs::symlink;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{fs, path};
@@ -243,4 +244,50 @@ fn test_compile_header_only_respects_export_annotations_and_hides_dummy_symbols(
             .iter()
             .all(|map| map["ident"].as_str().unwrap_or_default() != "bss"));
     }
+}
+
+#[test]
+fn test_compile_header_only_symlink_preserves_include_root_for_docs() {
+    let output_dir = TempDir::new().unwrap();
+    let real_dir = output_dir.path().join("real");
+    let symlink_dir = output_dir.path().join("link");
+    fs::create_dir_all(&real_dir).unwrap();
+    fs::create_dir_all(&symlink_dir).unwrap();
+
+    let real_header_path = real_dir.join("header_only.h");
+    let symlink_header_path = symlink_dir.join("header_only.h");
+    fs::write(
+        &real_header_path,
+        r#"
+            #include "shared.h"
+
+            /// @export
+            struct selected_event {
+                shared_int_t pid;
+            };
+        "#,
+    )
+    .unwrap();
+    fs::write(symlink_dir.join("shared.h"), "typedef int shared_int_t;\n").unwrap();
+    symlink(&real_header_path, &symlink_header_path).unwrap();
+
+    let tmp_workspace = TempDir::new().unwrap();
+    init_eunomia_workspace(&tmp_workspace).unwrap();
+    let cp_args = CompileArgs::try_parse_from([
+        "ecc",
+        symlink_header_path.to_str().unwrap(),
+        "--header-only",
+        "--output-path",
+        output_dir.path().to_str().unwrap(),
+    ])
+    .unwrap();
+    let args = Options::init(cp_args, tmp_workspace).unwrap();
+
+    compile_bpf(&args).unwrap();
+
+    let meta_path = output_dir.path().join("header_only.skel.json");
+    let meta_json: Value = serde_json::from_str(&fs::read_to_string(meta_path).unwrap()).unwrap();
+    let export_types = meta_json["export_types"].as_array().unwrap();
+    assert_eq!(export_types.len(), 1);
+    assert_eq!(export_types[0]["name"].as_str().unwrap(), "selected_event");
 }

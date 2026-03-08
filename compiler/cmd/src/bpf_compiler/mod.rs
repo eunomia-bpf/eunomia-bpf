@@ -10,7 +10,8 @@ use crate::config::{
 };
 use crate::document_parser::parse_source_documents;
 use crate::export_types::{
-    add_unused_ptr_for_structs, find_all_export_structs, strip_synthetic_bpf_skel_symbols,
+    add_unused_ptr_for_structs, find_all_export_structs, get_synthetic_bpf_skel_symbols,
+    strip_synthetic_bpf_skel_symbols,
 };
 use crate::handle_std_command_with_log;
 use crate::wasm::pack_object_in_wasm_header;
@@ -120,7 +121,8 @@ fn do_compile(args: &Options, temp_source_file: impl AsRef<Path>) -> Result<()> 
                 bpf_skel
             }
         };
-    meta_json["bpf_skel"] = strip_synthetic_bpf_skel_symbols(bpf_skel_with_doc);
+    let synthetic_symbols = get_synthetic_bpf_skel_symbols(args)?;
+    meta_json["bpf_skel"] = strip_synthetic_bpf_skel_symbols(bpf_skel_with_doc, &synthetic_symbols);
 
     // compile export types
     if !args.compile_opts.export_event_header.is_empty() {
