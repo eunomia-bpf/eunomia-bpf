@@ -22,6 +22,13 @@ impl PackageFormat {
             Self::Yaml => "package.yaml",
         }
     }
+
+    pub fn sibling(self) -> Self {
+        match self {
+            Self::Json => Self::Yaml,
+            Self::Yaml => Self::Json,
+        }
+    }
 }
 
 pub struct Options {
@@ -86,6 +93,11 @@ impl Options {
             .join(format!("{}.tar", self.object_name))
     }
 
+    pub fn get_output_btf_archive_directory(&self) -> PathBuf {
+        self.get_output_directory()
+            .join(format!("{}.custom-archive", self.object_name))
+    }
+
     pub fn package_format(&self) -> PackageFormat {
         if self.compile_opts.yaml {
             PackageFormat::Yaml
@@ -94,9 +106,16 @@ impl Options {
         }
     }
 
+    pub fn get_output_package_config_path_for(&self, package_format: PackageFormat) -> PathBuf {
+        self.get_output_directory().join(package_format.file_name())
+    }
+
     pub fn get_output_package_config_path(&self) -> PathBuf {
-        self.get_output_directory()
-            .join(self.package_format().file_name())
+        self.get_output_package_config_path_for(self.package_format())
+    }
+
+    pub fn get_output_sibling_package_config_path(&self) -> PathBuf {
+        self.get_output_package_config_path_for(self.package_format().sibling())
     }
 
     pub fn get_wasm_header_path(&self) -> PathBuf {
