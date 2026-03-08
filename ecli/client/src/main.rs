@@ -191,6 +191,10 @@ fn is_clear_run_command_typo(raw_args: &[OsString]) -> bool {
     let Some(first_arg) = raw_args.get(1).and_then(|arg| arg.to_str()) else {
         return false;
     };
+    if first_arg != "run" && first_arg.eq_ignore_ascii_case("run") {
+        return true;
+    }
+
     let first_arg = first_arg.to_ascii_lowercase();
     let collapsed = collapse_adjacent_duplicate_chars(&first_arg);
     // Only suppress the migration hint for command-shaped tokens that are still
@@ -548,6 +552,23 @@ mod tests {
 
             assert!(!super::should_suggest_run_migration(&raw_args, &err));
             assert!(!super::has_suggested_subcommand(&err));
+        }
+    }
+
+    #[cfg(feature = "native")]
+    #[test]
+    fn do_not_suggest_run_migration_for_case_only_run_typos() {
+        for typo in ["Run", "RUN", "rUn"] {
+            let raw_args = vec![OsString::from("ecli"), OsString::from(typo)];
+            let err = match CliArgs::try_parse_from(raw_args.clone()) {
+                Ok(_) => panic!("expected parse error"),
+                Err(err) => err,
+            };
+            let rendered = err.to_string();
+
+            assert!(!super::should_suggest_run_migration(&raw_args, &err));
+            assert_eq!(err.kind(), clap::error::ErrorKind::InvalidSubcommand);
+            assert!(rendered.contains(&format!("unrecognized subcommand '{}'", typo)));
         }
     }
 

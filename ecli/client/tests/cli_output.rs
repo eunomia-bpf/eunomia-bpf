@@ -122,6 +122,22 @@ fn clap_suggestions_are_preserved_for_detected_subcommand_typos() {
     }
 }
 
+#[cfg(feature = "native")]
+#[test]
+fn case_only_run_typos_keep_clap_unknown_subcommand_error() {
+    for (arg, has_tip) in [("Run", true), ("RUN", false), ("rUn", true)] {
+        let output = run_cli(&[arg]);
+        assert!(!output.status.success());
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains(&format!("unrecognized subcommand '{arg}'")));
+        assert_eq!(stderr.contains("tip:"), has_tip);
+        assert!(!stderr.contains("use `ecli run <program>` instead"));
+        assert!(stderr.contains("Usage: ecli [COMMAND]"));
+        assert!(!stderr.contains("ecli-rs"));
+    }
+}
+
 #[cfg(not(feature = "native"))]
 #[test]
 fn no_native_error_output_keeps_public_binary_name() {
