@@ -33,6 +33,50 @@ pub(crate) mod standalone;
 struct OutputArtifactOwner {
     object_name: String,
     source_path: String,
+    #[serde(default)]
+    build_signature: OutputArtifactBuildSignature,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
+struct OutputArtifactBuildSignature {
+    yaml: bool,
+    header_only: bool,
+    export_event_header: Option<String>,
+    wasm_header: bool,
+    btfgen: bool,
+    btfhub_archive: Option<String>,
+    generate_package: bool,
+    standalone: bool,
+    additional_cflags: Vec<String>,
+    workspace_path: Option<String>,
+    clang_bin: String,
+    llvm_strip_bin: String,
+}
+
+impl OutputArtifactOwner {
+    fn matches_package_lineage(&self, other: &Self) -> bool {
+        self.object_name == other.object_name
+            && self.source_path == other.source_path
+            && self
+                .build_signature
+                .matches_package_lineage(&other.build_signature)
+    }
+}
+
+impl OutputArtifactBuildSignature {
+    fn matches_package_lineage(&self, other: &Self) -> bool {
+        self.header_only == other.header_only
+            && self.export_event_header == other.export_event_header
+            && self.wasm_header == other.wasm_header
+            && self.btfgen == other.btfgen
+            && self.btfhub_archive == other.btfhub_archive
+            && self.generate_package == other.generate_package
+            && self.standalone == other.standalone
+            && self.additional_cflags == other.additional_cflags
+            && self.workspace_path == other.workspace_path
+            && self.clang_bin == other.clang_bin
+            && self.llvm_strip_bin == other.llvm_strip_bin
+    }
 }
 
 #[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -367,13 +411,56 @@ fn pack_object_in_config(args: &Options) -> Result<()> {
 }
 
 fn build_output_artifact_owner(args: &Options) -> OutputArtifactOwner {
-    let source_path = fs::canonicalize(&args.compile_opts.source_path)
-        .unwrap_or_else(|_| PathBuf::from(&args.compile_opts.source_path))
-        .to_string_lossy()
-        .to_string();
+    let source_path = normalize_output_artifact_identity_path(&args.compile_opts.source_path);
     OutputArtifactOwner {
         object_name: args.object_name.clone(),
         source_path,
+        build_signature: build_output_artifact_build_signature(args),
+    }
+}
+
+fn normalize_output_artifact_identity_path(path: impl AsRef<Path>) -> String {
+    fs::canonicalize(path.as_ref())
+        .unwrap_or_else(|_| path.as_ref().to_path_buf())
+        .to_string_lossy()
+        .to_string()
+}
+
+fn normalize_optional_output_artifact_identity_path(path: &str) -> Option<String> {
+    if path.is_empty() {
+        None
+    } else {
+        Some(normalize_output_artifact_identity_path(path))
+    }
+}
+
+fn build_output_artifact_build_signature(args: &Options) -> OutputArtifactBuildSignature {
+    OutputArtifactBuildSignature {
+        yaml: args.compile_opts.yaml,
+        header_only: args.compile_opts.header_only,
+        export_event_header: normalize_optional_output_artifact_identity_path(
+            &args.compile_opts.export_event_header,
+        ),
+        wasm_header: args.compile_opts.wasm_header,
+        btfgen: args.compile_opts.btfgen,
+        btfhub_archive: if args.compile_opts.btfgen {
+            normalize_optional_output_artifact_identity_path(&args.compile_opts.btfhub_archive)
+        } else {
+            None
+        },
+        generate_package: !args.compile_opts.parameters.no_generate_package_json,
+        standalone: args.compile_opts.parameters.standalone,
+        additional_cflags: args.compile_opts.parameters.additional_cflags.clone(),
+        workspace_path: args
+            .compile_opts
+            .parameters
+            .workspace_path
+            .as_deref()
+            .map(normalize_output_artifact_identity_path),
+        clang_bin: normalize_output_artifact_identity_path(&args.compile_opts.parameters.clang_bin),
+        llvm_strip_bin: normalize_output_artifact_identity_path(
+            &args.compile_opts.parameters.llvm_strip_bin,
+        ),
     }
 }
 
@@ -478,6 +565,32 @@ fn read_output_artifact_claims(
     Ok(claims)
 }
 
+fn output_artifact_has_inflight_claims(artifact_path: impl AsRef<Path>) -> Result<bool> {
+    let claim_dir = get_output_artifact_claim_directory(artifact_path);
+    let entries = match fs::read_dir(&claim_dir) {
+        Ok(entries) => entries,
+        Err(err) if err.kind() == ErrorKind::NotFound => return Ok(false),
+        Err(err) => return Err(err.into()),
+    };
+
+    for entry in entries {
+        let entry = entry?;
+        if !entry.file_type()?.is_file() {
+            continue;
+        }
+        if entry
+            .path()
+            .extension()
+            .and_then(|extension| extension.to_str())
+            == Some("tmp")
+        {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
 fn create_output_artifact_claim_marker_tempfile(
     claim_path: impl AsRef<Path>,
     claim: &OutputArtifactClaim,
@@ -501,7 +614,10 @@ fn remove_output_artifact_owner_marker_if_unclaimed(
     artifact_path: impl AsRef<Path>,
 ) -> Result<()> {
     let artifact_path = artifact_path.as_ref();
-    if artifact_path.exists() || !read_output_artifact_claims(artifact_path)?.is_empty() {
+    if artifact_path.exists()
+        || output_artifact_has_inflight_claims(artifact_path)?
+        || !read_output_artifact_claims(artifact_path)?.is_empty()
+    {
         return Ok(());
     }
 
@@ -532,7 +648,7 @@ fn publish_output_artifact_owner_marker(
         let claims = read_output_artifact_claims(artifact_path)?;
         if artifact_path.exists() || claims.iter().any(|claim| claim.owner != owner) {
             bail!(
-                "Refusing to claim output artifact {} because it belongs to a different source",
+                "Refusing to claim output artifact {} because it belongs to a different source or build",
                 artifact_path.display()
             );
         }
@@ -554,7 +670,7 @@ fn publish_output_artifact_owner_marker(
                 && (artifact_path.exists() || claims.iter().any(|claim| claim.owner != owner))
             {
                 bail!(
-                    "Refusing to claim output artifact {} because it belongs to a different source",
+                    "Refusing to claim output artifact {} because it belongs to a different source or build",
                     artifact_path.display()
                 );
             }
@@ -695,7 +811,7 @@ pub(crate) fn ensure_output_artifact_can_be_written(
     let claims = read_output_artifact_claims(artifact_path)?;
     if claims.iter().any(|claim| claim.owner != expected_owner) {
         bail!(
-            "Refusing to {} {} because it belongs to a different source",
+            "Refusing to {} {} because it belongs to a different source or build",
             action,
             artifact_path.display()
         );
@@ -720,7 +836,7 @@ pub(crate) fn ensure_output_artifact_can_be_written(
     let marker = read_output_artifact_owner_marker(&marker_path)?;
     if marker != expected_owner && artifact_path.exists() {
         bail!(
-            "Refusing to {} {} because it belongs to a different source",
+            "Refusing to {} {} because it belongs to a different source or build",
             action,
             artifact_path.display()
         );
@@ -829,9 +945,18 @@ fn remove_matching_sibling_package_artifact(args: &Options) -> Result<()> {
     }
 
     let sibling_marker = read_output_artifact_owner_marker(&sibling_marker_path)?;
-    if sibling_marker != build_output_artifact_owner(args) {
+    let expected_owner = build_output_artifact_owner(args);
+    if !sibling_marker.matches_package_lineage(&expected_owner) {
         info!(
-            "Leaving sibling package artifact {} in place because it belongs to a different source",
+            "Leaving sibling package artifact {} in place because it belongs to a different build",
+            sibling_package_config_path.display()
+        );
+        return Ok(());
+    }
+
+    if output_artifact_has_inflight_claims(&sibling_package_config_path)? {
+        info!(
+            "Leaving sibling package artifact {} in place because a claim is still being published",
             sibling_package_config_path.display()
         );
         return Ok(());
