@@ -192,16 +192,63 @@ fn is_clear_run_command_typo(raw_args: &[OsString]) -> bool {
         return false;
     };
     let first_arg = first_arg.to_ascii_lowercase();
-    if !first_arg.chars().all(|ch| matches!(ch, 'r' | 'u' | 'n')) {
+    // Only suppress the migration hint for command-shaped tokens that are still
+    // unmistakably derived from `run`, such as `runn`, `ruun`, `runx`,
+    // `run-`, `nnrun`, or the harder two-swap permutations. General legacy
+    // program/image names like `bun`, `ru`, `ur`, `rnu`, `urn`, and `runner`
+    // should keep the migration guidance.
+    matches!(first_arg.as_str(), "nru" | "unr" | "nur")
+        || is_run_with_single_inserted_char(&first_arg)
+        || is_repeated_run_char_sequence(&first_arg)
+        || has_repeated_run_char_prefix(&first_arg)
+}
+
+#[cfg(feature = "native")]
+fn is_run_with_single_inserted_char(candidate: &str) -> bool {
+    if !candidate.starts_with('r') || candidate.chars().count() != 4 {
         return false;
     }
 
-    // Only suppress the migration hint for command-shaped tokens that are still
-    // unmistakably derived from `run`, such as `runn`, `nnrun`, or the
-    // harder two-swap permutations. General legacy program/image names like
-    // `bun`, `ru`, `ur`, `rnu`, and `urn` should keep the migration guidance.
-    (first_arg != "run" && first_arg.contains("run"))
-        || matches!(first_arg.as_str(), "nru" | "unr" | "nur")
+    candidate.char_indices().any(|(idx, ch)| {
+        let next = idx + ch.len_utf8();
+        let mut without_char = String::with_capacity(candidate.len() - ch.len_utf8());
+        without_char.push_str(&candidate[..idx]);
+        without_char.push_str(&candidate[next..]);
+        without_char == "run"
+    })
+}
+
+#[cfg(feature = "native")]
+fn is_repeated_run_char_sequence(candidate: &str) -> bool {
+    if candidate.chars().count() <= 3 || !candidate.chars().all(|ch| matches!(ch, 'r' | 'u' | 'n'))
+    {
+        return false;
+    }
+
+    let mut collapsed = String::with_capacity(3);
+    let mut previous = None;
+    for ch in candidate.chars() {
+        if Some(ch) != previous {
+            collapsed.push(ch);
+            previous = Some(ch);
+        }
+    }
+
+    collapsed == "run"
+}
+
+#[cfg(feature = "native")]
+fn has_repeated_run_char_prefix(candidate: &str) -> bool {
+    let Some(prefix) = candidate.strip_suffix("run") else {
+        return false;
+    };
+    if prefix.is_empty() {
+        return false;
+    }
+
+    let mut chars = prefix.chars();
+    let first = chars.next().unwrap();
+    matches!(first, 'r' | 'u' | 'n') && chars.all(|ch| ch == first)
 }
 
 #[cfg(feature = "native")]
@@ -400,7 +447,9 @@ mod tests {
     #[cfg(feature = "native")]
     #[test]
     fn suggest_run_migration_for_legacy_program_names_near_run() {
-        for (arg, clap_suggests_run) in [("bun", true), ("ru", true), ("ur", false)] {
+        for (arg, clap_suggests_run) in
+            [("bun", true), ("ru", true), ("ur", false), ("runner", true)]
+        {
             let raw_args = vec![OsString::from("ecli"), OsString::from(arg)];
             let err = match CliArgs::try_parse_from(raw_args.clone()) {
                 Ok(_) => panic!("expected parse error"),
@@ -428,7 +477,7 @@ mod tests {
     #[test]
     fn do_not_suggest_run_migration_for_subcommand_typos() {
         for typo in [
-            "pus", "pll", "runn", "psuh", "psu", "plu", "pushhhh", "runnnn",
+            "pus", "pll", "runn", "ruun", "runx", "run-", "psuh", "psu", "plu", "pushhhh", "runnnn",
         ] {
             let raw_args = vec![OsString::from("ecli"), OsString::from(typo)];
             let err = match CliArgs::try_parse_from(raw_args.clone()) {

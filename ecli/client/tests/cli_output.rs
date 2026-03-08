@@ -39,6 +39,7 @@ fn legacy_positional_invocation_shows_public_migration_hint() {
         "./prog.json",
         "prog",
         "alpine",
+        "runner",
         "bun",
         "ru",
         "ur",
@@ -61,8 +62,8 @@ fn legacy_positional_invocation_shows_public_migration_hint() {
 #[test]
 fn subcommand_typos_keep_clap_unknown_subcommand_error() {
     for arg in [
-        "pus", "pll", "runn", "psuh", "psu", "plu", "pushhhh", "runnnn", "nru", "unr", "nur",
-        "nnrun",
+        "pus", "pll", "runn", "ruun", "runx", "run-", "psuh", "psu", "plu", "pushhhh", "runnnn",
+        "nru", "unr", "nur", "nnrun",
     ] {
         let output = run_cli(&[arg]);
         assert!(!output.status.success());
@@ -93,6 +94,9 @@ fn unsuggested_run_typos_without_clap_tips_still_keep_unknown_subcommand_error()
 #[test]
 fn clap_suggestions_are_preserved_for_detected_subcommand_typos() {
     for (arg, suggestion) in [
+        ("ruun", "run"),
+        ("runx", "run"),
+        ("run-", "run"),
         ("psu", "push"),
         ("plu", "pull"),
         ("pushhhh", "push"),
