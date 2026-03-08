@@ -157,6 +157,8 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
     let source_file_content = fs::read_to_string(&args.compile_opts.source_path)?;
     let mut temp_source_file = PathBuf::from(&args.compile_opts.source_path);
 
+    claim_requested_output_artifacts(args)?;
+
     if !args.compile_opts.export_event_header.is_empty() {
         temp_source_file = args.get_source_file_temp_path();
         // create temp source file
@@ -250,14 +252,20 @@ pub(crate) fn ensure_output_artifact_can_be_written(
     artifact_path: impl AsRef<Path>,
 ) -> Result<()> {
     let artifact_path = artifact_path.as_ref();
-    if !artifact_path.exists() {
+    let action = if artifact_path.exists() {
+        "overwrite existing output artifact"
+    } else {
+        "claim output artifact"
+    };
+    let marker_path = args.get_output_artifact_marker_path(artifact_path);
+    if !artifact_path.exists() && !marker_path.exists() {
         return Ok(());
     }
 
-    let marker_path = args.get_output_artifact_marker_path(artifact_path);
     if !marker_path.exists() {
         bail!(
-            "Refusing to overwrite existing output artifact {} because it is unclaimed; use a dedicated output directory or remove it first",
+            "Refusing to {} {} because it is unclaimed; use a dedicated output directory or remove it first",
+            action,
             artifact_path.display()
         );
     }
@@ -265,7 +273,8 @@ pub(crate) fn ensure_output_artifact_can_be_written(
     let marker: OutputArtifactOwner = serde_json::from_str(&fs::read_to_string(&marker_path)?)?;
     if marker != build_output_artifact_owner(args) {
         bail!(
-            "Refusing to overwrite existing output artifact {} because it belongs to a different source",
+            "Refusing to {} {} because it belongs to a different source",
+            action,
             artifact_path.display()
         );
     }
@@ -286,7 +295,48 @@ pub(crate) fn write_output_artifact_owner_marker(
 fn claim_output_artifact(args: &Options, artifact_path: impl AsRef<Path>) -> Result<()> {
     let artifact_path = artifact_path.as_ref();
     ensure_output_artifact_can_be_written(args, artifact_path)?;
-    write_output_artifact_owner_marker(args, artifact_path)?;
+    let marker_path = args.get_output_artifact_marker_path(artifact_path);
+    if marker_path.exists() {
+        write_output_artifact_owner_marker(args, artifact_path)?;
+        return Ok(());
+    }
+
+    let marker = serde_json::to_string(&build_output_artifact_owner(args))?;
+    match fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&marker_path)
+    {
+        Ok(mut marker_file) => {
+            marker_file.write_all(marker.as_bytes())?;
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+            ensure_output_artifact_can_be_written(args, artifact_path)?;
+        }
+        Err(e) => return Err(e.into()),
+    }
+    Ok(())
+}
+
+fn claim_requested_output_artifacts(args: &Options) -> Result<()> {
+    claim_output_artifact(args, args.get_output_object_path())?;
+    claim_output_artifact(args, args.get_output_config_path())?;
+
+    if !args.compile_opts.parameters.no_generate_package_json {
+        claim_output_artifact(args, args.get_output_package_config_path())?;
+    }
+    if args.compile_opts.parameters.standalone {
+        claim_output_artifact(args, args.get_standalone_source_file_path())?;
+        claim_output_artifact(args, args.get_standalone_executable_path())?;
+    }
+    if args.compile_opts.wasm_header {
+        claim_output_artifact(args, args.get_wasm_header_path())?;
+    }
+    if args.compile_opts.btfgen {
+        claim_output_artifact(args, args.get_output_btf_archive_directory())?;
+        claim_output_artifact(args, args.get_output_tar_path())?;
+    }
+
     Ok(())
 }
 
