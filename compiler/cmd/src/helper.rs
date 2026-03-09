@@ -4,11 +4,14 @@
 //! All rights reserved.
 //!
 use anyhow::{anyhow, Context, Result};
+use clang::Clang;
 use log::debug;
 use std::env::var;
 use std::path::PathBuf;
+use std::sync::{Mutex, OnceLock};
 /// Search the data directory of eunomia from environment variables
 const EUNOMIA_HOME_ENV: &str = "EUNOMIA_HOME";
+static LIBCLANG_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 pub fn get_eunomia_data_dir() -> Result<PathBuf> {
     if let Ok(e) = var(EUNOMIA_HOME_ENV) {
         return Ok(e.into());
@@ -63,6 +66,20 @@ pub fn get_target_arch() -> String {
     debug!("Target architecture: {arch}");
 
     arch.to_string()
+}
+
+pub fn with_clang<T, F>(f: F) -> Result<T>
+where
+    F: FnOnce(&Clang) -> Result<T>,
+{
+    let _guard = LIBCLANG_LOCK
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    clang_sys::load()
+        .map_err(|e| anyhow!("Failed to load libclang dynamically at runtime: {}", e))?;
+    let clang = Clang::new().map_err(|e| anyhow!("Failed to create Clang instance: {}", e))?;
+    f(&clang)
 }
 
 #[macro_export]

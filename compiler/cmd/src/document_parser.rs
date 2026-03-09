@@ -9,17 +9,27 @@ use std::result::Result::Ok;
 
 use crate::config::get_bpf_compile_args;
 use crate::config::Options;
+use crate::helper::with_clang;
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use clang::documentation::CommentChild;
-use clang::Clang;
 use clang::Entity;
 use clang::EntityKind;
 use clang::Index;
 use clang::TranslationUnit;
 use log::warn;
 use serde_json::{json, Value};
+
+fn same_source_file(actual_path: &Path, expected_path: &Path) -> bool {
+    if actual_path == expected_path {
+        return true;
+    }
+    match (actual_path.canonicalize(), expected_path.canonicalize()) {
+        (Ok(actual), Ok(expected)) => actual == expected,
+        _ => false,
+    }
+}
 
 fn parse_source_files<'a>(
     index: &'a Index<'a>,
@@ -228,40 +238,29 @@ pub fn parse_source_documents(
     source_path: &str,
     bpf_skel_json: Value,
 ) -> Result<Value> {
-    // Acquire an instance of `Clang`
-    let clang = match Clang::new() {
-        Ok(clang) => clang,
-        Err(e) => {
-            return Err(anyhow!("Failed to create Clang instance: {}", e));
-        }
-    };
-    // Create a new `Index`
-    let index = Index::new(&clang, false, true);
-    let _source_path = Path::new(source_path);
-    let canonic_source_path = _source_path.canonicalize().unwrap();
-    let tu = parse_source_files(&index, args, &canonic_source_path)?;
+    with_clang(|clang| {
+        let index = Index::new(clang, false, true);
+        let source_path = Path::new(source_path);
+        let tu = parse_source_files(&index, args, source_path)?;
 
-    // Get the entities in this translation unit
-    let entities = tu
-        .get_entity()
-        .get_children()
-        .into_iter()
-        .filter(|e| {
-            if let Some(location) = e.get_location() {
-                if let Some(file) = location.get_file_location().file {
-                    if file.get_path() == canonic_source_path {
-                        return true;
-                    }
-                }
-            }
-            false
-        })
-        .collect::<Vec<_>>();
+        // Get the entities in this translation unit
+        let entities = tu
+            .get_entity()
+            .get_children()
+            .into_iter()
+            .filter(|e| {
+                e.get_location()
+                    .and_then(|location| location.get_file_location().file)
+                    .map(|file| same_source_file(&file.get_path(), source_path))
+                    .unwrap_or(false)
+            })
+            .collect::<Vec<_>>();
 
-    // resolve comments for section data and functions, maps
-    // find the entity with the same name as the names in the json skeleton
-    let new_skel_json = resolve_bpf_skel_entities(&entities, bpf_skel_json)?;
-    Ok(new_skel_json)
+        // resolve comments for section data and functions, maps
+        // find the entity with the same name as the names in the json skeleton
+        let new_skel_json = resolve_bpf_skel_entities(&entities, bpf_skel_json)?;
+        Ok(new_skel_json)
+    })
 }
 
 #[cfg(test)]
