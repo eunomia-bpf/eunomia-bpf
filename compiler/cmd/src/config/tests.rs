@@ -71,6 +71,22 @@ fn test_parse_args() {
 }
 
 #[test]
+fn test_header_only_rejects_separate_export_header() {
+    let tmp_workspace = TempDir::new().unwrap();
+    init_eunomia_workspace(&tmp_workspace).unwrap();
+    let compile_opts =
+        CompileArgs::parse_from(&["ecc", "../test/client.bpf.c", "event.h", "--header-only"]);
+    let err = match Options::init(compile_opts, tmp_workspace) {
+        Ok(_) => panic!("expected --header-only validation to fail"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("--header-only uses SOURCE_PATH as the export header"));
+}
+
+#[test]
 fn test_get_base_dir_include_fail() {
     get_base_dir_include_args(&PathBuf::from("/xxx/test.c")).unwrap_err();
 }

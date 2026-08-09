@@ -6,7 +6,7 @@
 use std::path::{Path, PathBuf};
 
 use super::CompileArgs;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use tempfile::TempDir;
 
 pub struct Options {
@@ -93,6 +93,11 @@ impl Options {
 
 fn check_compile_opts(opts: &mut CompileArgs) -> Result<()> {
     if opts.header_only {
+        if !opts.export_event_header.is_empty() && opts.export_event_header != opts.source_path {
+            bail!(
+                "--header-only uses SOURCE_PATH as the export header; do not pass a separate EXPORT_EVENT_HEADER"
+            );
+        }
         // treat header as a source file
         opts.export_event_header.clone_from(&opts.source_path);
     }
