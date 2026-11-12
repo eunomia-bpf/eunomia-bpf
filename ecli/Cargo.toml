@@ -15,3 +15,6 @@ opt-level = 3
 lto = true
 debug = 0
 overflow-checks = false
+
+[patch.crates-io]
+wasm-bpf-rs = { git = "https://github.com/eunomia-bpf/wasm-bpf", branch = "deps/wasmtime-36", subdir = "runtime/wasm-bpf-rs" }
