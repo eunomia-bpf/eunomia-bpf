@@ -16,7 +16,6 @@
       (system:
         let
           pkgs = import nixpkgs { inherit system; };
-          naersk' = pkgs.callPackage naersk { };
           version = pkgs.lib.substring 0 8 self.lastModifiedDate or self.lastModified or "19700101";
           meta = with pkgs.lib; {
             homepage = "https://eunomia.dev";
@@ -52,6 +51,13 @@
               runHook postInstall
             '';
           };
+          # naersk from the flake input ships against an old nixpkgs (cargo 1.72),
+          # which cannot read Cargo.lock `version = 4`. Build with the pinned
+          # toolchain used for ecli so both crates parse the same lockfiles.
+          naersk' = pkgs.callPackage naersk {
+            cargo = ecliRustToolchain;
+            rustc = ecliRustToolchain;
+          };
           ecliRustPlatform = pkgs.makeRustPlatform {
             cargo = ecliRustToolchain;
             rustc = ecliRustToolchain;
@@ -71,6 +77,10 @@
               fetchSubmodules = true;
             };
 
+            # BPF objects cannot reference __stack_chk_fail; the default
+            # hardening flags make clang 11 emit it into profiler.bpf.o.
+            hardeningDisable = [ "stackprotector" ];
+
             buildInputs = with pkgs;[
               llvmPackages.libllvm
               elfutils
@@ -79,7 +89,10 @@
 
             buildPhase = ''
               runHook preBuild
-              make -C src
+              # The bootstrap libbpf is built with $(HOSTCC), which the upstream
+              # Makefile defaults to `gcc`. This stdenv is clang based and has no
+              # `gcc` in PATH, so point the host tools at the wrapper binaries.
+              make -C src HOSTCC=cc HOSTAR=ar HOSTLD=ld
               runHook postBuild
             '';
 
