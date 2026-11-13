@@ -291,19 +291,23 @@ jobs:
           RELEASE_TAG: ${{ needs.create-release-version.outputs.version }}
         shell: bash
         run: |
-          for attempt in $(seq 1 30); do
+          # ecc is produced by the separate ecc-binary.yml workflow, which starts
+          # at the same time as this one. Its cross-compiled aarch64 job routinely
+          # takes ~25 minutes, so the wait has to outlast it: 60 * 30s = 30 min.
+          for attempt in $(seq 1 60); do
             mapfile -t assets < <(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')
-            missing=0
+            missing=""
             for expected in ecc ecc-x86_64 ecc-aarch64; do
               if ! printf '%s\n' "${assets[@]}" | grep -Fxq "$expected"; then
-                missing=1
+                missing="$expected"
                 break
               fi
             done
-            if [ "$missing" -eq 0 ]; then
+            if [ -z "$missing" ]; then
               exit 0
             fi
-            sleep 10
+            echo "Attempt $attempt/60: waiting for $missing (have: ${assets[*]:-none})"
+            sleep 30
           done
           echo "Timed out waiting for ecc assets to arrive on $RELEASE_TAG"
           exit 1
