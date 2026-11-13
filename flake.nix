@@ -77,6 +77,10 @@
               fetchSubmodules = true;
             };
 
+            # BPF objects cannot reference __stack_chk_fail; the default
+            # hardening flags make clang 11 emit it into profiler.bpf.o.
+            hardeningDisable = [ "stackprotector" ];
+
             buildInputs = with pkgs;[
               llvmPackages.libllvm
               elfutils
@@ -85,7 +89,10 @@
 
             buildPhase = ''
               runHook preBuild
-              make -C src
+              # The bootstrap libbpf is built with $(HOSTCC), which the upstream
+              # Makefile defaults to `gcc`. This stdenv is clang based and has no
+              # `gcc` in PATH, so point the host tools at the wrapper binaries.
+              make -C src HOSTCC=cc HOSTAR=ar HOSTLD=ld
               runHook postBuild
             '';
 
