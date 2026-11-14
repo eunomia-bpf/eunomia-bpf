@@ -309,7 +309,11 @@ mod tests {
         .unwrap();
     }
     #[test]
-    #[should_panic = "Overflow at variable targ_tgid: out of range integral type conversion attempted"]
+    // The trailing half of this message is serde_json's TryFrom error text,
+    // which changed from "out of range integral type conversion attempted" to
+    // "number too large to fit in target type". Assert only the part the
+    // loader itself produces.
+    #[should_panic = "Overflow at variable targ_tgid:"]
     // Test loading illegal values - overflowed integers
     fn test_load_section_3() {
         let mut runqlat_json: ComposedObject = serde_json::from_str(
