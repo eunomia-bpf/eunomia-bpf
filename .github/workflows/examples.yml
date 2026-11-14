@@ -89,8 +89,10 @@ jobs:
               # and expand it only after each example passes on the official arm64
               # runner. `opensnoop` is currently excluded because the runner
               # kernel lacks the expected syscalls/sys_enter_open tracepoint;
-              # `fentry-link` is excluded because the runner kernel no longer
-              # keeps `do_unlinkat` in BTF (issue #409).
+              # `fentry-link` and `kprobe-link` are excluded because the runner
+              # kernel no longer keeps `do_unlinkat` in BTF or kallsyms (issue
+              # #409): fentry resolves it by type id and fails with -ESRCH, the
+              # kprobe fails to create its perf event with -ENOENT.
               make -C examples/tests \
-                TEST_CASES_DIRS='bashreadline bootstrap kprobe-link lsm-connect mdflush minimal runqlat sigsnoop tc tcpstates xdp' \
+                TEST_CASES_DIRS='bashreadline bootstrap lsm-connect mdflush minimal runqlat sigsnoop tc tcpstates xdp' \
                 test
