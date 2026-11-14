@@ -49,12 +49,13 @@ jobs:
       - name: test examples
         run:  |
               # The hosted runner kernel does not carry every function the
-              # tracing examples attach to in BTF: `fentry-link` resolves
-              # `do_unlinkat` by BTF type id and fails with -ESRCH there
-              # (issue #409). Skip only that case so the rest of the matrix
-              # still runs; re-add it once the example targets a function the
-              # runner kernel keeps in BTF.
-              SKIP_TESTS='profile fentry-link' make -C examples/tests test
+              # tracing examples attach to: `fentry-link` resolves
+              # `do_unlinkat` by BTF type id and fails with -ESRCH, and
+              # `kprobe-link` fails to create its perf event on the same name
+              # with -ENOENT (issue #409). Skip only those two cases so the
+              # rest of the matrix still runs; re-add them once the examples
+              # target a function the runner kernel keeps in BTF and kallsyms.
+              SKIP_TESTS='profile fentry-link kprobe-link' make -C examples/tests test
 
   examples-arm64:
     runs-on: ubuntu-24.04-arm
