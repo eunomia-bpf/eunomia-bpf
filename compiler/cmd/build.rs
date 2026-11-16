@@ -76,6 +76,17 @@ fn fetch_git_repo(url: &str, git_ref: &str, local_dir: &Path) -> anyhow::Result<
     {
         bail!("Failed to switch commit for {} to {}", url, git_ref);
     }
+    // `clone --recursive` populates the submodules of the branch it cloned, not
+    // of the commit just checked out. Without this the checkout can leave an
+    // empty `src/libbpf` and the build fails there.
+    if !Command::new("git")
+        .current_dir(workdir().join(local_dir))
+        .args(["submodule", "update", "--init", "--recursive"])
+        .status()?
+        .success()
+    {
+        bail!("Failed to update submodules of {} at {}", url, git_ref);
+    }
 
     Ok(())
 }
@@ -84,7 +95,41 @@ fn fetch_bpftool() -> anyhow::Result<()> {
     fetch_git_repo(&bpftool_repo(), &bpftool_ref(), &bpftool_repodir())
 }
 
+/// The pinned bpftool carries libbpf 1.5, which hands `strstr()`/`strchr()`
+/// results to `char *` locals. Newer C libraries declare those as returning
+/// `const char *`, and bpftool builds libbpf with `-Werror`, so the assignment
+/// is a hard error on such a toolchain:
+///
+///   libbpf.c:8119:13: error: assignment discards 'const' qualifier from
+///   pointer target type [-Werror=discarded-qualifiers]
+///
+/// Make the two locals `const` before the build. This is a source-compatible
+/// change: neither value is written through.
+fn patch_libbpf_const_qualifiers(bpftool_dir: &std::path::Path) -> anyhow::Result<()> {
+    // libbpf is a submodule at the bpftool repository root, not under src/.
+    let libbpf_c = bpftool_dir.join("libbpf/src/libbpf.c");
+    let source = std::fs::read_to_string(&libbpf_c)
+        .with_context(|| anyhow!("Failed to read {}", libbpf_c.display()))?;
+    let patched = source
+        .replacen(
+            "\tstruct extern_desc *ext;\n\tchar *res;\n",
+            "\tstruct extern_desc *ext;\n\tconst char *res;\n",
+            1,
+        )
+        .replacen(
+            "\t\t\tchar *next_path;\n\t\t\tint seg_len;\n",
+            "\t\t\tconst char *next_path;\n\t\t\tint seg_len;\n",
+            1,
+        );
+    if patched != source {
+        std::fs::write(&libbpf_c, patched)
+            .with_context(|| anyhow!("Failed to write {}", libbpf_c.display()))?;
+    }
+    Ok(())
+}
+
 fn build_bpftool() -> anyhow::Result<()> {
+    patch_libbpf_const_qualifiers(&workdir().join(bpftool_repodir()))?;
     if !Command::new("make")
         .arg("-j")
         .current_dir(workdir().join(bpftool_repodir()).join("src"))

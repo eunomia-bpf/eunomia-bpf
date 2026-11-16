@@ -59,7 +59,14 @@ $(OUTPUT) $(OUTPUT)/libbpf:
 	$(call msg,MKDIR,$@)
 	$(Q)mkdir -p $@
 
+# libbpf 1.5 assigns strstr()/strchr() results to `char *` from a `const char *`.
+# A C library that declares the standard `const char *` return makes that a hard
+# error under bpftool's -Werror=discarded-qualifiers. Make the two locals const;
+# neither value is written through, so this is source-compatible. Idempotent, so
+# a rebuilt tree is not patched twice.
 $(BPFTOOL):
+	sed -i 's/^\tchar \*res;$$/\tconst char *res;/' $(BPFTOOL_SRC)/libbpf/src/libbpf.c
+	sed -i 's/^\t\t\tchar \*next_path;$$/\t\t\tconst char *next_path;/' $(BPFTOOL_SRC)/libbpf/src/libbpf.c
 	$(MAKE) -C $(BPFTOOL_SRC)/src
 
 $(ECC): $(BPFTOOL)

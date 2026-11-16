@@ -48,7 +48,14 @@ jobs:
 
       - name: test examples
         run:  |
-              SKIP_TESTS=profile make -C examples/tests test
+              # The hosted runner kernel does not carry every function the
+              # tracing examples attach to: `fentry-link` resolves
+              # `do_unlinkat` by BTF type id and fails with -ESRCH, and
+              # `kprobe-link` fails to create its perf event on the same name
+              # with -ENOENT (issue #409). Skip only those two cases so the
+              # rest of the matrix still runs; re-add them once the examples
+              # target a function the runner kernel keeps in BTF and kallsyms.
+              SKIP_TESTS='profile fentry-link kprobe-link' make -C examples/tests test
 
   examples-arm64:
     runs-on: ubuntu-24.04-arm
@@ -82,7 +89,11 @@ jobs:
               # that the full example matrix expects. Keep the allowlist explicit
               # and expand it only after each example passes on the official arm64
               # runner. `opensnoop` is currently excluded because the runner
-              # kernel lacks the expected syscalls/sys_enter_open tracepoint.
+              # kernel lacks the expected syscalls/sys_enter_open tracepoint;
+              # `fentry-link` and `kprobe-link` are excluded because the runner
+              # kernel no longer keeps `do_unlinkat` in BTF or kallsyms (issue
+              # #409): fentry resolves it by type id and fails with -ESRCH, the
+              # kprobe fails to create its perf event with -ENOENT.
               make -C examples/tests \
-                TEST_CASES_DIRS='bashreadline bootstrap fentry-link kprobe-link lsm-connect mdflush minimal runqlat sigsnoop tc tcpstates xdp' \
+                TEST_CASES_DIRS='bashreadline bootstrap lsm-connect mdflush minimal runqlat sigsnoop tc tcpstates xdp' \
                 test
