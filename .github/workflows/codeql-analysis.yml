@@ -41,26 +41,32 @@ jobs:
       uses: actions/checkout@v3
       with:
         submodules: 'recursive'
-    - name: install deps
-      run: |
-          sudo make -C bpf-loader-rs install-deps
-
     # Initializes the CodeQL tools for scanning.
+    #
+    # The build output goes outside the checkout. `make` builds `ecli`, whose
+    # `openssl-sys` unpacks and compiles OpenSSL under `ecli/target/`; the
+    # extractor then reports 65 findings in that vendored copy (47
+    # weak-crypto-algorithm, 8 use-after-free, 8
+    # integer-multiplication-cast-to-long), none of it code in this repository
+    # — `git ls-files '*/target/*'` is empty.
+    #
+    # `CARGO_TARGET_DIR` moves every crate's output to one directory beside the
+    # checkout, so the analysis sees only tracked sources. The CodeQL config
+    # additionally ignores `node_modules/`.
+    #
+    # The build step itself is required: without it extraction finds no
+    # sources and database finalize fails with "could not process any of it"
+    # (run of #417, 2026-11-21).
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
         config-file: ./.github/codeql/codeql-config.yml
-        # If you wish to specify custom queries, you can do so here or in a config file.
-        # By default, queries listed here will override any specified in a config file.
-        # Prefix the list here with "+" to use these queries and those in the config file.
-        
-        # Details on CodeQL's query packs refer to : https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
-        # queries: security-extended,security-and-quality
 
-        
     - name: Build code for CodeQL
       run: make
+      env:
+        CARGO_TARGET_DIR: ${{ github.workspace }}/../codeql-build
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
