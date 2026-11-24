@@ -273,6 +273,7 @@ struct OutputObjectPublishBarrier {
 
 #[cfg(test)]
 type OutputObjectPublishBarrierCell = OnceLock<Mutex<Option<OutputObjectPublishBarrier>>>;
+#[cfg(test)]
 static OUTPUT_OBJECT_PUBLISH_BARRIER: OutputObjectPublishBarrierCell = OnceLock::new();
 
 /// compile bpf object
