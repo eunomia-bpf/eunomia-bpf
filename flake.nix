@@ -118,7 +118,7 @@
               # The lockfile pins wasm-bpf-rs to a git branch of wasm-bpf;
               # importCargoLock needs the checkout hash for that dependency.
               outputHashes."wasm-bpf-rs-0.3.3" =
-                "sha256-XGzH5nWBNqwMVCY4ZCeY0HBasLefKRscQMOQwTHevAQ";
+                "sha256-IJwGbxY6DIN8M5Llod+ueH+gQwj3G48imurYHiId50s";
             };
 
             nativeBuildInputs = with pkgs;[
