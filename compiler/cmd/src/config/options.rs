@@ -127,6 +127,7 @@ impl Options {
         )
     }
 
+    #[cfg(test)]
     pub fn get_output_package_marker_path(&self) -> PathBuf {
         self.get_output_package_marker_path_for(self.package_format())
     }

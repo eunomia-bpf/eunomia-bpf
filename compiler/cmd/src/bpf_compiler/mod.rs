@@ -527,6 +527,7 @@ fn publish_output_file_artifact_for_invocation(
     }
 }
 
+#[cfg(test)]
 fn publish_output_object_artifact(
     args: &Options,
     output_object_file: NamedTempFile,
@@ -555,6 +556,7 @@ fn publish_output_object_artifact_for_invocation(
     )
 }
 
+#[cfg(test)]
 fn publish_output_file_artifact(
     args: &Options,
     output_artifact_file: NamedTempFile,
@@ -700,6 +702,7 @@ fn publish_output_directory_artifact_for_invocation(
     }
 }
 
+#[cfg(test)]
 fn publish_output_directory_artifact(
     args: &Options,
     output_artifact_dir: TempDir,
@@ -908,6 +911,7 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
 }
 
 /// Pack the object file into a generated package artifact.
+#[cfg(test)]
 fn pack_object_in_config(args: &Options) -> Result<()> {
     let invocation = OutputArtifactInvocation::start(args)?;
     pack_object_in_config_for_invocation(&invocation, args)
@@ -1222,6 +1226,7 @@ fn build_output_artifact_invocation_id(args: &Options) -> String {
         .to_string()
 }
 
+#[cfg(test)]
 fn build_output_artifact_claim(args: &Options) -> Result<OutputArtifactClaim> {
     Ok(OutputArtifactInvocation::start(args)?.claim)
 }
@@ -1690,6 +1695,7 @@ fn publish_output_artifact_owner_marker_for_invocation(
     }
 }
 
+#[cfg(test)]
 fn publish_output_artifact_owner_marker(
     args: &Options,
     artifact_path: impl AsRef<Path>,
@@ -1868,6 +1874,7 @@ pub(crate) fn set_output_object_publish_barrier(
         );
 }
 
+#[cfg(test)]
 pub(crate) fn ensure_output_artifact_can_be_written(
     args: &Options,
     artifact_path: impl AsRef<Path>,
@@ -1925,6 +1932,7 @@ fn ensure_output_artifact_can_be_written_for_invocation(
     Ok(())
 }
 
+#[cfg(test)]
 pub(crate) fn write_output_artifact_owner_marker(
     args: &Options,
     artifact_path: impl AsRef<Path>,
@@ -1932,6 +1940,7 @@ pub(crate) fn write_output_artifact_owner_marker(
     publish_output_artifact_owner_marker(args, artifact_path)
 }
 
+#[cfg(test)]
 fn claim_output_artifact(args: &Options, artifact_path: impl AsRef<Path>) -> Result<bool> {
     let invocation = OutputArtifactInvocation::start(args)?;
     claim_output_artifact_for_invocation(&invocation, args, artifact_path)
@@ -2003,7 +2012,7 @@ fn should_preserve_active_sibling_package_artifact(
     let sibling_claims = read_output_artifact_claims(&sibling_package_config_path)?;
     if sibling_claims
         .iter()
-        .any(|claim| claim.owner.matches_package_lineage(&expected_owner))
+        .any(|claim| claim.owner.matches_package_lineage(expected_owner))
     {
         return Ok(true);
     }
@@ -2019,7 +2028,7 @@ fn should_preserve_active_sibling_package_artifact(
 
     Ok(read_output_artifact_marker(&sibling_marker_path)?
         .owner
-        .matches_package_lineage(&expected_owner))
+        .matches_package_lineage(expected_owner))
 }
 
 fn collect_requested_output_artifacts(
@@ -2049,6 +2058,7 @@ fn collect_requested_output_artifacts(
     Ok(artifact_paths)
 }
 
+#[cfg(test)]
 fn claim_requested_output_artifacts(args: &Options) -> Result<OutputArtifactClaimsGuard> {
     let invocation = OutputArtifactInvocation::start(args)?;
     claim_requested_output_artifacts_for_invocation(&invocation, args)
@@ -2112,7 +2122,7 @@ fn remove_matching_sibling_package_artifact_for_invocation(
         let expected_owner = invocation.owner();
         if !sibling_marker
             .owner
-            .matches_package_lineage(&expected_owner)
+            .matches_package_lineage(expected_owner)
         {
             info!(
                 "Leaving sibling package artifact {} in place because it belongs to a different build",
