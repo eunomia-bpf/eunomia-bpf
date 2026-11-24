@@ -170,7 +170,19 @@ pub enum Action {
 }
 
 #[derive(Parser)]
+// `-h`/`--help` are claimed by clap at this level, so `ecli prog -h` showed
+// ecli's own help instead of forwarding `-h` to the program (issue #83).
+// Disabling the flag here and handling it after parsing lets a following
+// program receive it, while `ecli -h` on its own still prints help.
+#[command(disable_help_flag = true)]
 struct CliArgs {
+    #[arg(
+        long,
+        short = 'h',
+        action = clap::ArgAction::SetTrue,
+        help = "Print help. With a program argument present, `-h` is passed to it instead"
+    )]
+    _help: bool,
     #[command(subcommand)]
     action: Option<Action>,
     /// program path or url
@@ -196,6 +208,14 @@ async fn main() -> anyhow::Result<()> {
     }
     let args = CliArgs::parse();
 
+    // `-h` with no program means "show ecli's help"; with a program it was
+    // already forwarded through `command_line` (allow_hyphen_values).
+    if args._help && args.command_line.is_empty() {
+        use clap::CommandFactory;
+        CliArgs::command().print_help()?;
+        return Ok(());
+    }
+
     #[cfg(feature = "native")]
     {
         if let Some((prog, extra_args)) = args.command_line.split_first() {
@@ -213,6 +233,14 @@ async fn main() -> anyhow::Result<()> {
             command_line,
             prog_type,
         }) => {
+            // `run -h` with nothing after it means "show help"; with a program
+            // present `-h` belongs to that program (command_line is required,
+            // so this only fires on the bare form).
+            if command_line.len() == 1 && command_line[0] == "-h" {
+                use clap::CommandFactory;
+                CliArgs::command().print_help()?;
+                return Ok(());
+            }
             let (prog, args) = command_line.split_first().unwrap();
             native_client::run_native(json, prog.to_string(), args, prog_type)
                 .await
