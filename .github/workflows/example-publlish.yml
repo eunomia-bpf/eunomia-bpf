@@ -82,8 +82,11 @@ jobs:
         run: |
           . $HOME/.cargo/env
           # GitHub's privileged container does not expose every tracepoint/raw_tp hook
-          # that the host-based example workflow can rely on.
-          SKIP_TESTS="profile bootstrap minimal opensnoop runqlat sigsnoop tcpstates" make -C examples/tests test
+          # that the host-based example workflow can rely on. `fentry-link` resolves
+          # `do_unlinkat` by BTF type id and fails with -ESRCH on the hosted runner
+          # kernel, and `kprobe-link` fails to create its perf event on the same
+          # name (issue #409); skip both here too, as examples.yml already does.
+          SKIP_TESTS="profile bootstrap minimal opensnoop runqlat sigsnoop tcpstates fentry-link kprobe-link" make -C examples/tests test
 
       - uses: JamesIves/github-pages-deploy-action@v4.4.1
         if: ${{ github.event_name == 'push' }}
