@@ -1,0 +1,10 @@
+name: "eunomia-bpf CodeQL config"
+
+# The CodeQL job builds the tree before analysing it, so without these the scan
+# picks up code that is generated during the build: `ecli/target/` holds the
+# OpenSSL sources unpacked by `openssl-sys`, and `node_modules/` holds vendored
+# JavaScript. Neither is this repository's code, and together they account for
+# all 65 open CodeQL alerts on master.
+paths-ignore:
+  - '**/target/**'
+  - '**/node_modules/**'
