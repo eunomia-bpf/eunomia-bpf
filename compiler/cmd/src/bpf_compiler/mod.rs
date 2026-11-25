@@ -1683,12 +1683,13 @@ fn replace_output_artifact_marker(
     let claims = read_output_artifact_claims(artifact_path)?;
     let claims_conflict = output_artifact_claims_conflict_with_owner(&claims, owner);
     if marker.owner.is_legacy_upgrade_target_for(owner) && artifact_path.exists() {
-        return match claims_conflict {
-            true => Err(output_artifact_conflict_error(
+        return if claims_conflict {
+            Err(output_artifact_conflict_error(
                 artifact_path,
                 "claim output artifact",
-            )),
-            false => Ok(()),
+            ))
+        } else {
+            Ok(())
         };
     }
     if artifact_path.exists() || claims_conflict {
