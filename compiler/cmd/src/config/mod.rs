@@ -8,7 +8,7 @@ use clap::{ArgAction, Parser};
 use fs_extra::dir::CopyOptions;
 use log::debug;
 use rust_embed::RustEmbed;
-use std::io::{Seek, SeekFrom};
+use std::io::Seek;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::result::Result::Ok;
@@ -203,7 +203,7 @@ pub fn package_btfhub_tar(
         .set_len(0)
         .with_context(|| anyhow!("Failed to reset the tar output file"))?;
     tar_file
-        .seek(SeekFrom::Start(0))
+        .rewind()
         .with_context(|| anyhow!("Failed to rewind the tar output file"))?;
 
     let mut tar = Builder::new(tar_file);

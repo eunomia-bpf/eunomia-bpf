@@ -854,51 +854,74 @@ pub fn compile_bpf(args: &Options) -> Result<()> {
         if !args.compile_opts.export_event_header.is_empty() {
             fs::remove_file(temp_source_file)?;
         }
-        if !args.compile_opts.parameters.no_generate_package_json {
-            pack_object_in_config_for_invocation(&invocation, args)
-                .with_context(|| anyhow!("Failed to generate package artifact"))?;
-        }
-        // If we want a standalone executable..?
-        if args.compile_opts.parameters.standalone {
-            build_standalone_artifacts_for_invocation(&invocation, args)
-                .with_context(|| anyhow!("Failed to build standalone executable"))?;
-        }
-        if args.compile_opts.wasm_header {
-            publish_wasm_header_artifact_for_invocation(&invocation, args)
-                .with_context(|| anyhow!("Failed to generate wasm header"))?;
-        }
-        if args.compile_opts.btfgen {
-            let output_btf_archive_path = args.get_output_btf_archive_directory();
-            let output_btf_archive_dir = create_output_artifact_tempdir(&output_btf_archive_path)?;
-            fetch_btfhub_repo(&args.compile_opts)
-                .with_context(|| anyhow!("Failed to fetch btfhub repo"))?;
-            generate_tailored_btf(args, output_btf_archive_dir.path())
-                .with_context(|| anyhow!("Failed to generate tailored btf"))?;
-            publish_output_directory_artifact_for_invocation(
-                &invocation,
-                args,
-                output_btf_archive_dir,
-                &output_btf_archive_path,
-            )?;
-
-            let output_tar_path = args.get_output_tar_path();
-            let mut output_tar_file = create_output_artifact_tempfile(&output_tar_path)?;
-            package_btfhub_tar(
-                args,
-                &output_btf_archive_path,
-                output_tar_file.as_file_mut(),
-            )
-            .with_context(|| anyhow!("Failed to package btfhub tar"))?;
-            output_tar_file.as_file_mut().sync_all()?;
-            publish_output_file_artifact_for_invocation(
-                &invocation,
-                args,
-                output_tar_file,
-                &output_tar_path,
-            )?;
-        }
+        publish_compiled_outputs_for_invocation(&invocation, args)?;
         Ok(())
     })();
+    release_claimed_output_artifacts(compile_result, claimed_output_artifacts)
+}
+
+fn publish_compiled_outputs_for_invocation(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+) -> Result<()> {
+    if !args.compile_opts.parameters.no_generate_package_json {
+        pack_object_in_config_for_invocation(invocation, args)
+            .with_context(|| anyhow!("Failed to generate package artifact"))?;
+    }
+    // If we want a standalone executable..?
+    if args.compile_opts.parameters.standalone {
+        build_standalone_artifacts_for_invocation(invocation, args)
+            .with_context(|| anyhow!("Failed to build standalone executable"))?;
+    }
+    if args.compile_opts.wasm_header {
+        publish_wasm_header_artifact_for_invocation(invocation, args)
+            .with_context(|| anyhow!("Failed to generate wasm header"))?;
+    }
+    if args.compile_opts.btfgen {
+        publish_btfhub_artifacts_for_invocation(invocation, args)?;
+    }
+    Ok(())
+}
+
+fn publish_btfhub_artifacts_for_invocation(
+    invocation: &OutputArtifactInvocation,
+    args: &Options,
+) -> Result<()> {
+    let output_btf_archive_path = args.get_output_btf_archive_directory();
+    let output_btf_archive_dir = create_output_artifact_tempdir(&output_btf_archive_path)?;
+    fetch_btfhub_repo(&args.compile_opts)
+        .with_context(|| anyhow!("Failed to fetch btfhub repo"))?;
+    generate_tailored_btf(args, output_btf_archive_dir.path())
+        .with_context(|| anyhow!("Failed to generate tailored btf"))?;
+    publish_output_directory_artifact_for_invocation(
+        invocation,
+        args,
+        output_btf_archive_dir,
+        &output_btf_archive_path,
+    )?;
+
+    let output_tar_path = args.get_output_tar_path();
+    let mut output_tar_file = create_output_artifact_tempfile(&output_tar_path)?;
+    package_btfhub_tar(
+        args,
+        &output_btf_archive_path,
+        output_tar_file.as_file_mut(),
+    )
+    .with_context(|| anyhow!("Failed to package btfhub tar"))?;
+    output_tar_file.as_file_mut().sync_all()?;
+    publish_output_file_artifact_for_invocation(
+        invocation,
+        args,
+        output_tar_file,
+        &output_tar_path,
+    )?;
+    Ok(())
+}
+
+fn release_claimed_output_artifacts(
+    compile_result: Result<()>,
+    claimed_output_artifacts: OutputArtifactClaimsGuard,
+) -> Result<()> {
     let release_result = claimed_output_artifacts.release();
 
     match (compile_result, release_result) {
@@ -1098,7 +1121,7 @@ fn collect_output_artifact_source_dependency_paths(args: &Options) -> Result<Vec
 }
 
 fn parse_output_artifact_dependency_file(dependency_file_contents: &str) -> Result<Vec<String>> {
-    let mut dependency_section = String::new();
+    let mut dependency_section = String::default();
     let mut separator_found = false;
     let mut escaped = false;
 
@@ -1122,7 +1145,7 @@ fn parse_output_artifact_dependency_file(dependency_file_contents: &str) -> Resu
         bail!("Failed to parse output artifact dependency file");
     }
 
-    let mut flattened_dependencies = String::new();
+    let mut flattened_dependencies = String::default();
     let mut chars = dependency_section.chars().peekable();
     while let Some(ch) = chars.next() {
         if ch == '\\' {
@@ -1145,7 +1168,7 @@ fn parse_output_artifact_dependency_file(dependency_file_contents: &str) -> Resu
     }
 
     let mut dependencies = Vec::new();
-    let mut current = String::new();
+    let mut current = String::default();
     let mut escape_next = false;
     for ch in flattened_dependencies.chars() {
         if escape_next {
@@ -1159,7 +1182,7 @@ fn parse_output_artifact_dependency_file(dependency_file_contents: &str) -> Resu
             ch if ch.is_whitespace() => {
                 if !current.is_empty() {
                     dependencies.push(current);
-                    current = String::new();
+                    current = String::default();
                 }
             }
             _ => current.push(ch),
@@ -1405,7 +1428,7 @@ fn read_output_artifact_claims(
 
     let mut claims = Vec::new();
     for entry in entries {
-        if !entry.file_type()?.is_file() {
+        if entry.file_type()?.is_dir() {
             continue;
         }
         let claim_path = entry.path();
@@ -1437,7 +1460,7 @@ fn output_artifact_has_inflight_claims(artifact_path: impl AsRef<Path>) -> Resul
 
     for entry in entries {
         let entry = entry?;
-        if !entry.file_type()?.is_file() {
+        if entry.file_type()?.is_dir() {
             continue;
         }
         if entry
@@ -1610,41 +1633,7 @@ fn publish_output_artifact_owner_marker_for_invocation(
     let owner = invocation.owner();
     let marker_path = args.get_output_artifact_marker_path(artifact_path);
     if marker_path.exists() {
-        let marker = read_output_artifact_marker(&marker_path)?;
-        if marker.owner.matches_revision(owner) {
-            return Ok(());
-        }
-        let claims = read_output_artifact_claims(artifact_path)?;
-        if marker.owner.is_legacy_upgrade_target_for(owner) && artifact_path.exists() {
-            if claims.iter().any(|claim| {
-                !claim.owner.matches_revision(owner)
-                    && !claim.owner.is_legacy_upgrade_target_for(owner)
-            }) {
-                return Err(output_artifact_conflict_error(
-                    artifact_path,
-                    "claim output artifact",
-                ));
-            }
-            return Ok(());
-        }
-        if artifact_path.exists()
-            || claims.iter().any(|claim| {
-                !claim.owner.matches_revision(owner)
-                    && !claim.owner.is_legacy_upgrade_target_for(owner)
-            })
-        {
-            return Err(output_artifact_conflict_error(
-                artifact_path,
-                "claim output artifact",
-            ));
-        }
-        create_output_artifact_marker_tempfile(
-            &marker_path,
-            &build_output_artifact_marker(owner, None),
-        )?
-        .persist(&marker_path)
-        .map_err(|err| err.error)?;
-        return Ok(());
+        return replace_output_artifact_marker(artifact_path, &marker_path, owner, None);
     }
 
     let marker_file = create_output_artifact_marker_tempfile(
@@ -1657,43 +1646,64 @@ fn publish_output_artifact_owner_marker_for_invocation(
         Ok(_) => Ok(()),
         Err(err) if err.error.kind() == ErrorKind::AlreadyExists => {
             let marker = read_output_artifact_marker(&marker_path)?;
-            let claims = read_output_artifact_claims(artifact_path)?;
-            if marker.owner.is_legacy_upgrade_target_for(owner) && artifact_path.exists() {
-                if claims.iter().any(|claim| {
-                    !claim.owner.matches_revision(owner)
-                        && !claim.owner.is_legacy_upgrade_target_for(owner)
-                }) {
-                    return Err(output_artifact_conflict_error(
-                        artifact_path,
-                        "claim output artifact",
-                    ));
-                }
-                return Ok(());
-            }
-            if !marker.owner.matches_revision(owner)
-                && (artifact_path.exists()
-                    || claims.iter().any(|claim| {
-                        !claim.owner.matches_revision(owner)
-                            && !claim.owner.is_legacy_upgrade_target_for(owner)
-                    }))
-            {
-                return Err(output_artifact_conflict_error(
-                    artifact_path,
-                    "claim output artifact",
-                ));
-            }
-            if !marker.owner.matches_revision(owner) {
-                create_output_artifact_marker_tempfile(
-                    &marker_path,
-                    &build_output_artifact_marker(owner, marker.finalized_at_unix_nanos),
-                )?
-                .persist(&marker_path)
-                .map_err(|persist_err| persist_err.error)?;
-            }
-            Ok(())
+            replace_output_artifact_marker(
+                artifact_path,
+                &marker_path,
+                owner,
+                marker.finalized_at_unix_nanos,
+            )
         }
         Err(err) => Err(err.error.into()),
     }
+}
+
+fn output_artifact_claims_conflict_with_owner(
+    claims: &[OutputArtifactClaim],
+    owner: &OutputArtifactOwner,
+) -> bool {
+    claims.iter().any(|claim| {
+        !claim.owner.matches_revision(owner) && !claim.owner.is_legacy_upgrade_target_for(owner)
+    })
+}
+
+/// Publishes `owner` as the marker's owner unless the artifact is owned by
+/// someone else. `finalized_at_unix_nanos` is carried over from the marker
+/// being replaced so an overlapping build's finalization time survives.
+fn replace_output_artifact_marker(
+    artifact_path: &Path,
+    marker_path: &Path,
+    owner: &OutputArtifactOwner,
+    finalized_at_unix_nanos: Option<u64>,
+) -> Result<()> {
+    let marker = read_output_artifact_marker(marker_path)?;
+    if marker.owner.matches_revision(owner) {
+        return Ok(());
+    }
+
+    let claims = read_output_artifact_claims(artifact_path)?;
+    let claims_conflict = output_artifact_claims_conflict_with_owner(&claims, owner);
+    if marker.owner.is_legacy_upgrade_target_for(owner) && artifact_path.exists() {
+        return match claims_conflict {
+            true => Err(output_artifact_conflict_error(
+                artifact_path,
+                "claim output artifact",
+            )),
+            false => Ok(()),
+        };
+    }
+    if artifact_path.exists() || claims_conflict {
+        return Err(output_artifact_conflict_error(
+            artifact_path,
+            "claim output artifact",
+        ));
+    }
+    create_output_artifact_marker_tempfile(
+        marker_path,
+        &build_output_artifact_marker(owner, finalized_at_unix_nanos),
+    )?
+    .persist(marker_path)
+    .map_err(|err| err.error)?;
+    Ok(())
 }
 
 #[cfg(test)]
