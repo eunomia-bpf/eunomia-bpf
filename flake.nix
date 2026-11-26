@@ -16,7 +16,13 @@
       (system:
         let
           pkgs = import nixpkgs { inherit system; };
-          naersk' = pkgs.callPackage naersk { };
+          # The refreshed Rust locks carry edition-2024 dependencies
+          # (clap_derive 4.6). Build with the pinned toolchain used for ecli so
+          # both crates build with the same toolchain.
+          naersk' = pkgs.callPackage naersk {
+            cargo = ecliRustToolchain;
+            rustc = ecliRustToolchain;
+          };
           version = pkgs.lib.substring 0 8 self.lastModifiedDate or self.lastModified or "19700101";
           meta = with pkgs.lib; {
             homepage = "https://eunomia.dev";
