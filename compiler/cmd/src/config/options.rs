@@ -9,7 +9,7 @@ use std::{
 };
 
 use super::CompileArgs;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use tempfile::TempDir;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -177,6 +177,11 @@ pub(crate) fn current_unix_time_nanos() -> u64 {
 fn check_compile_opts(opts: &mut CompileArgs) -> Result<()> {
     validate_output_mode_combinations(opts)?;
     if opts.header_only {
+        if !opts.export_event_header.is_empty() && opts.export_event_header != opts.source_path {
+            bail!(
+                "--header-only uses SOURCE_PATH as the export header; do not pass a separate EXPORT_EVENT_HEADER"
+            );
+        }
         // treat header as a source file
         opts.export_event_header.clone_from(&opts.source_path);
     }
