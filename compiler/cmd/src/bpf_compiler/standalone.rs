@@ -8,6 +8,7 @@ use std::process::Command;
 use crate::{config::Options, handle_std_command_with_log, helper::get_eunomia_data_dir};
 use anyhow::{anyhow, bail, Context, Result};
 use log::info;
+use std::path::Path;
 
 fn num_to_hex(v: u8) -> char {
     match v {
@@ -17,17 +18,12 @@ fn num_to_hex(v: u8) -> char {
     }
 }
 
-pub(crate) fn build_standalone_executable(opts: &Options) -> Result<()> {
-    info!("Generating standalone executable..");
+pub(crate) fn render_standalone_source(opts: &Options) -> Result<String> {
     let template_source = include_str!("standalone_bpf_loader.template.c");
 
-    let libeunomia_path = get_eunomia_data_dir()?.join("libeunomia.a");
-    if !libeunomia_path.exists() {
-        bail!("`{:?}` does not exist, fetch one from https://github.com/eunomia-bpf/eunomia-bpf/actions",libeunomia_path);
-    }
-    let package_json_content = std::fs::read_to_string(opts.get_output_package_config_path())
-        .with_context(|| anyhow!("Failed to read package json"))?;
-    let bytes_str = package_json_content
+    let package_content = std::fs::read_to_string(opts.get_output_package_config_path())
+        .with_context(|| anyhow!("Failed to read generated package artifact"))?;
+    let bytes_str = package_content
         .as_bytes()
         .iter()
         .map(|x| {
@@ -38,23 +34,28 @@ pub(crate) fn build_standalone_executable(opts: &Options) -> Result<()> {
         })
         .collect::<Vec<_>>()
         .join("");
-    let source = template_source.replace("<REPLACE-HERE>", &bytes_str);
-    let source_path = opts.get_standalone_source_file_path();
-    std::fs::write(&source_path, source).with_context(|| {
-        anyhow!(
-            "Failed to write out the source of standalone executable to {:?}",
-            source_path
-        )
-    })?;
-    let executable_path = opts.get_standalone_executable_path();
+    Ok(template_source.replace("<REPLACE-HERE>", &bytes_str))
+}
+
+pub(crate) fn build_standalone_executable(
+    opts: &Options,
+    source_path: impl AsRef<Path>,
+    executable_path: impl AsRef<Path>,
+) -> Result<()> {
+    info!("Generating standalone executable..");
+    let libeunomia_path = get_eunomia_data_dir()?.join("libeunomia.a");
+    if !libeunomia_path.exists() {
+        bail!("`{:?}` does not exist, fetch one from https://github.com/eunomia-bpf/eunomia-bpf/actions",libeunomia_path);
+    }
+
     let mut cmd = Command::new(&opts.compile_opts.parameters.clang_bin);
     cmd.arg("-Wall")
         .arg("-O2")
         .arg("-static")
-        .arg(source_path)
+        .arg(source_path.as_ref())
         .arg(libeunomia_path)
         .arg("-o")
-        .arg(&executable_path);
+        .arg(executable_path.as_ref());
     handle_std_command_with_log!(cmd, "Failed to build the standalone executable");
 
     Ok(())
