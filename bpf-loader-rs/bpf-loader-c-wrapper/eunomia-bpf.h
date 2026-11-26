@@ -2,6 +2,7 @@
 #define EUNOMIA_C_H_
 
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,13 +69,13 @@ int parse_args_to_json_config(const char* json_config,
                               char* out_buffer,
                               size_t out_buffer_size);
 /// @brief create a polling handle from a ready-to-poll eunomia
-eunomia_polling_handle* handle_create(struct eunomia_bpf* prog);
+struct eunomia_polling_handle* handle_create(struct eunomia_bpf* prog);
 /// @brief pause or resume the poller
-void handle_set_pause_state(eunomia_polling_handle* handle, uint8_t pause);
+void handle_set_pause_state(struct eunomia_polling_handle* handle, uint8_t pause);
 /// @brief Terminate the poller
-void handle_terminate(eunomia_polling_handle* handle);
+void handle_terminate(struct eunomia_polling_handle* handle);
 /// @brief Destroy the handler
-void handle_destroy(eunomia_polling_handle* handle);
+void handle_destroy(struct eunomia_polling_handle* handle);
 /// @brief Get the error message
 void get_error_message(char* str_out, size_t buf_size);
 #ifdef __cplusplus
