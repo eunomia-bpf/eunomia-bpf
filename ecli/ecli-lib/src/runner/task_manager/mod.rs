@@ -325,10 +325,13 @@ impl NativeTaskManager {
                 let (h1, h2) = run_wasm_bpf_module_async(
                     &buf,
                     args,
-                    Config {
-                        stderr: Box::new(stderr),
-                        stdout: Box::new(stdout),
-                        ..Default::default()
+                    {
+                        // `Config` has a private field, so it is built through
+                        // `Default` and adjusted, not with a struct literal.
+                        let mut config = Config::default();
+                        config.stdout = Box::new(stdout);
+                        config.stderr = Box::new(stderr);
+                        config
                     },
                 )
                 .map_err(|e| Error::Wasm(format!("Failed to run wasm bpf module: {}", e)))?;
@@ -454,7 +457,7 @@ impl EventHandler for MyEventHandler {
     }
 }
 
-struct StepFetcher<W: Write> {
+struct StepFetcher<W: Write + Send + Sync + 'static> {
     last_idx: usize,
     buf: ReadableWritePipe<W>,
 }
