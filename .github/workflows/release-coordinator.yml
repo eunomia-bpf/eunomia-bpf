@@ -14,8 +14,15 @@ on:
 jobs:
   resolve:
     runs-on: ubuntu-latest
+    # Keyed by commit, not by branch: ecc-binary.yml and ecli-binary.yaml both
+    # call this job for the same push, and they must not cancel each other.
+    # A branch-keyed group put every push in one queue, so a second push
+    # cancelled the first one's pending resolve -- ecc's assets were never
+    # uploaded and ecli's publish-release waited out its 30 minutes and failed.
+    # Two runs for the same commit still serialize, which is what makes the
+    # "reuse the release the other workflow created" path below deterministic.
     concurrency:
-      group: release-tag-${{ github.repository }}-${{ github.ref_name }}
+      group: release-tag-${{ github.repository }}-${{ github.sha }}
       cancel-in-progress: false
     outputs:
       version: ${{ steps.resolve.outputs.result }}
@@ -93,35 +100,52 @@ jobs:
               return nextTag;
             }
 
-            try {
-              const created = await github.rest.repos.createRelease({
-                owner,
-                repo,
-                tag_name: nextTag,
-                draft: true,
-                generate_release_notes: true,
-                target_commitish: context.sha,
-              });
-              core.info(`Created draft release ${created.data.tag_name} for ${context.sha}`);
-              return created.data.tag_name;
-            } catch (error) {
-              if (error.status !== 422) {
-                throw error;
+            // Separate pushes to master resolve concurrently, so a tag can be
+            // taken between the listing above and the create below. Losing that
+            // race is normal: step to the next patch number and try again
+            // instead of failing the release for the commit that lost it.
+            let tagToCreate = nextTag;
+            for (let attempt = 0; attempt < 10; attempt += 1) {
+              try {
+                const created = await github.rest.repos.createRelease({
+                  owner,
+                  repo,
+                  tag_name: tagToCreate,
+                  draft: true,
+                  generate_release_notes: true,
+                  target_commitish: context.sha,
+                });
+                core.info(`Created draft release ${created.data.tag_name} for ${context.sha}`);
+                return created.data.tag_name;
+              } catch (error) {
+                if (error.status !== 422) {
+                  throw error;
+                }
               }
 
-              const existing = await github.rest.repos.getReleaseByTag({
-                owner,
-                repo,
-                tag: nextTag,
-              });
-
-              if (existing.data.target_commitish !== context.sha) {
-                core.setFailed(
-                  `Release tag ${nextTag} already points at ${existing.data.target_commitish}, expected ${context.sha}.`
-                );
-                return;
+              let takenBy = "another commit";
+              try {
+                const existing = await github.rest.repos.getReleaseByTag({
+                  owner,
+                  repo,
+                  tag: tagToCreate,
+                });
+                if (existing.data.target_commitish === context.sha) {
+                  core.info(`Reusing concurrently created release ${existing.data.tag_name} for ${context.sha}`);
+                  return existing.data.tag_name;
+                }
+                takenBy = existing.data.target_commitish;
+              } catch (lookupError) {
+                if (lookupError.status !== 404) {
+                  throw lookupError;
+                }
               }
 
-              core.info(`Reusing concurrently created release ${existing.data.tag_name} for ${context.sha}`);
-              return existing.data.tag_name;
+              const [major, minor, patch] = parseVersion(tagToCreate);
+              tagToCreate = `v${major}.${minor}.${patch + 1}`;
+              core.info(`Tag was taken by ${takenBy}; trying ${tagToCreate}`);
             }
+
+            core.setFailed(`Could not create a release tag for ${context.sha}`);
+            return "";
+
